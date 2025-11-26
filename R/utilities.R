@@ -597,7 +597,7 @@ clear_model_cache <- function(keep = NA, cache_dir = getOption("rbmi.cache_dir")
         )
         assert_that(assertthat::is.string(keep))   
         should_keep <- grepl(pattern = keep, x = all_model_files, fixed = TRUE)
-        all_model_files <- all_model_files[!should_keep]
+        unlink(all_model_files[!should_keep])
     } else {
         unlink(cache_dir, recursive = TRUE)
     }
