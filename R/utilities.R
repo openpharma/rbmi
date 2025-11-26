@@ -589,20 +589,18 @@ get_session_hash <- function() {
 #'
 #' @keywords internal
 clear_model_cache <- function(keep = NA, cache_dir = getOption("rbmi.cache_dir")) {
-    
-    all_model_files <- list.files(
-        cache_dir,
-        pattern = "(rbmi_MMRM_).*(\\.stan|\\.rds)",
-        full.names = TRUE
-    )
-    
     if (!is.na(keep)) {
+        all_model_files <- list.files(
+            cache_dir,
+            pattern = "(rbmi_MMRM_).*(\\.stan|\\.rds)",
+            full.names = TRUE
+        )
         assert_that(assertthat::is.string(keep))   
         should_keep <- grepl(pattern = keep, x = all_model_files, fixed = TRUE)
         all_model_files <- all_model_files[!should_keep]
+    } else {
+        unlink(cache_dir, recursive = TRUE)
     }
-    
-    unlink(all_model_files)
 }
 
 #' List of Stan Blocks
