@@ -3,7 +3,7 @@
 }
 
 #' Clean up after examples
-#' @name tidy-up-examples
+#' @name zzz-tidy-up-examples
 #' @keywords internal
 #' @examples
 #' \dontshow{
@@ -13,6 +13,8 @@
 #'    if (length(list.files(getOption('rbmi.cache_dir'))) == 0) {
 #'        unlink(getOption('rbmi.cache_dir'))
 #'    }
+#'    # just delete everything as test
+#'    unlink(getOption('rbmi.cache_dir'), recursive = TRUE)
 #'    rm(e)
 #'   }
 #'   reg.finalizer(e, f = tidy_up_examples, onexit = TRUE)
