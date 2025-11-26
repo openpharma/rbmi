@@ -9,7 +9,7 @@
 #' \dontshow{
 #'   e <- environment()
 #'   tidy_up_examples <- function(e) {
-#'    clear_model_cache(keep = "")
+#'    clear_model_cache()
 #'    if (length(list.files(getOption('rbmi.cache_dir'))) == 0) {
 #'        unlink(getOption('rbmi.cache_dir'))
 #'    }

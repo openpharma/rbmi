@@ -9,4 +9,4 @@ library(rbmi)
 test_check("rbmi")
 
 # print(do.call(rbind, test_check("rbmi", testthat::ListReporter))[, c("file", "test", "real")])
-rbmi:::clear_model_cache(keep = "")
+rbmi:::clear_model_cache()
