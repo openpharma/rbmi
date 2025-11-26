@@ -5,7 +5,7 @@ on:
     paths-ignore:
       - 'misc/**'
 
-name: R-CMD-check.yaml
+name: Check for cache files & donttest
 
 permissions: read-all
 
