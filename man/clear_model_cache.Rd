@@ -4,10 +4,10 @@
 \alias{clear_model_cache}
 \title{Clear Model Cache}
 \usage{
-clear_model_cache(keep, cache_dir = getOption("rbmi.cache_dir"))
+clear_model_cache(keep = NA, cache_dir = getOption("rbmi.cache_dir"))
 }
 \arguments{
-\item{keep}{A character string that specifies which models to keep in the cache.}
+\item{keep}{A character string that specifies which models to keep in the cache. The default \code{NA} will delete all models.}
 
 \item{cache_dir}{The directory where the compiled Stan models are cached. Defaults to the option \code{rbmi.cache_dir}.}
 }

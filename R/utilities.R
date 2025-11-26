@@ -583,21 +583,26 @@ get_session_hash <- function() {
 #'
 #' Clears the compiled Stan model cache, keeping only the models that match the `keep` argument.
 #'
-#' @param keep A character string that specifies which models to keep in the cache.
+#' @param keep A character string that specifies which models to keep in the cache. The default `NA` will delete all models.
 #' @param cache_dir The directory where the compiled Stan models are cached. Defaults to the option `rbmi.cache_dir`.
 #' @return See [unlink()] for details on the return value regarding the deletion of the old model files.
 #'
 #' @keywords internal
-clear_model_cache <- function(keep, cache_dir = getOption("rbmi.cache_dir")) {
-    assert_that(assertthat::is.string(keep))
+clear_model_cache <- function(keep = NA, cache_dir = getOption("rbmi.cache_dir")) {
+    
     all_model_files <- list.files(
         cache_dir,
         pattern = "(rbmi_MMRM_).*(\\.stan|\\.rds)",
         full.names = TRUE
     )
-    should_keep <- grepl(pattern = keep, x = all_model_files, fixed = TRUE)
-    old_model_files <- all_model_files[!should_keep]
-    unlink(old_model_files)
+    
+    if (!is.na(keep)) {
+        assert_that(assertthat::is.string(keep))   
+        should_keep <- grepl(pattern = keep, x = all_model_files, fixed = TRUE)
+        all_model_files <- all_model_files[!should_keep]
+    }
+    
+    unlink(all_model_files)
 }
 
 #' List of Stan Blocks
