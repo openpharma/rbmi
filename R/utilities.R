@@ -711,7 +711,7 @@ find_stan_file <- function(file, subdir = "") {
     }
 }
 
-#' Get a unique hash
+#' Get unique hash
 #'
 #' Gets a unique string on the string content but also including the current session
 #' packages + R version

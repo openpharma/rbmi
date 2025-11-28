@@ -20,6 +20,4 @@ if (is_local_test()) {
         },
         teardown_env()
     )
-} else {
-    options("rbmi.enable_cache" = FALSE)
 }
