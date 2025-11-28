@@ -22,7 +22,7 @@ jobs:
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-      R_TEST_FULL: 'TRUE' 
+      RBMI_TEST_FULL: 'TRUE' 
 
     steps:
       - name: Checkout

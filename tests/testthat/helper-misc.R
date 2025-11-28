@@ -112,10 +112,10 @@ is_envvar_true <- function(var) {
 }
 
 is_local_test <- function() {
-    is_envvar_true("R_TEST_LOCAL") || is_envvar_true("R_TEST_FULL")
+    is_envvar_true("RBMI_TEST_LOCAL") || is_envvar_true("RBMI_TEST_FULL")
 }
 is_full_test <- function() {
-    is_envvar_true("R_TEST_FULL")
+    is_envvar_true("RBMI_TEST_FULL")
 }
 
 # Simple function to enable 1 function mocks
