@@ -557,48 +557,7 @@ ensure_rstan <- function() {
     }
 }
 
-#' Get session hash
-#'
-#' Gets a unique string based on the current R version and relevant packages.
-#' @importFrom utils sessionInfo
-#' @keywords internal
-get_session_hash <- function() {
-    pkg_versions <- vapply(
-        sessionInfo(c("rbmi", "rstan", "Rcpp", "RcppEigen"))[["otherPkgs"]],
-        function(x) x[["Version"]],
-        character(1L)
-    )
-    version_string <- paste0(
-        R.version.string,
-        paste0(names(pkg_versions), pkg_versions, collapse = ":")
-    )
-    temp_file <- tempfile()
-    writeLines(version_string, temp_file)
-    hash <- tools::md5sum(temp_file)
-    unlist(temp_file)
-    return(hash)
-}
 
-#' Clear Model Cache
-#'
-#' Clears the compiled Stan model cache, keeping only the models that match the `keep` argument.
-#'
-#' @param keep A character string that specifies which models to keep in the cache.
-#' @param cache_dir The directory where the compiled Stan models are cached. Defaults to the option `rbmi.cache_dir`.
-#' @return See [unlink()] for details on the return value regarding the deletion of the old model files.
-#'
-#' @keywords internal
-clear_model_cache <- function(keep, cache_dir = getOption("rbmi.cache_dir")) {
-    assert_that(assertthat::is.string(keep))
-    all_model_files <- list.files(
-        cache_dir,
-        pattern = "(rbmi_MMRM_).*(\\.stan|\\.rds)",
-        full.names = TRUE
-    )
-    should_keep <- grepl(pattern = keep, x = all_model_files, fixed = TRUE)
-    old_model_files <- all_model_files[!should_keep]
-    unlink(old_model_files)
-}
 
 #' List of Stan Blocks
 #'
@@ -752,6 +711,31 @@ find_stan_file <- function(file, subdir = "") {
     }
 }
 
+#' Get a unique hash
+#'
+#' Gets a unique string on the string content but also including the current session
+#' packages + R version
+#'
+#' @importFrom utils sessionInfo
+#' @keywords internal
+get_unique_hash <- function(content) {
+    pkg_versions <- vapply(
+        sessionInfo(c("rbmi", "rstan", "Rcpp", "RcppEigen"))[["otherPkgs"]],
+        function(x) x[["Version"]],
+        character(1L)
+    )
+    version_string <- paste0(
+        R.version.string,
+        paste0(names(pkg_versions), pkg_versions, collapse = ":")
+    )
+    temp_file <- tempfile()
+    writeLines(paste0(version_string, content, sep = "\n"), temp_file)
+    hash <- tools::md5sum(temp_file)
+    unlist(temp_file)
+    hash
+}
+
+
 #' Get Compiled Stan Object
 #'
 #' Gets a compiled Stan object that can be used with `rstan::sampling()`,
@@ -791,10 +775,8 @@ get_stan_model <- function(covariance, prior_cov) {
     ensure_rstan()
 
     # Find the correct MMRM and covariance prior model Stan files.
-    file_loc_mmrm <- find_stan_file("MMRM.stan")
-    cov_prior_file <- paste0(covariance, "_", prior_cov, ".stan")
     file_loc_cov_prior <- find_stan_file(
-        cov_prior_file,
+        paste0(covariance, "_", prior_cov, ".stan"),
         subdir = "covariance_priors"
     )
 
@@ -810,45 +792,58 @@ get_stan_model <- function(covariance, prior_cov) {
     cov_prior_blocks <- as_stan_fragments(cov_prior_string)
     cov_prior_blocks <- lapply(cov_prior_blocks, paste, collapse = "\n")
 
-    # Decide file location for the final Stan model file.
-    cache_dir <- getOption("rbmi.cache_dir")
-    dir.create(cache_dir, showWarnings = FALSE, recursive = TRUE)
-    session_hash <- get_session_hash()
-    model_name <- paste0("rbmi_MMRM_", covariance, "_", prior_cov)
-    file_name <- paste0(model_name, "_", session_hash, ".stan")
-    model_file <- file.path(cache_dir, file_name)
-
     # If it does not exist yet, create the model file from the template
     # and save it to the cache directory.
-    if (!file.exists(model_file)) {
-        model_template <- jinjar::parse_template(
-            fs::path(file_loc_mmrm),
-            .config = jinjar::jinjar_config(
-                trim_blocks = TRUE,
-                lstrip_blocks = TRUE
-            )
+    model_template <- jinjar::parse_template(
+        fs::path(find_stan_file("MMRM.stan")),
+        .config = jinjar::jinjar_config(
+            trim_blocks = TRUE,
+            lstrip_blocks = TRUE
         )
-        model_data <- c(
-            cov_prior_blocks,
-            machine_double_eps = .Machine$double.eps
-        )
-        model_string <- do.call(
-            jinjar::render,
-            c(
-                list(.x = model_template),
-                model_data
-            )
-        )
-        clear_model_cache(keep = session_hash)
-        writeLines(model_string, model_file)
-    }
-
-    rstan::stan_model(
-        file = model_file,
-        auto_write = getOption("rbmi.enable_cache"),
-        model_name = model_name
     )
+    model_data <- c(
+        cov_prior_blocks,
+        machine_double_eps = .Machine$double.eps
+    )
+    model_string <- do.call(
+        jinjar::render,
+        c(
+            list(.x = model_template),
+            model_data
+        )
+    )
+
+    model_name <- paste0("rbmi_MMRM_", covariance, "_", prior_cov)
+    if (getOption("rbmi.enable_cache")) {
+        cache_dir <- getOption("rbmi.cache_dir")
+        if (
+            is.null(cache_dir) || is.na(cache_dir) ||
+                length(cache_dir) != 1 || !is.character(cache_dir) ||
+                cache_dir == "" || nchar(cache_dir) == 0
+        ) {
+            stop("option(rbmi.cache_dir) is not a valid directory path")
+        }
+        dir.create(cache_dir, showWarnings = FALSE, recursive = TRUE)
+        file_name <- paste0(model_name, "_", get_unique_hash(model_string), ".stan")
+        file_path <- file.path(cache_dir, file_name)
+        if (!file.exists(file_path)) {
+            writeLines(model_string, file_path)
+        }
+        model <- rstan::stan_model(
+            file = file_path,
+            model_name = model_name,
+            auto_write = TRUE
+        )
+    } else {
+        model <- rstan::stan_model(
+            model_code = model_string,
+            model_name = model_name,
+            auto_write = FALSE
+        )
+    }
+    model
 }
+
 
 #' rbmi settings
 #'
@@ -862,7 +857,7 @@ get_stan_model <- function(covariance, prior_cov) {
 #'
 #' ## `rbmi.cache_dir`
 #'
-#' Default = `tools::R_user_dir("rbmi", which = "cache")`
+#' Default = `tempfile()`
 #'
 #' Directory to store compiled Stan models in to avoid having to re-compile.
 #' If the environment variable `RBMI_CACHE_DIR` has been set this will be used
@@ -871,11 +866,8 @@ get_stan_model <- function(covariance, prior_cov) {
 #' (that is say multiple calls to `Rscript` at once) then there is a theoretical
 #' risk of the processes breaking each other as they attempt to read/write to the
 #' same cache folder at the same time. To avoid this potential issue it is recommended
-#' to set the cache directory to a unique folder for each R session e.g.
-#'
-#' ```
-#' options("rbmi.cache_dir" = tempdir(check = TRUE))
-#' ```
+#' to leave this value at the default which will result in a unique cache for each
+#' process
 #'
 #' ## `rbmi.enable_cache`
 #'
@@ -889,12 +881,16 @@ get_stan_model <- function(covariance, prior_cov) {
 #' @examples
 #' \dontrun{
 #' options(rbmi.cache_dir = "some/directory/path")
+#' options(rbmi.enable_cache = FALSE)
 #' }
 #' @name rbmi-settings
 set_options <- function() {
     cache_dir <- Sys.getenv(
         "RBMI_CACHE_DIR",
-        unset = tools::R_user_dir("rbmi", which = "cache")
+        unset = {
+            dir.create(fi <- tempfile())
+            fi
+        }
     )
     enable_cache <- isTRUE(as.logical(Sys.getenv(
         "RBMI_ENABLE_CACHE",

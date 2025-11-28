@@ -248,23 +248,6 @@ test_that("Stack", {
     expect_error(mstack$pop(1), "items to return")
 })
 
-test_that("clear_model_cache", {
-    td <- tempdir()
-    files <- c(
-        file.path(td, "rbmi_MMRM_123.rds"),
-        file.path(td, "rbmi_MMRM_123.stan"),
-        file.path(td, "rbmi_MMRM_456.stan"),
-        file.path(td, "rbmi_MMRM_456.rds"),
-        file.path(td, "rbmi_MMRM_456.log")
-    )
-    expect_equal(file.create(files), rep(TRUE, 5))
-    clear_model_cache(keep = "456", cache_dir = td)
-    expect_equal(
-        file.exists(files),
-        c(FALSE, FALSE, TRUE, TRUE, TRUE)
-    )
-    file.remove(files[5])
-})
 
 test_that("format_method_descriptions", {
     method <- list(
