@@ -719,8 +719,14 @@ find_stan_file <- function(file, subdir = "") {
 #' @importFrom utils sessionInfo
 #' @keywords internal
 get_unique_hash <- function(content) {
+    target_pkgs <- c("rbmi", "rstan", "Rcpp", "RcppEigen")
+    session_info <- c(
+        sessionInfo()[["otherPkgs"]],
+        sessionInfo()[["loadedOnly"]]
+    )
+    available_packages <- target_pkgs[target_pkgs %in% names(session_info)]
     pkg_versions <- vapply(
-        sessionInfo(c("rbmi", "rstan", "Rcpp", "RcppEigen"))[["otherPkgs"]],
+        session_info[available_packages],
         function(x) x[["Version"]],
         character(1L)
     )
