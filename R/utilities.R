@@ -716,23 +716,24 @@ find_stan_file <- function(file, subdir = "") {
 #' Gets a unique string on the string content but also including the current session
 #' packages + R version
 #'
-#' @importFrom utils sessionInfo
+#' @importFrom utils packageVersion installed.packages
 #' @keywords internal
 get_unique_hash <- function(content) {
-    target_pkgs <- c("rbmi", "rstan", "Rcpp", "RcppEigen")
-    session_info <- c(
-        sessionInfo()[["otherPkgs"]],
-        sessionInfo()[["loadedOnly"]]
-    )
-    available_packages <- target_pkgs[target_pkgs %in% names(session_info)]
+    installed_packages <- installed.packages()
     pkg_versions <- vapply(
-        session_info[available_packages],
-        function(x) x[["Version"]],
-        character(1L)
+        c("rbmi", "rstan", "Rcpp", "RcppEigen"),
+        function(pkg) {
+            if (pkg %in% rownames(installed_packages)) {
+                return(sprintf("%s_%s", pkg, packageVersion(pkg)))
+            }
+            return(sprintf("%s_UNKNOWN", pkg))
+        },
+        character(1),
+        USE.NAMES = FALSE
     )
     version_string <- paste0(
         R.version.string,
-        paste0(names(pkg_versions), pkg_versions, collapse = ":")
+        paste0(pkg_versions, collapse = " - ")
     )
     temp_file <- tempfile()
     writeLines(paste0(version_string, content, sep = "\n"), temp_file)
@@ -894,7 +895,7 @@ set_options <- function() {
     cache_dir <- Sys.getenv(
         "RBMI_CACHE_DIR",
         unset = {
-            dir.create(fi <- tempfile())
+            dir.create(fi <- tempfile(tmpdir = tempdir(check = TRUE)))
             fi
         }
     )
