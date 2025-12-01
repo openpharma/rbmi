@@ -22,7 +22,7 @@ jobs:
       image: ${{ matrix.config.image }}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-      R_TEST_FULL: 'FALSE'
+      RBMI_TEST_FULL: 'FALSE'
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -33,6 +33,17 @@ jobs:
       - name: Check
         uses: ./.github/actions/rcmdcheck
 
+  rcmdcheck-donttest:
+    runs-on: ubuntu-latest
+    container:
+      image: "ghcr.io/${{ github.repository_owner }}/rbmi:latest"
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Check
+        run: ./tests/scripts/rcmdcheck_donttest.sh
 
   vignettes:
     strategy:
