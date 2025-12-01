@@ -12,32 +12,32 @@
             "options": { "cwd": "${workspaceFolder}" }
         },
         {
-            "label": "rbmi - rcmdcheck",
-            "command": "${workspaceFolder}/tests/scripts/rcmdcheck.sh",
+            "label": "rbmi - Documentation",
+            "command": "${workspaceFolder}/tests/scripts/documentation.sh",
             "group": "test",
             "presentation": { "clear": true, "panel": "dedicated" },
             "problemMatcher": "$testthat",
             "options": { "cwd": "${workspaceFolder}" }
         },
         {
-            "label": "rbmi - rcmdcheck (donttest)",
-            "command": "${workspaceFolder}/tests/scripts/rcmdcheck_donttest.sh",
+            "label": "rbmi - CRAN",
+            "command": "${workspaceFolder}/tests/scripts/cran.sh",
             "group": "test",
             "presentation": { "clear": true, "panel": "dedicated" },
             "problemMatcher": "$testthat",
             "options": { "cwd": "${workspaceFolder}" }
         },
         {
-            "label": "rbmi - testthat",
-            "command": "${workspaceFolder}/tests/scripts/testthat.sh",
+            "label": "rbmi - Core tests",
+            "command": "${workspaceFolder}/tests/scripts/core.sh",
             "group": "test",
             "presentation": { "clear": true, "panel": "dedicated" },
             "problemMatcher": "$testthat",
             "options": { "cwd": "${workspaceFolder}" }
         },
         {
-            "label": "rbmi - testthat (FULL)",
-            "command": "${workspaceFolder}/tests/scripts/testthat-full.sh",
+            "label": "rbmi - Extended tests",
+            "command": "${workspaceFolder}/tests/scripts/extended.sh",
             "group": "test",
             "presentation": { "clear": true, "panel": "dedicated" },
             "problemMatcher": "$testthat",
