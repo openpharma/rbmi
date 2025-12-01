@@ -738,7 +738,7 @@ get_unique_hash <- function(content) {
     temp_file <- tempfile()
     writeLines(paste0(version_string, content, sep = "\n"), temp_file)
     hash <- tools::md5sum(temp_file)
-    unlist(temp_file)
+    unlink(temp_file)
     hash
 }
 
