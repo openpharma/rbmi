@@ -20,8 +20,8 @@ docker run \
     --rm \
     -it \
     --platform linux/amd64 \
-    rbmi:local \
     -v $(pwd):/app \
+    rbmi:local \
     bash
 
 
