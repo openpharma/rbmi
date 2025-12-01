@@ -77,7 +77,10 @@ export _R_CHECK_THINGS_IN_OTHER_DIRS_=true
 
 
 R CMD build "${PKGDIR}"
-R CMD check --run-donttest --output=${temp_dir} ${temp_dir}/*.tar.gz
+R CMD check \
+    --run-donttest \
+    --output=${temp_dir} \
+    ${temp_dir}/*.tar.gz
 
 if [ $? -ne 0 ]; then
     exit 1

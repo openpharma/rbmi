@@ -7,7 +7,14 @@ on:
   schedule:
     - cron: '0 5 1 * *'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Docker image tag'
+        required: true
+        type: string
   push:
+    branches:
+      - main
     paths:
       - 'misc/docker/**'
       - 'misc/docker/*'
@@ -46,16 +53,12 @@ jobs:
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
           if [ "$BRANCH_NAME" = "main" ]; then
             TAG="latest"
+          elif [ "${{ github.event_name }}" -eq "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
           else
-            TAG="${BRANCH_NAME}"
+            TAG="unkown"
           fi
-          echo "tag=rbmi:${TAG}" >> $GITHUB_OUTPUT
-
-      - name: debug
-        run: |
-          echo push = ${{ github.event_name == 'push' }}
-          echo tag = ${{ env.REGISTRY }}/${{ github.repository_owner }}:${{ steps.vars.outputs.tag }}
-
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
 
       - name: Build and push image 
         uses: docker/build-push-action@v6
@@ -63,7 +66,7 @@ jobs:
           context: .
           file: ./misc/docker/Dockerfile
           push: ${{ github.ref == 'refs/heads/main' }}
-          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}:${{ steps.vars.outputs.tag }}
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/rbmi:${{ steps.vars.outputs.tag }}
           build-args: |
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}:latest
-          cache-to: type=inline
+            cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}
+            cache-to: type=inline

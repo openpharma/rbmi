@@ -1,19 +1,13 @@
-# Determine which OS we are on
-# Rocker images are Ubuntu based so should be jammy / focal / etc
-OS_CODENAME <- system(
-    'cat /etc/os-release | grep "VERSION_CODENAME" | sed -e "s/VERSION_CODENAME=//"',
-    intern = TRUE
-)
-
-# Configure PPM URL for binary package installation
-CRANURL <- sprintf(
-    "https://packagemanager.posit.co/cran/__linux__/%s/latest",
-    OS_CODENAME
-)
 
 # Configure useragent to enable binary package installation from PPM
 options(
-    "repos" = list("CRAN" = CRANURL),
+    repos = c(
+        CRAN = sprintf(
+            "https://packagemanager.posit.co/cran/latest/bin/linux/noble-%s/%s",
+            R.version["arch"],
+            substr(getRversion(), 1, 3)
+        )
+    ),
     "HTTPUserAgent" = sprintf(
         "R/%s R (%s)",
         getRversion(),
