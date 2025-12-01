@@ -893,10 +893,7 @@ get_stan_model <- function(covariance, prior_cov) {
 set_options <- function() {
     cache_dir <- Sys.getenv(
         "RBMI_CACHE_DIR",
-        unset = {
-            dir.create(fi <- tempfile(tmpdir = tempdir(check = TRUE)))
-            fi
-        }
+        unset = tempfile(tmpdir = tempdir(check = TRUE))
     )
     enable_cache <- isTRUE(as.logical(Sys.getenv(
         "RBMI_ENABLE_CACHE",
