@@ -95,7 +95,7 @@ test_that("print - approx bayes", {
 
 
 test_that("print - bayesian", {
-    skip_if_not(is_local_test())
+    skip_if_not(is_core_test())
     set.seed(413)
     dobj <- test_print_get_data(40)
 

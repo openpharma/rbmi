@@ -300,7 +300,7 @@ test_that("as_stan_fragments works as expected", {
 })
 
 test_that("get_stan_model works as expected depending on covariance and prior on parameters", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     local_cache_dir <- withr::local_tempdir()
     withr::local_options(rbmi.cache_dir = local_cache_dir)

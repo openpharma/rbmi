@@ -7,7 +7,7 @@
 # https://testthat.r-lib.org/articles/special-files.html#setup-files
 #
 
-# Default cache to being disabled unless running within a local-test
-if (!is_local_test()) {
+# Default cache to being disabled unless running a core or extended tests
+if (!is_core_test()) {
     options("rbmi.enable_cache" = FALSE)
 }
