@@ -799,8 +799,6 @@ get_stan_model <- function(covariance, prior_cov) {
     cov_prior_blocks <- as_stan_fragments(cov_prior_string)
     cov_prior_blocks <- lapply(cov_prior_blocks, paste, collapse = "\n")
 
-    # If it does not exist yet, create the model file from the template
-    # and save it to the cache directory.
     model_template <- jinjar::parse_template(
         fs::path(find_stan_file("MMRM.stan")),
         .config = jinjar::jinjar_config(
@@ -845,7 +843,8 @@ get_stan_model <- function(covariance, prior_cov) {
         model <- rstan::stan_model(
             model_code = model_string,
             model_name = model_name,
-            auto_write = FALSE
+            auto_write = FALSE,
+            save_dso = FALSE
         )
     }
     model
