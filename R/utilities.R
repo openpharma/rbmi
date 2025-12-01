@@ -895,11 +895,8 @@ set_options <- function() {
         "RBMI_CACHE_DIR",
         unset = tempfile(tmpdir = tempdir(check = TRUE))
     )
-    enable_cache <- isTRUE(as.logical(Sys.getenv(
-        "RBMI_ENABLE_CACHE",
-        unset = "TRUE"
-    )))
-
+    enable_cache_str <- Sys.getenv("RBMI_ENABLE_CACHE", unset = "TRUE")
+    enable_cache <- toupper(enable_cache_str) %in% c("Y", "YES", "T", "TRUE")
     current_opts <- names(options())
     rbmi_opts <- list(
         rbmi.cache_dir = cache_dir,
