@@ -8,6 +8,6 @@
 #
 
 # Default cache to being disabled unless running a core or extended tests
-if (!is_core_test()) {
-    options("rbmi.enable_cache" = FALSE)
+if (is_core_test()) {
+    options("rbmi.enable_cache" = TRUE)
 }
