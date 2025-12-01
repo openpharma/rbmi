@@ -13,6 +13,8 @@ on:
         required: true
         type: string
   push:
+    tags-ignore:
+       - '**'
     branches:
       - main
     paths:
@@ -38,12 +40,13 @@ jobs:
         id: vars
         run: |
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
-          if [ "$BRANCH_NAME" = "main" ]; then
-            TAG="latest"
-          elif [ "${{ github.event_name }}" -eq "workflow_dispatch" ]; then
-            TAG="${{ github.event.inputs.tag }}"
+          
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+             TAG="${{ github.event.inputs.tag }}"
+          elif [ "$BRANCH_NAME" = "main" ]; then
+             TAG="latest"
           else
-            TAG="unkown"
+             TAG="unknown"
           fi
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
       
