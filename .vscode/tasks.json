@@ -42,6 +42,17 @@
             "presentation": { "clear": true, "panel": "dedicated" },
             "problemMatcher": "$testthat",
             "options": { "cwd": "${workspaceFolder}" }
+        },
+        {
+            "label": "rbmi - All tests",
+            "dependsOn": [
+                "rbmi - Vignettes",
+                "rbmi - Documentation",
+                "rbmi - CRAN",
+                "rbmi - Core tests"
+            ],
+            "group": "test",
+            "problemMatcher": []
         }
     ]
 }
