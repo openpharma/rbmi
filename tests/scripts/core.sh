@@ -12,4 +12,4 @@ RBMI_TEST_EXTENDED  = ${RBMI_TEST_EXTENDED}
 
 "
 
-Rscript vignettes/build.R
+Rscript -e "devtools::test()"

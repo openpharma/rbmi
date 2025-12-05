@@ -127,7 +127,7 @@ advanced_bayes_test <- function(cov_struct, ...) {
 }
 
 test_that("Basic Usage - Approx Bayes", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(1512)
 
@@ -195,7 +195,7 @@ test_that("Basic Usage - Approx Bayes", {
 
 
 test_that("Basic Usage - Bayesian", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(5123)
 
@@ -287,70 +287,70 @@ test_that("Basic Usage - Bayesian", {
 
 
 test_that("Advanced Usage - Bayesian with AR1 covariance model", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(5123)
     advanced_bayes_test("ar1")
 })
 
 test_that("Advanced Usage - Bayesian with heterogeneous AR1 covariance model", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(5521)
     advanced_bayes_test("ar1h")
 })
 
 test_that("Advanced Usage - Bayesian with unstructured covariance model and LKJ prior", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(5346)
     advanced_bayes_test(cov_struct = "us", prior_cov = "lkj")
 })
 
 test_that("Advanced Usage - Bayesian with compound symmetry covariance model", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(8579)
     advanced_bayes_test("cs")
 })
 
 test_that("Advanced Usage - Bayesian with heterogeneous compound symmetry covariance model", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(8579)
     advanced_bayes_test("csh")
 })
 
 test_that("Advanced Usage - Bayesian with antedependence covariance model", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(3546)
     advanced_bayes_test("ad")
 })
 
 test_that("Advanced Usage - Bayesian with heterogeneous antedependence covariance model", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(2341)
     advanced_bayes_test("adh")
 })
 
 test_that("Advanced Usage - Bayesian with Toeplitz covariance model", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(3046)
     advanced_bayes_test("toep")
 })
 
 test_that("Advanced Usage - Bayesian with heterogeneous Toeplitz covariance model", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(4341)
     advanced_bayes_test("toeph")
 })
 
 test_that("Basic Usage - Condmean", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(4642)
 
@@ -438,7 +438,7 @@ test_that("Basic Usage - Condmean", {
 
 
 test_that("Custom Strategies and Custom analysis functions", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(8368)
 
@@ -561,7 +561,7 @@ test_that("Custom Strategies and Custom analysis functions", {
 
 
 test_that("Sorting doesn't change results", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(4642)
 
@@ -643,7 +643,7 @@ test_that("Sorting doesn't change results", {
 
 
 test_that("Multiple imputation references / groups work as expected (end to end checks)", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     extract_ci <- function(x, ref) {
         x_imp <- impute(x, ref)
@@ -801,7 +801,7 @@ test_that("Multiple imputation references / groups work as expected (end to end 
 
 
 test_that("rbmi works for one arm trials", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     # ancova cannot be applied for 1 arm trial. Use a custom analysis function
     myanalysis <- function(data, ...) {

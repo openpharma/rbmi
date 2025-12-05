@@ -4,7 +4,7 @@ suppressPackageStartupMessages({
 
 
 test_that("Results are Reproducible", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     run_test <- function(method) {
         set.seed(4642)
@@ -96,7 +96,7 @@ test_that("Results are Reproducible", {
 
 
 test_that("bayes - set.seed produces identical results", {
-    skip_if_not(is_local_test())
+    skip_if_not(is_core_test())
     sigma <- as_vcov(c(2, 1, 0.7), c(0.5, 0.3, 0.2))
     dat <- get_sim_data(200, sigma, trt = 8) %>%
         mutate(outcome = if_else(rbinom(n(), 1, 0.3) == 1, NA_real_, outcome))
@@ -140,7 +140,7 @@ test_that("bayes - set.seed produces identical results", {
 
 
 test_that("Results are if model is recompiled", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     run_test <- function() {
         set.seed(4642)

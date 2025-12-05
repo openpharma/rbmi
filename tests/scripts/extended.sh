@@ -1,6 +1,6 @@
 
 export RBMI_CACHE_DIR="${RBMI_CACHE_DIR:-$(pwd)/local}"
-export RBMI_TEST_EXTENDED=FALSE
+export RBMI_TEST_EXTENDED=TRUE
 export RBMI_TEST_CORE=TRUE
 
 echo "
@@ -12,4 +12,4 @@ RBMI_TEST_EXTENDED  = ${RBMI_TEST_EXTENDED}
 
 "
 
-Rscript vignettes/build.R
+Rscript -e "devtools::test()"

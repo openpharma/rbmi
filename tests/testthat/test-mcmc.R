@@ -154,7 +154,7 @@ test_that("split_dim creates a list from an array as expected", {
 
 
 test_that("Verbose suppression works", {
-    skip_if_not(is_local_test())
+    skip_if_not(is_core_test())
     set.seed(301)
     sigma <- as_vcov(c(6, 4, 4), c(0.5, 0.2, 0.3))
     dat <- get_sim_data(50, sigma)
@@ -462,63 +462,63 @@ test_prepare_prior_params <- function(cov_struct, expected_params_dim) {
 }
 
 test_that("prepare_prior_params works for AR1", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(2151)
     test_prepare_prior_params("ar1", c("sd_par" = 1, "rho_par" = 1))
 })
 
 test_that("prepare_prior_params works for heterogeneous AR1", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(2153)
     test_prepare_prior_params("ar1h", c("sds_par" = 3, "rho_par" = 1))
 })
 
 test_that("prepare_prior_params works for compound symmetry", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(2151)
     test_prepare_prior_params("cs", c("sd_par" = 1, "rho_par" = 1))
 })
 
 test_that("prepare_prior_params works for heterogeneous compound symmetry", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(2153)
     test_prepare_prior_params("csh", c("sds_par" = 3, "rho_par" = 1))
 })
 
 test_that("prepare_prior_params works for antedependence", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(2151)
     test_prepare_prior_params("ad", c("sd_par" = 1, "rhos_par" = 2))
 })
 
 test_that("prepare_prior_params works for heterogeneous antedependence", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(2153)
     test_prepare_prior_params("adh", c("sds_par" = 3, "rhos_par" = 2))
 })
 
 test_that("prepare_prior_params works for Toeplitz", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(2111)
     test_prepare_prior_params("toep", c("sd_par" = 1, "rhos_par" = 2))
 })
 
 test_that("prepare_prior_params works for heterogeneous Toeplitz", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(2143)
     test_prepare_prior_params("toeph", c("sds_par" = 3, "rhos_par" = 2))
 })
 
 test_that("fit_mcmc can recover known values with same_cov = TRUE", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(2151)
 
@@ -696,7 +696,7 @@ test_that("fit_mcmc returns error if mmrm on original sample fails", {
 
 
 test_that("fit_mcmc can recover known values with same_cov = FALSE", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(151)
 
@@ -823,7 +823,7 @@ test_that("burn_in and burn_between arguments to method_bayes are deprecated", {
 })
 
 test_that("fit_mcmc works with multiple chains", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     set.seed(3459)
 
@@ -942,7 +942,7 @@ test_fit_mcmc <- function(
 }
 
 test_that("fit_mcmc works with AR1 covariance model", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     rho <- 0.3
     ar1_corr <- ar1_matrix(rho, 3)
@@ -960,7 +960,7 @@ test_that("fit_mcmc works with AR1 covariance model", {
 })
 
 test_that("fit_mcmc works with unstructured covariance model with LKJ prior", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     sigma <- as_vcov(c(3, 5, 7), c(0.1, 0.4, 0.7))
 
@@ -975,7 +975,7 @@ test_that("fit_mcmc works with unstructured covariance model with LKJ prior", {
 })
 
 test_that("fit_mcmc works with heterogeneous AR1 covariance model", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     rho <- 0.5
     ar1_corr <- ar1_matrix(rho, 3)
@@ -993,7 +993,7 @@ test_that("fit_mcmc works with heterogeneous AR1 covariance model", {
 })
 
 test_that("fit_mcmc works with compound symmetry covariance model", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     rho <- 0.5
     cs_corr <- cs_matrix(rho, 3)
@@ -1011,7 +1011,7 @@ test_that("fit_mcmc works with compound symmetry covariance model", {
 })
 
 test_that("fit_mcmc works with heterogeneous compound symmetry covariance model", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     rho <- 0.5
     cs_corr <- cs_matrix(rho, 3)
@@ -1029,7 +1029,7 @@ test_that("fit_mcmc works with heterogeneous compound symmetry covariance model"
 })
 
 test_that("fit_mcmc works with antedependence covariance model", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     rhos <- c(0.5, 0.4)
     ad_corr <- ad_matrix(rhos)
@@ -1047,7 +1047,7 @@ test_that("fit_mcmc works with antedependence covariance model", {
 })
 
 test_that("fit_mcmc works with heterogeneous antedependence covariance model", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     rhos <- c(0.5, 0.4)
     ad_corr <- ad_matrix(rhos)
@@ -1065,7 +1065,7 @@ test_that("fit_mcmc works with heterogeneous antedependence covariance model", {
 })
 
 test_that("fit_mcmc works with Toeplitz covariance model", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     rhos <- c(0.5, 0.4)
     toep_corr <- toep_matrix(rhos)
@@ -1083,7 +1083,7 @@ test_that("fit_mcmc works with Toeplitz covariance model", {
 })
 
 test_that("fit_mcmc works with heterogeneous Toeplitz covariance model", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     rhos <- c(0.5, 0.4)
     toep_corr <- toep_matrix(rhos)

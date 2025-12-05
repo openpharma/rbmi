@@ -49,11 +49,11 @@ This project uses `testthat` to perform unit testing in combination with GitHub 
 
 Due to the stochastic nature of this package some unit tests take a considerable amount of time to execute. To avoid issues with usability, unit tests that take more than a couple of seconds to run should be deferred to the scheduled testing. These are tests that are only run occasionally on a periodic basis (currently twice a month) and not on every pull request / push event.
 
-To defer a test to the scheduled build simply include `skip_if_not(is_full_test())` to the top of the `test_that()` block i.e.
+To defer a test to the scheduled build simply include `skip_if_not(is_extended_test())` to the top of the `test_that()` block i.e.
 
 ```r
 test_that("some unit test", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
     expect_equal(1,1)
 })
 ```

@@ -7,7 +7,16 @@ on:
   schedule:
     - cron: '0 5 1 * *'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Docker image tag'
+        required: true
+        type: string
   push:
+    tags-ignore:
+       - '**'
+    branches:
+      - main
     paths:
       - 'misc/docker/**'
       - 'misc/docker/*'
@@ -26,44 +35,45 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        id: buildx
-        with:
-          install: true
-
+      
+      - name: Determine image tag
+        id: vars
+        run: |
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+             TAG="${{ github.event.inputs.tag }}"
+          elif [ "$BRANCH_NAME" = "main" ]; then
+             TAG="latest"
+          else
+             TAG="unknown"
+          fi
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+      
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Determine image tag
-        id: vars
-        run: |
-          BRANCH_NAME=${GITHUB_REF#refs/heads/}
-          if [ "$BRANCH_NAME" = "main" ]; then
-            TAG="latest"
-          else
-            TAG="${BRANCH_NAME}"
-          fi
-          echo "tag=rbmi:${TAG}" >> $GITHUB_OUTPUT
-
-      - name: debug
-        run: |
-          echo push = ${{ github.event_name == 'push' }}
-          echo tag = ${{ env.REGISTRY }}/${{ github.repository_owner }}:${{ steps.vars.outputs.tag }}
-
-
+      
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        id: buildx
+        with:
+          install: true
+      
       - name: Build and push image 
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./misc/docker/Dockerfile
-          push: ${{ github.ref == 'refs/heads/main' }}
-          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}:${{ steps.vars.outputs.tag }}
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/rbmi:${{ steps.vars.outputs.tag }}
           build-args: |
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}:latest
-          cache-to: type=inline
+            cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}
+            cache-to: type=inline

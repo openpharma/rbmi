@@ -1,0 +1,52 @@
+
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'misc/**'
+    branches:
+      - main
+
+name: On Pull Request
+
+jobs:
+  
+  core:
+    runs-on: ubuntu-latest
+    container:
+      image: "ghcr.io/${{ github.repository_owner }}/rbmi:latest"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Check
+        run: tests/scripts/core.sh
+
+  cran:
+    runs-on: ubuntu-latest
+    container:
+      image: "ghcr.io/${{ github.repository_owner }}/rbmi:latest"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Check
+        run: ./tests/scripts/cran.sh
+
+  vignettes:
+    runs-on: ubuntu-latest
+    container:
+      image: "ghcr.io/${{ github.repository_owner }}/rbmi:latest"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Build Vignettes
+        run: ./tests/scripts/vignettes.sh
+
+  documentation:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/rbmi:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Check
+        run: ./tests/scripts/documentation.sh
