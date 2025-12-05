@@ -1,0 +1,17 @@
+# As array
+
+Converts a numeric value of length 1 into a 1 dimension array. This is
+to avoid type errors that are thrown by stan when length 1 numeric
+vectors are provided by R for stan::vector inputs
+
+## Usage
+
+``` r
+as_stan_array(x)
+```
+
+## Arguments
+
+- x:
+
+  a numeric vector

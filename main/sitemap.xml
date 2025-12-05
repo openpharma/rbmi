@@ -44,7 +44,6 @@
 <url><loc>https://insightsengineering.github.io/rbmi/reference/check_ESS.html</loc></url>
 <url><loc>https://insightsengineering.github.io/rbmi/reference/check_hmc_diagn.html</loc></url>
 <url><loc>https://insightsengineering.github.io/rbmi/reference/check_mcmc.html</loc></url>
-<url><loc>https://insightsengineering.github.io/rbmi/reference/clear_model_cache.html</loc></url>
 <url><loc>https://insightsengineering.github.io/rbmi/reference/complete_control_bayes.html</loc></url>
 <url><loc>https://insightsengineering.github.io/rbmi/reference/compute_sigma.html</loc></url>
 <url><loc>https://insightsengineering.github.io/rbmi/reference/control.html</loc></url>
@@ -79,8 +78,8 @@
 <url><loc>https://insightsengineering.github.io/rbmi/reference/get_pattern_groups.html</loc></url>
 <url><loc>https://insightsengineering.github.io/rbmi/reference/get_pattern_groups_unique.html</loc></url>
 <url><loc>https://insightsengineering.github.io/rbmi/reference/get_pool_components.html</loc></url>
-<url><loc>https://insightsengineering.github.io/rbmi/reference/get_session_hash.html</loc></url>
 <url><loc>https://insightsengineering.github.io/rbmi/reference/get_stan_model.html</loc></url>
+<url><loc>https://insightsengineering.github.io/rbmi/reference/get_unique_hash.html</loc></url>
 <url><loc>https://insightsengineering.github.io/rbmi/reference/get_visit_distribution_parameters.html</loc></url>
 <url><loc>https://insightsengineering.github.io/rbmi/reference/has_class.html</loc></url>
 <url><loc>https://insightsengineering.github.io/rbmi/reference/ife.html</loc></url>
