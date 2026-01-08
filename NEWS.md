@@ -1,4 +1,12 @@
 
+# rbmi 1.6.0
+
+* Rework of how Stan modules are compiled to avoid local file creation unless using cache
+* Caching updated to default to local session only (e.g. default cache won't persist across R sessions)
+* Bug fixes to caching hash to better detect when cache is stale
+* Rework of unit tests to have multiple tiers of tests which run under different scenarios
+
+
 # rbmi 1.5.2
 
 ## Bug Fixes

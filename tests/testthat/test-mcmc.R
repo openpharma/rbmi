@@ -640,7 +640,7 @@ test_that("fit_mcmc can recover known values with same_cov = TRUE", {
 
 test_that("fit_mcmc returns error if mmrm on original sample fails", {
     set.seed(101)
-
+    skip_if_not(is_core_test())
     mcoefs <- list(
         "int" = 10,
         "age" = 3,
