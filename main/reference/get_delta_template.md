@@ -3,7 +3,7 @@
 This function creates the default delta template (1 row per subject per
 visit) and extracts all the utility information that users need to
 define their own logic for defining delta. See
-[`delta_template()`](https://insightsengineering.github.io/rbmi/reference/delta_template.md)
+[`delta_template()`](https://openpharma.github.io/rbmi/reference/delta_template.md)
 for full details.
 
 ## Usage
@@ -17,4 +17,4 @@ get_delta_template(imputations)
 - imputations:
 
   an imputations object created by
-  [`impute()`](https://insightsengineering.github.io/rbmi/reference/impute.md).
+  [`impute()`](https://openpharma.github.io/rbmi/reference/impute.md).

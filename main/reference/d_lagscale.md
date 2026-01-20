@@ -29,5 +29,5 @@ d_lagscale(delta, dlag, is_post_ice)
 ## Details
 
 See
-[`delta_template()`](https://insightsengineering.github.io/rbmi/reference/delta_template.md)
+[`delta_template()`](https://openpharma.github.io/rbmi/reference/delta_template.md)
 for full details on how this calculation is performed.

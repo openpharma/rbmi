@@ -45,8 +45,7 @@ expand_locf(data, ..., vars, group, order)
 
 ## Details
 
-The
-[`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md)
+The [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md)
 function makes the assumption that all subjects and visits are present
 in the `data.frame` and that all covariate values are non missing;
 `expand()`, `fill_locf()` and `expand_locf()` are utility functions to

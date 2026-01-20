@@ -1,7 +1,7 @@
 # Simulate a realistic example dataset
 
 Simulate a realistic example dataset using
-[`simulate_data()`](https://insightsengineering.github.io/rbmi/reference/simulate_data.md)
+[`simulate_data()`](https://openpharma.github.io/rbmi/reference/simulate_data.md)
 with hard-coded values of all the input arguments.
 
 ## Usage
@@ -54,5 +54,5 @@ assumptions:
 
 ## See also
 
-[`simulate_data()`](https://insightsengineering.github.io/rbmi/reference/simulate_data.md),
-[`set_simul_pars()`](https://insightsengineering.github.io/rbmi/reference/set_simul_pars.md)
+[`simulate_data()`](https://openpharma.github.io/rbmi/reference/simulate_data.md),
+[`set_simul_pars()`](https://openpharma.github.io/rbmi/reference/set_simul_pars.md)

@@ -60,5 +60,5 @@ Missing Data, Second Edition. John Wiley & Sons, Hoboken, New Jersey,
 
 ## See also
 
-[`rubin_df()`](https://insightsengineering.github.io/rbmi/reference/rubin_df.md)
+[`rubin_df()`](https://openpharma.github.io/rbmi/reference/rubin_df.md)
 for the degrees of freedom estimation.

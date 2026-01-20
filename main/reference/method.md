@@ -59,7 +59,7 @@ method_bmlmi(
   single shared covariance matrix for all observations. If `FALSE` a
   separate covariance matrix will be fit for each group as determined by
   the `group` argument of
-  [`set_vars()`](https://insightsengineering.github.io/rbmi/reference/set_vars.md).
+  [`set_vars()`](https://openpharma.github.io/rbmi/reference/set_vars.md).
 
 - n_samples:
 
@@ -78,19 +78,19 @@ method_bmlmi(
 
   a list which specifies further lower level details of the
   computations. Currently only used by `method_bayes()`, please see
-  [`control_bayes()`](https://insightsengineering.github.io/rbmi/reference/control.md)
+  [`control_bayes()`](https://openpharma.github.io/rbmi/reference/control.md)
   for details and default settings.
 
 - burn_in:
 
   deprecated. Please use the `warmup` argument in
-  [`control_bayes()`](https://insightsengineering.github.io/rbmi/reference/control.md)
+  [`control_bayes()`](https://openpharma.github.io/rbmi/reference/control.md)
   instead.
 
 - burn_between:
 
   deprecated. Please use the `thin` argument in
-  [`control_bayes()`](https://insightsengineering.github.io/rbmi/reference/control.md)
+  [`control_bayes()`](https://openpharma.github.io/rbmi/reference/control.md)
   instead.
 
 - threshold:

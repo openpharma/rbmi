@@ -42,12 +42,12 @@ control_bayes(
 - ...:
 
   additional arguments to be passed to
-  [`rstan::sampling()`](https://rdrr.io/pkg/rstan/man/stanmodel-method-sampling.html).
+  [`rstan::sampling()`](https://mc-stan.org/rstan/reference/stanmodel-method-sampling.html).
 
 ## Details
 
 Currently only the Bayesian imputation via
-[`method_bayes()`](https://insightsengineering.github.io/rbmi/reference/method.md)
+[`method_bayes()`](https://openpharma.github.io/rbmi/reference/method.md)
 uses a control function:
 
 - The `init` argument can be set to `"random"` to randomly initialise
@@ -62,22 +62,22 @@ uses a control function:
 - The samples are split across the chains, such that each chain produces
   `n_samples / chains` (rounded up) samples. The total number of samples
   that will be returned across all chains is `n_samples` as specified in
-  [`method_bayes()`](https://insightsengineering.github.io/rbmi/reference/method.md).
+  [`method_bayes()`](https://openpharma.github.io/rbmi/reference/method.md).
 
 - Therefore, the additional parameters passed to
-  [`rstan::sampling()`](https://rdrr.io/pkg/rstan/man/stanmodel-method-sampling.html)
+  [`rstan::sampling()`](https://mc-stan.org/rstan/reference/stanmodel-method-sampling.html)
   must not contain `n_samples` or `iter`. Instead, the number of samples
   must only be provided directly via the `n_samples` argument of
-  [`method_bayes()`](https://insightsengineering.github.io/rbmi/reference/method.md).
+  [`method_bayes()`](https://openpharma.github.io/rbmi/reference/method.md).
   Similarly, the `refresh` argument is also not allowed here, instead
   use the `quiet` argument directly in
-  [`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md).
+  [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md).
 
 ## Note
 
 For full reproducibility of the imputation results, it is required to
 use a [`set.seed()`](https://rdrr.io/r/base/Random.html) call before
 defining the `control` list, and calling the
-[`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md)
+[`draws()`](https://openpharma.github.io/rbmi/reference/draws.md)
 function. It is not sufficient to merely set the `seed` argument in the
 `control` list.

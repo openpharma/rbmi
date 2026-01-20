@@ -1,7 +1,7 @@
 # Get Compiled Stan Object
 
 Gets a compiled Stan object that can be used with
-[`rstan::sampling()`](https://rdrr.io/pkg/rstan/man/stanmodel-method-sampling.html),
+[`rstan::sampling()`](https://mc-stan.org/rstan/reference/stanmodel-method-sampling.html),
 based on the choice of the covariance structure and the prior on the
 parameters.
 

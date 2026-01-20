@@ -36,9 +36,9 @@ accelerating rate as this percentage decreases ([Bell et al.
 
 For the purposes of this vignette we will first create a simulated
 dataset with the `rbmi` function
-[`simulate_data()`](https://insightsengineering.github.io/rbmi/reference/simulate_data.md).
+[`simulate_data()`](https://openpharma.github.io/rbmi/reference/simulate_data.md).
 The
-[`simulate_data()`](https://insightsengineering.github.io/rbmi/reference/simulate_data.md)
+[`simulate_data()`](https://openpharma.github.io/rbmi/reference/simulate_data.md)
 function generates data from a randomized clinical trial with
 longitudinal continuous outcomes and up to two different types of ICEs.
 
@@ -75,9 +75,9 @@ Specifically, we simulate a 1:1 randomized trial of an active drug
   point onward.
 
 The function
-[`simulate_data()`](https://insightsengineering.github.io/rbmi/reference/simulate_data.md)
+[`simulate_data()`](https://openpharma.github.io/rbmi/reference/simulate_data.md)
 requires 3 arguments (see the function documentation
-[`help(simulate_data)`](https://insightsengineering.github.io/rbmi/reference/simulate_data.md)
+[`help(simulate_data)`](https://openpharma.github.io/rbmi/reference/simulate_data.md)
 for more details):
 
 - `pars_c`: The simulation parameters of the control group.
@@ -87,9 +87,10 @@ for more details):
 
 Below, we report how data according to the specifications above can be
 simulated with function
-[`simulate_data()`](https://insightsengineering.github.io/rbmi/reference/simulate_data.md):
+[`simulate_data()`](https://openpharma.github.io/rbmi/reference/simulate_data.md):
 
 ``` r
+
 library(rbmi)
 library(dplyr)
 ```
@@ -106,6 +107,7 @@ library(dplyr)
     ##     intersect, setdiff, setequal, union
 
 ``` r
+
 set.seed(1392)
 
 time <- c(0, 3, 6, 9, 12)
@@ -173,6 +175,7 @@ The proportion of subjects with an ICE and the proportion of subjects
 who withdrew from the simulated study is summarized below:
 
 ``` r
+
 # Compute endpoint of interest: change from baseline
 data <- data %>% 
   filter(visit != "0") %>%
@@ -266,6 +269,7 @@ combined with the jackknife.
 ### 4.1 Basic MAR model
 
 ``` r
+
 # Define key variables for the imputation and analysis models
 vars <- set_vars(
   subjid = "id",
@@ -332,6 +336,7 @@ pool_obj_basicMAR
 ### 4.2 Retrieved dropout model 1 (RD1)
 
 ``` r
+
 # derive variable "time_since_ice1" (time since ICE in months)
 data <- data %>% 
   group_by(id) %>% 
@@ -390,6 +395,7 @@ pool_obj_RD1
 ### 4.3 Retrieved dropout model 2 (RD2)
 
 ``` r
+
 vars$covariates <- c("outcome_bl*visit", "group*visit", "ind_ice1*group*visit")
 
 draw_obj <- draws(
@@ -451,12 +457,10 @@ the retrieved dropout models compared to the basic MAR model.
 
 ## References
 
-Bell, James, Thomas Drury, Tobias Mütze, Christian Bressen Pipper,
-Lorenzo Guizzaro, Marian Mitroiu, Khadija Rerhou Rantell, Marcel
-Wolbers, and David Wright. 2025. “Estimation Methods for Estimands Using
-the Treatment Policy Strategy; a Simulation Study Based on the PIONEER 1
-Trial.” *Pharmaceutical Statistics* 24 (2): e2472.
-https://doi.org/<https://doi.org/10.1002/pst.2472>.
+Bell, James, Thomas Drury, Tobias Mütze, et al. 2025. “Estimation
+Methods for Estimands Using the Treatment Policy Strategy; a Simulation
+Study Based on the PIONEER 1 Trial.” *Pharmaceutical Statistics* 24 (2):
+e2472. https://doi.org/<https://doi.org/10.1002/pst.2472>.
 
 Drury, Thomas, Juan J Abellan, Nicky Best, and Ian R White. 2024.
 “Estimation of Treatment Policy Estimands for Continuous Outcomes Using
@@ -469,9 +473,8 @@ Estimation of the Effect of Treatment Allocation Regardless of
 Discontinuation in Trials with Incomplete Follow-up.” *Statistics in
 Biopharmaceutical Research* 13 (1): 119–27.
 
-Noci, Alessandro, Marcel Wolbers, Markus Abt, Corine Baayen, Hans Ulrich
-Burger, Man Jin, and Weining Zhao Robieson. 2023. “A Comparison of
-Estimand and Estimation Strategies for Clinical Trials in Early
+Noci, Alessandro, Marcel Wolbers, Markus Abt, et al. 2023. “A Comparison
+of Estimand and Estimation Strategies for Clinical Trials in Early
 Parkinson’s Disease.” *Statistics in Biopharmaceutical Research* 15 (3):
 491–501.
 

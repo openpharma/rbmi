@@ -1,7 +1,7 @@
 # Create a delta `data.frame` template
 
 Creates a `data.frame` in the format required by
-[`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md)
+[`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
 for the use of applying a delta adjustment.
 
 ## Usage
@@ -15,7 +15,7 @@ delta_template(imputations, delta = NULL, dlag = NULL, missing_only = TRUE)
 - imputations:
 
   an `imputation` object as created by
-  [`impute()`](https://insightsengineering.github.io/rbmi/reference/impute.md).
+  [`impute()`](https://openpharma.github.io/rbmi/reference/impute.md).
 
 - delta:
 
@@ -42,13 +42,13 @@ delta_template(imputations, delta = NULL, dlag = NULL, missing_only = TRUE)
 ## Details
 
 To apply a delta adjustment the
-[`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md)
+[`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
 function expects a delta `data.frame` with 3 variables: `vars$subjid`,
 `vars$visit` and `delta` (where `vars` is the object supplied in the
 original call to
-[`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md)
-as created by the
-[`set_vars()`](https://insightsengineering.github.io/rbmi/reference/set_vars.md)
+[`draws()`](https://openpharma.github.io/rbmi/reference/draws.md) as
+created by the
+[`set_vars()`](https://openpharma.github.io/rbmi/reference/set_vars.md)
 function).
 
 This function will return a `data.frame` with the aforementioned
@@ -136,7 +136,7 @@ that the user can create their own custom logic for defining what
 
 - `is_post_ice` - Does the observation occur after the patient's ICE as
   defined by the `data_ice` dataset supplied to
-  [`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md).
+  [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md).
 
 - `strategy` - What imputation strategy was assigned to for this
   subject.
@@ -153,7 +153,7 @@ https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missin
 
 ## See also
 
-[`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md)
+[`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
 
 ## Examples
 

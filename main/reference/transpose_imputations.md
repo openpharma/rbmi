@@ -19,7 +19,7 @@ transpose_imputations(imputations)
 - imputations:
 
   An `imputation_df` object created by
-  [`imputation_df()`](https://insightsengineering.github.io/rbmi/reference/imputation_df.md)
+  [`imputation_df()`](https://openpharma.github.io/rbmi/reference/imputation_df.md)
 
 ## Details
 

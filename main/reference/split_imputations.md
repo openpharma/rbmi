@@ -1,9 +1,9 @@
-# Split a flat list of [`imputation_single()`](https://insightsengineering.github.io/rbmi/reference/imputation_single.md) into multiple [`imputation_df()`](https://insightsengineering.github.io/rbmi/reference/imputation_df.md)'s by ID
+# Split a flat list of [`imputation_single()`](https://openpharma.github.io/rbmi/reference/imputation_single.md) into multiple [`imputation_df()`](https://openpharma.github.io/rbmi/reference/imputation_df.md)'s by ID
 
 Split a flat list of
-[`imputation_single()`](https://insightsengineering.github.io/rbmi/reference/imputation_single.md)
+[`imputation_single()`](https://openpharma.github.io/rbmi/reference/imputation_single.md)
 into multiple
-[`imputation_df()`](https://insightsengineering.github.io/rbmi/reference/imputation_df.md)'s
+[`imputation_df()`](https://openpharma.github.io/rbmi/reference/imputation_df.md)'s
 by ID
 
 ## Usage
@@ -17,13 +17,13 @@ split_imputations(list_of_singles, split_ids)
 - list_of_singles:
 
   A list of
-  [`imputation_single()`](https://insightsengineering.github.io/rbmi/reference/imputation_single.md)'s
+  [`imputation_single()`](https://openpharma.github.io/rbmi/reference/imputation_single.md)'s
 
 - split_ids:
 
   A list with 1 element per required split. Each element must contain a
   vector of "ID"'s which correspond to the
-  [`imputation_single()`](https://insightsengineering.github.io/rbmi/reference/imputation_single.md)
+  [`imputation_single()`](https://openpharma.github.io/rbmi/reference/imputation_single.md)
   ID's that are required within that sample. The total number of ID's
   must by equal to the length of `list_of_singles`
 

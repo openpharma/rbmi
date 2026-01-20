@@ -115,7 +115,7 @@ linear function of the outcome vector (Wolbers et al.
 general MMRM models. For the other imputation methods, both ANCOVA and
 MMRM are valid analysis methods. An MMRM analysis model could be
 implemented by providing a custom analysis function to the
-[`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md)
+[`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
 function.
 
 For further expalanations, we also cite the end of section 2.4 of the
@@ -142,6 +142,7 @@ This can be achieved using custom analysis functions as outlined in
 Section 7 of the Advanced Vignette. e.g.
 
 ``` r
+
 ancova_modified <- function(data, ...) {
     data2 <- data %>% mutate(ENDPOINT = ENDPOINT - BASELINE)
     rbmi::ancova(data2, ...)

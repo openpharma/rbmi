@@ -25,7 +25,7 @@ false-positive warnings again in the future.
 
 ## See also
 
-[`record()`](https://insightsengineering.github.io/rbmi/reference/record.md)
+[`record()`](https://openpharma.github.io/rbmi/reference/record.md)
 
 ## Examples
 

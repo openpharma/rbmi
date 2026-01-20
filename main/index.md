@@ -28,13 +28,13 @@ installation of the suggested package
 
 The package is designed around its 4 core functions:
 
-- [`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md) -
+- [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md) -
   Fits multiple imputation models
-- [`impute()`](https://insightsengineering.github.io/rbmi/reference/impute.md) -
+- [`impute()`](https://openpharma.github.io/rbmi/reference/impute.md) -
   Imputes multiple datasets
-- [`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md) -
+- [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md) -
   Analyses multiple datasets
-- [`pool()`](https://insightsengineering.github.io/rbmi/reference/pool.md) -
+- [`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) -
   Pools multiple results into a single statistic
 
 The basic usage of these core functions is described in the quickstart
@@ -51,4 +51,4 @@ the FAQ vignette.
 
 For any help with regards to using the package or if you find a bug
 please create a [GitHub
-issue](https://github.com/insightsengineering/rbmi/issues)
+issue](https://github.com/openpharma/rbmi/issues)

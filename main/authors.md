@@ -17,18 +17,18 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/insightsengineering/rbmi/blob/main/inst/CITATION)
+[`inst/CITATION`](https://github.com/openpharma/rbmi/blob/main/inst/CITATION)
 
-Gower-Page C, Gravestock I, Noci A, Sabanes Bove D (2025). *rbmi:
+Gower-Page C, Gravestock I, Noci A, Sabanes Bove D (2026). *rbmi:
 Reference Based Multiple Imputation*. R package version 1.5.2.9000,
-<https://insightsengineering.github.io/rbmi/>.
+<https://openpharma.github.io/rbmi/>.
 
     @Manual{,
       title = {rbmi: Reference Based Multiple Imputation},
       author = {Craig Gower-Page and Isaac Gravestock and Alessandro Noci and Daniel {Sabanes Bove}},
-      year = {2025},
+      year = {2026},
       note = {R package version 1.5.2.9000},
-      url = {https://insightsengineering.github.io/rbmi/},
+      url = {https://openpharma.github.io/rbmi/},
     }
 
 Gower-Page C, Noci A, Wolbers M (2022). “rbmi: A R package for standard

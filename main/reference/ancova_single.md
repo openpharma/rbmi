@@ -1,8 +1,8 @@
 # Implements an Analysis of Covariance (ANCOVA)
 
 Performance analysis of covariance. See
-[`ancova()`](https://insightsengineering.github.io/rbmi/reference/ancova.md)
-for full details.
+[`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md) for
+full details.
 
 ## Usage
 
@@ -101,7 +101,7 @@ which is an alias for `weights = "counterfactual"`.
 
 ## See also
 
-[`ancova()`](https://insightsengineering.github.io/rbmi/reference/ancova.md)
+[`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md)
 
 ## Examples
 

@@ -97,6 +97,7 @@ To defer a test to the scheduled build simply include
 i.e.
 
 ``` r
+
 test_that("some unit test", {
     skip_if_not(is_extended_test())
     expect_equal(1,1)
@@ -104,9 +105,8 @@ test_that("some unit test", {
 ```
 
 The scheduled tests can also be manually activated by going to
-“<https://github.com/insightsengineering/rbmi>” -\> “Actions” -\>
-“Bi-Weekly” -\> “Run Workflow”. It is advisable to do this before
-releasing to CRAN.
+“<https://github.com/openpharma/rbmi>” -\> “Actions” -\> “Bi-Weekly” -\>
+“Run Workflow”. It is advisable to do this before releasing to CRAN.
 
 ### Docker Images
 
@@ -114,7 +114,7 @@ To support CI/CD, in terms of reducing setup time, a Docker images has
 been created which contains all the packages and system dependencies
 required for this project. The image can be found at:
 
-- ghcr.io/insightsengineering/rbmi:latest
+- ghcr.io/openpharma/rbmi:latest
 
 This image is automatically re-built once a month to contain the latest
 version of R and its packages. The code to create this images can be

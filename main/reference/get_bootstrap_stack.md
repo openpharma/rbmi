@@ -1,8 +1,8 @@
 # Creates a stack object populated with bootstrapped samples
 
 Function creates a
-[`Stack()`](https://insightsengineering.github.io/rbmi/reference/Stack.md)
-object and populated the stack with bootstrap samples based upon
+[`Stack()`](https://openpharma.github.io/rbmi/reference/Stack.md) object
+and populated the stack with bootstrap samples based upon
 `method$n_samples`
 
 ## Usage
@@ -16,7 +16,7 @@ get_bootstrap_stack(longdata, method, stack = Stack$new())
 - longdata:
 
   A
-  [`longDataConstructor()`](https://insightsengineering.github.io/rbmi/reference/longDataConstructor.md)
+  [`longDataConstructor()`](https://openpharma.github.io/rbmi/reference/longDataConstructor.md)
   object
 
 - method:
@@ -25,6 +25,5 @@ get_bootstrap_stack(longdata, method, stack = Stack$new())
 
 - stack:
 
-  A
-  [`Stack()`](https://insightsengineering.github.io/rbmi/reference/Stack.md)
+  A [`Stack()`](https://openpharma.github.io/rbmi/reference/Stack.md)
   object (this is only exposed for unit testing purposes)

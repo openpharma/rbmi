@@ -9,7 +9,7 @@ of multiple imputation (MI) approaches:
 
 1.  Conventional MI methods based on Bayesian (or approximate Bayesian)
     posterior draws of model parameters combined with Rubin’s rules to
-    make inferences as described in Carpenter, Roger, and Kenward
+    make inferences as described in Carpenter et al.
     ([2013](#ref-CarpenterEtAl2013)) and Cro et al.
     ([2020](#ref-CroEtAlTutorial2020)).
 
@@ -160,7 +160,7 @@ post-ICE observation percentages falls below 50%, the power loss can be
 quite dramatic ([Bell et al. 2025](#ref-Bell2024)). We illustrate the
 implementation of retrieved dropout models in the vignette
 “Implementation of retrieved-dropout models using rbmi”
-([`vignette(topic = "retrieved_dropout", package = "rbmi")`](https://insightsengineering.github.io/rbmi/articles/retrieved_dropout.md)).
+([`vignette(topic = "retrieved_dropout", package = "rbmi")`](https://openpharma.github.io/rbmi/articles/retrieved_dropout.md)).
 
 In some trial settings, only few subjects discontinue the randomized
 treatment. In other settings, treatment discontinuation rates are higher
@@ -178,8 +178,8 @@ imputation methods are an option (Mallinckrodt et al.
 formalize the idea to impute missing data in the intervention group
 based on data from a control or reference group. For a general
 description and review of reference-based imputation methods, we refer
-to Carpenter, Roger, and Kenward ([2013](#ref-CarpenterEtAl2013)), Cro
-et al. ([2020](#ref-CroEtAlTutorial2020)), I. White, Royes, and Best
+to Carpenter et al. ([2013](#ref-CarpenterEtAl2013)), Cro et al.
+([2020](#ref-CroEtAlTutorial2020)), White et al.
 ([2020](#ref-White2020causal)) and Wolbers et al.
 ([2022](#ref-Wolbers2021)). For a technical description of the
 implemented statistical methodology for reference-based imputation, we
@@ -210,7 +210,7 @@ Three general imputation approaches are implemented in `rbmi`:
 
 1.  **Conventional MI** based on Bayesian (or approximate Bayesian)
     posterior draws from the imputation model combined with Rubin’s
-    rules for inference as described in Carpenter, Roger, and Kenward
+    rules for inference as described in Carpenter et al.
     ([2013](#ref-CarpenterEtAl2013)) and Cro et al.
     ([2020](#ref-CroEtAlTutorial2020)).
 
@@ -423,22 +423,22 @@ mean trajectories and covariance matrices for each group in the absence
 of ICEs handled using reference-based imputation methods.
 Conventionally, publications on reference-based imputation methods have
 implicitly assumed that the corresponding post-ICE data is missing for
-all subjects (Carpenter, Roger, and Kenward
-([2013](#ref-CarpenterEtAl2013))). We also allow the situation where
-post-ICE data is available for some subjects but needs to be imputed
-using reference-based methods for others. However, any observed data
-after ICEs for which reference-based imputation methods are specified is
-not compatible with the imputation model described below and they are
-therefore removed and considered as missing for the purpose of
-estimating the imputation model, and for this purpose only. For example,
-if a patient has an ICE addressed with a reference-based method but
-outcomes after the ICE are collected, these post-ICE outcomes will be
-excluded when fitting the base imputation model (but they will be
-included again in the following steps). That is, the base imputation
-model is fitted to \\Y'\_{i!}\\ and not to \\Y\_{i!}\\. If we did not
-exclude these data, then the imputation model would mistakenly estimate
-mean trajectories based on a mixture of observed pre- and post-ICE data
-which are not relevant for reference-based imputations.
+all subjects (Carpenter et al. ([2013](#ref-CarpenterEtAl2013))). We
+also allow the situation where post-ICE data is available for some
+subjects but needs to be imputed using reference-based methods for
+others. However, any observed data after ICEs for which reference-based
+imputation methods are specified is not compatible with the imputation
+model described below and they are therefore removed and considered as
+missing for the purpose of estimating the imputation model, and for this
+purpose only. For example, if a patient has an ICE addressed with a
+reference-based method but outcomes after the ICE are collected, these
+post-ICE outcomes will be excluded when fitting the base imputation
+model (but they will be included again in the following steps). That is,
+the base imputation model is fitted to \\Y'\_{i!}\\ and not to
+\\Y\_{i!}\\. If we did not exclude these data, then the imputation model
+would mistakenly estimate mean trajectories based on a mixture of
+observed pre- and post-ICE data which are not relevant for
+reference-based imputations.
 
 Observed post-ICE outcomes in the control or reference group are also
 excluded from the base imputation model if the user specifies a
@@ -613,17 +613,17 @@ above.
 The initial values and other expert options for the MCMC sampling can be
 defined via the `control` argument to `method_bayes`, which is
 simplified with the corresponding
-[`control_bayes()`](https://insightsengineering.github.io/rbmi/reference/control.md)
+[`control_bayes()`](https://openpharma.github.io/rbmi/reference/control.md)
 function call. With the default initial values, i.e. when using
 `init = "mmrm"` in the `control` list, then for obtaining reproducible
 results an external [`set.seed()`](https://rdrr.io/r/base/Random.html)
 call is required before running
-[`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md).
-In particular, please note that it is not sufficient to just set the
-`seed` option in the `control` list. If more than one chain is being
-run, the chains are currently initialized at `"random"` values as per
-`rstan` default. Note that for consistency with `rstan`, the burn-in can
-be customized via the `warmup` argument, and the burn-between can be
+[`draws()`](https://openpharma.github.io/rbmi/reference/draws.md). In
+particular, please note that it is not sufficient to just set the `seed`
+option in the `control` list. If more than one chain is being run, the
+chains are currently initialized at `"random"` values as per `rstan`
+default. Note that for consistency with `rstan`, the burn-in can be
+customized via the `warmup` argument, and the burn-between can be
 customized via the `thin` argument. Independent of the number of chains
 used, the total number of returned samples is always `n_samples`. In the
 case that more than one chain is used, these samples are distributed
@@ -686,11 +686,11 @@ reference group.
 
 Based on these means and covariance matrices, the subject’s marginal
 imputation distribution for the reference-based imputation methods is
-then calculated as detailed in Carpenter, Roger, and Kenward ([2013,
-sec. 4.3](#ref-CarpenterEtAl2013)). Denote the mean and covariance
-matrix of this marginal imputation distribution by \\\tilde{\mu}\_i\\
-and \\\tilde{\Sigma}\_i\\. Recall that the subject’s first visit which
-is affected by the ICE is denoted by \\\tilde{t}\_i \in \\1,\ldots,J\\\\
+then calculated as detailed in Carpenter et al. ([2013, sec.
+4.3](#ref-CarpenterEtAl2013)). Denote the mean and covariance matrix of
+this marginal imputation distribution by \\\tilde{\mu}\_i\\ and
+\\\tilde{\Sigma}\_i\\. Recall that the subject’s first visit which is
+affected by the ICE is denoted by \\\tilde{t}\_i \in \\1,\ldots,J\\\\
 (and visit \\\tilde{t}\_i-1\\ is the last visit unaffected by the ICE).
 The marginal distribution for the patient \\i\\ is then built according
 to the specific assumption for the data up to and post the ICE as
@@ -711,7 +711,7 @@ follows:
     \\\Sigma_i\\ for the pre-deviation measurements, and
     \\\Sigma\_{ref,i}\\ for the conditional components for the
     post-deviation given the pre-deviation measurements. The solution is
-    derived in Carpenter, Roger, and Kenward ([2013, sec.
+    derived in Carpenter et al. ([2013, sec.
     4.3](#ref-CarpenterEtAl2013)) and is given by: \\ \begin{matrix}
     \tilde{\Sigma}\_{i,11} = \Sigma\_{i, 11} \\ \tilde{\Sigma}\_{i, 21}
     = \Sigma\_{ref,i, 21} \Sigma^{-1}\_{ref,i, 11} \Sigma\_{i, 11} \\
@@ -851,24 +851,23 @@ MC standard error (MCSE). Such quantification is important for judging
 the scientific reproducibility of the results, e.g., when computational
 parameters such as the seed are changed. For the treatment effect
 estimates \\\hat{\theta}\\ obtained through Rubin’s rule as described
-above, a closed-form expression for the MCSE exists ([Royston, Carlin,
-and White 2009](#ref-Royston2009)):
+above, a closed-form expression for the MCSE exists ([Royston et al.
+2009](#ref-Royston2009)):
 
 \\ \text{MCSE}(\hat{\theta}) = \sqrt{V_B(\hat{\theta}) / M} \\
 
 However, since decisions are generally based not just on the treatment
 effect estimate but also on the p-value, it is important to calculate
 the corresponding MCSE. No closed-form expression exists for the MCSE of
-the p-value, but as argued by Royston, Carlin, and White
-([2009](#ref-Royston2009)), the jackknife method could be used to
-estimate the MCSE ([Efron and Gong 1983](#ref-EfronGong1983)). Let
-\\\theta\\ be the parameter of interest (e.g. the p-value) and let
-\\\hat{\theta}\_{(-m)}\\ be the jackknife parameter estimate, obtained
-from the \\M-1\\ imputed datasets after removing the \\m\\-th imputed
-dataset. Also let \\\overline{\theta}\_{(\cdot)} = \sum\_{m = 1}^{M}
-\hat{\theta}\_{(-m)} / M\\ be the average of the jackknife parameter
-estimates. The MCSE of the overall estimate \\\hat{\theta}\\ is then
-given by:
+the p-value, but as argued by Royston et al. ([2009](#ref-Royston2009)),
+the jackknife method could be used to estimate the MCSE ([Efron and Gong
+1983](#ref-EfronGong1983)). Let \\\theta\\ be the parameter of interest
+(e.g. the p-value) and let \\\hat{\theta}\_{(-m)}\\ be the jackknife
+parameter estimate, obtained from the \\M-1\\ imputed datasets after
+removing the \\m\\-th imputed dataset. Also let
+\\\overline{\theta}\_{(\cdot)} = \sum\_{m = 1}^{M} \hat{\theta}\_{(-m)}
+/ M\\ be the average of the jackknife parameter estimates. The MCSE of
+the overall estimate \\\hat{\theta}\\ is then given by:
 
 \\ \text{MCSE}(\hat{\theta}) = \sqrt{\frac{M - 1}{M} \sum\_{m=1}^{M}
 \left(\hat{\theta}\_{(-m)} - \overline{\theta}\_{(\cdot)}\right)^2} \\
@@ -1038,28 +1037,27 @@ information from the reference arm for imputation in the active arm. As
 a consequence, the size of frequentist standard errors for treatment
 effects may decrease with increasing amounts of missing data. The second
 proposal is the so-called “information-anchored” variance which was
-originally proposed in the context of sensitivity analyses (Cro,
-Carpenter, and Kenward ([2019](#ref-CroEtAl2019))). This variance
-estimator is based on disentangling point estimation and variance
-estimation altogether. The information-anchoring principle described in
-Cro, Carpenter, and Kenward ([2019](#ref-CroEtAl2019)) states that the
-relative increase in the variance of the treatment effect estimator
-under MAR imputation with increasing amounts of missing data should be
-preserved for reference-based imputation methods. The resulting
-information-anchored variance is typically very similar to the variance
-under MAR imputation and typically increases with increasing amounts of
-missing data. However, the information-anchored variance does not
-reflect the actual variability of the reference-based estimator under
-repeated sampling and the resulting inference is highly conservative
-resulting in a substantial power loss (Wolbers et al.
-([2022](#ref-Wolbers2021))). Moreover, to date, no Bayesian or
-frequentist framework has been developed under which the
-information-anchored variance provides correct inference for
-reference-based missingness assumptions, nor is it clear whether such a
-framework can even be developed.
+originally proposed in the context of sensitivity analyses (Cro et al.
+([2019](#ref-CroEtAl2019))). This variance estimator is based on
+disentangling point estimation and variance estimation altogether. The
+information-anchoring principle described in Cro et al.
+([2019](#ref-CroEtAl2019)) states that the relative increase in the
+variance of the treatment effect estimator under MAR imputation with
+increasing amounts of missing data should be preserved for
+reference-based imputation methods. The resulting information-anchored
+variance is typically very similar to the variance under MAR imputation
+and typically increases with increasing amounts of missing data.
+However, the information-anchored variance does not reflect the actual
+variability of the reference-based estimator under repeated sampling and
+the resulting inference is highly conservative resulting in a
+substantial power loss (Wolbers et al. ([2022](#ref-Wolbers2021))).
+Moreover, to date, no Bayesian or frequentist framework has been
+developed under which the information-anchored variance provides correct
+inference for reference-based missingness assumptions, nor is it clear
+whether such a framework can even be developed.
 
 Reference-based conditional mean imputation
-([`method_condmean()`](https://insightsengineering.github.io/rbmi/reference/method.md))
+([`method_condmean()`](https://openpharma.github.io/rbmi/reference/method.md))
 and bootstrapped likelihood-based multiple methods
 (`method = method_bmlmi()`) obtain standard errors via resampling and
 hence target the frequentist variance (Wolbers et al.
@@ -1084,14 +1082,14 @@ assumption and MAR on the original dataset. An illustration of how the
 different variances can be obtained for conditional mean imputation in
 `rbmi` is provided in the vignette “Frequentist and information-anchored
 inference for reference-based conditional mean imputation”
-([`vignette(topic = "CondMean_Inference", package = "rbmi")`](https://insightsengineering.github.io/rbmi/articles/CondMean_Inference.md)).
+([`vignette(topic = "CondMean_Inference", package = "rbmi")`](https://openpharma.github.io/rbmi/articles/CondMean_Inference.md)).
 
 Reference-based Bayesian (or approximate Bayesian) multiple imputation
 methods combined with Rubin’s rules
-([`method_bayes()`](https://insightsengineering.github.io/rbmi/reference/method.md)
+([`method_bayes()`](https://openpharma.github.io/rbmi/reference/method.md)
 and
-[`method_approxbayes()`](https://insightsengineering.github.io/rbmi/reference/method.md))
-target the information-anchored variance (Cro, Carpenter, and Kenward
+[`method_approxbayes()`](https://openpharma.github.io/rbmi/reference/method.md))
+target the information-anchored variance (Cro et al.
 ([2019](#ref-CroEtAl2019))). A frequentist variance for these methods
 could in principle be obtained via bootstrap or jackknife re-sampling of
 the treatment effect estimates but this would be very computationally
@@ -1132,9 +1130,9 @@ fast in our setting and requires only a small warmup phase and thinning
 of the chains. In addition, the number of random imputations for
 reliable inference using Rubin’s rules is often smaller than the number
 of resamples required for the jackknife or the bootstrap (see e.g. the
-discussions in I. R. White, Royston, and Wood ([2011, sec.
-7](#ref-White2011multiple)) for Bayesian MI and the Appendix of Wolbers
-et al. ([2022](#ref-Wolbers2021)) for the bootstrap). Thus, for many
+discussions in White et al. ([2011, sec. 7](#ref-White2011multiple)) for
+Bayesian MI and the Appendix of Wolbers et al.
+([2022](#ref-Wolbers2021)) for the bootstrap). Thus, for many
 applications, we expect that conventional MI based on Bayesian posterior
 draws will be fastest, followed by conventional MI using approximate
 Bayesian posterior draws and conditional mean imputation combined with
@@ -1152,9 +1150,9 @@ we only give a brief overview of how the different steps of the
 imputation procedure are mapped to `rbmi` functions:
 
 - The base imputation model fitting step is implemented in the function
-  [`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md).
-  The chosen MI approach can be set using the argument `method` and
-  should be one of the following:
+  [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md). The
+  chosen MI approach can be set using the argument `method` and should
+  be one of the following:
   - Bayesian posterior parameter draws from the imputation model are
     obtained via the argument `method = method_bayes()`.
   - Approximate Bayesian posterior parameter draws from the imputation
@@ -1172,31 +1170,31 @@ imputation procedure are mapped to `rbmi` functions:
     for each bootstrap sample.
 - The imputation step using random imputation or deterministic
   conditional mean imputation, respectively, is implemented in function
-  [`impute()`](https://insightsengineering.github.io/rbmi/reference/impute.md).
+  [`impute()`](https://openpharma.github.io/rbmi/reference/impute.md).
   Imputation can be performed assuming the already implemented
   imputation strategies as presented in section
   [3.4](#sec:imputationStep). Additionally, user-defined imputation
   strategies are also supported.
 - The analysis step is implemented in function
-  [`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md)
+  [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
   and applies the analysis model to all imputed datasets. By default,
   the analysis model (argument `fun`) is the
-  [`ancova()`](https://insightsengineering.github.io/rbmi/reference/ancova.md)
+  [`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md)
   function but alternative analysis functions can also be provided by
   the user. The
-  [`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md)
+  [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
   function also allows for \\\delta\\-adjustments to the imputed
   datasets prior to the analysis via argument `delta`.
 - The inference step is implemented in function
-  [`pool()`](https://insightsengineering.github.io/rbmi/reference/pool.md)
-  which pools the results across imputed datasets. The Rubin and Bernard
-  rule is applied in case of (approximate) Bayesian MI, with
-  [`mcse()`](https://insightsengineering.github.io/rbmi/reference/pool.md)
+  [`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) which
+  pools the results across imputed datasets. The Rubin and Bernard rule
+  is applied in case of (approximate) Bayesian MI, with
+  [`mcse()`](https://openpharma.github.io/rbmi/reference/pool.md)
   implementing the MCSE. For conditional mean imputation, jackknife and
   bootstrap (normal approximation or percentile) inference is supported.
   For BMLMI, the pooling and inference steps are performed via
-  [`pool()`](https://insightsengineering.github.io/rbmi/reference/pool.md)
-  which in this case implements the method described in Section
+  [`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) which
+  in this case implements the method described in Section
   [3.9](#sec:poolbmlmi).
 
 ## 5 Comparison to other software implementations
@@ -1248,9 +1246,9 @@ implementations:
 5.  We believe that our R-based implementation is more modular than
     `RefBasedMI` which should facilitate further package enhancements.
 
-In contrast, the more general causal model introduced by I. White,
-Royes, and Best ([2020](#ref-White2020causal)) is available in the other
-implementations but is currently not supported by ours.
+In contrast, the more general causal model introduced by White et al.
+([2020](#ref-White2020causal)) is available in the other implementations
+but is currently not supported by ours.
 
 ## References
 
@@ -1262,12 +1260,10 @@ Bartlett, Jonathan W. 2023. “Reference-Based Multiple Imputation - What
 Is the Right Variance and How to Estimate It.” *Statistics in
 Biopharmaceutical Research* 15 (1): 178–86.
 
-Bell, James, Thomas Drury, Tobias Mütze, Christian Bressen Pipper,
-Lorenzo Guizzaro, Marian Mitroiu, Khadija Rerhou Rantell, Marcel
-Wolbers, and David Wright. 2025. “Estimation Methods for Estimands Using
-the Treatment Policy Strategy; a Simulation Study Based on the PIONEER 1
-Trial.” *Pharmaceutical Statistics* 24 (2): e2472.
-https://doi.org/<https://doi.org/10.1002/pst.2472>.
+Bell, James, Thomas Drury, Tobias Mütze, et al. 2025. “Estimation
+Methods for Estimands Using the Treatment Policy Strategy; a Simulation
+Study Based on the PIONEER 1 Trial.” *Pharmaceutical Statistics* 24 (2):
+e2472. https://doi.org/<https://doi.org/10.1002/pst.2472>.
 
 Carpenter, James R, James H Roger, and Michael G Kenward. 2013.
 “Analysis of Longitudinal Trials with Protocol Deviation: A Framework
@@ -1320,7 +1316,7 @@ Time-Series Cross-Section Data.” *American Journal of Political Science*
 ICH E9 working group. 2019. “ICH E9 (R1): Addendum on estimands and
 sensitivity analysis in clinical trials to the guideline on statistical
 principles for clinical trials.” International Council for Harmonisation
-of Technical Requirements for Pharmaceuticals for Human Use. 2019.
+of Technical Requirements for Pharmaceuticals for Human Use.
 <https://database.ich.org/sites/default/files/E9-R1_Step4_Guideline_2019_1203.pdf>.
 
 Little, Roderick JA, and Donald B Rubin. 2002. *Statistical Analysis
@@ -1330,18 +1326,16 @@ Lu, Kaifeng. 2021. “An Alternative Implementation of Reference-Based
 Controlled Imputation Procedures.” *Statistics in Biopharmaceutical
 Research* 13 (4): 483–91.
 
-Mallinckrodt, CH, J Bell, G Liu, B Ratitch, M O’Kelly, I Lipkovich, P
-Singh, L Xu, and G Molenberghs. 2020. “Aligning Estimators with
+Mallinckrodt, CH, J Bell, G Liu, et al. 2020. “Aligning Estimators with
 Estimands in Clinical Trials: Putting the ICH E9 (R1) Guidelines into
 Practice.” *Therapeutic Innovation & Regulatory Science* 54 (2): 353–64.
 
-McGrath, Kevin, and Ian White. 2021. “RefBasedMI: Reference-Based
-Imputation for Longitudinal Clinical Trials with Protocol Deviation.”
+McGrath, Kevin, and Ian White. 2021. *RefBasedMI: Reference-Based
+Imputation for Longitudinal Clinical Trials with Protocol Deviation*.
 <https://github.com/UCL/RefbasedMI>.
 
-Noci, Alessandro, Marcel Wolbers, Markus Abt, Corine Baayen, Hans Ulrich
-Burger, Man Jin, and Weining Zhao Robieson. 2023. “A Comparison of
-Estimand and Estimation Strategies for Clinical Trials in Early
+Noci, Alessandro, Marcel Wolbers, Markus Abt, et al. 2023. “A Comparison
+of Estimand and Estimation Strategies for Clinical Trials in Early
 Parkinson’s Disease.” *Statistics in Biopharmaceutical Research* 15 (3):
 491–501.
 
@@ -1352,8 +1346,8 @@ Polverejan, Elena, and Vladimir Dragalin. 2020. “Aligning Treatment
 Policy Estimands and Estimators—a Simulation Study in Alzheimer’s
 Disease.” *Statistics in Biopharmaceutical Research* 12 (2): 142–54.
 
-Roger, James. 2021. “Reference-Based MI via Multivariate Normal RM (the
-‘Five Macros’ and MIWithD).”
+Roger, James. 2021. *Reference-Based MI via Multivariate Normal RM (the
+“Five Macros” and MIWithD)*.
 <https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data>.
 
 Royston, Patrick, John B. Carlin, and Ian R. White. 2009. “Multiple
@@ -1361,7 +1355,7 @@ Imputation of Missing Values: New Features for Mim.” *The Stata Journal*
 9 (2): 252–64.
 <https://journals.sagepub.com/doi/pdf/10.1177/1536867X0900900205>.
 
-Stan Development Team. 2020. “RStan: The R Interface to Stan.”
+Stan Development Team. 2020. *RStan: The R Interface to Stan*.
 <https://mc-stan.org/>.
 
 von Hippel, Paul T, and Jonathan W Bartlett. 2021. “Maximum Likelihood

@@ -14,18 +14,18 @@ as_analysis(results, method, delta = NULL, fun = NULL, fun_name = NULL)
 - results:
 
   A list of lists contain the analysis results for each imputation See
-  [`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md)
+  [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
   for details on what this object should look like.
 
 - method:
 
   The method object as specified in
-  [`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md).
+  [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md).
 
 - delta:
 
   The delta dataset used. See
-  [`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md)
+  [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
   for details on how this should be specified.
 
 - fun:

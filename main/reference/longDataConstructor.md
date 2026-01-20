@@ -196,7 +196,7 @@ those subjects is returned; if the character vector contains duplicate
 entries then that subject will be returned multiple times.
 
 If `obj` is an `imputation_df` object (as created by
-[`imputation_df()`](https://insightsengineering.github.io/rbmi/reference/imputation_df.md))
+[`imputation_df()`](https://openpharma.github.io/rbmi/reference/imputation_df.md))
 then the subject ids specified in the object will be returned and
 missing values will be filled in by those specified in the imputation
 list object. i.e.
@@ -266,7 +266,7 @@ TRUE
 
 ------------------------------------------------------------------------
 
-### Method [`sample_ids()`](https://insightsengineering.github.io/rbmi/reference/sample_ids.md)
+### Method [`sample_ids()`](https://openpharma.github.io/rbmi/reference/sample_ids.md)
 
 Performs random stratified sampling of patient ids (with replacement)
 Each patient has an equal weight of being picked within their strata
@@ -313,7 +313,7 @@ kept for legacy reasons.
 - `dat_ice`:
 
   A `data.frame` containing ICE information see
-  [`impute()`](https://insightsengineering.github.io/rbmi/reference/impute.md)
+  [`impute()`](https://openpharma.github.io/rbmi/reference/impute.md)
   for the format of this dataframe.
 
 ------------------------------------------------------------------------
@@ -340,13 +340,12 @@ variables based upon the provided ICE information.
 
 #### Details
 
-See
-[`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md)
+See [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md)
 for the specification of `dat_ice` if `update=FALSE`. See
-[`impute()`](https://insightsengineering.github.io/rbmi/reference/impute.md)
-for the format of `dat_ice` if `update=TRUE`. If `update=TRUE` this
-function ensures that MAR strategies cannot be changed to non-MAR in the
-presence of post-ICE observations.
+[`impute()`](https://openpharma.github.io/rbmi/reference/impute.md) for
+the format of `dat_ice` if `update=TRUE`. If `update=TRUE` this function
+ensures that MAR strategies cannot be changed to non-MAR in the presence
+of post-ICE observations.
 
 ------------------------------------------------------------------------
 
@@ -392,7 +391,7 @@ Constructor function.
 - `vars`:
 
   an `ivars` object created by
-  [`set_vars()`](https://insightsengineering.github.io/rbmi/reference/set_vars.md).
+  [`set_vars()`](https://openpharma.github.io/rbmi/reference/set_vars.md).
 
 ------------------------------------------------------------------------
 

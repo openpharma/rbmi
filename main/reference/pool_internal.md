@@ -1,8 +1,8 @@
 # Internal Pool Methods
 
 Dispatches pool methods based upon results object class. See
-[`pool()`](https://insightsengineering.github.io/rbmi/reference/pool.md)
-for details.
+[`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) for
+details.
 
 ## Usage
 
@@ -34,7 +34,7 @@ pool_internal(results, conf.level, alternative, type, D)
 
   a list of results i.e. the `x$results` element of an `analyse` object
   created by
-  [`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md)).
+  [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)).
 
 - conf.level:
 
@@ -53,7 +53,7 @@ pool_internal(results, conf.level, alternative, type, D)
   confidence intervals. See details. Only used if
   `method_condmean(type = "bootstrap")` was specified in the original
   call to
-  [`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md).
+  [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md).
 
 - D:
 

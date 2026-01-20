@@ -30,7 +30,7 @@ A warning message in case of detected problems.
 ## Details
 
 Performs checks of the quality of the MCMC. See
-[`check_ESS()`](https://insightsengineering.github.io/rbmi/reference/check_ESS.md)
+[`check_ESS()`](https://openpharma.github.io/rbmi/reference/check_ESS.md)
 and
-[`check_hmc_diagn()`](https://insightsengineering.github.io/rbmi/reference/check_hmc_diagn.md)
+[`check_hmc_diagn()`](https://openpharma.github.io/rbmi/reference/check_hmc_diagn.md)
 for details.

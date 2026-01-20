@@ -2,8 +2,8 @@
 
 This function provides input arguments for each study group needed to
 simulate data with
-[`simulate_data()`](https://insightsengineering.github.io/rbmi/reference/simulate_data.md).
-[`simulate_data()`](https://insightsengineering.github.io/rbmi/reference/simulate_data.md)
+[`simulate_data()`](https://openpharma.github.io/rbmi/reference/simulate_data.md).
+[`simulate_data()`](https://openpharma.github.io/rbmi/reference/simulate_data.md)
 generates data for a two-arms clinical trial with longitudinal
 continuous outcomes and two intercurrent events (ICEs). ICE1 may be
 thought of as a discontinuation from study treatment due to study drug
@@ -89,8 +89,8 @@ parameters.
 ## Details
 
 For the details, please see
-[`simulate_data()`](https://insightsengineering.github.io/rbmi/reference/simulate_data.md).
+[`simulate_data()`](https://openpharma.github.io/rbmi/reference/simulate_data.md).
 
 ## See also
 
-[`simulate_data()`](https://insightsengineering.github.io/rbmi/reference/simulate_data.md)
+[`simulate_data()`](https://openpharma.github.io/rbmi/reference/simulate_data.md)

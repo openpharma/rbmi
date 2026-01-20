@@ -1,11 +1,11 @@
-# Convert list of [`imputation_list_single()`](https://insightsengineering.github.io/rbmi/reference/imputation_list_single.md) objects to an [`imputation_list_df()`](https://insightsengineering.github.io/rbmi/reference/imputation_list_df.md) object (i.e. a list of [`imputation_df()`](https://insightsengineering.github.io/rbmi/reference/imputation_df.md) objects's)
+# Convert list of [`imputation_list_single()`](https://openpharma.github.io/rbmi/reference/imputation_list_single.md) objects to an [`imputation_list_df()`](https://openpharma.github.io/rbmi/reference/imputation_list_df.md) object (i.e. a list of [`imputation_df()`](https://openpharma.github.io/rbmi/reference/imputation_df.md) objects's)
 
 Convert list of
-[`imputation_list_single()`](https://insightsengineering.github.io/rbmi/reference/imputation_list_single.md)
+[`imputation_list_single()`](https://openpharma.github.io/rbmi/reference/imputation_list_single.md)
 objects to an
-[`imputation_list_df()`](https://insightsengineering.github.io/rbmi/reference/imputation_list_df.md)
+[`imputation_list_df()`](https://openpharma.github.io/rbmi/reference/imputation_list_df.md)
 object (i.e. a list of
-[`imputation_df()`](https://insightsengineering.github.io/rbmi/reference/imputation_df.md)
+[`imputation_df()`](https://openpharma.github.io/rbmi/reference/imputation_df.md)
 objects's)
 
 ## Usage
@@ -19,30 +19,30 @@ convert_to_imputation_list_df(imputes, sample_ids)
 - imputes:
 
   a list of
-  [`imputation_list_single()`](https://insightsengineering.github.io/rbmi/reference/imputation_list_single.md)
+  [`imputation_list_single()`](https://openpharma.github.io/rbmi/reference/imputation_list_single.md)
   objects
 
 - sample_ids:
 
   A list with 1 element per required imputation_df. Each element must
   contain a vector of "ID"'s which correspond to the
-  [`imputation_single()`](https://insightsengineering.github.io/rbmi/reference/imputation_single.md)
+  [`imputation_single()`](https://openpharma.github.io/rbmi/reference/imputation_single.md)
   ID's that are required for that dataset. The total number of ID's must
   by equal to the total number of rows within all of
   `imputes$imputations`
 
   To accommodate for
-  [`method_bmlmi()`](https://insightsengineering.github.io/rbmi/reference/method.md)
+  [`method_bmlmi()`](https://openpharma.github.io/rbmi/reference/method.md)
   the
-  [`impute_data_individual()`](https://insightsengineering.github.io/rbmi/reference/impute_data_individual.md)
+  [`impute_data_individual()`](https://openpharma.github.io/rbmi/reference/impute_data_individual.md)
   function returns a list of
-  [`imputation_list_single()`](https://insightsengineering.github.io/rbmi/reference/imputation_list_single.md)
+  [`imputation_list_single()`](https://openpharma.github.io/rbmi/reference/imputation_list_single.md)
   objects with 1 object per each subject.
 
-  [`imputation_list_single()`](https://insightsengineering.github.io/rbmi/reference/imputation_list_single.md)
+  [`imputation_list_single()`](https://openpharma.github.io/rbmi/reference/imputation_list_single.md)
   stores the subjects imputations as a matrix where the columns of the
   matrix correspond to the D of
-  [`method_bmlmi()`](https://insightsengineering.github.io/rbmi/reference/method.md).
+  [`method_bmlmi()`](https://openpharma.github.io/rbmi/reference/method.md).
   Note that all other methods (i.e. `methods_*()`) are a special case of
   this with D = 1. The number of rows in the matrix varies for each
   subject and is equal to the number of times the patient was selected

@@ -1,8 +1,8 @@
 # Creates a stack object populated with jackknife samples
 
 Function creates a
-[`Stack()`](https://insightsengineering.github.io/rbmi/reference/Stack.md)
-object and populated the stack with jackknife samples based upon
+[`Stack()`](https://openpharma.github.io/rbmi/reference/Stack.md) object
+and populated the stack with jackknife samples based upon
 
 ## Usage
 
@@ -15,7 +15,7 @@ get_jackknife_stack(longdata, method, stack = Stack$new())
 - longdata:
 
   A
-  [`longDataConstructor()`](https://insightsengineering.github.io/rbmi/reference/longDataConstructor.md)
+  [`longDataConstructor()`](https://openpharma.github.io/rbmi/reference/longDataConstructor.md)
   object
 
 - method:
@@ -24,6 +24,5 @@ get_jackknife_stack(longdata, method, stack = Stack$new())
 
 - stack:
 
-  A
-  [`Stack()`](https://insightsengineering.github.io/rbmi/reference/Stack.md)
+  A [`Stack()`](https://openpharma.github.io/rbmi/reference/Stack.md)
   object (this is only exposed for unit testing purposes)

@@ -1,8 +1,8 @@
 # Internal MCSE Computations
 
 These functions are used by
-[`mcse()`](https://insightsengineering.github.io/rbmi/reference/pool.md)
-to compute the Monte Carlo standard error using the Jackknife approach.
+[`mcse()`](https://openpharma.github.io/rbmi/reference/pool.md) to
+compute the Monte Carlo standard error using the Jackknife approach.
 
 ## Usage
 
@@ -19,7 +19,7 @@ mcse_combine_all_pars(jackknife_results)
 - results:
 
   an analysis object created by
-  [`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md).
+  [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md).
 
 - omit_index:
 

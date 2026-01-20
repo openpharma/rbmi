@@ -1,7 +1,7 @@
 # Preparation of Initial Values for MCMC Sampler
 
 This function is used by
-[`complete_control_bayes()`](https://insightsengineering.github.io/rbmi/reference/complete_control_bayes.md)
+[`complete_control_bayes()`](https://openpharma.github.io/rbmi/reference/complete_control_bayes.md)
 when the `init` argument is set to `"mmrm"`.
 
 ## Usage

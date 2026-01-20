@@ -35,9 +35,9 @@ adjust_trajectories_single(
 
   Function implementing trajectories after the intercurrent event (ICE).
   Must be one of
-  [`getStrategies()`](https://insightsengineering.github.io/rbmi/reference/getStrategies.md).
+  [`getStrategies()`](https://openpharma.github.io/rbmi/reference/getStrategies.md).
   See
-  [`getStrategies()`](https://insightsengineering.github.io/rbmi/reference/getStrategies.md)
+  [`getStrategies()`](https://openpharma.github.io/rbmi/reference/getStrategies.md)
   for details.
 
 - distr_pars_ref:

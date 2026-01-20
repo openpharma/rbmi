@@ -3,9 +3,9 @@
 Extract draws from a `stanfit` object and convert them into lists.
 
 The function
-[`rstan::extract()`](https://rdrr.io/pkg/rstan/man/stanfit-method-extract.html)
+[`rstan::extract()`](https://mc-stan.org/rstan/reference/stanfit-method-extract.html)
 returns the draws for a given parameter as an array. This function calls
-[`rstan::extract()`](https://rdrr.io/pkg/rstan/man/stanfit-method-extract.html)
+[`rstan::extract()`](https://mc-stan.org/rstan/reference/stanfit-method-extract.html)
 to extract the draws from a `stanfit` object and then convert the arrays
 into lists.
 

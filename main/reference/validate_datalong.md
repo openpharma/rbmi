@@ -30,13 +30,13 @@ validate_dataice(data, data_ice, vars, update = FALSE)
 - vars:
 
   a `vars` object as created by
-  [`set_vars()`](https://insightsengineering.github.io/rbmi/reference/set_vars.md)
+  [`set_vars()`](https://openpharma.github.io/rbmi/reference/set_vars.md)
 
 - data_ice:
 
   a `data.frame` containing the subjects ICE data. See
-  [`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md)
-  for details.
+  [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md) for
+  details.
 
 - update:
 
@@ -47,12 +47,11 @@ validate_dataice(data, data_ice, vars, update = FALSE)
 
 These functions are used to validate various different parts of the
 longdata object to be used in
-[`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md),
-[`impute()`](https://insightsengineering.github.io/rbmi/reference/impute.md),
-[`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md)
-and
-[`pool()`](https://insightsengineering.github.io/rbmi/reference/pool.md).
-In particular:
+[`draws()`](https://openpharma.github.io/rbmi/reference/draws.md),
+[`impute()`](https://openpharma.github.io/rbmi/reference/impute.md),
+[`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
+and [`pool()`](https://openpharma.github.io/rbmi/reference/pool.md). In
+particular:
 
 - validate_datalong_varExists - Checks that each variable listed in
   `vars` actually exists in the `data`

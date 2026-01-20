@@ -35,7 +35,7 @@ distribution parameters for the subject's current group and reference
 group respectively. `index_mar` will be a logical vector specifying
 which visits the subject met the MAR assumption at. The function must
 return a list with elements `mu` and `sigma`. See the implementation of
-[`strategy_JR()`](https://insightsengineering.github.io/rbmi/reference/strategies.md)
+[`strategy_JR()`](https://openpharma.github.io/rbmi/reference/strategies.md)
 for an example.
 
 ## Examples

@@ -12,9 +12,9 @@ most interested in.
 
 In order to demonstrate the advanced functions we will first create a
 simulated dataset with the `rbmi` function
-[`simulate_data()`](https://insightsengineering.github.io/rbmi/reference/simulate_data.md).
+[`simulate_data()`](https://openpharma.github.io/rbmi/reference/simulate_data.md).
 The
-[`simulate_data()`](https://insightsengineering.github.io/rbmi/reference/simulate_data.md)
+[`simulate_data()`](https://openpharma.github.io/rbmi/reference/simulate_data.md)
 function generates data from a randomized clinical trial with
 longitudinal continuous outcomes and up to two different types of
 intercurrent events (ICEs). One intercurrent event (ICE1) may be thought
@@ -60,9 +60,9 @@ the following assumptions:
   point onward.
 
 The function
-[`simulate_data()`](https://insightsengineering.github.io/rbmi/reference/simulate_data.md)
+[`simulate_data()`](https://openpharma.github.io/rbmi/reference/simulate_data.md)
 requires 3 arguments (see the function documentation
-[`help(simulate_data)`](https://insightsengineering.github.io/rbmi/reference/simulate_data.md)
+[`help(simulate_data)`](https://openpharma.github.io/rbmi/reference/simulate_data.md)
 for more details):
 
 - `pars_c`: The simulation parameters of the control group
@@ -72,9 +72,10 @@ for more details):
 
 Below, we report how data according to the specifications above can be
 simulated with function
-[`simulate_data()`](https://insightsengineering.github.io/rbmi/reference/simulate_data.md):
+[`simulate_data()`](https://openpharma.github.io/rbmi/reference/simulate_data.md):
 
 ``` r
+
 library(rbmi)
 library(dplyr)
 library(ggplot2)
@@ -234,14 +235,15 @@ imputations are also supported in `rbmi`. For guidance regarding the
 choice of the imputation approach, we refer the user to a comparison
 between all implemented approaches in Section 3.9 of the “Statistical
 Specifications” vignette
-([`vignette("stat_specs", package = "rbmi")`](https://insightsengineering.github.io/rbmi/articles/stat_specs.md)).
+([`vignette("stat_specs", package = "rbmi")`](https://openpharma.github.io/rbmi/articles/stat_specs.md)).
 
 We first report the code to set the variables of the imputation and
 analysis models. If you are not yet familiar with the syntax, we
 recommend that you first check the “quickstart” vignette
-([`vignette("quickstart", package = "rbmi")`](https://insightsengineering.github.io/rbmi/articles/quickstart.md)).
+([`vignette("quickstart", package = "rbmi")`](https://openpharma.github.io/rbmi/articles/quickstart.md)).
 
 ``` r
+
 # Create data_ice including the subject's first visit affected by the ICE and the imputation strategy
 # Imputation strategy for post-ICE data is CIR in the intervention group and MAR for the control group 
 # (note that ICEs which are handled using MAR are optional and do not impact the analysis
@@ -279,24 +281,26 @@ vars_an$covariates <- "outcome_bl"
 ```
 
 The chosen imputation method can be set with the function
-[`method_approxbayes()`](https://insightsengineering.github.io/rbmi/reference/method.md)
+[`method_approxbayes()`](https://openpharma.github.io/rbmi/reference/method.md)
 as follows:
 
 ``` r
+
 method <- method_approxbayes(n_sample = 20)
 ```
 
 We can now sequentially call the 4 key functions of `rbmi` to perform
 the multiple imputation. Please note that the management of observed
 post-ICE data is performed without additional complexity for the user.
-[`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md)
+[`draws()`](https://openpharma.github.io/rbmi/reference/draws.md)
 automatically excludes post-ICE data handled with a reference-based
 method (but keeps post-ICE data handled using MAR) using information
 provided by the argument `data_ice`.
-[`impute()`](https://insightsengineering.github.io/rbmi/reference/impute.md)
-will impute only truly missing data in `data[[vars$outcome]]`.
+[`impute()`](https://openpharma.github.io/rbmi/reference/impute.md) will
+impute only truly missing data in `data[[vars$outcome]]`.
 
 ``` r
+
 draw_obj <- draws(
     data = data,
     data_ice = data_ice_CIR,
@@ -358,18 +362,17 @@ p-value lower than 0.001.
 
 ## 4 Efficiently changing reference-based imputation strategies
 
-The
-[`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md)
+The [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md)
 function is by far the most computationally intensive function in
 `rbmi`. In some settings, it may be important to explore the impact of a
 change in the reference-based imputation strategy on the results. Such a
 change does not affect the imputation model but it does affect the
 subsequent imputation step. In order to allow changes in the imputation
 strategy without having to re-run the
-[`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md)
+[`draws()`](https://openpharma.github.io/rbmi/reference/draws.md)
 function, the function
-[`impute()`](https://insightsengineering.github.io/rbmi/reference/impute.md)
-has an additional argument `update_strategies`.
+[`impute()`](https://openpharma.github.io/rbmi/reference/impute.md) has
+an additional argument `update_strategies`.
 
 However, please note that this functionality comes with some important
 limitations: As described at the beginning of Section
@@ -392,6 +395,7 @@ sensitivity analysis. This can be efficiently implemented using
 `update_strategies` as follows:
 
 ``` r
+
 # Change ICE strategy from CIR to JR
 data_ice_JR <- data_ice_CIR %>% 
     mutate(strategy = ifelse(strategy == "CIR", "JR", strategy))
@@ -453,7 +457,7 @@ The `rbmi` package supports the inclusion of time-varying covariates in
 the imputation model. This is particularly useful for implementing
 so-called retrieved dropout models. The vignette “Implementation of
 retrieved-dropout models using rbmi”
-([`vignette(topic = "retrieved_dropout", package = "rbmi")`](https://insightsengineering.github.io/rbmi/articles/retrieved_dropout.md))
+([`vignette(topic = "retrieved_dropout", package = "rbmi")`](https://openpharma.github.io/rbmi/articles/retrieved_dropout.md))
 contains examples of such models.
 
 ## 6 Custom imputation strategies
@@ -472,9 +476,9 @@ strategy. To do this, the user needs to do three things:
 1.  Define a function implementing the new imputation strategy.
 2.  Specify which patients use this strategy in the `data_ice` dataset
     provided to
-    [`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md).
+    [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md).
 3.  Provide the imputation strategy function to
-    [`impute()`](https://insightsengineering.github.io/rbmi/reference/impute.md).
+    [`impute()`](https://openpharma.github.io/rbmi/reference/impute.md).
 
 The imputation strategy function must take 3 arguments (`pars_group`,
 `pars_ref`, and `index_mar`) and calculates the mean and covariance
@@ -489,9 +493,10 @@ conditional on the reference group and the subject’s covariates.
 the visit is unaffected by an ICE handled using a non-MAR method or not.
 As an example, the user can check how the CIR strategy was implemented
 by looking at function
-[`strategy_CIR()`](https://insightsengineering.github.io/rbmi/reference/strategies.md).
+[`strategy_CIR()`](https://openpharma.github.io/rbmi/reference/strategies.md).
 
 ``` r
+
 strategy_CIR
 #> function (pars_group, pars_ref, index_mar) 
 #> {
@@ -511,7 +516,7 @@ strategy_CIR
 #>     pars <- list(mu = mu, sigma = sigma)
 #>     return(pars)
 #> }
-#> <bytecode: 0x55b95e7e9150>
+#> <bytecode: 0x5572bd436568>
 #> <environment: namespace:rbmi>
 ```
 
@@ -529,6 +534,7 @@ To do this, we first need to define the imputation function which for
 this example could be coded as follows:
 
 ``` r
+
 strategy_AVG <- function(pars_group, pars_ref, index_mar) {
     mu_mean <- (pars_group$mu + pars_ref$mu) / 2
     x <- pars_group
@@ -540,6 +546,7 @@ strategy_AVG <- function(pars_group, pars_ref, index_mar) {
 And an example showing its use:
 
 ``` r
+
 pars_group <- list(
     mu = c(1, 2, 3),
     sigma = as_vcov(c(1, 3, 2), c(0.4, 0.5, 0.45))
@@ -566,12 +573,13 @@ strategy_AVG(pars_group, pars_ref, index_mar)
 To incorporate this into `rbmi`, `data_ice` needs to be updated such
 that the strategy `AVG` is specified for visits affected by the ICE.
 Additionally, the function needs to be provided to
-[`impute()`](https://insightsengineering.github.io/rbmi/reference/impute.md)
-via the
-[`getStrategies()`](https://insightsengineering.github.io/rbmi/reference/getStrategies.md)
+[`impute()`](https://openpharma.github.io/rbmi/reference/impute.md) via
+the
+[`getStrategies()`](https://openpharma.github.io/rbmi/reference/getStrategies.md)
 function as shown below:
 
 ``` r
+
 data_ice_AVG <- data_ice_CIR %>% 
     mutate(strategy = ifelse(strategy == "CIR", "AVG", strategy))
 
@@ -592,15 +600,14 @@ impute_obj <- impute(
 ```
 
 Then, the analysis could proceed by calling
-[`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md)
-and
-[`pool()`](https://insightsengineering.github.io/rbmi/reference/pool.md)
-as before.
+[`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
+and [`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) as
+before.
 
 ## 7 Custom analysis functions
 
 By default `rbmi` will analyse the data by using the
-[`ancova()`](https://insightsengineering.github.io/rbmi/reference/ancova.md)
+[`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md)
 function. This analysis function fits an ANCOVA model to the outcomes
 from each visit separately, and returns the “treatment effect” estimate
 as well as the corresponding least square means for each group. If the
@@ -615,9 +622,9 @@ The custom analysis function must take a `data.frame` as its first
 argument and return a named `list` with each element itself being a
 `list` containing at a minimum a point estimate, called `est`. For
 method
-[`method_bayes()`](https://insightsengineering.github.io/rbmi/reference/method.md)
+[`method_bayes()`](https://openpharma.github.io/rbmi/reference/method.md)
 or
-[`method_approxbayes()`](https://insightsengineering.github.io/rbmi/reference/method.md),
+[`method_approxbayes()`](https://openpharma.github.io/rbmi/reference/method.md),
 the list must additionally contain a standard error (element `se`) and,
 if available, the degrees of freedom of the complete-data analysis model
 (element `df`).
@@ -627,6 +634,7 @@ for the CIR-based imputations with a user-defined analysis function
 below:
 
 ``` r
+
 compare_change_lastvisit <- function(data, ...) {
     fit <- lm(change ~ group + outcome_bl, data = data, subset = (visit == 6) )
     res <- list(
@@ -670,6 +678,7 @@ baseline outcome as an additional covariate. This could lead to the
 following basic analysis function:
 
 ``` r
+
 compare_prop_lastvisit <- function(data, ...) {
     fit <- glm(
         I(change > 10) ~ group + outcome_bl,
@@ -730,7 +739,7 @@ complete data test statistics are known or if the degrees of freedom are
 set to `df = Inf`, then `rbmi` pools the degrees of freedom across
 imputed datasets according to the rule by Barnard and Rubin (see the
 “Statistical Specifications” vignette
-([`vignette("stat_specs", package = "rbmi")`](https://insightsengineering.github.io/rbmi/articles/stat_specs.md)
+([`vignette("stat_specs", package = "rbmi")`](https://openpharma.github.io/rbmi/articles/stat_specs.md)
 for details). According to this rule, infinite degrees of freedom for
 the complete data analysis do not imply that the pooled degrees of
 freedom are also infinite. Rather, in this case the pooled degrees of
@@ -754,13 +763,13 @@ prior to the analysis of the imputed data. Sensitivity analysis using
 delta-adjustments can therefore be performed without having to re-fit
 the imputation model. In `rbmi`, they are implemented via the `delta`
 argument of the
-[`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md)
+[`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
 function.
 
 ### 8.1 Simple delta adjustments and tipping point analyses
 
 The `delta` argument of
-[`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md)
+[`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
 allows users to modify the outcome variable prior to the analysis. To do
 this, the user needs to provide a `data.frame` which contains columns
 for the subject and visit (to identify the observation to be adjusted)
@@ -768,12 +777,13 @@ plus an additional column called `delta` which specifies the value which
 will be added to the outcomes prior to the analysis.
 
 The
-[`delta_template()`](https://insightsengineering.github.io/rbmi/reference/delta_template.md)
+[`delta_template()`](https://openpharma.github.io/rbmi/reference/delta_template.md)
 function supports the user in creating this `data.frame`: it creates a
 skeleton `data.frame` containing one row per subject and visit with the
 value of `delta` set to 0 for all observations:
 
 ``` r
+
 dat_delta <- delta_template(imputations = impute_obj_CIR)
 head(dat_delta)
 #>     id visit   group is_mar is_missing is_post_ice strategy delta
@@ -786,7 +796,7 @@ head(dat_delta)
 ```
 
 Note that the output of
-[`delta_template()`](https://insightsengineering.github.io/rbmi/reference/delta_template.md)
+[`delta_template()`](https://openpharma.github.io/rbmi/reference/delta_template.md)
 contains additional information which can be used to properly re-set
 variable `delta`.
 
@@ -798,6 +808,7 @@ applied to all imputed values regardless of the treatment group. This
 could be programmed as follows:
 
 ``` r
+
 # Set delta-value to 5 for all imputed (previously missing) outcomes and 0 for all other outcomes
 dat_delta <- delta_template(imputations = impute_obj_CIR) %>%
     mutate(delta = is_missing * 5)
@@ -853,6 +864,7 @@ which delta combinations lead to a “tipping” of the primary analysis
 result, defined here as an analysis p-value \\\geq 0.05\\.
 
 ``` r
+
 
 
 
@@ -945,7 +957,7 @@ event (ICE) and vary the magnitude of the delta adjustment depending on
 the how far away the visit in question is from the ICE visit.
 
 To facilitate the creation of such flexible delta-adjustments, the
-[`delta_template()`](https://insightsengineering.github.io/rbmi/reference/delta_template.md)
+[`delta_template()`](https://openpharma.github.io/rbmi/reference/delta_template.md)
 function has two optional additional arguments `delta` and `dlag`. The
 `delta` argument specifies the default amount of delta that should be
 applied to each post-ICE visit, whilst `dlag` specifies the scaling
@@ -993,7 +1005,7 @@ To apply a constant delta value of +5 to all visits affected by the ICE
 regardless of their proximity to the first ICE visit, one could set
 `delta = c(5,5,5,5)` and `dlag = c(1,0,0,0)`. Alternatively, it may be
 more straightforward for this setting to call the
-[`delta_template()`](https://insightsengineering.github.io/rbmi/reference/delta_template.md)
+[`delta_template()`](https://openpharma.github.io/rbmi/reference/delta_template.md)
 function without the `delta` and `dlag` arguments and then overwrite the
 `delta` column of the resulting `data.frame` as described in the
 previous section (and additionally relying on the `is_post_ice`
@@ -1032,10 +1044,11 @@ then the total delta applied to a missing value from the month 10 visit
 would be 6.)
 
 To program this, we first use the `delta` and `dlag` arguments of
-[`delta_template()`](https://insightsengineering.github.io/rbmi/reference/delta_template.md)
+[`delta_template()`](https://openpharma.github.io/rbmi/reference/delta_template.md)
 to set up a corresponding template `data.frame`:
 
 ``` r
+
 delta_df <- delta_template(
     impute_obj_CIR,
     delta = c(2, 2, 2, 2, 2, 2),
@@ -1053,10 +1066,11 @@ head(delta_df)
 ```
 
 Next, we can use the additional metadata variables provided by
-[`delta_template()`](https://insightsengineering.github.io/rbmi/reference/delta_template.md)
+[`delta_template()`](https://openpharma.github.io/rbmi/reference/delta_template.md)
 to manually reset the delta values for the control group back to 0:
 
 ``` r
+
 delta_df2 <- delta_df %>%
     mutate(delta = if_else(group == "Control", 0, delta))
 
@@ -1074,6 +1088,7 @@ Finally, we can use our delta `data.frame` to apply the desired delta
 offset to our analysis:
 
 ``` r
+
 ana_delta <- analyse(impute_obj_CIR, delta = delta_df2, vars = vars_an)
 pool(ana_delta)
 #> 

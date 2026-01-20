@@ -8,13 +8,13 @@ to the core functions of the `rbmi` package.
 The `rbmi` package consists of 4 core functions (plus several helper
 functions) which are typically called in sequence:
 
-- [`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md) -
+- [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md) -
   fits the imputation models and stores their parameters
-- [`impute()`](https://insightsengineering.github.io/rbmi/reference/impute.md) -
+- [`impute()`](https://openpharma.github.io/rbmi/reference/impute.md) -
   creates multiple imputed datasets
-- [`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md) -
+- [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md) -
   analyses each of the multiple imputed datasets
-- [`pool()`](https://insightsengineering.github.io/rbmi/reference/pool.md) -
+- [`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) -
   combines the analysis results across imputed datasets into a single
   statistic
 
@@ -36,6 +36,7 @@ missing and there is a single additional intermittent missing
 observation.
 
 ``` r
+
 library(rbmi)
 library(dplyr)
 #> 
@@ -65,16 +66,17 @@ the baseline HAMD17 score.
 one row per subject for each visit. Missing outcome values should be
 coded as `NA`, while missing covariate values are not allowed. If the
 dataset is incomplete, then the
-[`expand_locf()`](https://insightsengineering.github.io/rbmi/reference/expand.md)
+[`expand_locf()`](https://openpharma.github.io/rbmi/reference/expand.md)
 helper function can be used to add any missing rows, using LOCF
 imputation to carry forward the observed baseline covariate values to
 visits with missing outcomes. Rows corresponding to missing outcomes are
 not present in the antidepressant trial dataset. To address this we will
 therefore use the
-[`expand_locf()`](https://insightsengineering.github.io/rbmi/reference/expand.md)
+[`expand_locf()`](https://openpharma.github.io/rbmi/reference/expand.md)
 function as follows:
 
 ``` r
+
 
 # Use expand_locf to add rows corresponding to visits with missing outcomes to the dataset
 dat <- expand_locf(
@@ -89,12 +91,11 @@ dat <- expand_locf(
 
 ## 3 Draws
 
-The
-[`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md)
+The [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md)
 function fits the imputation models and stores the corresponding
 parameter estimates or Bayesian posterior parameter draws. The three
 main inputs to the
-[`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md)
+[`draws()`](https://openpharma.github.io/rbmi/reference/draws.md)
 function are:
 
 - `data` - The primary longitudinal data.frame containing the outcome
@@ -119,6 +120,7 @@ datasets using Bayesian posterior draws from the imputation model are to
 be created.
 
 ``` r
+
 # create data_ice and set the imputation strategy to JR for
 # each patient with at least one missing observation
 dat_ice <- dat %>% 
@@ -203,7 +205,7 @@ drawObj
 ```
 
 Note the use of
-[`set_vars()`](https://insightsengineering.github.io/rbmi/reference/set_vars.md)
+[`set_vars()`](https://openpharma.github.io/rbmi/reference/set_vars.md)
 which specifies the names of the key variables within the dataset and
 the imputation model. Additionally, note that whilst `vars$group` and
 `vars$visit` are added as terms to the imputation model by default,
@@ -213,9 +215,9 @@ list of covariates.
 Available imputation methods include:
 
 - Bayesian multiple imputation -
-  [`method_bayes()`](https://insightsengineering.github.io/rbmi/reference/method.md)
+  [`method_bayes()`](https://openpharma.github.io/rbmi/reference/method.md)
 - Approximate Bayesian multiple imputation -
-  [`method_approxbayes()`](https://insightsengineering.github.io/rbmi/reference/method.md)
+  [`method_approxbayes()`](https://openpharma.github.io/rbmi/reference/method.md)
 - Conditional mean imputation (bootstrap) -
   `method_condmean(type = "bootstrap")`
 - Conditional mean imputation (jackknife) -
@@ -226,7 +228,7 @@ For a comparison of these methods, we refer to the `stat_specs` vignette
 (Section 3.10).
 
 “statistical specifications” vignette (Section 3.10):
-[`vignette("stat_specs",package="rbmi")`](https://insightsengineering.github.io/rbmi/articles/stat_specs.md).
+[`vignette("stat_specs",package="rbmi")`](https://openpharma.github.io/rbmi/articles/stat_specs.md).
 
 Available imputation strategies include:
 
@@ -240,14 +242,15 @@ Available imputation strategies include:
 
 The next step is to use the parameters from the imputation model to
 generate the imputed datasets. This is done via the
-[`impute()`](https://insightsengineering.github.io/rbmi/reference/impute.md)
+[`impute()`](https://openpharma.github.io/rbmi/reference/impute.md)
 function. The function only has two key inputs: the imputation model
 output from
-[`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md)
-and the reference groups relevant to reference-based imputation methods.
+[`draws()`](https://openpharma.github.io/rbmi/reference/draws.md) and
+the reference groups relevant to reference-based imputation methods.
 It’s usage is thus:
 
 ``` r
+
 imputeObj <- impute(
     drawObj,
     references = c("DRUG" = "PLACEBO", "PLACEBO" = "PLACEBO")
@@ -274,10 +277,11 @@ standard for imputation using reference-based methods).
 Generally speaking, there is no need to see or directly interact with
 the imputed datasets. However, if you do wish to inspect them, they can
 be extracted from the imputation object using the
-[`extract_imputed_dfs()`](https://insightsengineering.github.io/rbmi/reference/extract_imputed_dfs.md)
+[`extract_imputed_dfs()`](https://openpharma.github.io/rbmi/reference/extract_imputed_dfs.md)
 helper function, i.e.:
 
 ``` r
+
 imputed_dfs <- extract_imputed_dfs(imputeObj)
 head(imputed_dfs[[10]], 12) # first 12 rows of 10th imputed dataset
 #>     PATIENT HAMATOTL PGIIMP RELDAYS VISIT THERAPY GENDER POOLINV BASVAL
@@ -309,12 +313,12 @@ head(imputed_dfs[[10]], 12) # first 12 rows of 10th imputed dataset
 ```
 
 Note that in the case of
-[`method_bayes()`](https://insightsengineering.github.io/rbmi/reference/method.md)
+[`method_bayes()`](https://openpharma.github.io/rbmi/reference/method.md)
 or
-[`method_approxbayes()`](https://insightsengineering.github.io/rbmi/reference/method.md),
+[`method_approxbayes()`](https://openpharma.github.io/rbmi/reference/method.md),
 all imputed datasets correspond to random imputations on the original
 dataset. For
-[`method_condmean()`](https://insightsengineering.github.io/rbmi/reference/method.md),
+[`method_condmean()`](https://openpharma.github.io/rbmi/reference/method.md),
 the first imputed dataset will always correspond to the completed
 original dataset containing all subjects. For
 `method_condmean(type="jackknife")`, the remaining datasets correspond
@@ -322,7 +326,7 @@ to conditional mean imputations on leave-one-subject-out datasets,
 whereas for `method_condmean(type="bootstrap")`, each subsequent dataset
 corresponds to a conditional mean imputation on a bootstrapped datasets.
 For
-[`method_bmlmi()`](https://insightsengineering.github.io/rbmi/reference/method.md),
+[`method_bmlmi()`](https://openpharma.github.io/rbmi/reference/method.md),
 all the imputed datasets correspond to sets of random imputations on
 bootstrapped datasets.
 
@@ -330,15 +334,15 @@ bootstrapped datasets.
 
 The next step is to run the analysis model on each imputed dataset. This
 is done by defining an analysis function and then calling
-[`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md)
-to apply this function to each imputed dataset. For this vignette we use
-the
-[`ancova()`](https://insightsengineering.github.io/rbmi/reference/ancova.md)
+[`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md) to
+apply this function to each imputed dataset. For this vignette we use
+the [`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md)
 function provided by the `rbmi` package which fits a separate ANCOVA
 model for the outcomes from each visit and returns a treatment effect
 estimate and corresponding least square means for each group per visit.
 
 ``` r
+
 anaObj <- analyse(
     imputeObj,
     ancova,
@@ -373,11 +377,10 @@ anaObj
 ```
 
 Note that, similar to
-[`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md),
-the
-[`ancova()`](https://insightsengineering.github.io/rbmi/reference/ancova.md)
+[`draws()`](https://openpharma.github.io/rbmi/reference/draws.md), the
+[`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md)
 function uses the
-[`set_vars()`](https://insightsengineering.github.io/rbmi/reference/set_vars.md)
+[`set_vars()`](https://openpharma.github.io/rbmi/reference/set_vars.md)
 function which determines the names of the key variables within the data
 and the covariates (in addition to the treatment group) for which the
 analysis model will be adjusted.
@@ -391,8 +394,8 @@ with “ref” correspond to the intervention arm, while those associated
 with “alt” correspond to the control arm.
 
 Additionally, we can use the `delta` argument of
-[`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md)
-to perform a delta adjustments of the imputed datasets prior to the
+[`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md) to
+perform a delta adjustments of the imputed datasets prior to the
 analysis. In brief, this is implemented by specifying a data.frame that
 contains the amount of adjustment to be added to each longitudinal
 outcome for each subject and visit, i.e.  the data.frame must contain
@@ -400,12 +403,12 @@ the columns `subjid`, `visit`, and `delta`.
 
 It is appreciated that carrying out this procedure is potentially
 tedious, therefore the
-[`delta_template()`](https://insightsengineering.github.io/rbmi/reference/delta_template.md)
+[`delta_template()`](https://openpharma.github.io/rbmi/reference/delta_template.md)
 helper function has been provided to simplify it. In particular,
-[`delta_template()`](https://insightsengineering.github.io/rbmi/reference/delta_template.md)
+[`delta_template()`](https://openpharma.github.io/rbmi/reference/delta_template.md)
 returns a shell `data.frame` where the delta-adjustment is set to 0 for
 all patients. Additionally
-[`delta_template()`](https://insightsengineering.github.io/rbmi/reference/delta_template.md)
+[`delta_template()`](https://openpharma.github.io/rbmi/reference/delta_template.md)
 adds several meta-variables onto the shell `data.frame` which can be
 used for manual derivation or manipulation of the delta-adjustment.
 
@@ -414,6 +417,7 @@ values (i.e. those values which were missing in the original dataset) in
 the drug arm. That could then be implemented as follows:
 
 ``` r
+
 # For reference show the additional meta variables provided
 delta_template(imputeObj) %>% as_tibble()
 #> # A tibble: 688 × 8
@@ -469,20 +473,20 @@ anaObj_delta <- analyse(
 ## 6 Pool
 
 Finally, the
-[`pool()`](https://insightsengineering.github.io/rbmi/reference/pool.md)
-function can be used to summarise the analysis results across multiple
-imputed datasets to provide an overall statistic with a standard error,
+[`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) function
+can be used to summarise the analysis results across multiple imputed
+datasets to provide an overall statistic with a standard error,
 confidence intervals and a p-value for the hypothesis test of the null
 hypothesis that the effect is equal to 0.
 
 Note that the pooling method is automatically derived based on the
 method that was specified in the original call to
-[`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md):
+[`draws()`](https://openpharma.github.io/rbmi/reference/draws.md):
 
 - For
-  [`method_bayes()`](https://insightsengineering.github.io/rbmi/reference/method.md)
+  [`method_bayes()`](https://openpharma.github.io/rbmi/reference/method.md)
   or
-  [`method_approxbayes()`](https://insightsengineering.github.io/rbmi/reference/method.md)
+  [`method_approxbayes()`](https://openpharma.github.io/rbmi/reference/method.md)
   pooling and inference are based on Rubin’s rules.
 - For `method_condmean(type = "bootstrap")` inference is either based on
   a normal approximation using the bootstrap standard error
@@ -496,10 +500,11 @@ method that was specified in the original call to
   for details)
 
 Since we have used Bayesian multiple imputation in this vignette, the
-[`pool()`](https://insightsengineering.github.io/rbmi/reference/pool.md)
-function will automatically use Rubin’s rules.
+[`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) function
+will automatically use Rubin’s rules.
 
 ``` r
+
 poolObj <- pool(
     anaObj, 
     conf.level = 0.95, 
@@ -522,15 +527,15 @@ poolObj
 #>      trt_4    -0.092  0.683  -1.439  1.256   0.893  
 #>    lsm_ref_4  -1.616  0.486  -2.576  -0.656  0.001  
 #>    lsm_alt_4  -1.708  0.475  -2.645  -0.77   <0.001 
-#>      trt_5    1.341   0.922  -0.481  3.163   0.148  
-#>    lsm_ref_5  -4.155  0.658  -5.454  -2.856  <0.001 
-#>    lsm_alt_5  -2.814  0.646  -4.089  -1.539  <0.001 
-#>      trt_6    1.962   0.994  -0.002  3.926    0.05  
-#>    lsm_ref_6  -6.098  0.711  -7.503  -4.694  <0.001 
-#>    lsm_alt_6  -4.136   0.7   -5.518  -2.754  <0.001 
-#>      trt_7    2.177   1.113  -0.024  4.377   0.053  
-#>    lsm_ref_7  -6.993  0.812  -8.599  -5.387  <0.001 
-#>    lsm_alt_7  -4.817  0.785  -6.368  -3.266  <0.001 
+#>      trt_5    1.332   0.922  -0.489  3.153   0.151  
+#>    lsm_ref_5  -4.151  0.658  -5.45   -2.852  <0.001 
+#>    lsm_alt_5  -2.819  0.647  -4.097  -1.541  <0.001 
+#>      trt_6    1.945   0.995  -0.02   3.911   0.052  
+#>    lsm_ref_6  -6.094  0.713  -7.503  -4.686  <0.001 
+#>    lsm_alt_6  -4.149  0.699  -5.53   -2.768  <0.001 
+#>      trt_7    2.169   1.115  -0.036  4.373   0.054  
+#>    lsm_ref_7  -6.994  0.815  -8.606  -5.383  <0.001 
+#>    lsm_alt_7  -4.826  0.785  -6.378  -3.274  <0.001 
 #>   --------------------------------------------------
 ```
 
@@ -539,31 +544,33 @@ extracted using the
 [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) function:
 
 ``` r
+
 as.data.frame(poolObj)
-#>    parameter         est        se          lci        uci         pval
-#> 1      trt_4 -0.09180645 0.6826279 -1.439496841  1.2558839 8.931772e-01
-#> 2  lsm_ref_4 -1.61581996 0.4862316 -2.575771415 -0.6558685 1.093708e-03
-#> 3  lsm_alt_4 -1.70762640 0.4749573 -2.645319305 -0.7699335 4.262148e-04
-#> 4      trt_5  1.34122422 0.9224836 -0.480631826  3.1630803 1.479311e-01
-#> 5  lsm_ref_5 -4.15505945 0.6577067 -5.454015850 -2.8561030 2.546304e-09
-#> 6  lsm_alt_5 -2.81383522 0.6456025 -4.088991267 -1.5386792 2.354302e-05
-#> 7      trt_6  1.96220656 0.9942980 -0.001933819  3.9263469 5.022320e-02
-#> 8  lsm_ref_6 -6.09843563 0.7109829 -7.503011817 -4.6938594 9.902023e-15
-#> 9  lsm_alt_6 -4.13622907 0.6995452 -5.518393657 -2.7540645 2.162186e-08
-#> 10     trt_7  2.17651359 1.1134544 -0.023945050  4.3769722 5.251245e-02
-#> 11 lsm_ref_7 -6.99320546 0.8123126 -8.599323335 -5.3870876 1.444683e-14
-#> 12 lsm_alt_7 -4.81669187 0.7845415 -6.367530980 -3.2658528 7.779068e-09
+#>    parameter         est        se         lci        uci         pval
+#> 1      trt_4 -0.09180645 0.6826279 -1.43949684  1.2558839 8.931772e-01
+#> 2  lsm_ref_4 -1.61581996 0.4862316 -2.57577141 -0.6558685 1.093708e-03
+#> 3  lsm_alt_4 -1.70762640 0.4749573 -2.64531931 -0.7699335 4.262148e-04
+#> 4      trt_5  1.33181193 0.9221217 -0.48930948  3.1529333 1.506156e-01
+#> 5  lsm_ref_5 -4.15095689 0.6578397 -5.45017445 -2.8517393 2.646407e-09
+#> 6  lsm_alt_5 -2.81914496 0.6468851 -4.09687215 -1.5414178 2.363367e-05
+#> 7      trt_6  1.94547986 0.9947731 -0.01961988  3.9105796 5.230274e-02
+#> 8  lsm_ref_6 -6.09449183 0.7129005 -7.50292849 -4.6860552 1.211850e-14
+#> 9  lsm_alt_6 -4.14901197 0.6991306 -5.53034521 -2.7676787 1.938263e-08
+#> 10     trt_7  2.16858670 1.1152591 -0.03551570  4.3726891 5.375759e-02
+#> 11 lsm_ref_7 -6.99444988 0.8147916 -8.60558062 -5.3833191 1.737444e-14
+#> 12 lsm_alt_7 -4.82586318 0.7850314 -6.37769578 -3.2740306 7.508170e-09
 ```
 
-These outputs gives an estimated difference of 2.177 (95% CI -0.024 to
-4.377) between the two groups at the last visit with an associated
-p-value of 0.053.
+These outputs gives an estimated difference of 2.169 (95% CI -0.036 to
+4.373) between the two groups at the last visit with an associated
+p-value of 0.054.
 
 ## 7 Code
 
 We report below all the code presented in this vignette.
 
 ``` r
+
 library(rbmi)
 library(dplyr)
 

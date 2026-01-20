@@ -1,7 +1,7 @@
 # Transpose results object
 
 Transposes a Results object (as created by
-[`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md))
+[`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md))
 in order to group the same estimates together into vectors.
 
 ## Usage

@@ -14,7 +14,7 @@ as_mmrm_formula(mmrm_df, cov_struct)
 - mmrm_df:
 
   an mmrm `data.frame` as created by
-  [`as_mmrm_df()`](https://insightsengineering.github.io/rbmi/reference/as_mmrm_df.md)
+  [`as_mmrm_df()`](https://openpharma.github.io/rbmi/reference/as_mmrm_df.md)
 
 - cov_struct:
 

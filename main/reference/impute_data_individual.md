@@ -2,7 +2,7 @@
 
 This function performs the imputation for a single subject at a time
 implementing the process as detailed in
-[`impute()`](https://insightsengineering.github.io/rbmi/reference/impute.md).
+[`impute()`](https://openpharma.github.io/rbmi/reference/impute.md).
 
 ## Usage
 
@@ -44,7 +44,7 @@ impute_data_individual(
 - data:
 
   A `longdata` object created by
-  [`longDataConstructor()`](https://insightsengineering.github.io/rbmi/reference/longDataConstructor.md)
+  [`longDataConstructor()`](https://openpharma.github.io/rbmi/reference/longDataConstructor.md)
 
 - references:
 
@@ -57,9 +57,9 @@ impute_data_individual(
   A named list of functions. Defines the imputation functions to be
   used. The names of the list should mirror the values specified in
   `method` column of `data_ice`. Default =
-  [`getStrategies()`](https://insightsengineering.github.io/rbmi/reference/getStrategies.md).
+  [`getStrategies()`](https://openpharma.github.io/rbmi/reference/getStrategies.md).
   See
-  [`getStrategies()`](https://insightsengineering.github.io/rbmi/reference/getStrategies.md)
+  [`getStrategies()`](https://openpharma.github.io/rbmi/reference/getStrategies.md)
   for more details.
 
 - condmean:

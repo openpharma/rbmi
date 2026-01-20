@@ -49,9 +49,9 @@ of `mu` and `index_mar`. e.g.
 
 Users can define their own strategy functions and include them via the
 `strategies` argument to
-[`impute()`](https://insightsengineering.github.io/rbmi/reference/impute.md)
+[`impute()`](https://openpharma.github.io/rbmi/reference/impute.md)
 using
-[`getStrategies()`](https://insightsengineering.github.io/rbmi/reference/getStrategies.md).
+[`getStrategies()`](https://openpharma.github.io/rbmi/reference/getStrategies.md).
 That being said the following strategies are available "out the box":
 
 - Missing at Random (MAR)

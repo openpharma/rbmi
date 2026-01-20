@@ -10,7 +10,7 @@ Check that:
 3.  The number of iterations that saturated the max treedepth is zero.
 
 Please see
-[`rstan::check_hmc_diagnostics()`](https://rdrr.io/pkg/rstan/man/check_hmc_diagnostics.html)
+[`rstan::check_hmc_diagnostics()`](https://mc-stan.org/rstan/reference/check_hmc_diagnostics.html)
 for details.
 
 ## Usage

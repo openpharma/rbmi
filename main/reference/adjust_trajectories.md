@@ -45,9 +45,9 @@ adjust_trajectories(
 
   Function implementing trajectories after the intercurrent event (ICE).
   Must be one of
-  [`getStrategies()`](https://insightsengineering.github.io/rbmi/reference/getStrategies.md).
+  [`getStrategies()`](https://openpharma.github.io/rbmi/reference/getStrategies.md).
   See
-  [`getStrategies()`](https://insightsengineering.github.io/rbmi/reference/getStrategies.md)
+  [`getStrategies()`](https://openpharma.github.io/rbmi/reference/getStrategies.md)
   for details.
 
 - distr_pars_ref:
@@ -67,4 +67,4 @@ A numeric vector containing the adjusted trajectories.
 
 ## See also
 
-[`adjust_trajectories_single()`](https://insightsengineering.github.io/rbmi/reference/adjust_trajectories_single.md).
+[`adjust_trajectories_single()`](https://openpharma.github.io/rbmi/reference/adjust_trajectories_single.md).

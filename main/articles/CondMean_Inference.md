@@ -4,7 +4,7 @@
 
 As described in section 3.10.2 of the statistical specifications of the
 package
-([`vignette(topic = "stat_specs", package = "rbmi")`](https://insightsengineering.github.io/rbmi/articles/stat_specs.md)),
+([`vignette(topic = "stat_specs", package = "rbmi")`](https://openpharma.github.io/rbmi/articles/stat_specs.md)),
 two different types of variance estimators have been proposed for
 reference-based imputation methods in the statistical literature
 (Bartlett ([2023](#ref-Bartlett2021))). The first is the frequentist
@@ -19,16 +19,16 @@ strong and borrow information from the control arm for imputation in the
 active arm. As a consequence, the size of frequentist standard errors
 for treatment effects may decrease with increasing amounts of missing
 data. The second is the so-called “information-anchored” variance which
-was originally proposed in the context of sensitivity analyses (Cro,
-Carpenter, and Kenward ([2019](#ref-CroEtAl2019))). This variance
-estimator is based on disentangling point estimation and variance
-estimation altogether. The resulting information-anchored variance is
-typically very similar to the variance under missing-at-random (MAR)
-imputation and increases with increasing amounts of missing data at
-approximately the same rate as MAR imputation. However, the
-information-anchored variance does not reflect the actual variability of
-the reference-based estimator and the resulting frequentist inference is
-highly conservative resulting in a substantial power loss.
+was originally proposed in the context of sensitivity analyses (Cro et
+al. ([2019](#ref-CroEtAl2019))). This variance estimator is based on
+disentangling point estimation and variance estimation altogether. The
+resulting information-anchored variance is typically very similar to the
+variance under missing-at-random (MAR) imputation and increases with
+increasing amounts of missing data at approximately the same rate as MAR
+imputation. However, the information-anchored variance does not reflect
+the actual variability of the reference-based estimator and the
+resulting frequentist inference is highly conservative resulting in a
+substantial power loss.
 
 Reference-based conditional mean imputation combined with a resampling
 method such as the jackknife or the bootstrap was first introduced in
@@ -48,9 +48,9 @@ imputation under the chosen reference-based assumption and MAR on the
 original dataset. The variance can then be obtained via the jackknife or
 the bootstrap while keeping the delta-adjustment fixed. The resulting
 variance estimate is very similar to Rubin’s variance. Moreover, as
-shown in Cro, Carpenter, and Kenward ([2019](#ref-CroEtAl2019)), the
-variance of MAR-imputation combined with a delta-adjustment achieves
-even better information-anchoring properties than Rubin’s variance for
+shown in Cro et al. ([2019](#ref-CroEtAl2019)), the variance of
+MAR-imputation combined with a delta-adjustment achieves even better
+information-anchoring properties than Rubin’s variance for
 reference-based imputation. Reference-based missing data assumptions are
 strong and borrow information from the control arm for imputation in the
 active arm.
@@ -95,29 +95,30 @@ inference for reference-based conditional mean imputation using `rbmi`.
 
 The code used in this section is almost identical to the code in the
 quickstart vignette
-([`vignette(topic = "quickstart", package = "rbmi")`](https://insightsengineering.github.io/rbmi/articles/quickstart.md))
+([`vignette(topic = "quickstart", package = "rbmi")`](https://openpharma.github.io/rbmi/articles/quickstart.md))
 except that we use conditional mean imputation combined with the
 jackknife (`method_condmean(type = "jackknife")`) here rather than
 Bayesian multiple imputation
-([`method_bayes()`](https://insightsengineering.github.io/rbmi/reference/method.md)).
+([`method_bayes()`](https://openpharma.github.io/rbmi/reference/method.md)).
 We therefore refer to that vignette and the help files for the
 individual functions for further explanations and details.
 
 ### 3.1 Draws
 
 We will make use of
-[`rbmi::expand_locf()`](https://insightsengineering.github.io/rbmi/reference/expand.md)
+[`rbmi::expand_locf()`](https://openpharma.github.io/rbmi/reference/expand.md)
 to expand the dataset in order to have one row per subject per visit
 with missing outcomes denoted as `NA`. We will then construct the
 `data_ice`, `vars` and `method` input arguments to the first core `rbmi`
 function,
-[`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md).
+[`draws()`](https://openpharma.github.io/rbmi/reference/draws.md).
 Finally, we call the function
-[`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md)
-to derive the parameter estimates of the base imputation model for the
-full dataset and all leave-one-subject-out samples.
+[`draws()`](https://openpharma.github.io/rbmi/reference/draws.md) to
+derive the parameter estimates of the base imputation model for the full
+dataset and all leave-one-subject-out samples.
 
 ``` r
+
 library(rbmi)
 library(dplyr)
 #> 
@@ -201,11 +202,12 @@ drawObj
 ### 3.2 Impute
 
 We can use now the function
-[`impute()`](https://insightsengineering.github.io/rbmi/reference/impute.md)
-to perform the imputation of the original dataset and of each
-leave-one-out samples using the results obtained at the previous step.
+[`impute()`](https://openpharma.github.io/rbmi/reference/impute.md) to
+perform the imputation of the original dataset and of each leave-one-out
+samples using the results obtained at the previous step.
 
 ``` r
+
 references <- c("DRUG" = "PLACEBO", "PLACEBO" = "PLACEBO")
 imputeObj <- impute(drawObj, references)
 imputeObj
@@ -226,11 +228,12 @@ imputeObj
 ### 3.3 Analyse
 
 Once the datasets have been imputed, we can call the
-[`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md)
+[`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
 function to apply the complete-data analysis model (here ANCOVA) to each
 imputed dataset.
 
 ``` r
+
 
 # Set analysis variables using `rbmi` function "set_vars"
 vars_an <- set_vars(
@@ -273,10 +276,11 @@ anaObj
 Finally, we can extract the treatment effect estimates and perform
 inference using the jackknife variance estimator. This is done by
 calling the
-[`pool()`](https://insightsengineering.github.io/rbmi/reference/pool.md)
+[`pool()`](https://openpharma.github.io/rbmi/reference/pool.md)
 function.
 
 ``` r
+
 poolObj <- pool(anaObj)
 poolObj
 #> 
@@ -324,6 +328,7 @@ is equivalent to the code provided for the frequentist inference. Please
 refer to [that section](#draws) for details about this step.
 
 ``` r
+
 
 library(rbmi)
 library(dplyr)
@@ -406,6 +411,7 @@ reference-based and MAR imputation, plus a `data.frame` which contains
 the delta-adjustment.
 
 ``` r
+
 
 #' Get delta adjustment that matches reference-based imputation
 #' 
@@ -496,10 +502,10 @@ res_delta_adjust <- get_delta_match_refBased(drawObj, dat_ice, references)
 ### 4.3 Analyse
 
 We use the function
-[`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md)
-to add the delta-adjustment and perform the analysis of the imputed
+[`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md) to
+add the delta-adjustment and perform the analysis of the imputed
 datasets under MAR.
-[`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md)
+[`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
 will take as the input argument
 `imputations = res_delta_adjust$imputeObj_MAR`, i.e. the imputation
 object corresponding to the MAR imputation (and not the JR imputation).
@@ -508,6 +514,7 @@ analysis and we set this to the delta-adjustment obtained in the
 previous step: `delta = res_delta_adjust$delta_adjust`.
 
 ``` r
+
 
 # Set analysis variables using `rbmi` function "set_vars"
 vars_an <- set_vars(
@@ -529,13 +536,13 @@ anaObj_MAR_delta <- analyse(
 ### 4.4 Pool
 
 We can finally use the
-[`pool()`](https://insightsengineering.github.io/rbmi/reference/pool.md)
-function to extract the treatment effect estimate (as well as the
-estimated marginal means) at each visit and apply the jackknife variance
-estimator to the analysis estimates from all the imputed leave-one-out
-samples.
+[`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) function
+to extract the treatment effect estimate (as well as the estimated
+marginal means) at each visit and apply the jackknife variance estimator
+to the analysis estimates from all the imputed leave-one-out samples.
 
 ``` r
+
 
 poolObj_MAR_delta <- pool(anaObj_MAR_delta)
 poolObj_MAR_delta

@@ -32,7 +32,7 @@ print(x, ..., pval_digits = 2, pval_eps = 1e-06, pval_nsmall = 5)
 - results:
 
   an analysis object created by
-  [`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md).
+  [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md).
 
 - conf.level:
 
@@ -51,7 +51,7 @@ print(x, ..., pval_digits = 2, pval_eps = 1e-06, pval_nsmall = 5)
   confidence intervals. See details. Only used if
   `method_condmean(type = "bootstrap")` was specified in the original
   call to
-  [`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md).
+  [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md).
 
 - x:
 
@@ -78,12 +78,12 @@ print(x, ..., pval_digits = 2, pval_eps = 1e-06, pval_nsmall = 5)
 The calculation used to generate the point estimate, standard errors and
 confidence interval depends upon the method specified in the original
 call to
-[`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md);
-In particular:
+[`draws()`](https://openpharma.github.io/rbmi/reference/draws.md); In
+particular:
 
-- [`method_approxbayes()`](https://insightsengineering.github.io/rbmi/reference/method.md)
+- [`method_approxbayes()`](https://openpharma.github.io/rbmi/reference/method.md)
   &
-  [`method_bayes()`](https://insightsengineering.github.io/rbmi/reference/method.md)
+  [`method_bayes()`](https://openpharma.github.io/rbmi/reference/method.md)
   both use Rubin's rules to pool estimates and variances across multiple
   imputed datasets, and the Barnard-Rubin rule to pool degree's of
   freedom; see Little & Rubin (2002). Here, the `mcse()` function can

@@ -5,7 +5,7 @@ whether the same covariance structure is used for all groups, and
 whether the parameters are lists of matrices or numeric vectors. This is
 really only necessary to deal with some peculiarities of how Stan
 handles arrays and vectors. See
-[`prepare_prior_params()`](https://insightsengineering.github.io/rbmi/reference/prepare_prior_params.md)
+[`prepare_prior_params()`](https://openpharma.github.io/rbmi/reference/prepare_prior_params.md)
 where this is used.
 
 ## Usage

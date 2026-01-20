@@ -1,7 +1,7 @@
 # Validate `analysis` objects
 
 Validates the return object of the
-[`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md)
+[`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
 function.
 
 ## Usage

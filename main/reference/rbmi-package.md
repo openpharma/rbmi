@@ -7,31 +7,31 @@ select between various standard Bayesian and frequentist approaches.
 
 The package is designed around 4 core functions:
 
-- [`draws()`](https://insightsengineering.github.io/rbmi/reference/draws.md) -
+- [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md) -
   Fits multiple imputation models
 
-- [`impute()`](https://insightsengineering.github.io/rbmi/reference/impute.md) -
+- [`impute()`](https://openpharma.github.io/rbmi/reference/impute.md) -
   Imputes multiple datasets
 
-- [`analyse()`](https://insightsengineering.github.io/rbmi/reference/analyse.md) -
+- [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md) -
   Analyses multiple datasets
 
-- [`pool()`](https://insightsengineering.github.io/rbmi/reference/pool.md) -
+- [`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) -
   Pools multiple results into a single statistic
 
 To learn more about `rbmi`, please see the quickstart vignette:
 
-[`vignette(topic= "quickstart", package = "rbmi")`](https://insightsengineering.github.io/rbmi/articles/quickstart.md)
+[`vignette(topic= "quickstart", package = "rbmi")`](https://openpharma.github.io/rbmi/articles/quickstart.md)
 
 ## See also
 
 Useful links:
 
-- <https://insightsengineering.github.io/rbmi/>
+- <https://openpharma.github.io/rbmi/>
 
-- <https://github.com/insightsengineering/rbmi>
+- <https://github.com/openpharma/rbmi>
 
-- Report bugs at <https://github.com/insightsengineering/rbmi/issues>
+- Report bugs at <https://github.com/openpharma/rbmi/issues>
 
 ## Author
 
