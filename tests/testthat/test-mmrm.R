@@ -152,7 +152,7 @@ test_fit_mmrm <- function(cov_struct) {
     )
 
     # Same cov across groups.
-    result <- fit_mmrm(
+    result_same <- fit_mmrm(
         designmat = mat,
         outcome = dat$outcome,
         subjid = dat$id,
@@ -163,18 +163,18 @@ test_fit_mmrm <- function(cov_struct) {
         same_cov = TRUE
     )
 
-    cov_param_names <- attr(result, "cov_param_names")
+    cov_param_names <- attr(result_same, "cov_param_names")
 
     for (param in cov_param_names) {
         expect_snapshot_value(
-            result[[param]],
+            result_same[[param]],
             style = "deparse",
             tolerance = 1e-3
         )
     }
 
     # Separate cov per group.
-    result <- fit_mmrm(
+    result_sep <- fit_mmrm(
         designmat = mat,
         outcome = dat$outcome,
         subjid = dat$id,
@@ -185,9 +185,22 @@ test_fit_mmrm <- function(cov_struct) {
         same_cov = FALSE
     )
 
+    saveRDS(
+        list(
+            cov_struct = cov_struct,
+            sigma = sigma,
+            dat = dat,
+            seed = .Random.seed,
+            mat = mat,
+            result_sep = result_sep,
+            result_same = result_same
+        ),
+        here::here("local", sprintf("debug_mmrm_%s.Rds", cov_struct))
+    )
+
     for (param in cov_param_names) {
         expect_snapshot_value(
-            result[[param]],
+            result_sep[[param]],
             style = "deparse",
             tolerance = 1e-3
         )
