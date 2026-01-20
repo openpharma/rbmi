@@ -1,10 +1,10 @@
 <!-- badges: start -->
 [![CRAN
 status](https://www.r-pkg.org/badges/version/rbmi)](https://cran.r-project.org/package=rbmi)
-[![R-CMD-check](https://github.com/insightsengineering/rbmi/actions/workflows/on_push.yaml/badge.svg?branch=main)](https://github.com/insightsengineering/rbmi/actions/workflows/on_push.yaml)
+[![R-CMD-check](https://github.com/openpharma/rbmi/actions/workflows/on_push.yaml/badge.svg?branch=main)](https://github.com/openpharma/rbmi/actions/workflows/on_push.yaml)
 <!-- badges: end -->
 
-# Reference Based Multiple Imputation (`rbmi`) <a href='https://insightsengineering.github.io/rbmi/'><img src="man/figures/logo.png" align="right" height="139" style="max-width: 100%; max-height: 139px;"/></a  >
+# Reference Based Multiple Imputation (`rbmi`) <a href='https://openpharma.github.io/rbmi/'><img src="man/figures/logo.png" align="right" height="139" style="max-width: 100%; max-height: 139px;"/></a  >
 
 
 ## Overview
@@ -51,5 +51,5 @@ For clarification on the current validation status of `rbmi` please see the FAQ 
 
 ## Support
 
-For any help with regards to using the package or if you find a bug please create a [GitHub issue](https://github.com/insightsengineering/rbmi/issues)
+For any help with regards to using the package or if you find a bug please create a [GitHub issue](https://github.com/openpharma/rbmi/issues)
  

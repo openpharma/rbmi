@@ -70,7 +70,7 @@ export _R_CHECK_XREFS_NOTE_MISSING_PACKAGE_ANCHORS_=true
 export _R_CHECK_PACKAGES_USED_IN_DEMO_=true
 
 # Additional arguments to replicate donttest error
-# https://github.com/insightsengineering/rbmi/issues/537
+# https://github.com/openpharma/rbmi/issues/537
 export R_KEEP_PKG_SOURCE=yes
 export _R_CHECK_DONTTEST_EXAMPLES_=true
 export _R_CHECK_THINGS_IN_OTHER_DIRS_=true

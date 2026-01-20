@@ -759,7 +759,7 @@ get_stan_model <- function(covariance, prior_cov) {
     # model available or not. Thus we save the current seed state and restore it
     # at the end of this function so that it is in the same state regardless of
     # whether the model was compiled or not.
-    # See https://github.com/insightsengineering/rbmi/issues/469
+    # See https://github.com/openpharma/rbmi/issues/469
     # Note that .Random.seed is only set if the seed has been set or if a random number
     # has been generated.
     current_seed_state <- globalenv()$.Random.seed
