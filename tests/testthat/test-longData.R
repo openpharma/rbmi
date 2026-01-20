@@ -1037,7 +1037,7 @@ test_that("check_has_data_at_each_visit() catches the correct visit that has no 
 test_that("get_data() uses na.rm and nmar.rm correctly", {
     #
     # This test proves that the bug identified in
-    # https://github.com/insightsengineering/rbmi/issues/347
+    # https://github.com/openpharma/rbmi/issues/347
     # has been resolved.
     # This was where `na.rm` and `nmar.rm` in `longdata$get_data()` only worked if IDs
     # were passed to the function

@@ -18,8 +18,8 @@ Description: Implements standard and reference based multiple imputation methods
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-URL: https://insightsengineering.github.io/rbmi/, https://github.com/insightsengineering/rbmi
-BugReports: https://github.com/insightsengineering/rbmi/issues
+URL: https://openpharma.github.io/rbmi/, https://github.com/openpharma/rbmi
+BugReports: https://github.com/openpharma/rbmi/issues
 RoxygenNote: 7.3.3
 Suggests: 
     dplyr,

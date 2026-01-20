@@ -25,9 +25,9 @@ To learn more about \code{rbmi}, please see the quickstart vignette:
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://insightsengineering.github.io/rbmi/}
-  \item \url{https://github.com/insightsengineering/rbmi}
-  \item Report bugs at \url{https://github.com/insightsengineering/rbmi/issues}
+  \item \url{https://openpharma.github.io/rbmi/}
+  \item \url{https://github.com/openpharma/rbmi}
+  \item Report bugs at \url{https://github.com/openpharma/rbmi/issues}
 }
 
 }
