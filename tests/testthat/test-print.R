@@ -8,15 +8,14 @@ suppressPackageStartupMessages({
 ### Pre-recorded print objects
 
 test_that("print - Pool Method", {
-    expect_snapshot(print(.test_print$bayes$pool), cran = TRUE)
-    expect_snapshot(print(.test_print$approxbayes$pool), cran = TRUE)
-    expect_snapshot(
-        print(.test_print$condmean_boot$pool$percentile),
-        cran = TRUE
-    )
-    expect_snapshot(print(.test_print$condmean_boot$pool$normal), cran = TRUE)
-    expect_snapshot(print(.test_print$condmean_jack$pool), cran = TRUE)
-    expect_snapshot(print(.test_print$bmlmi$pool), cran = TRUE)
+    # Snapshot tests can be flakey from minor changes in dependencies
+    skip_if_not(is_core_test())
+    expect_snapshot(print(.test_print$bayes$pool))
+    expect_snapshot(print(.test_print$approxbayes$pool))
+    expect_snapshot(print(.test_print$condmean_boot$pool$percentile))
+    expect_snapshot(print(.test_print$condmean_boot$pool$normal))
+    expect_snapshot(print(.test_print$condmean_jack$pool))
+    expect_snapshot(print(.test_print$bmlmi$pool))
 })
 
 
@@ -59,6 +58,8 @@ test_print_get_data <- function(n) {
 
 
 test_that("print - approx bayes", {
+    # Snapshot tests can be flakey from minor changes in dependencies
+    skip_if_not(is_core_test())
     set.seed(491)
     dobj <- test_print_get_data(40)
 
@@ -95,6 +96,7 @@ test_that("print - approx bayes", {
 
 
 test_that("print - bayesian", {
+    # Snapshot tests can be flakey from minor changes in dependencies
     skip_if_not(is_core_test())
     set.seed(413)
     dobj <- test_print_get_data(40)
@@ -146,6 +148,8 @@ test_that("print - bayesian", {
 
 test_that("print - condmean bootstrap", {
     set.seed(313)
+    # Snapshot tests can be flakey from minor changes in dependencies
+    skip_if_not(is_core_test())
     dobj <- test_print_get_data(40)
 
     drawobj_cmb <- draws(
@@ -189,6 +193,8 @@ test_that("print - condmean bootstrap", {
 
 test_that("print - condmean jackknife", {
     set.seed(89513)
+    # Snapshot tests can be flakey from minor changes in dependencies
+    skip_if_not(is_core_test())
     dobj <- test_print_get_data(35)
     drawobj_cmj <- draws(
         data = dobj$dat,
@@ -224,6 +230,8 @@ test_that("print - condmean jackknife", {
 
 test_that("print - bmlmi", {
     set.seed(2413)
+    # Snapshot tests can be flakey from minor changes in dependencies
+    skip_if_not(is_core_test())
     dobj <- test_print_get_data(40)
 
     drawobj_bml <- draws(
