@@ -5,6 +5,8 @@
 
 devtools::install(dependencies = FALSE)
 
+options("rbmi.enable_cache" = FALSE)
+
 
 rmarkdown::render(
     input = "./vignettes/quickstart.Rmd",
