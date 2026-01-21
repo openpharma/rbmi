@@ -128,6 +128,7 @@ method <- method_bayes(
     control = control_bayes(
         warmup = 200,
         thin = 5,
+        seed = 1821 # Seed to be used by Stan
     )
 )
 
