@@ -2,7 +2,7 @@
 
 This package was archived on 2025-11-19 due to multiple submissions that didn't clean up files written to the `~/.cache` directory. This is a re-submission with said issue resolved.
 
-This issue failed to be resolved as the maintainer (Craig Gower-Page) was submitting submissions to fix other issues and had wrongly assumed that the `~/.cache` issue been already resolved and that the CRAN test hadn't re-run (he had by his own omission miss-understood the logs). We now have a dedicated test pipeline for this particular issue to ensure there are no regressions.
+This issue failed to be resolved as the maintainer (Craig Gower-Page) was submitting submissions to fix other issues and had wrongly assumed that the `~/.cache` issue been already resolved and that the CRAN test hadn't re-run (he had by his own admission misunderstood the logs). We now have a dedicated test pipeline for this particular issue to ensure there are no regressions.
 
 As mentioned above, the package was re-submitted several times in a short span of time as we were trying to implement a caching feature during CRANs tests in order to keep our run time below 10 minutes whilst not reducing our test coverage. In order to improve stability on CRANs servers, whilst respecting the 10 minute restriction, we have now opted to remove all caching on CRAN and reduce the number of tests that we run. To maintain the package quality though, we have setup a cron job on GitHub that runs the full test suite in order to alert of us of any breaking issues.
 
