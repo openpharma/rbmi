@@ -283,6 +283,8 @@ test_that("format_method_descriptions", {
 })
 
 test_that("as_stan_fragments works as expected", {
+    # Snapshot tests can be flakey from minor changes in dependencies
+    skip_if_not(is_core_test())
     x <- c(
         "data {",
         "  int<lower=0> N;",

@@ -513,6 +513,8 @@ test_that("extract_params works with different covariance structures", {
 })
 
 test_that("fit_mmrm works with ar1 structure", {
+    # Snapshot tests can be flakey from minor changes in dependencies
+    skip_if_not(is_core_test())
     set.seed(1234)
     test_fit_mmrm("ar1")
 })
