@@ -18,7 +18,7 @@
 <script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Contributing to rbmi">
-<meta property="og:image" content="https://insightsengineering.github.io/rbmi/logo.png">
+<meta property="og:image" content="https://openpharma.github.io/rbmi/logo.png">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -28,7 +28,7 @@
 
     <a class="navbar-brand me-2" href="index.html">rbmi</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.5.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -55,6 +55,7 @@
     <div class="dropdown-menu" aria-labelledby="dropdown-versions">
     <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/main">main</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/latest-tag">latest-tag</a>
+<a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.0">v1.6.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.5.2">v1.5.2</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.5.1">v1.5.1</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.4.1">v1.4.1</a>
@@ -69,7 +70,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="search.json">
 </form></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/insightsengineering/rbmi/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/openpharma/rbmi/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -79,7 +80,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="logo.png" class="logo" alt=""><h1>Contributing to rbmi</h1>
-      <small class="dont-index">Source: <a href="https://github.com/insightsengineering/rbmi/blob/v1.5.2/CONTRIBUTING.md" class="external-link"><code>CONTRIBUTING.md</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/openpharma/rbmi/blob/v1.6.0/CONTRIBUTING.md" class="external-link"><code>CONTRIBUTING.md</code></a></small>
     </div>
 
 <div id="contributing-to-rbmi" class="section level1">
@@ -125,20 +126,20 @@
 <h3 id="scheduled-testing">Scheduled Testing<a class="anchor" aria-label="anchor" href="#scheduled-testing"></a>
 </h3>
 <p>Due to the stochastic nature of this package some unit tests take a considerable amount of time to execute. To avoid issues with usability, unit tests that take more than a couple of seconds to run should be deferred to the scheduled testing. These are tests that are only run occasionally on a periodic basis (currently twice a month) and not on every pull request / push event.</p>
-<p>To defer a test to the scheduled build simply include <code>skip_if_not(is_full_test())</code> to the top of the <code>test_that()</code> block i.e.</p>
+<p>To defer a test to the scheduled build simply include <code>skip_if_not(is_extended_test())</code> to the top of the <code>test_that()</code> block i.e.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">test_that</span><span class="op">(</span><span class="st">"some unit test"</span>, <span class="op">{</span></span>
-<span>    <span class="fu">skip_if_not</span><span class="op">(</span><span class="fu">is_full_test</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu">skip_if_not</span><span class="op">(</span><span class="fu">is_extended_test</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span>    <span class="fu">expect_equal</span><span class="op">(</span><span class="fl">1</span>,<span class="fl">1</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
-<p>The scheduled tests can also be manually activated by going to “<a href="https://github.com/insightsengineering/rbmi" class="external-link uri">https://github.com/insightsengineering/rbmi</a>” -&gt; “Actions” -&gt; “Bi-Weekly” -&gt; “Run Workflow”. It is advisable to do this before releasing to CRAN.</p>
+<p>The scheduled tests can also be manually activated by going to “<a href="https://github.com/openpharma/rbmi" class="external-link uri">https://github.com/openpharma/rbmi</a>” -&gt; “Actions” -&gt; “Bi-Weekly” -&gt; “Run Workflow”. It is advisable to do this before releasing to CRAN.</p>
 </div>
 <div class="section level3">
 <h3 id="docker-images">Docker Images<a class="anchor" aria-label="anchor" href="#docker-images"></a>
 </h3>
 <p>To support CI/CD, in terms of reducing setup time, a Docker images has been created which contains all the packages and system dependencies required for this project. The image can be found at:</p>
 <ul>
-<li>ghcr.io/insightsengineering/rbmi:latest</li>
+<li>ghcr.io/openpharma/rbmi:latest</li>
 </ul>
 <p>This image is automatically re-built once a month to contain the latest version of R and its packages. The code to create this images can be found in <code>misc/docker</code>.</p>
 <p>To build the image locally run the following from the project root directory:</p>
@@ -187,11 +188,11 @@
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Craig Gower-Page, Isaac Gravestock, Alessandro Noci, Daniel Sabanes Bove, F. Hoffmann-La Roche AG.</p>
+  <p>Developed by Lukas A. Widmer, Craig Gower-Page, Isaac Gravestock, Alessandro Noci, Daniel Sabanes Bove, F. Hoffmann-La Roche AG.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer>

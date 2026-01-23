@@ -27,7 +27,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">rbmi</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.5.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -54,6 +54,7 @@
     <div class="dropdown-menu" aria-labelledby="dropdown-versions">
     <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/main">main</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/latest-tag">latest-tag</a>
+<a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.0">v1.6.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.5.2">v1.5.2</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.5.1">v1.5.1</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.4.1">v1.4.1</a>
@@ -68,7 +69,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/insightsengineering/rbmi/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/openpharma/rbmi/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -84,7 +85,7 @@
             
             <h4 data-toc-skip class="date">2024-07-30</h4>
       
-      <small class="dont-index">Source: <a href="https://github.com/insightsengineering/rbmi/blob/v1.5.2/vignettes/retrieved_dropout.Rmd" class="external-link"><code>vignettes/retrieved_dropout.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/openpharma/rbmi/blob/v1.6.0/vignettes/retrieved_dropout.Rmd" class="external-link"><code>vignettes/retrieved_dropout.Rmd</code></a></small>
       <div class="d-none name"><code>retrieved_dropout.Rmd</code></div>
     </div>
 
@@ -144,7 +145,7 @@ data from that time point onward.</li>
 </ul>
 <p>Below, we report how data according to the specifications above can be simulated with function <code><a href="../reference/simulate_data.html">simulate_data()</a></code>:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://insightsengineering.github.io/rbmi/">rbmi</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://openpharma.github.io/rbmi/">rbmi</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## </span></span>
 <span><span class="co">## Attaching package: 'dplyr'</span></span></code></pre>
@@ -478,9 +479,9 @@ basic MAR model.</p>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
-<div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
+<div id="refs" class="references csl-bib-body hanging-indent">
 <div id="ref-Bell2024" class="csl-entry">
-Bell, James, Thomas Drury, Tobias Mütze, Christian Bressen Pipper, Lorenzo Guizzaro, Marian Mitroiu, Khadija Rerhou Rantell, Marcel Wolbers, and David Wright. 2025. <span>“Estimation Methods for Estimands Using the Treatment Policy Strategy; a Simulation Study Based on the PIONEER 1 Trial.”</span> <em>Pharmaceutical Statistics</em> 24 (2): e2472. https://doi.org/<a href="https://doi.org/10.1002/pst.2472" class="external-link">https://doi.org/10.1002/pst.2472</a>.
+Bell, James, Thomas Drury, Tobias Mütze, et al. 2025. <span>“Estimation Methods for Estimands Using the Treatment Policy Strategy; a Simulation Study Based on the PIONEER 1 Trial.”</span> <em>Pharmaceutical Statistics</em> 24 (2): e2472. https://doi.org/<a href="https://doi.org/10.1002/pst.2472" class="external-link">https://doi.org/10.1002/pst.2472</a>.
 </div>
 <div id="ref-Drury2024" class="csl-entry">
 Drury, Thomas, Juan J Abellan, Nicky Best, and Ian R White. 2024. <span>“Estimation of Treatment Policy Estimands for Continuous Outcomes Using Off-Treatment Sequential Multiple Imputation.”</span> <em>Pharmaceutical Statistics</em>.
@@ -489,7 +490,7 @@ Drury, Thomas, Juan J Abellan, Nicky Best, and Ian R White. 2024. <span>“Estim
 Guizzaro, Lorenzo, Frank Pétavy, Robin Ristl, and Ciro Gallo. 2021. <span>“The Use of a Variable Representing Compliance Improves Accuracy of Estimation of the Effect of Treatment Allocation Regardless of Discontinuation in Trials with Incomplete Follow-up.”</span> <em>Statistics in Biopharmaceutical Research</em> 13 (1): 119–27.
 </div>
 <div id="ref-Noci2021" class="csl-entry">
-Noci, Alessandro, Marcel Wolbers, Markus Abt, Corine Baayen, Hans Ulrich Burger, Man Jin, and Weining Zhao Robieson. 2023. <span>“A Comparison of Estimand and Estimation Strategies for Clinical Trials in Early Parkinson’s Disease.”</span> <em>Statistics in Biopharmaceutical Research</em> 15 (3): 491–501.
+Noci, Alessandro, Marcel Wolbers, Markus Abt, et al. 2023. <span>“A Comparison of Estimand and Estimation Strategies for Clinical Trials in Early Parkinson’s Disease.”</span> <em>Statistics in Biopharmaceutical Research</em> 15 (3): 491–501.
 </div>
 <div id="ref-PolverejanDragalin2020" class="csl-entry">
 Polverejan, Elena, and Vladimir Dragalin. 2020. <span>“Aligning Treatment Policy Estimands and Estimators—a Simulation Study in Alzheimer’s Disease.”</span> <em>Statistics in Biopharmaceutical Research</em> 12 (2): 142–54.
@@ -503,11 +504,11 @@ Polverejan, Elena, and Vladimir Dragalin. 2020. <span>“Aligning Treatment Poli
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Craig Gower-Page, Isaac Gravestock, Alessandro Noci, Daniel Sabanes Bove, F. Hoffmann-La Roche AG.</p>
+  <p>Developed by Lukas A. Widmer, Craig Gower-Page, Isaac Gravestock, Alessandro Noci, Daniel Sabanes Bove, F. Hoffmann-La Roche AG.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer>
