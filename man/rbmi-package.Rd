@@ -32,7 +32,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Lukas Widmer \email{lukas_andreas.widmer@novartis.com}
+\strong{Maintainer}: Lukas A. Widmer \email{lukas_andreas.widmer@novartis.com}
 
 Authors:
 \itemize{
