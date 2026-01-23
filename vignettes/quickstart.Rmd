@@ -128,6 +128,7 @@ method <- method_bayes(
     control = control_bayes(
         warmup = 200,
         thin = 5,
+        seed = 1821 # Seed to be used by Stan
     )
 )
 
@@ -359,6 +360,7 @@ method <- method_bayes(
     control = control_bayes(
         warmup = 200,
         thin = 5,
+        seed = 1821 # Seed to be used by Stan
     )
 )
 
@@ -416,8 +418,8 @@ anaObj_delta <- analyse(
 
 # Pool the results
 poolObj <- pool(
-    anaObj, 
-    conf.level = 0.95, 
+    anaObj,
+    conf.level = 0.95,
     alternative = "two.sided"
 )
 ```

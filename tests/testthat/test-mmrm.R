@@ -513,41 +513,57 @@ test_that("extract_params works with different covariance structures", {
 })
 
 test_that("fit_mmrm works with ar1 structure", {
+    # Snapshot tests can be flakey from minor changes in dependencies
+    skip_if_not(is_core_test())
     set.seed(1234)
     test_fit_mmrm("ar1")
 })
 
 test_that("fit_mmrm works with ar1h structure", {
+    # Snapshot tests can be flakey from minor changes in dependencies
+    skip_if_not(is_core_test())
     set.seed(9469)
     test_fit_mmrm("ar1h")
 })
 
 test_that("fit_mmrm works with cs structure", {
+    # Snapshot tests can be flakey from minor changes in dependencies
+    skip_if_not(is_core_test())
     set.seed(6907)
     test_fit_mmrm("cs")
 })
 
 test_that("fit_mmrm works with csh structure", {
+    # Snapshot tests can be flakey from minor changes in dependencies
+    skip_if_not(is_core_test())
     set.seed(7970)
     test_fit_mmrm("csh")
 })
 
 test_that("fit_mmrm works with ad structure", {
+    # Snapshot tests can be flakey from minor changes in dependencies
+    skip_if_not(is_core_test())
     set.seed(6907)
     test_fit_mmrm("ad")
 })
 
 test_that("fit_mmrm works with adh structure", {
+    # Snapshot tests can be flakey from minor changes in dependencies
+    skip_if_not(is_core_test())
     set.seed(7970)
     test_fit_mmrm("adh")
 })
 
 test_that("fit_mmrm works with toep structure", {
+    # Snapshot tests can be flakey from minor changes in dependencies
+    skip_if_not(is_core_test())
     set.seed(6912)
     test_fit_mmrm("toep")
 })
 
 test_that("fit_mmrm works with toeph structure", {
+    # Snapshot tests can be flakey from minor changes in dependencies
+    skip_if_not(is_core_test())
     set.seed(7975)
     test_fit_mmrm("toeph")
 })
