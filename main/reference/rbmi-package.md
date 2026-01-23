@@ -35,7 +35,7 @@ Useful links:
 
 ## Author
 
-**Maintainer**: Lukas Widmer <lukas_andreas.widmer@novartis.com>
+**Maintainer**: Lukas A. Widmer <lukas_andreas.widmer@novartis.com>
 
 Authors:
 

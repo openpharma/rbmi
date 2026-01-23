@@ -2,7 +2,7 @@
 
 ## Authors
 
-- **Lukas Widmer**. Author, maintainer.
+- **Lukas A. Widmer**. Author, maintainer.
 
 - **Craig Gower-Page**. Author.
 
@@ -27,7 +27,7 @@ Widmer L, Gower-Page C, Gravestock I, Noci A, Sabanes Bove D (2026).
 
     @Manual{,
       title = {rbmi: Reference Based Multiple Imputation},
-      author = {Lukas Widmer and Craig Gower-Page and Isaac Gravestock and Alessandro Noci and Daniel {Sabanes Bove}},
+      author = {Lukas A. Widmer and Craig Gower-Page and Isaac Gravestock and Alessandro Noci and Daniel {Sabanes Bove}},
       year = {2026},
       note = {R package version 1.6.0},
       url = {https://openpharma.github.io/rbmi/},
