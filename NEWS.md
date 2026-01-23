@@ -5,7 +5,7 @@
 * Cache default directory location updated to be the local session (e.g. default cache won't persist across R sessions)
 * Bug fixes to caching hash to better detect when cache is stale
 * Rework of unit tests to have multiple tiers of tests which run under different scenarios
-
+* Illustrate how to set Stan seed in `control_bayes()` in the quickstart vignette
 
 # rbmi 1.5.2
 
