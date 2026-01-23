@@ -35,9 +35,11 @@ Useful links:
 
 ## Author
 
-**Maintainer**: Craig Gower-Page <craig.gower-page@novartis.com>
+**Maintainer**: Lukas Widmer <lukas_andreas.widmer@novartis.com>
 
 Authors:
+
+- Craig Gower-Page <craig.gower-page@novartis.com>
 
 - Isaac Gravestock <isaac.gravestock@roche.com>
 

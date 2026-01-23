@@ -1,5 +1,17 @@
 # Changelog
 
+## rbmi 1.6.0
+
+- Stan programs are constructed in memory and respect the cache setting
+- Cache default directory location updated to be the local session
+  (e.g. default cache won’t persist across R sessions)
+- Bug fixes to caching hash to better detect when cache is stale
+- Rework of unit tests to have multiple tiers of tests which run under
+  different scenarios
+- Illustrate how to set Stan seed in
+  [`control_bayes()`](https://openpharma.github.io/rbmi/reference/control.md)
+  in the quickstart vignette
+
 ## rbmi 1.5.2
 
 CRAN release: 2025-10-28
