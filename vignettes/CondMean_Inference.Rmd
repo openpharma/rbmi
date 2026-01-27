@@ -333,7 +333,7 @@ This gives an estimated treatment effect of
          formatC(poolObj_MAR_delta$pars$trt_7$ci[2],format="f",digits=2),")",sep="")`
 at the last visit with an associated p-value of `r formatC(poolObj_MAR_delta$pars$trt_7$pval,format="f",digits=3)`. 
 Per construction of the delta-adjustment, the point estimate is identical to the frequentist analysis. However, its standard error is much larger (`r formatC(poolObj_MAR_delta$pars$trt_7$se,format="f",digits=2)` vs. `r formatC(poolObj$pars$trt_7$se,format="f",digits=2)`).
-Indeed, the information-anchored standard error (and the resulting inference) is very similar to the results for Baysesian multiple imputation using Rubin's rules for which a standard error of `r 1.13` was reported in the quickstart vignette (`vignette(topic = "quickstart", package = "rbmi"`).
+Indeed, the information-anchored standard error (and the resulting inference) is very similar to the results for Bayesian multiple imputation using Rubin's rules for which a standard error of `r 1.13` was reported in the quickstart vignette (`vignette(topic = "quickstart", package = "rbmi"`).
 Of note, as shown e.g. in @Wolbers2021, hypothesis testing based on the information-anchored inference is very conservative, i.e. the actual type I error is much lower than the nominal value. Hence, confidence intervals and $p$-values based on information-anchored inference should be interpreted with caution.
 
 # References {.unlisted .unnumbered}
