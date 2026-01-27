@@ -13,7 +13,7 @@ par_lapply(cl, fun, x, ...)
 
 \item{x}{object to be looped over}
 
-\item{...}{extra arguements passed to \code{fun}}
+\item{...}{extra arguments passed to \code{fun}}
 }
 \description{
 Simple wrapper around \code{lapply} and \code{\link[parallel:clusterApply]{parallel::clusterApplyLB}} to abstract away
