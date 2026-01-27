@@ -101,7 +101,7 @@
 #'
 #'
 #' The design and implementation of this function is largely based upon the same functionality
-#' as implemented in the so called "five marcos" by James Roger. See Roger (2021).
+#' as implemented in the so called "five macros" by James Roger. See Roger (2021).
 #'
 #' @references
 #' Roger, James. Reference-based mi via multivariate normal rm (the “five macros” and miwithd), 2021. URL

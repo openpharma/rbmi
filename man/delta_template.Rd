@@ -119,7 +119,7 @@ is set to \code{FALSE} for observations that occurred after a non-MAR ICE, other
 }
 
 The design and implementation of this function is largely based upon the same functionality
-as implemented in the so called "five marcos" by James Roger. See Roger (2021).
+as implemented in the so called "five macros" by James Roger. See Roger (2021).
 }
 \examples{
 \dontrun{
