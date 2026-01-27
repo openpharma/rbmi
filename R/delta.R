@@ -105,7 +105,7 @@
 #'
 #' @references
 #' Roger, James. Reference-based mi via multivariate normal rm (the “five macros” and miwithd), 2021. URL
-#' https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data.
+#' <https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data>.
 #'
 #'
 #' @param imputations an `imputation` object as created by [impute()].

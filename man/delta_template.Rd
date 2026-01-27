@@ -129,7 +129,7 @@ delta_template(imputeObj, delta = c(5,6,7,8), dlag = c(1,2,3,4))
 }
 \references{
 Roger, James. Reference-based mi via multivariate normal rm (the “five macros” and miwithd), 2021. URL
-https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data.
+\url{https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data}.
 }
 \seealso{
 \code{\link[=analyse]{analyse()}}
