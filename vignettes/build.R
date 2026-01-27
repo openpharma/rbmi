@@ -1,5 +1,5 @@
 # In order to keep the run time of R CMD check down vignettes are pre-built
-# To keep the pkdown site and the package vignettes in sync the "VignetteIndexEntry"
+# To keep the pkgdown site and the package vignettes in sync the "VignetteIndexEntry"
 # Has to be specified in both the ".asis" file as well as the ".Rmd" file.
 # This is because pkgdown only supports ".Rmd" https://github.com/r-lib/pkgdown/issues/781
 
