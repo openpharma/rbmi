@@ -18,7 +18,7 @@ ancova(
 \code{visit}, \code{outcome} and \code{covariates} elements are required. See details.}
 
 \item{visits}{An optional character vector specifying which visits to
-fit the ancova model at. If \code{NULL}, a separate ancova model will be fit to the
+fit the ANCOVA model at. If \code{NULL}, a separate ANCOVA model will be fit to the
 outcomes for each visit (as determined by \code{unique(data[[vars$visit]])}).
 See details.}
 
