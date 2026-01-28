@@ -107,7 +107,7 @@
 
 # rbmi 1.1.4
 
-* Updated urls for references in vignettes
+* Updated URLs for references in vignettes
 * Fixed a bug where visit factor levels were re-constructed incorrectly in `delta_template()`
 * Fixed a bug where the wrong visit was displayed in the error message for when a specific visit doesn't have any data in `draws()`
 * Fixed a bug where the wrong input parameter was displayed in an error message in `simulate_data()`
