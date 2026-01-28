@@ -177,7 +177,7 @@ print.imputation_df <- function(x, ...) {
 #'
 #' This is a constructor function to create a `imputation_list_single` object
 #' which contains a matrix of [imputation_single()] objects grouped by a single `id`. The matrix
-#' is split so that it has D columns (i.e. for non-bmlmi methods this will always be 1)
+#' is split so that it has D columns (i.e. for non-BMLMI methods this will always be 1)
 #'
 #' The `id` attribute is determined by extracting the `id` attribute from the contributing
 #' [imputation_single()] objects. An error is throw if multiple `id` are detected
