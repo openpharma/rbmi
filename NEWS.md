@@ -83,7 +83,7 @@
 
 ## Miscellaneous Bug Fixes
 
-* Stopped warning messages being accidentally supressed when changing the ICE type in `impute()` (#408)
+* Stopped warning messages being accidentally suppressed when changing the ICE type in `impute()` (#408)
 * Fixed equations not rendering properly in the `pkgdown` website (#433) 
 
 # rbmi 1.2.6
