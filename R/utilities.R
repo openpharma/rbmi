@@ -542,7 +542,7 @@ as_dataframe <- function(x) {
 
 #' Ensure `rstan` exists
 #'
-#' Checks to see if rstan exists and if not throws a helpful error message
+#' Checks to see if `rstan` exists and if not throws a helpful error message
 #' @keywords internal
 ensure_rstan <- function() {
     if (!requireNamespace("rstan", quietly = TRUE)) {

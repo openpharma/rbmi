@@ -38,8 +38,8 @@ The `rbmi` package consists of 4 core functions (plus several helper functions) 
 - `pool()` - combines the analysis results across imputed datasets into a single statistic
 
 
-This example in this vignette makes use of Bayesian multiuple imputation; this functionality
-requires the installation of the suggested package [rstan](https://CRAN.R-project.org/package=rstan).
+This example in this vignette makes use of Bayesian multiple imputation; this functionality
+requires the installation of the suggested package [`rstan`](https://CRAN.R-project.org/package=rstan).
 ```
 install.packages("rstan")
 ```

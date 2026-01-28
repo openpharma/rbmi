@@ -77,7 +77,7 @@
     * `lsmeans(..., weights = "proportional")` has been left in the package for backwards compatibility and is an alias for `lsmeans(..., weights = "counterfactual")` but now gives
     a message prompting users to use either "proportional_em" or "counterfactual" instead.
 * Added support for parallel processing in the `analyse()` function (#370)
-* Added documentation clarifying potential false-positive warnings from rstan (#288)
+* Added documentation clarifying potential false-positive warnings from `rstan` (#288)
 * Added support for all covariance structures supported by the `mmrm` package (#437)
 * Updated `rbmi` citation detail (#423 #425)
 
