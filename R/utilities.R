@@ -347,7 +347,7 @@ sort_by <- function(df, vars = NULL, decreasing = FALSE) {
 #'
 #' @param group The name of the "Group" variable. A length 1 character vector.
 #'
-#' @param covariates The name of any covariates to be used in the context of modeling.
+#' @param covariates The name of any covariates to be used in the context of modelling.
 #' See details.
 #'
 #' @param strata The name of the any stratification variable to be used in the context of bootstrap
@@ -556,7 +556,6 @@ ensure_rstan <- function() {
         )
     }
 }
-
 
 
 #' List of Stan Blocks
@@ -822,14 +821,22 @@ get_stan_model <- function(covariance, prior_cov) {
     if (getOption("rbmi.enable_cache")) {
         cache_dir <- getOption("rbmi.cache_dir")
         if (
-            is.null(cache_dir) || is.na(cache_dir) ||
-                length(cache_dir) != 1 || !is.character(cache_dir) ||
-                cache_dir == "" || nchar(cache_dir) == 0
+            is.null(cache_dir) ||
+                is.na(cache_dir) ||
+                length(cache_dir) != 1 ||
+                !is.character(cache_dir) ||
+                cache_dir == "" ||
+                nchar(cache_dir) == 0
         ) {
             stop("option(rbmi.cache_dir) is not a valid directory path")
         }
         dir.create(cache_dir, showWarnings = FALSE, recursive = TRUE)
-        file_name <- paste0(model_name, "_", get_unique_hash(model_string), ".stan")
+        file_name <- paste0(
+            model_name,
+            "_",
+            get_unique_hash(model_string),
+            ".stan"
+        )
         file_path <- file.path(cache_dir, file_name)
         if (!file.exists(file_path)) {
             writeLines(model_string, file_path)

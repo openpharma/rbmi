@@ -191,7 +191,7 @@ validate.simul_pars <- function(x, ...) {
 #' - Simulate additional intermittent missing outcome data as per arguments `pars_c$prob_miss`
 #' and `pars_t$prob_miss`.
 #'
-#' The probability of the ICE after each visit is modeled according to the following
+#' The probability of the ICE after each visit is modelled according to the following
 #' logistic regression model:
 #' `~ 1 + I(visit == 0) + ... + I(visit == n_visits-1) + I((x-alpha))` where:
 #' - `n_visits` is the number of visits (including baseline).
@@ -419,7 +419,7 @@ generate_data_single <- function(
 #' a +1 higher value of the outcome at the visit.
 #' @param baseline_mean Mean outcome value at baseline.
 #'
-#' @details The probability of the ICE after each visit is modeled according to the following
+#' @details The probability of the ICE after each visit is modelled according to the following
 #' logistic regression model:
 #' `~ 1 + I(visit == 0) + ... + I(visit == n_visits-1) + I((x-alpha))` where:
 #' - `n_visits` is the number of visits (including baseline).
