@@ -41,9 +41,9 @@
 #'    ...
 #')
 #'```
-#' Please note that "ref" refers to the first factor level of `vars$group` which does not necessarily
-#' coincide with the control arm. Analogously, "alt" refers to the second factor level of `vars$group`.
-#' "trt" refers to the model contrast translating the mean difference between the second level and first level.
+#' Please note that `ref` refers to the first factor level of `vars$group` which does not necessarily
+#' coincide with the control arm. Analogously, `alt` refers to the second factor level of `vars$group`.
+#' `trt` refers to the model contrast translating the mean difference between the second level and first level.
 #'
 #' If you want to include interaction terms in your model this can be done
 #' by providing them to the `covariates` argument of [set_vars()]
