@@ -81,7 +81,7 @@ In some trial settings, only few subjects discontinue the randomized treatment. 
 
 ### Implementation of the composite strategy
 
-The composite strategy is typically applied to binary or time-to-event outcomes but it can also be used for continuous outcomes by ascribing a suitably unfavorable value to patients who experience ICEs for which a composite strategy has been defined. One possibility to implement this is to use MI with a $\delta$-adjustment for post-ICE data as described in @Darken2020.
+The composite strategy is typically applied to binary or time-to-event outcomes but it can also be used for continuous outcomes by ascribing a suitably unfavourable value to patients who experience ICEs for which a composite strategy has been defined. One possibility to implement this is to use MI with a $\delta$-adjustment for post-ICE data as described in @Darken2020.
 
 # Statistical methodology {#sec:statsMethods}
 
