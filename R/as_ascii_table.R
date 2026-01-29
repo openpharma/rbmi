@@ -57,7 +57,7 @@ invert <- function(x) {
 #' It is assumed all variable values have a as.character() method
 #' in order to cast them to character.
 #' @param dat Input dataset to convert into a ascii table
-#' @param line_prefix Symbols to prefix infront of every line of the table
+#' @param line_prefix Symbols to prefix in front of every line of the table
 #' @param pcol name of column to be handled as a p-value. Sets the value to <0.001 if the value is 0 after rounding
 as_ascii_table <- function(dat, line_prefix = "  ", pcol = NULL) {
     dat <- as.data.frame(
