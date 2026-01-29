@@ -87,7 +87,7 @@ The three main inputs to the `draws()` function are:
 
 For the antidepressant trial data, the dataset `data_ice` is not provided. However, it can be derived because, in this dataset, 
 the subject's first visit affected by the ICE "study drug discontinuation" corresponds to the first terminal missing observation. 
-We first derive the dateset `data_ice` and then create 150 Bayesian posterior draws of the imputation model parameters. 
+We first derive the dataset `data_ice` and then create 150 Bayesian posterior draws of the imputation model parameters. 
 
 For this example, we assume that the imputation strategy after the ICE is Jump To Reference (JR) for all subjects
 and that 150 multiple imputed datasets using Bayesian posterior draws from the imputation model are to be created. 
