@@ -17,7 +17,7 @@ string_pad <- function(x, width) {
 
 #' recursive_reduce
 #'
-#' Utility function used to replicated purrr::reduce. Recursively applies a
+#' Utility function used to replicate `purrr::reduce`. Recursively applies a
 #' function to a list of elements until only 1 element remains
 #' @param .l list of values to apply a function to
 #' @param .f function to apply to each each element of the list in turn
@@ -33,7 +33,7 @@ recursive_reduce <- function(.l, .f) {
 
 #' invert
 #'
-#' Utility function used to replicated purrr::transpose. Turns a list inside
+#' Utility function used to replicate `purrr::transpose`. Turns a list inside
 #' out.
 #' @param x list
 invert <- function(x) {
