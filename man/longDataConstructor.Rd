@@ -22,7 +22,7 @@ to this object should be avoided if possible.
 \describe{
 \item{\code{data}}{The original dataset passed to the constructor (sorted by id and visit)}
 
-\item{\code{vars}}{The vars object (list of key variables) passed to the constructor}
+\item{\code{vars}}{The \code{vars} object (list of key variables) passed to the constructor}
 
 \item{\code{visits}}{A character vector containing the distinct visit levels}
 

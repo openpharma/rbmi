@@ -25,7 +25,7 @@ longDataConstructor <- R6::R6Class(
         #' @field data The original dataset passed to the constructor (sorted by id and visit)
         data = NULL,
 
-        #' @field vars The vars object (list of key variables) passed to the constructor
+        #' @field vars The `vars` object (list of key variables) passed to the constructor
         vars = NULL,
 
         #' @field visits A character vector containing the distinct visit levels
