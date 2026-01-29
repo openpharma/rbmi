@@ -3,7 +3,7 @@
 \name{convert_to_imputation_list_df}
 \alias{convert_to_imputation_list_df}
 \title{Convert list of \code{\link[=imputation_list_single]{imputation_list_single()}} objects to an \code{\link[=imputation_list_df]{imputation_list_df()}} object
-(i.e. a list of \code{\link[=imputation_df]{imputation_df()}} objects's)}
+(i.e. a list of \code{\link[=imputation_df]{imputation_df()}} objects)}
 \usage{
 convert_to_imputation_list_df(imputes, sample_ids)
 }
@@ -77,5 +77,5 @@ sequentially.}
 }
 \description{
 Convert list of \code{\link[=imputation_list_single]{imputation_list_single()}} objects to an \code{\link[=imputation_list_df]{imputation_list_df()}} object
-(i.e. a list of \code{\link[=imputation_df]{imputation_df()}} objects's)
+(i.e. a list of \code{\link[=imputation_df]{imputation_df()}} objects)
 }

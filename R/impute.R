@@ -227,7 +227,7 @@ impute_internal <- function(
 
 
 #' Convert list of [imputation_list_single()] objects to an [imputation_list_df()] object
-#' (i.e. a list of [imputation_df()] objects's)
+#' (i.e. a list of [imputation_df()] objects)
 #'
 #' @param imputes a list of [imputation_list_single()] objects
 #' @param sample_ids A list with 1 element per required imputation_df. Each element
