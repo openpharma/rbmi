@@ -126,7 +126,7 @@ is_in_rbmi_development <- function() {
 }
 
 
-#' Parallelise Lapply
+#' Parallelise `lapply`
 #'
 #' Simple wrapper around `lapply` and [`parallel::clusterApplyLB`] to abstract away
 #' the logic of deciding which one to use

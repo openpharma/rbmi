@@ -2,7 +2,7 @@
 % Please edit documentation in R/parallel.R
 \name{par_lapply}
 \alias{par_lapply}
-\title{Parallelise Lapply}
+\title{Parallelise \code{lapply}}
 \usage{
 par_lapply(cl, fun, x, ...)
 }
