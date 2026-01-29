@@ -775,7 +775,7 @@ progressLogger <- R6::R6Class(
         quiet = FALSE,
 
         #' @description
-        #' Create progressLogger object
+        #' Create `progressLogger` object
         #' @param n_max integer, sets field `n_max`
         #' @param quiet logical, sets field `quiet`
         #' @param step real, sets field `step`

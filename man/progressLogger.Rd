@@ -41,7 +41,7 @@ acts as the denominator for calculating progress percentages}
 \if{html}{\out{<a id="method-progressLogger-new"></a>}}
 \if{latex}{\out{\hypertarget{method-progressLogger-new}{}}}
 \subsection{Method \code{new()}}{
-Create progressLogger object
+Create \code{progressLogger} object
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{progressLogger$new(n_max, quiet = FALSE, step = 0.1)}\if{html}{\out{</div>}}
 }
