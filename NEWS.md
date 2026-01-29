@@ -88,7 +88,7 @@
 
 # rbmi 1.2.6
 
-* Updated unit tests to fix false-positive error on CRAN's testing servers
+* Updated unit tests to fix false-positive error on CRAN testing servers
 
 # rbmi 1.2.5
 
