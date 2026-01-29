@@ -42,13 +42,13 @@ Validate a longdata object
 These functions are used to validate various different parts of the longdata object
 to be used in \code{\link[=draws]{draws()}}, \code{\link[=impute]{impute()}}, \code{\link[=analyse]{analyse()}} and \code{\link[=pool]{pool()}}. In particular:
 \itemize{
-\item validate_datalong_varExists - Checks that each variable listed in \code{vars} actually exists
+\item \code{validate_datalong_varExists} - Checks that each variable listed in \code{vars} actually exists
 in the \code{data}
-\item validate_datalong_types - Checks that the types of each key variable is as expected
+\item \code{validate_datalong_types} - Checks that the types of each key variable is as expected
 i.e. that visit is a factor variable
-\item validate_datalong_notMissing - Checks that none of the key variables (except the outcome variable)
+\item \code{validate_datalong_notMissing} - Checks that none of the key variables (except the outcome variable)
 contain any missing values
-\item validate_datalong_complete - Checks that \code{data} is complete i.e. there is 1 row for each subject *
+\item \code{validate_datalong_complete} - Checks that \code{data} is complete i.e. there is 1 row for each subject *
 visit combination. e.g. that \code{nrow(data) == length(unique(subjects)) * length(unique(visits))}
 \item validate_datalong_unifromStrata - Checks to make sure that any variables listed as stratification
 variables do not vary over time. e.g. that subjects don't switch between stratification groups.

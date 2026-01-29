@@ -16,16 +16,16 @@
 #' These functions are used to validate various different parts of the longdata object
 #' to be used in [draws()], [impute()], [analyse()] and [pool()]. In particular:
 #'
-#' - validate_datalong_varExists - Checks that each variable listed in `vars` actually exists
+#' - `validate_datalong_varExists` - Checks that each variable listed in `vars` actually exists
 #' in the `data`
 #'
-#' - validate_datalong_types - Checks that the types of each key variable is as expected
+#' - `validate_datalong_types` - Checks that the types of each key variable is as expected
 #' i.e. that visit is a factor variable
 #'
-#' - validate_datalong_notMissing - Checks that none of the key variables (except the outcome variable)
+#' - `validate_datalong_notMissing` - Checks that none of the key variables (except the outcome variable)
 #' contain any missing values
 #'
-#' - validate_datalong_complete - Checks that `data` is complete i.e. there is 1 row for each subject *
+#' - `validate_datalong_complete` - Checks that `data` is complete i.e. there is 1 row for each subject *
 #' visit combination. e.g. that `nrow(data) == length(unique(subjects)) * length(unique(visits))`
 #'
 #' - validate_datalong_unifromStrata - Checks to make sure that any variables listed as stratification
