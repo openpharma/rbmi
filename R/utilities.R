@@ -70,7 +70,7 @@ as_simple_formula <- function(outcome, covars) {
 #' Key details are that it will always place the outcome variable into
 #' the first column of the return object.
 #'
-#' The outcome column may contain NA's but none of the other variables
+#' The outcome column may contain NA, but none of the other variables
 #' listed in the formula should contain missing values
 #'
 #' @param dat a data.frame
