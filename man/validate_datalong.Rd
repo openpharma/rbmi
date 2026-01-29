@@ -50,7 +50,7 @@ i.e. that visit is a factor variable
 contain any missing values
 \item \code{validate_datalong_complete} - Checks that \code{data} is complete i.e. there is 1 row for each subject *
 visit combination. e.g. that \code{nrow(data) == length(unique(subjects)) * length(unique(visits))}
-\item validate_datalong_unifromStrata - Checks to make sure that any variables listed as stratification
+\item \code{validate_datalong_unifromStrata} - Checks to make sure that any variables listed as stratification
 variables do not vary over time. e.g. that subjects don't switch between stratification groups.
 }
 }

@@ -28,7 +28,7 @@
 #' - `validate_datalong_complete` - Checks that `data` is complete i.e. there is 1 row for each subject *
 #' visit combination. e.g. that `nrow(data) == length(unique(subjects)) * length(unique(visits))`
 #'
-#' - validate_datalong_unifromStrata - Checks to make sure that any variables listed as stratification
+#' - `validate_datalong_unifromStrata` - Checks to make sure that any variables listed as stratification
 #' variables do not vary over time. e.g. that subjects don't switch between stratification groups.
 #'
 validate_datalong <- function(data, vars) {
