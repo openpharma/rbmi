@@ -150,7 +150,7 @@ ife <- function(x, a, b) {
 #' univariate random normal variables by the cholesky
 #' decomposition of the covariance matrix.
 #'
-#' If mu is length 1 then just uses rnorm instead.
+#' If mu is length 1 then just uses `rnorm` instead.
 sample_mvnorm <- function(mu, sigma) {
     if (length(sigma) == 1 && length(mu) == 1) {
         return(rnorm(1, mu, sqrt(sigma)))

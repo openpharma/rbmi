@@ -15,7 +15,7 @@ Samples multivariate normal variables by multiplying
 univariate random normal variables by the cholesky
 decomposition of the covariance matrix.
 
-If mu is length 1 then just uses rnorm instead.}
+If mu is length 1 then just uses \code{rnorm} instead.}
 }
 \description{
 Sample random values from the multivariate normal distribution
