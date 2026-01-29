@@ -41,8 +41,8 @@ adjust_dimensions <- function(same_cov, param_list) {
 #' for the covariance model.
 #'
 #' @param stan_data A list containing the Stan data, to which the prior parameters will be added.
-#' @param covariance A character string indicating the covariance structure (e.g., "us", "ar1").
-#' @param prior_cov A character string indicating the prior covariance type (e.g., "default", "lkj").
+#' @param covariance A character string indicating the covariance structure (e.g., `"us"`, `"ar1"`).
+#' @param prior_cov A character string indicating the prior covariance type (e.g., `"default"`, `"lkj"`).
 #' @param mmrm_initial A list containing the initial MMRM fit results, which includes
 #'   the relevant frequentist estimates.
 #' @param same_cov A logical indicating whether to use the same covariance structure for all groups.
