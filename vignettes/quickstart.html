@@ -583,8 +583,8 @@ effect estimate and corresponding least square means for each group per visit.</
 <p>Note that, similar to <code>draws()</code>, the <code>ancova()</code> function uses the <code>set_vars()</code>
 function which determines the names of the key variables within the data and the covariates
 (in addition to the treatment group) for which the analysis model will be adjusted.</p>
-<p>Please also note that the names of the analysis estimates contain “ref” and “alt” to refer to the two treatment arms. In particular “ref” refers to the first factor level of <code>vars$group</code> which does not necessarily
-coincide with the control arm. In this example, since <code>levels(dat[[vars$group]]) = c(&quot;DRUG&quot;, PLACEBO</code>), the results associated with “ref” correspond to the intervention arm, while those associated with “alt” correspond to the control arm.</p>
+<p>Please also note that the names of the analysis estimates contain <code>ref</code> and <code>alt</code> to refer to the two treatment arms. In particular <code>ref</code> refers to the first factor level of <code>vars$group</code> which does not necessarily
+coincide with the control arm. In this example, since <code>levels(dat[[vars$group]]) = c(&quot;DRUG&quot;, PLACEBO</code>), the results associated with <code>ref</code> correspond to the intervention arm, while those associated with <code>alt</code> correspond to the control arm.</p>
 <p>Additionally, we can use the <code>delta</code> argument of <code>analyse()</code> to perform a delta adjustments of the imputed datasets prior to the analysis.
 In brief, this is implemented by specifying a data.frame that contains the amount
 of adjustment to be added to each longitudinal outcome for each subject and visit, i.e. 

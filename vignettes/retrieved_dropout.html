@@ -462,42 +462,42 @@ data from that time point onward.</li>
 <span id="cb1-46"><a href="#cb1-46" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(outcome_noICE, ind_ice2)) <span class="co"># remove unncessary columns</span></span>
 <span id="cb1-47"><a href="#cb1-47" tabindex="-1"></a>  </span>
 <span id="cb1-48"><a href="#cb1-48" tabindex="-1"></a></span>
-<span id="cb1-49"><a href="#cb1-49" tabindex="-1"></a><span class="fu">head</span>(data)</span></code></pre></div>
-<pre><code>##     id visit   group outcome_bl ind_ice1 dropout_ice1  outcome
-## 1 id_1     0 Control   53.35397        0            0 53.35397
-## 2 id_1     1 Control   53.35397        0            0 55.15100
-## 3 id_1     2 Control   53.35397        0            0 59.81038
-## 4 id_1     3 Control   53.35397        0            0 61.59709
-## 5 id_1     4 Control   53.35397        0            0 67.08044
-## 6 id_2     0 Control   53.31025        0            0 53.31025</code></pre>
+<span id="cb1-49"><a href="#cb1-49" tabindex="-1"></a><span class="fu">head</span>(data)</span>
+<span id="cb1-50"><a href="#cb1-50" tabindex="-1"></a><span class="co">#&gt;     id visit   group outcome_bl ind_ice1 dropout_ice1  outcome</span></span>
+<span id="cb1-51"><a href="#cb1-51" tabindex="-1"></a><span class="co">#&gt; 1 id_1     0 Control   53.35397        0            0 53.35397</span></span>
+<span id="cb1-52"><a href="#cb1-52" tabindex="-1"></a><span class="co">#&gt; 2 id_1     1 Control   53.35397        0            0 55.15100</span></span>
+<span id="cb1-53"><a href="#cb1-53" tabindex="-1"></a><span class="co">#&gt; 3 id_1     2 Control   53.35397        0            0 59.81038</span></span>
+<span id="cb1-54"><a href="#cb1-54" tabindex="-1"></a><span class="co">#&gt; 4 id_1     3 Control   53.35397        0            0 61.59709</span></span>
+<span id="cb1-55"><a href="#cb1-55" tabindex="-1"></a><span class="co">#&gt; 5 id_1     4 Control   53.35397        0            0 67.08044</span></span>
+<span id="cb1-56"><a href="#cb1-56" tabindex="-1"></a><span class="co">#&gt; 6 id_2     0 Control   53.31025        0            0 53.31025</span></span></code></pre></div>
 <p>The frequency of the ICE and proportion of data collected after the ICE impacts the variance of the treatment effect for
 retrieved dropout models. For example, a large proportion of ICE combined with a small proportion of data collected after the
 ICE might result in substantial variance inflation, especially for more complex retrieved dropout models.</p>
 <p>The proportion of subjects with an ICE and the proportion of subjects who withdrew from the simulated study is summarized below:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Compute endpoint of interest: change from baseline</span></span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>data <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span> </span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="fu">filter</span>(visit <span class="sc">!=</span> <span class="st">&quot;0&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>    <span class="at">change =</span> outcome <span class="sc">-</span> outcome_bl,</span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>    <span class="at">visit =</span> <span class="fu">factor</span>(visit, <span class="at">levels =</span> <span class="fu">unique</span>(visit))</span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>  )</span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>      </span>
-<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a></span>
-<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>data <span class="sc">%&gt;%</span></span>
-<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>  <span class="fu">group_by</span>(visit) <span class="sc">%&gt;%</span> </span>
-<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>    <span class="at">freq_disc_ctrl =</span> <span class="fu">mean</span>(ind_ice1[group <span class="sc">==</span> <span class="st">&quot;Control&quot;</span>] <span class="sc">==</span> <span class="dv">1</span>),</span>
-<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a>    <span class="at">freq_dropout_ctrl =</span> <span class="fu">mean</span>(dropout_ice1[group <span class="sc">==</span> <span class="st">&quot;Control&quot;</span>] <span class="sc">==</span> <span class="dv">1</span>),</span>
-<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>    <span class="at">freq_disc_interv =</span> <span class="fu">mean</span>(ind_ice1[group <span class="sc">==</span> <span class="st">&quot;Intervention&quot;</span>] <span class="sc">==</span> <span class="dv">1</span>),</span>
-<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a>    <span class="at">freq_dropout_interv =</span> <span class="fu">mean</span>(dropout_ice1[group <span class="sc">==</span> <span class="st">&quot;Intervention&quot;</span>] <span class="sc">==</span> <span class="dv">1</span>)</span>
-<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a>  )</span></code></pre></div>
-<pre><code>## # A tibble: 4 × 5
-##   visit freq_disc_ctrl freq_dropout_ctrl freq_disc_interv freq_dropout_interv
-##   &lt;fct&gt;          &lt;dbl&gt;             &lt;dbl&gt;            &lt;dbl&gt;               &lt;dbl&gt;
-## 1 1               0.03              0.01             0.06                0.03
-## 2 2               0.1               0.03             0.1                 0.04
-## 3 3               0.19              0.09             0.17                0.06
-## 4 4               0.23              0.12             0.24                0.1</code></pre>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># Compute endpoint of interest: change from baseline</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>data <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span> </span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>  <span class="fu">filter</span>(visit <span class="sc">!=</span> <span class="st">&quot;0&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>    <span class="at">change =</span> outcome <span class="sc">-</span> outcome_bl,</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>    <span class="at">visit =</span> <span class="fu">factor</span>(visit, <span class="at">levels =</span> <span class="fu">unique</span>(visit))</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>  )</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>      </span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>data <span class="sc">%&gt;%</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>  <span class="fu">group_by</span>(visit) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>    <span class="at">freq_disc_ctrl =</span> <span class="fu">mean</span>(ind_ice1[group <span class="sc">==</span> <span class="st">&quot;Control&quot;</span>] <span class="sc">==</span> <span class="dv">1</span>),</span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a>    <span class="at">freq_dropout_ctrl =</span> <span class="fu">mean</span>(dropout_ice1[group <span class="sc">==</span> <span class="st">&quot;Control&quot;</span>] <span class="sc">==</span> <span class="dv">1</span>),</span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a>    <span class="at">freq_disc_interv =</span> <span class="fu">mean</span>(ind_ice1[group <span class="sc">==</span> <span class="st">&quot;Intervention&quot;</span>] <span class="sc">==</span> <span class="dv">1</span>),</span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a>    <span class="at">freq_dropout_interv =</span> <span class="fu">mean</span>(dropout_ice1[group <span class="sc">==</span> <span class="st">&quot;Intervention&quot;</span>] <span class="sc">==</span> <span class="dv">1</span>)</span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a>  )</span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt; # A tibble: 4 × 5</span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="co">#&gt;   visit freq_disc_ctrl freq_dropout_ctrl freq_disc_interv freq_dropout_interv</span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="co">#&gt;   &lt;fct&gt;          &lt;dbl&gt;             &lt;dbl&gt;            &lt;dbl&gt;               &lt;dbl&gt;</span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a><span class="co">#&gt; 1 1               0.03              0.01             0.06                0.03</span></span>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a><span class="co">#&gt; 2 2               0.1               0.03             0.1                 0.04</span></span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a><span class="co">#&gt; 3 3               0.19              0.09             0.17                0.06</span></span>
+<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a><span class="co">#&gt; 4 4               0.23              0.12             0.24                0.1</span></span></code></pre></div>
 <p>For this study 23% of the study participants discontinued from study treatment in the control arm and 24% in the intervention
 arm. Approximately half of the participants who discontinued from treatment dropped-out from the study at the discontinuation
 visit leading to missing outcomes at subsequent visits.</p>
@@ -538,171 +538,171 @@ should yield comparable estimators and standard errors.
 For this vignette, we used the conditional mean imputation approach combined with the jackknife.</p>
 <div id="basic-mar-model" class="section level2" number="4.1">
 <h2><span class="header-section-number">4.1</span> Basic MAR model</h2>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># Define key variables for the imputation and analysis models</span></span>
-<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>vars <span class="ot">&lt;-</span> <span class="fu">set_vars</span>(</span>
-<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>  <span class="at">subjid =</span> <span class="st">&quot;id&quot;</span>,</span>
-<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="at">visit =</span> <span class="st">&quot;visit&quot;</span>,</span>
-<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>  <span class="at">outcome =</span> <span class="st">&quot;change&quot;</span>,</span>
-<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>  <span class="at">group =</span> <span class="st">&quot;group&quot;</span>,</span>
-<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>  <span class="at">covariates =</span> <span class="fu">c</span>(<span class="st">&quot;outcome_bl*visit&quot;</span>, <span class="st">&quot;group*visit&quot;</span>)</span>
-<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>)</span>
-<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a></span>
-<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>vars_an <span class="ot">&lt;-</span> vars</span>
-<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>vars_an<span class="sc">$</span>covariates <span class="ot">&lt;-</span> <span class="st">&quot;outcome_bl&quot;</span></span>
-<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a></span>
-<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co"># Define imputation method</span></span>
-<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a>method <span class="ot">&lt;-</span> <span class="fu">method_condmean</span>(<span class="at">type =</span> <span class="st">&quot;jackknife&quot;</span>)</span>
-<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a></span>
-<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a>draw_obj <span class="ot">&lt;-</span> <span class="fu">draws</span>(</span>
-<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a>  <span class="at">data =</span> data,</span>
-<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a>  <span class="at">data_ice =</span> <span class="cn">NULL</span>,</span>
-<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a>  <span class="at">vars =</span> vars,</span>
-<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a>  <span class="at">method =</span> method,</span>
-<span id="cb5-21"><a href="#cb5-21" tabindex="-1"></a>  <span class="at">quiet =</span> <span class="cn">TRUE</span></span>
-<span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a>)</span>
-<span id="cb5-23"><a href="#cb5-23" tabindex="-1"></a></span>
-<span id="cb5-24"><a href="#cb5-24" tabindex="-1"></a>impute_obj <span class="ot">&lt;-</span> <span class="fu">impute</span>(</span>
-<span id="cb5-25"><a href="#cb5-25" tabindex="-1"></a>  draw_obj</span>
-<span id="cb5-26"><a href="#cb5-26" tabindex="-1"></a>)</span>
-<span id="cb5-27"><a href="#cb5-27" tabindex="-1"></a></span>
-<span id="cb5-28"><a href="#cb5-28" tabindex="-1"></a>ana_obj <span class="ot">&lt;-</span> <span class="fu">analyse</span>(</span>
-<span id="cb5-29"><a href="#cb5-29" tabindex="-1"></a>  impute_obj,</span>
-<span id="cb5-30"><a href="#cb5-30" tabindex="-1"></a>  <span class="at">vars =</span> vars_an</span>
-<span id="cb5-31"><a href="#cb5-31" tabindex="-1"></a>)</span>
-<span id="cb5-32"><a href="#cb5-32" tabindex="-1"></a></span>
-<span id="cb5-33"><a href="#cb5-33" tabindex="-1"></a>pool_obj_basicMAR <span class="ot">&lt;-</span> <span class="fu">pool</span>(ana_obj)</span>
-<span id="cb5-34"><a href="#cb5-34" tabindex="-1"></a>pool_obj_basicMAR</span></code></pre></div>
-<pre><code>## 
-## Pool Object
-## -----------
-## Number of Results Combined: 1 + 200
-## Method: jackknife
-## Confidence Level: 0.95
-## Alternative: two.sided
-## 
-## Results:
-## 
-##   ==================================================
-##    parameter   est     se     lci     uci     pval  
-##   --------------------------------------------------
-##      trt_1    -0.991  0.557  -2.083  0.101   0.075  
-##    lsm_ref_1  3.117   0.401  2.331   3.902   &lt;0.001 
-##    lsm_alt_1  2.126   0.391   1.36   2.892   &lt;0.001 
-##      trt_2    -0.937  0.611  -2.134   0.26   0.125  
-##    lsm_ref_2  5.814   0.447  4.938    6.69   &lt;0.001 
-##    lsm_alt_2  4.877   0.414  4.066   5.688   &lt;0.001 
-##      trt_3    -1.491  0.743  -2.948  -0.034  0.045  
-##    lsm_ref_3  7.725   0.526  6.694   8.757   &lt;0.001 
-##    lsm_alt_3  6.234   0.522  5.211   7.258   &lt;0.001 
-##      trt_4    -2.872  0.945  -4.723  -1.02   0.002  
-##    lsm_ref_4  10.787  0.661  9.491   12.083  &lt;0.001 
-##    lsm_alt_4  7.915   0.67   6.603   9.228   &lt;0.001 
-##   --------------------------------------------------</code></pre>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Define key variables for the imputation and analysis models</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>vars <span class="ot">&lt;-</span> <span class="fu">set_vars</span>(</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="at">subjid =</span> <span class="st">&quot;id&quot;</span>,</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="at">visit =</span> <span class="st">&quot;visit&quot;</span>,</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  <span class="at">outcome =</span> <span class="st">&quot;change&quot;</span>,</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>  <span class="at">group =</span> <span class="st">&quot;group&quot;</span>,</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>  <span class="at">covariates =</span> <span class="fu">c</span>(<span class="st">&quot;outcome_bl*visit&quot;</span>, <span class="st">&quot;group*visit&quot;</span>)</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>)</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>vars_an <span class="ot">&lt;-</span> vars</span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>vars_an<span class="sc">$</span>covariates <span class="ot">&lt;-</span> <span class="st">&quot;outcome_bl&quot;</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co"># Define imputation method</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a>method <span class="ot">&lt;-</span> <span class="fu">method_condmean</span>(<span class="at">type =</span> <span class="st">&quot;jackknife&quot;</span>)</span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a>draw_obj <span class="ot">&lt;-</span> <span class="fu">draws</span>(</span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a>  <span class="at">data =</span> data,</span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a>  <span class="at">data_ice =</span> <span class="cn">NULL</span>,</span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>  <span class="at">vars =</span> vars,</span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a>  <span class="at">method =</span> method,</span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a>  <span class="at">quiet =</span> <span class="cn">TRUE</span></span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a>)</span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a></span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a>impute_obj <span class="ot">&lt;-</span> <span class="fu">impute</span>(</span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a>  draw_obj</span>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a>)</span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a></span>
+<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a>ana_obj <span class="ot">&lt;-</span> <span class="fu">analyse</span>(</span>
+<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a>  impute_obj,</span>
+<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a>  <span class="at">vars =</span> vars_an</span>
+<span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a>)</span>
+<span id="cb3-32"><a href="#cb3-32" tabindex="-1"></a></span>
+<span id="cb3-33"><a href="#cb3-33" tabindex="-1"></a>pool_obj_basicMAR <span class="ot">&lt;-</span> <span class="fu">pool</span>(ana_obj)</span>
+<span id="cb3-34"><a href="#cb3-34" tabindex="-1"></a>pool_obj_basicMAR</span>
+<span id="cb3-35"><a href="#cb3-35" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-36"><a href="#cb3-36" tabindex="-1"></a><span class="co">#&gt; Pool Object</span></span>
+<span id="cb3-37"><a href="#cb3-37" tabindex="-1"></a><span class="co">#&gt; -----------</span></span>
+<span id="cb3-38"><a href="#cb3-38" tabindex="-1"></a><span class="co">#&gt; Number of Results Combined: 1 + 200</span></span>
+<span id="cb3-39"><a href="#cb3-39" tabindex="-1"></a><span class="co">#&gt; Method: jackknife</span></span>
+<span id="cb3-40"><a href="#cb3-40" tabindex="-1"></a><span class="co">#&gt; Confidence Level: 0.95</span></span>
+<span id="cb3-41"><a href="#cb3-41" tabindex="-1"></a><span class="co">#&gt; Alternative: two.sided</span></span>
+<span id="cb3-42"><a href="#cb3-42" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-43"><a href="#cb3-43" tabindex="-1"></a><span class="co">#&gt; Results:</span></span>
+<span id="cb3-44"><a href="#cb3-44" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-45"><a href="#cb3-45" tabindex="-1"></a><span class="co">#&gt;   ==================================================</span></span>
+<span id="cb3-46"><a href="#cb3-46" tabindex="-1"></a><span class="co">#&gt;    parameter   est     se     lci     uci     pval  </span></span>
+<span id="cb3-47"><a href="#cb3-47" tabindex="-1"></a><span class="co">#&gt;   --------------------------------------------------</span></span>
+<span id="cb3-48"><a href="#cb3-48" tabindex="-1"></a><span class="co">#&gt;      trt_1    -0.991  0.557  -2.083  0.101   0.075  </span></span>
+<span id="cb3-49"><a href="#cb3-49" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_1  3.117   0.401  2.331   3.902   &lt;0.001 </span></span>
+<span id="cb3-50"><a href="#cb3-50" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_1  2.126   0.391   1.36   2.892   &lt;0.001 </span></span>
+<span id="cb3-51"><a href="#cb3-51" tabindex="-1"></a><span class="co">#&gt;      trt_2    -0.937  0.611  -2.134   0.26   0.125  </span></span>
+<span id="cb3-52"><a href="#cb3-52" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_2  5.814   0.447  4.938    6.69   &lt;0.001 </span></span>
+<span id="cb3-53"><a href="#cb3-53" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_2  4.877   0.414  4.066   5.688   &lt;0.001 </span></span>
+<span id="cb3-54"><a href="#cb3-54" tabindex="-1"></a><span class="co">#&gt;      trt_3    -1.491  0.743  -2.948  -0.034  0.045  </span></span>
+<span id="cb3-55"><a href="#cb3-55" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_3  7.725   0.526  6.694   8.757   &lt;0.001 </span></span>
+<span id="cb3-56"><a href="#cb3-56" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_3  6.234   0.522  5.211   7.258   &lt;0.001 </span></span>
+<span id="cb3-57"><a href="#cb3-57" tabindex="-1"></a><span class="co">#&gt;      trt_4    -2.872  0.945  -4.723  -1.02   0.002  </span></span>
+<span id="cb3-58"><a href="#cb3-58" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_4  10.787  0.661  9.491   12.083  &lt;0.001 </span></span>
+<span id="cb3-59"><a href="#cb3-59" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_4  7.915   0.67   6.603   9.228   &lt;0.001 </span></span>
+<span id="cb3-60"><a href="#cb3-60" tabindex="-1"></a><span class="co">#&gt;   --------------------------------------------------</span></span></code></pre></div>
 </div>
 <div id="retrieved-dropout-model-1-rd1" class="section level2" number="4.2">
 <h2><span class="header-section-number">4.2</span> Retrieved dropout model 1 (RD1)</h2>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co"># derive variable &quot;time_since_ice1&quot; (time since ICE in months)</span></span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>data <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span> </span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="fu">group_by</span>(id) <span class="sc">%&gt;%</span> </span>
-<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">time_since_ice1 =</span> <span class="fu">cumsum</span>(ind_ice1)<span class="sc">*</span><span class="dv">3</span>)</span>
-<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a></span>
-<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>vars<span class="sc">$</span>covariates <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;outcome_bl*visit&quot;</span>, <span class="st">&quot;group*visit&quot;</span>, <span class="st">&quot;time_since_ice1*group&quot;</span>)</span>
-<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a></span>
-<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>draw_obj <span class="ot">&lt;-</span> <span class="fu">draws</span>(</span>
-<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>  <span class="at">data =</span> data,</span>
-<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a>  <span class="at">data_ice =</span> <span class="cn">NULL</span>,</span>
-<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a>  <span class="at">vars =</span> vars,</span>
-<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a>  <span class="at">method =</span> method,</span>
-<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a>  <span class="at">quiet =</span> <span class="cn">TRUE</span></span>
-<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a>)</span>
-<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a></span>
-<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a>impute_obj <span class="ot">&lt;-</span> <span class="fu">impute</span>(</span>
-<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a>  draw_obj</span>
-<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a>)</span>
-<span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a></span>
-<span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a>ana_obj <span class="ot">&lt;-</span> <span class="fu">analyse</span>(</span>
-<span id="cb7-21"><a href="#cb7-21" tabindex="-1"></a>  impute_obj,</span>
-<span id="cb7-22"><a href="#cb7-22" tabindex="-1"></a>  <span class="at">vars =</span> vars_an</span>
-<span id="cb7-23"><a href="#cb7-23" tabindex="-1"></a>)</span>
-<span id="cb7-24"><a href="#cb7-24" tabindex="-1"></a></span>
-<span id="cb7-25"><a href="#cb7-25" tabindex="-1"></a>pool_obj_RD1 <span class="ot">&lt;-</span> <span class="fu">pool</span>(ana_obj)</span>
-<span id="cb7-26"><a href="#cb7-26" tabindex="-1"></a>pool_obj_RD1</span></code></pre></div>
-<pre><code>## 
-## Pool Object
-## -----------
-## Number of Results Combined: 1 + 200
-## Method: jackknife
-## Confidence Level: 0.95
-## Alternative: two.sided
-## 
-## Results:
-## 
-##   ==================================================
-##    parameter   est     se     lci     uci     pval  
-##   --------------------------------------------------
-##      trt_1    -0.931  0.558  -2.025  0.163   0.095  
-##    lsm_ref_1  3.119    0.4   2.334   3.903   &lt;0.001 
-##    lsm_alt_1  2.188   0.393  1.419   2.957   &lt;0.001 
-##      trt_2    -0.805  0.616  -2.013  0.403   0.192  
-##    lsm_ref_2  5.822   0.445  4.949   6.695   &lt;0.001 
-##    lsm_alt_2  5.017   0.424  4.186   5.849   &lt;0.001 
-##      trt_3    -1.263  0.758  -2.748  0.222   0.096  
-##    lsm_ref_3  7.749   0.52   6.729   8.768   &lt;0.001 
-##    lsm_alt_3  6.486   0.549   5.41   7.562   &lt;0.001 
-##      trt_4    -2.506  0.969  -4.406  -0.606   0.01  
-##    lsm_ref_4  10.837  0.653  9.558   12.116  &lt;0.001 
-##    lsm_alt_4  8.331   0.718  6.924   9.737   &lt;0.001 
-##   --------------------------------------------------</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># derive variable &quot;time_since_ice1&quot; (time since ICE in months)</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>data <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span> </span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="fu">group_by</span>(id) <span class="sc">%&gt;%</span> </span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">time_since_ice1 =</span> <span class="fu">cumsum</span>(ind_ice1)<span class="sc">*</span><span class="dv">3</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>vars<span class="sc">$</span>covariates <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;outcome_bl*visit&quot;</span>, <span class="st">&quot;group*visit&quot;</span>, <span class="st">&quot;time_since_ice1*group&quot;</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>draw_obj <span class="ot">&lt;-</span> <span class="fu">draws</span>(</span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>  <span class="at">data =</span> data,</span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a>  <span class="at">data_ice =</span> <span class="cn">NULL</span>,</span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>  <span class="at">vars =</span> vars,</span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>  <span class="at">method =</span> method,</span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a>  <span class="at">quiet =</span> <span class="cn">TRUE</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a>)</span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a>impute_obj <span class="ot">&lt;-</span> <span class="fu">impute</span>(</span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>  draw_obj</span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a>)</span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a></span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a>ana_obj <span class="ot">&lt;-</span> <span class="fu">analyse</span>(</span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a>  impute_obj,</span>
+<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a>  <span class="at">vars =</span> vars_an</span>
+<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a>)</span>
+<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a></span>
+<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a>pool_obj_RD1 <span class="ot">&lt;-</span> <span class="fu">pool</span>(ana_obj)</span>
+<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a>pool_obj_RD1</span>
+<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a><span class="co">#&gt; Pool Object</span></span>
+<span id="cb4-29"><a href="#cb4-29" tabindex="-1"></a><span class="co">#&gt; -----------</span></span>
+<span id="cb4-30"><a href="#cb4-30" tabindex="-1"></a><span class="co">#&gt; Number of Results Combined: 1 + 200</span></span>
+<span id="cb4-31"><a href="#cb4-31" tabindex="-1"></a><span class="co">#&gt; Method: jackknife</span></span>
+<span id="cb4-32"><a href="#cb4-32" tabindex="-1"></a><span class="co">#&gt; Confidence Level: 0.95</span></span>
+<span id="cb4-33"><a href="#cb4-33" tabindex="-1"></a><span class="co">#&gt; Alternative: two.sided</span></span>
+<span id="cb4-34"><a href="#cb4-34" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-35"><a href="#cb4-35" tabindex="-1"></a><span class="co">#&gt; Results:</span></span>
+<span id="cb4-36"><a href="#cb4-36" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-37"><a href="#cb4-37" tabindex="-1"></a><span class="co">#&gt;   ==================================================</span></span>
+<span id="cb4-38"><a href="#cb4-38" tabindex="-1"></a><span class="co">#&gt;    parameter   est     se     lci     uci     pval  </span></span>
+<span id="cb4-39"><a href="#cb4-39" tabindex="-1"></a><span class="co">#&gt;   --------------------------------------------------</span></span>
+<span id="cb4-40"><a href="#cb4-40" tabindex="-1"></a><span class="co">#&gt;      trt_1    -0.931  0.558  -2.025  0.163   0.095  </span></span>
+<span id="cb4-41"><a href="#cb4-41" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_1  3.119    0.4   2.334   3.903   &lt;0.001 </span></span>
+<span id="cb4-42"><a href="#cb4-42" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_1  2.188   0.393  1.419   2.957   &lt;0.001 </span></span>
+<span id="cb4-43"><a href="#cb4-43" tabindex="-1"></a><span class="co">#&gt;      trt_2    -0.805  0.616  -2.013  0.403   0.192  </span></span>
+<span id="cb4-44"><a href="#cb4-44" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_2  5.822   0.445  4.949   6.695   &lt;0.001 </span></span>
+<span id="cb4-45"><a href="#cb4-45" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_2  5.017   0.424  4.186   5.849   &lt;0.001 </span></span>
+<span id="cb4-46"><a href="#cb4-46" tabindex="-1"></a><span class="co">#&gt;      trt_3    -1.263  0.758  -2.748  0.222   0.096  </span></span>
+<span id="cb4-47"><a href="#cb4-47" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_3  7.749   0.52   6.729   8.768   &lt;0.001 </span></span>
+<span id="cb4-48"><a href="#cb4-48" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_3  6.486   0.549   5.41   7.562   &lt;0.001 </span></span>
+<span id="cb4-49"><a href="#cb4-49" tabindex="-1"></a><span class="co">#&gt;      trt_4    -2.506  0.969  -4.406  -0.606   0.01  </span></span>
+<span id="cb4-50"><a href="#cb4-50" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_4  10.837  0.653  9.558   12.116  &lt;0.001 </span></span>
+<span id="cb4-51"><a href="#cb4-51" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_4  8.331   0.718  6.924   9.737   &lt;0.001 </span></span>
+<span id="cb4-52"><a href="#cb4-52" tabindex="-1"></a><span class="co">#&gt;   --------------------------------------------------</span></span></code></pre></div>
 </div>
 <div id="retrieved-dropout-model-2-rd2" class="section level2" number="4.3">
 <h2><span class="header-section-number">4.3</span> Retrieved dropout model 2 (RD2)</h2>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>vars<span class="sc">$</span>covariates <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;outcome_bl*visit&quot;</span>, <span class="st">&quot;group*visit&quot;</span>, <span class="st">&quot;ind_ice1*group*visit&quot;</span>)</span>
-<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a></span>
-<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>draw_obj <span class="ot">&lt;-</span> <span class="fu">draws</span>(</span>
-<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="at">data =</span> data,</span>
-<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>  <span class="at">data_ice =</span> <span class="cn">NULL</span>,</span>
-<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>  <span class="at">vars =</span> vars,</span>
-<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>  <span class="at">method =</span> method,</span>
-<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>  <span class="at">quiet =</span> <span class="cn">TRUE</span></span>
-<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>)</span>
-<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a></span>
-<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a>impute_obj <span class="ot">&lt;-</span> <span class="fu">impute</span>(</span>
-<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a>  draw_obj</span>
-<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a>)</span>
-<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a></span>
-<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a>ana_obj <span class="ot">&lt;-</span> <span class="fu">analyse</span>(</span>
-<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a>  impute_obj,</span>
-<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a>  <span class="at">vars =</span> vars_an</span>
-<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a>)</span>
-<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a></span>
-<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a>pool_obj_RD2 <span class="ot">&lt;-</span> <span class="fu">pool</span>(ana_obj)</span>
-<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a>pool_obj_RD2</span></code></pre></div>
-<pre><code>## 
-## Pool Object
-## -----------
-## Number of Results Combined: 1 + 200
-## Method: jackknife
-## Confidence Level: 0.95
-## Alternative: two.sided
-## 
-## Results:
-## 
-##   ==================================================
-##    parameter   est     se     lci     uci     pval  
-##   --------------------------------------------------
-##      trt_1    -0.927  0.558  -2.021  0.167   0.097  
-##    lsm_ref_1  3.125    0.4   2.341   3.908   &lt;0.001 
-##    lsm_alt_1  2.198   0.395  1.424   2.972   &lt;0.001 
-##      trt_2    -0.889  0.612  -2.089  0.311   0.146  
-##    lsm_ref_2  5.837   0.443   4.97   6.705   &lt;0.001 
-##    lsm_alt_2  4.948   0.421  4.124   5.772   &lt;0.001 
-##      trt_3    -1.305  0.757  -2.788  0.178   0.085  
-##    lsm_ref_3  7.648   0.54    6.59   8.707   &lt;0.001 
-##    lsm_alt_3  6.343   0.528  5.308   7.378   &lt;0.001 
-##      trt_4    -2.617  0.975  -4.528  -0.706  0.007  
-##    lsm_ref_4  10.883  0.665   9.58   12.186  &lt;0.001 
-##    lsm_alt_4  8.267   0.715  6.866   9.667   &lt;0.001 
-##   --------------------------------------------------</code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>vars<span class="sc">$</span>covariates <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;outcome_bl*visit&quot;</span>, <span class="st">&quot;group*visit&quot;</span>, <span class="st">&quot;ind_ice1*group*visit&quot;</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>draw_obj <span class="ot">&lt;-</span> <span class="fu">draws</span>(</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="at">data =</span> data,</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>  <span class="at">data_ice =</span> <span class="cn">NULL</span>,</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>  <span class="at">vars =</span> vars,</span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>  <span class="at">method =</span> method,</span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>  <span class="at">quiet =</span> <span class="cn">TRUE</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>)</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>impute_obj <span class="ot">&lt;-</span> <span class="fu">impute</span>(</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>  draw_obj</span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a>)</span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a>ana_obj <span class="ot">&lt;-</span> <span class="fu">analyse</span>(</span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a>  impute_obj,</span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a>  <span class="at">vars =</span> vars_an</span>
+<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a>)</span>
+<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a></span>
+<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a>pool_obj_RD2 <span class="ot">&lt;-</span> <span class="fu">pool</span>(ana_obj)</span>
+<span id="cb5-21"><a href="#cb5-21" tabindex="-1"></a>pool_obj_RD2</span>
+<span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-23"><a href="#cb5-23" tabindex="-1"></a><span class="co">#&gt; Pool Object</span></span>
+<span id="cb5-24"><a href="#cb5-24" tabindex="-1"></a><span class="co">#&gt; -----------</span></span>
+<span id="cb5-25"><a href="#cb5-25" tabindex="-1"></a><span class="co">#&gt; Number of Results Combined: 1 + 200</span></span>
+<span id="cb5-26"><a href="#cb5-26" tabindex="-1"></a><span class="co">#&gt; Method: jackknife</span></span>
+<span id="cb5-27"><a href="#cb5-27" tabindex="-1"></a><span class="co">#&gt; Confidence Level: 0.95</span></span>
+<span id="cb5-28"><a href="#cb5-28" tabindex="-1"></a><span class="co">#&gt; Alternative: two.sided</span></span>
+<span id="cb5-29"><a href="#cb5-29" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-30"><a href="#cb5-30" tabindex="-1"></a><span class="co">#&gt; Results:</span></span>
+<span id="cb5-31"><a href="#cb5-31" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-32"><a href="#cb5-32" tabindex="-1"></a><span class="co">#&gt;   ==================================================</span></span>
+<span id="cb5-33"><a href="#cb5-33" tabindex="-1"></a><span class="co">#&gt;    parameter   est     se     lci     uci     pval  </span></span>
+<span id="cb5-34"><a href="#cb5-34" tabindex="-1"></a><span class="co">#&gt;   --------------------------------------------------</span></span>
+<span id="cb5-35"><a href="#cb5-35" tabindex="-1"></a><span class="co">#&gt;      trt_1    -0.927  0.558  -2.021  0.167   0.097  </span></span>
+<span id="cb5-36"><a href="#cb5-36" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_1  3.125    0.4   2.341   3.908   &lt;0.001 </span></span>
+<span id="cb5-37"><a href="#cb5-37" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_1  2.198   0.395  1.424   2.972   &lt;0.001 </span></span>
+<span id="cb5-38"><a href="#cb5-38" tabindex="-1"></a><span class="co">#&gt;      trt_2    -0.889  0.612  -2.089  0.311   0.146  </span></span>
+<span id="cb5-39"><a href="#cb5-39" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_2  5.837   0.443   4.97   6.705   &lt;0.001 </span></span>
+<span id="cb5-40"><a href="#cb5-40" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_2  4.948   0.421  4.124   5.772   &lt;0.001 </span></span>
+<span id="cb5-41"><a href="#cb5-41" tabindex="-1"></a><span class="co">#&gt;      trt_3    -1.305  0.757  -2.788  0.178   0.085  </span></span>
+<span id="cb5-42"><a href="#cb5-42" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_3  7.648   0.54    6.59   8.707   &lt;0.001 </span></span>
+<span id="cb5-43"><a href="#cb5-43" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_3  6.343   0.528  5.308   7.378   &lt;0.001 </span></span>
+<span id="cb5-44"><a href="#cb5-44" tabindex="-1"></a><span class="co">#&gt;      trt_4    -2.617  0.975  -4.528  -0.706  0.007  </span></span>
+<span id="cb5-45"><a href="#cb5-45" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_4  10.883  0.665   9.58   12.186  &lt;0.001 </span></span>
+<span id="cb5-46"><a href="#cb5-46" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_4  8.267   0.715  6.866   9.667   &lt;0.001 </span></span>
+<span id="cb5-47"><a href="#cb5-47" tabindex="-1"></a><span class="co">#&gt;   --------------------------------------------------</span></span></code></pre></div>
 </div>
 <div id="brief-summary-of-results" class="section level2" number="4.4">
 <h2><span class="header-section-number">4.4</span> Brief summary of results</h2>
