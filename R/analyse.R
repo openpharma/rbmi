@@ -88,7 +88,7 @@
 #' datasets prior to running `fun`. See details.
 #' @param ... Additional arguments passed onto `fun`.
 #' @param ncores The number of parallel processes to use when running this function. Can also be a
-#' cluster object created by [`make_rbmi_cluster()`]. See the parallisation section below.
+#' cluster object created by [`make_rbmi_cluster()`]. See the parallelisation section below.
 #' @param .validate Should `inputations` be checked to ensure it conforms to the required format
 #' (default = `TRUE`) ? Can gain a small performance increase if this is set to `FALSE` when
 #' analysing a large number of samples.
