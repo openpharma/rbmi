@@ -260,7 +260,7 @@ to save having to manually grab each element.
 \if{html}{\out{<a id="method-longdata-update_strategies"></a>}}
 \if{latex}{\out{\hypertarget{method-longdata-update_strategies}{}}}
 \subsection{Method \code{update_strategies()}}{
-Convenience function to run self$set_strategies(dat_ice, update=TRUE)
+Convenience function to run \code{self$set_strategies(dat_ice, update=TRUE)}
 kept for legacy reasons.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{longDataConstructor$update_strategies(dat_ice)}\if{html}{\out{</div>}}

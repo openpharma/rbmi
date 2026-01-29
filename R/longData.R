@@ -355,7 +355,7 @@ longDataConstructor <- R6::R6Class(
         },
 
         #' @description
-        #' Convenience function to run self$set_strategies(dat_ice, update=TRUE)
+        #' Convenience function to run `self$set_strategies(dat_ice, update=TRUE)`
         #' kept for legacy reasons.
         #' @param dat_ice A `data.frame` containing ICE information see [impute()] for the format of this dataframe.
         update_strategies = function(dat_ice) {
