@@ -417,7 +417,7 @@ set_vars <- function(
 #' Validate inputs for `vars`
 #'
 #' Checks that the required variable names are defined within `vars` and
-#' are of appropriate datatypes
+#' are of appropriate data types
 #'
 #' @param x named list indicating the names of key variables in the source dataset
 #' @param ... not used
