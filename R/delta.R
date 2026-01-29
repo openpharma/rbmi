@@ -104,7 +104,7 @@
 #' as implemented in the so called "five macros" by James Roger. See Roger (2021).
 #'
 #' @references
-#' Roger, James. Reference-based mi via multivariate normal rm (the “five macros” and miwithd), 2021. URL
+#' Roger, James. Reference-based MI via Multivariate Normal RM (the “five macros” and MIWithD), 2021. URL
 #' <https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data>.
 #'
 #'
