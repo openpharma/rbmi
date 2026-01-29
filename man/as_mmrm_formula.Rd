@@ -13,7 +13,7 @@ as_mmrm_formula(mmrm_df, cov_struct)
 \code{"ad"}, \code{"adh"}, \code{"ar1"}, \code{"ar1h"}, \code{"cs"}, \code{"csh"}, \code{"toep"}, or \code{"toeph"})}
 }
 \description{
-Derives the MMRM model formula from the structure of mmrm_df.
+Derives the MMRM model formula from the structure of \code{mmrm_df}.
 returns a formula object of the form:
 }
 \details{

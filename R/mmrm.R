@@ -86,7 +86,7 @@ as_mmrm_df <- function(designmat, outcome, visit, subjid, group = NULL) {
 #' Create MMRM formula
 #'
 #'
-#' Derives the MMRM model formula from the structure of mmrm_df.
+#' Derives the MMRM model formula from the structure of `mmrm_df`.
 #' returns a formula object of the form:
 #'
 #' ```
