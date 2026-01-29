@@ -746,7 +746,7 @@ validate.draws <- function(x, ...) {
 #'
 #' @description
 #'
-#' Object is initalised with total number of iterations that are expected to occur.
+#' Object is initialised with total number of iterations that are expected to occur.
 #' User can then update the object with the `add` method to indicate how many more iterations
 #' have just occurred.
 #' Every time `step` * 100 % of iterations have occurred a message is printed to the console.
