@@ -1,4 +1,4 @@
-#' Validate a longdata object
+#' Validate a `longdata` object
 #'
 #' @name validate_datalong
 #'
@@ -13,7 +13,7 @@
 #' is being applied
 #'
 #' @details
-#' These functions are used to validate various different parts of the longdata object
+#' These functions are used to validate various different parts of the `longdata` object
 #' to be used in [draws()], [impute()], [analyse()] and [pool()]. In particular:
 #'
 #' - `validate_datalong_varExists` - Checks that each variable listed in `vars` actually exists

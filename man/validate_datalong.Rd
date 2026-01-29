@@ -8,7 +8,7 @@
 \alias{validate_datalong_complete}
 \alias{validate_datalong_unifromStrata}
 \alias{validate_dataice}
-\title{Validate a longdata object}
+\title{Validate a \code{longdata} object}
 \usage{
 validate_datalong(data, vars)
 
@@ -36,10 +36,10 @@ for multiple subjects}
 is being applied}
 }
 \description{
-Validate a longdata object
+Validate a \code{longdata} object
 }
 \details{
-These functions are used to validate various different parts of the longdata object
+These functions are used to validate various different parts of the \code{longdata} object
 to be used in \code{\link[=draws]{draws()}}, \code{\link[=impute]{impute()}}, \code{\link[=analyse]{analyse()}} and \code{\link[=pool]{pool()}}. In particular:
 \itemize{
 \item \code{validate_datalong_varExists} - Checks that each variable listed in \code{vars} actually exists
