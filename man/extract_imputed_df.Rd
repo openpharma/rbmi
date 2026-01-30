@@ -13,7 +13,7 @@ extract_imputed_df(imputation, ld, delta = NULL, idmap = FALSE)
 
 \item{delta}{Either \code{NULL} or a \code{data.frame}. Is used to offset outcome values in the imputed dataset.}
 
-\item{idmap}{Logical. If \code{TRUE} an attribute called "idmap" is attached to
+\item{idmap}{Logical. If \code{TRUE} an attribute called \code{idmap} is attached to
 the return object which contains a \code{list} that maps the old subject ids
 the new subject ids.}
 }
