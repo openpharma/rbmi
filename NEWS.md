@@ -1,5 +1,7 @@
 # rbmi (development version)
 
+## Bug Fixes
+* Added en-GB spell-check and a corresponding test to the package
 
 # rbmi 1.6.0
 
