@@ -230,7 +230,7 @@ impute_internal <- function(
 #' (i.e. a list of [imputation_df()] objects)
 #'
 #' @param imputes a list of [imputation_list_single()] objects
-#' @param sample_ids A list with 1 element per required imputation_df. Each element
+#' @param sample_ids A list with 1 element per required `imputation_df`. Each element
 #' must contain a vector of "ID"'s which correspond to the [imputation_single()] ID's
 #' that are required for that dataset. The total number of ID's must by equal to the
 #' total number of rows within all of `imputes$imputations`
