@@ -92,7 +92,7 @@ as_mmrm_df <- function(designmat, outcome, visit, subjid, group = NULL) {
 #' ```
 #' outcome ~ 0 + V1 + V2 + V4 + ... + us(visit | group / subjid)
 #' ```
-#' @param mmrm_df an mmrm `data.frame` as created by [as_mmrm_df()]
+#' @param mmrm_df an `mmrm` `data.frame` as created by [as_mmrm_df()]
 #' @param cov_struct Character - The covariance structure to be used, must be one of `"us"` (default),
 #' `"ad"`, `"adh"`, `"ar1"`, `"ar1h"`, `"cs"`, `"csh"`, `"toep"`, or `"toeph"`)
 #' @importFrom stats as.formula
