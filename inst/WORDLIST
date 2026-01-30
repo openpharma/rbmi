@@ -44,6 +44,7 @@ LMCF
 BFMI
 SDCR
 JTR
+CR
 STS
 BD
 bd
@@ -86,3 +87,7 @@ etc
 mim
 doi
 InvWish
+LKJ
+MSB
+MSW
+se
