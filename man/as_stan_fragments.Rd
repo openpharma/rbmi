@@ -9,7 +9,7 @@ as_stan_fragments(x, stan_blocks = STAN_BLOCKS)
 \arguments{
 \item{x}{the single Stan code vector.}
 
-\item{stan_blocks}{reference list of stan blocks.}
+\item{stan_blocks}{reference list of Stan blocks.}
 }
 \value{
 A list with the Stan code blocks.

@@ -576,7 +576,7 @@ STAN_BLOCKS <- list(
 #' Conversion of Character Vector into Stan Code Block List
 #'
 #' @param x the single Stan code vector.
-#' @param stan_blocks reference list of stan blocks.
+#' @param stan_blocks reference list of Stan blocks.
 #'
 #' @return A list with the Stan code blocks.
 #'
