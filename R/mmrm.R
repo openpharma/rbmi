@@ -340,9 +340,9 @@ fit_mmrm <- function(
     )
 }
 
-#' Evaluate a call to mmrm
+#' Evaluate a call to `mmrm`
 #'
-#' This is a utility function that attempts to evaluate a call to mmrm
+#' This is a utility function that attempts to evaluate a call to `mmrm`
 #' managing any warnings or errors that are thrown.
 #'
 #' This function was originally developed for use with `glmmTMB` which needed
