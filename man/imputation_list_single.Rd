@@ -2,7 +2,7 @@
 % Please edit documentation in R/dataclasses.R
 \name{imputation_list_single}
 \alias{imputation_list_single}
-\title{A collection of \code{imputation_singles()} grouped by a single subjid ID}
+\title{A collection of \code{imputation_singles()} grouped by a single \code{subjid} ID}
 \usage{
 imputation_list_single(imputations, D = 1)
 }
@@ -21,5 +21,5 @@ The \code{id} attribute is determined by extracting the \code{id} attribute from
 \code{\link[=imputation_single]{imputation_single()}} objects. An error is throw if multiple \code{id} are detected}
 }
 \description{
-A collection of \code{imputation_singles()} grouped by a single subjid ID
+A collection of \code{imputation_singles()} grouped by a single \code{subjid} ID
 }

@@ -168,7 +168,7 @@ print.imputation_df <- function(x, ...) {
 }
 
 
-#' A collection of `imputation_singles()` grouped by a single subjid ID
+#' A collection of `imputation_singles()` grouped by a single `subjid` ID
 #'
 #' @param imputations a list of [imputation_single()] objects ordered so that repetitions
 #' are grouped sequentially
