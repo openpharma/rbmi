@@ -532,7 +532,7 @@ format_method_descriptions <- function(method) {
 #' @param x a data.frame like object
 #'
 #' Utility function to convert a "data.frame-like" object to an actual `data.frame`
-#' to avoid issues with inconsistency on methods (such as  `[`() and dplyr's grouped dataframes)
+#' to avoid issues with inconsistency on methods (such as  `[`() and `dplyr`'s grouped dataframes)
 as_dataframe <- function(x) {
     x2 <- as.data.frame(x)
     row.names(x2) <- NULL
