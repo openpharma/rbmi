@@ -51,7 +51,7 @@ ICE1 may be thought of as a discontinuation from study treatment due to study dr
 condition related (SDCR) reasons.
 ICE2 may be thought of as discontinuation from study treatment due to uninformative
 study drop-out, i.e. due to not study drug or
-condition related (NSDRC) reasons and outcome data after ICE2 is always missing.
+condition related (NSDCR) reasons and outcome data after ICE2 is always missing.
 }
 \details{
 The data generation works as follows:
@@ -71,7 +71,7 @@ treatment arm, respectively.
 \code{pars_t$prob_post_ice1_dropout}.
 \item Simulate an additional uninformative study drop-out with probabilities \code{pars_c$prob_ice2}
 and \code{pars_t$prob_ice2} at each visit. This generates a second intercurrent event ICE2, which
-may be thought as treatment discontinuation due to NSDRC reasons with subsequent drop-out.
+may be thought as treatment discontinuation due to NSDCR reasons with subsequent drop-out.
 The simulated time of drop-out is the subject's first visit which is affected by
 drop-out and data from this visit and all subsequent visits are consequently set to missing.
 If for a subject, both ICE1 and ICE2 are simulated to occur,
