@@ -49,7 +49,7 @@ random_effects_expr <- function(
 #' In particular this function does the following:
 #' - Renames all covariates as `V1`, `V2`, etc to avoid issues of special characters in variable names
 #' - Ensures all key variables are of the right type
-#' - Inserts the outcome, visit and subjid variables into the `data.frame`
+#' - Inserts the `outcome`, `visit` and `subjid` variables into the `data.frame`
 #' naming them as `outcome`, `visit` and `subjid`
 #' - If provided will also insert the group variable into the `data.frame` named as `group`
 #'
