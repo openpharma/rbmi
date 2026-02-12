@@ -123,7 +123,7 @@ longDataConstructor <- R6::R6Class(
         #' @param obj Either `NULL`, a character vector of subjects IDs or a
         #' imputation list object. See details.
         #'
-        #' @param nmar.rm Logical value. If `TRUE` will remove observations that are
+        #' @param mnar.rm Logical value. If `TRUE` will remove observations that are
         #' not regarded as MAR (as determined from `self$is_mar`).
         #'
         #' @param na.rm Logical value. If `TRUE` will remove outcome values that are
@@ -167,12 +167,12 @@ longDataConstructor <- R6::R6Class(
         #' A `data.frame`.
         get_data = function(
             obj = NULL,
-            nmar.rm = FALSE,
+            mnar.rm = FALSE,
             na.rm = FALSE,
             idmap = FALSE
         ) {
             if (is.null(obj)) {
-                if (nmar.rm == FALSE & na.rm == FALSE) {
+                if (mnar.rm == FALSE & na.rm == FALSE) {
                     return(self$data)
                 } else {
                     ids <- self$ids
@@ -217,7 +217,7 @@ longDataConstructor <- R6::R6Class(
             self$validate_ids(ids)
             indexes <- self$indexes[ids]
 
-            if (list_flag | nmar.rm | na.rm) {
+            if (list_flag | mnar.rm | na.rm) {
                 is_miss <- unlist(self$is_missing[ids], use.names = FALSE)
                 is_mar <- unlist(self$is_mar[ids], use.names = FALSE)
             }
@@ -241,10 +241,10 @@ longDataConstructor <- R6::R6Class(
                 new_data[is_miss, self$vars$outcome] <- values
             }
 
-            if (nmar.rm | na.rm) {
-                remove_nmar <- !is_mar & nmar.rm
+            if (mnar.rm | na.rm) {
+                remove_mnar <- !is_mar & mnar.rm
                 remove_na <- is_miss & na.rm
-                keep <- !remove_nmar & !remove_na
+                keep <- !remove_mnar & !remove_na
                 new_data <- new_data[keep, ]
             }
 

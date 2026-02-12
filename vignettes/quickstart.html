@@ -360,9 +360,17 @@ requires the installation of the suggested package <a href="https://CRAN.R-proje
 <p>We use a publicly available example dataset from an antidepressant clinical trial of an active drug versus placebo. The relevant endpoint is the Hamilton 17-item depression rating scale (HAMD17) which was assessed at baseline and at weeks 1, 2, 4, and 6. Study drug discontinuation occurred in 24% of subjects from the active drug and 26% of subjects from placebo. All data after study drug discontinuation are missing and there is a single additional intermittent missing observation.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(rbmi)</span>
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a></span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="fu">data</span>(<span class="st">&quot;antidepressant_data&quot;</span>)</span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>dat <span class="ot">&lt;-</span> antidepressant_data</span></code></pre></div>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt; Attaching package: &#39;dplyr&#39;</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from &#39;package:stats&#39;:</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt;     filter, lag</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from &#39;package:base&#39;:</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt;     intersect, setdiff, setequal, union</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="fu">data</span>(<span class="st">&quot;antidepressant_data&quot;</span>)</span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>dat <span class="ot">&lt;-</span> antidepressant_data</span></code></pre></div>
 <p>We consider an imputation model with the mean change from baseline in the HAMD17 score as the outcome (variable <code>CHANGE</code> in the dataset). The following covariates are included in the imputation model: the treatment group (<code>THERAPY</code>), the (categorical) visit (<code>VISIT</code>), treatment-by-visit interactions, the baseline HAMD17 score (<code>BASVAL</code>), and baseline HAMD17 score-by-visit interactions. A common unstructured covariance matrix structure is assumed for both groups. The analysis model is an ANCOVA model with the treatment group as the primary factor and adjustment for the baseline HAMD17 score.</p>
 <p><code>rbmi</code> expects its input dataset to be complete; that is, there must be one row per subject for each visit. Missing outcome values should be coded as <code>NA</code>, while missing covariate values are not allowed. If the dataset is incomplete, then the <code>expand_locf()</code> helper function can be used to add any missing rows, using LOCF imputation to carry forward the observed baseline covariate values to visits with missing outcomes. Rows corresponding to missing outcomes are not present in the antidepressant trial dataset. To address this we will therefore use the <code>expand_locf()</code> function as follows:</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a></span>
@@ -387,7 +395,7 @@ The three main inputs to the <code>draws()</code> function are:</p>
 </ul>
 <p>For the antidepressant trial data, the dataset <code>data_ice</code> is not provided. However, it can be derived because, in this dataset,
 the subject’s first visit affected by the ICE “study drug discontinuation” corresponds to the first terminal missing observation.
-We first derive the dateset <code>data_ice</code> and then create 150 Bayesian posterior draws of the imputation model parameters.</p>
+We first derive the dataset <code>data_ice</code> and then create 150 Bayesian posterior draws of the imputation model parameters.</p>
 <p>For this example, we assume that the imputation strategy after the ICE is Jump To Reference (JR) for all subjects
 and that 150 multiple imputed datasets using Bayesian posterior draws from the imputation model are to be created.</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># create data_ice and set the imputation strategy to JR for</span></span>

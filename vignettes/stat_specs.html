@@ -524,7 +524,7 @@ where <span class="math inline">\(\beta\)</span> is the vector of regression coe
 <h4><span class="header-section-number">3.3.3.1</span> Inverse Wishart prior for unstructured covariance matrix</h4>
 <p>By default, the same prior distributions as in the SAS implementation of the “five macros” are used (<span class="citation">Roger (<a href="#ref-FiveMacros">2021</a>)</span>), i.e. an improper flat priors for the regression coefficients and a weakly informative inverse Wishart prior for the covariance matrix (or matrices). Specifically, let <span class="math inline">\(S \in \mathbb{R}^{J \times J}\)</span> be a symmetric positive definite matrix and <span class="math inline">\(\nu \in (J-1, \infty)\)</span>. Then the symmetric positive definite matrix <span class="math inline">\(x \in \mathbb{R}^{J \times J}\)</span> has density:
 <span class="math display">\[
-\text{InvWish}(x \vert \nu, S) = \frac{1}{2^{\nu J/2}} \frac{1}{\Gamma_J(\frac{\nu}{2})} \vert S \vert^{\nu/2} \vert x \vert ^{-(\nu + J + 1)/2} \text{exp}\left(-\frac{1}{2} \text{tr}(Sx^{-1})\right).
+\text{InvWish}(x \vert \nu, S) = \frac{1}{2^{\nu J/2}} \frac{1}{\Gamma_J(\frac{\nu}{2})} \vert S \vert^{\nu/2} \vert x \vert ^{-(\nu + J + 1)/2} \text{exp}\left(-\frac{1}{2} \text{tr}(S x^{-1})\right).
 \]</span>
 For <span class="math inline">\(\nu &gt; J+1\)</span> the mean is given by:
 <span class="math display">\[
