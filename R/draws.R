@@ -510,7 +510,7 @@ get_mmrm_sample <- function(ids, longdata, method) {
 #' values are set to `NA`.
 extract_data_mnar_as_na <- function(longdata) {
     # remove non-MAR data
-    data <- longdata$get_data(longdata$ids, mnar.rm = FALSE, na.rm = FALSE)
+    data <- longdata$get_data(longdata$ids, nmar.rm = FALSE, na.rm = FALSE)
     is_mar <- unlist(longdata$is_mar)
     data[!is_mar, longdata$vars$outcome] <- NA
     return(data)

@@ -707,7 +707,7 @@ As an example, the user can check how the CIR strategy was implemented by lookin
 <span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a><span class="co">#&gt;     pars &lt;- list(mu = mu, sigma = sigma)</span></span>
 <span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a><span class="co">#&gt;     return(pars)</span></span>
 <span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a><span class="co">#&gt; }</span></span>
-<span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a><span class="co">#&gt; &lt;bytecode: 0xb18992e40&gt;</span></span>
+<span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a><span class="co">#&gt; &lt;bytecode: 0xb2eb81348&gt;</span></span>
 <span id="cb6-21"><a href="#cb6-21" tabindex="-1"></a><span class="co">#&gt; &lt;environment: namespace:rbmi&gt;</span></span></code></pre></div>
 <p>To further illustrate this for a simple example, assume that a new strategy is to be implemented as follows:
 - The marginal mean of the imputation distribution is equal to the marginal mean trajectory for the subject according to their assigned group and covariates up to the ICE.
@@ -870,7 +870,7 @@ Rather, in this case the pooled degrees of freedom are <code>(M-1)/lambda^2</cod
 </div>
 <div id="sensitivity-analyses-delta-adjustments-and-tipping-point-analyses" class="section level1" number="8">
 <h1><span class="header-section-number">8</span> Sensitivity analyses: Delta adjustments and tipping point analyses</h1>
-<p>Delta-adjustments are used to impute missing data under a not missing at random (NMAR) assumption. This reflects the belief that unobserved outcomes would have been systematically “worse” (or “better”) than “comparable” observed outcomes. For an extensive discussion of delta-adjustment methods, we refer to <span class="citation">Cro et al. (<a href="#ref-CroEtAlTutorial2020">2020</a>)</span>.</p>
+<p>Delta-adjustments are used to impute missing data under a missing not at random (MNAR) assumption. This reflects the belief that unobserved outcomes would have been systematically “worse” (or “better”) than “comparable” observed outcomes. For an extensive discussion of delta-adjustment methods, we refer to <span class="citation">Cro et al. (<a href="#ref-CroEtAlTutorial2020">2020</a>)</span>.</p>
 <p>In <code>rbmi</code>, a marginal delta-adjustment approach is implemented. This means that the delta-adjustment is applied to the dataset after data imputation under MAR or reference-based missing data assumptions and prior to the analysis of the imputed data.
 Sensitivity analysis using delta-adjustments can therefore be performed without having to re-fit the imputation model. In <code>rbmi</code>, they are implemented via the <code>delta</code> argument of the <code>analyse()</code> function.</p>
 <div id="simple-delta-adjustments-and-tipping-point-analyses" class="section level2" number="8.1">

@@ -450,7 +450,7 @@ Rather, in this case the pooled degrees of freedom are `(M-1)/lambda^2`, where `
 
 # Sensitivity analyses: Delta adjustments and tipping point analyses
 
-Delta-adjustments are used to impute missing data under a not missing at random (NMAR) assumption. This reflects the belief that unobserved outcomes would have been systematically "worse" (or "better") than "comparable" observed outcomes. For an extensive discussion of delta-adjustment methods, we refer to @CroEtAlTutorial2020.
+Delta-adjustments are used to impute missing data under a missing not at random (MNAR) assumption. This reflects the belief that unobserved outcomes would have been systematically "worse" (or "better") than "comparable" observed outcomes. For an extensive discussion of delta-adjustment methods, we refer to @CroEtAlTutorial2020.
 
 In `rbmi`, a marginal delta-adjustment approach is implemented. This means that the delta-adjustment is applied to the dataset after data imputation under MAR or  reference-based missing data assumptions and prior to the analysis of the imputed data. 
 Sensitivity analysis using delta-adjustments can therefore be performed without having to re-fit the imputation model. In `rbmi`, they are implemented via the `delta` argument of the `analyse()` function.
