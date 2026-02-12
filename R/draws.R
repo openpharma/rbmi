@@ -508,9 +508,9 @@ get_mmrm_sample <- function(ids, longdata, method) {
 #' @return
 #' A `data.frame` containing `longdata$get_data(longdata$ids)`, but MNAR outcome
 #' values are set to `NA`.
-extract_data_nmar_as_na <- function(longdata) {
+extract_data_mnar_as_na <- function(longdata) {
     # remove non-MAR data
-    data <- longdata$get_data(longdata$ids, nmar.rm = FALSE, na.rm = FALSE)
+    data <- longdata$get_data(longdata$ids, mnar.rm = FALSE, na.rm = FALSE)
     is_mar <- unlist(longdata$is_mar)
     data[!is_mar, longdata$vars$outcome] <- NA
     return(data)
@@ -530,7 +530,7 @@ draws.bayes <- function(
     longdata <- longDataConstructor$new(data, vars)
     longdata$set_strategies(data_ice)
 
-    data2 <- extract_data_nmar_as_na(longdata)
+    data2 <- extract_data_mnar_as_na(longdata)
 
     # compute design matrix
     model_df <- as_model_df(
