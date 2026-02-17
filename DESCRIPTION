@@ -51,7 +51,8 @@ Imports:
     assertthat,
     jinjar,
     fs,
-    stringr
+    stringr,
+    lifecycle
 Depends: 
     R (>= 3.4.0)
 License: Apache License (>= 2)
