@@ -1172,12 +1172,11 @@ test_that("get_data() uses na.rm and mnar.rm correctly", {
     )
 
     # Test deprecated argument for equivalence
-    expect_warning(nmar_val <- ld$get_data(nmar.rm = TRUE))
+    expect_warning(nmar_true_val <- ld$get_data(nmar.rm = TRUE))
+    expect_warning(nmar_false_val <- ld$get_data(nmar.rm = FALSE))
 
-    expect_equal(
-        ld$get_data(mnar.rm = TRUE),
-        nmar_val
-    )
+    expect_equal(ld$get_data(mnar.rm = TRUE), nmar_true_val)
+    expect_equal(ld$get_data(mnar.rm = FALSE), nmar_false_val)
 
     # Test setting both arguments, this should warn about the deprecated one
     # and then error
