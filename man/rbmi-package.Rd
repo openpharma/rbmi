@@ -39,12 +39,12 @@ Authors:
   \item Craig Gower-Page \email{craig.gower-page@novartis.com}
   \item Isaac Gravestock \email{isaac.gravestock@roche.com}
   \item Alessandro Noci \email{alessandro.noci@roche.com}
+  \item Marcel Wolbers \email{marcel.wolbers@roche.com}
   \item Daniel Sabanes Bove \email{daniel.sabanes_bove@rconis.com}
 }
 
 Other contributors:
 \itemize{
-  \item Marcel Wolbers \email{marcel.wolbers@roche.com} [contributor]
   \item F. Hoffmann-La Roche AG [copyright holder, funder]
 }
 
