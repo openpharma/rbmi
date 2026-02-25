@@ -6,15 +6,24 @@ export RBMI_TEST_CORE=FALSE
 echo "
 Debug:
 -------
-PWD                 = $(pwd)
-RBMI_TEST_CORE      = ${RBMI_TEST_CORE}
-RBMI_TEST_EXTENDED  = ${RBMI_TEST_EXTENDED}
+PWD                  = $(pwd)
+RBMI_TEST_CORE       = ${RBMI_TEST_CORE}
+RBMI_TEST_EXTENDED   = ${RBMI_TEST_EXTENDED}
+RUNNER_CRAN_OVERRIDE = ${RUNNER_CRAN_OVERRIDE}
 
 "
 
 PKGDIR=$(pwd)
 temp_dir=$(mktemp -d)
 cd ${temp_dir}
+
+
+if [[ "${RUNNER_CRAN_OVERRIDE,,}" == "true" || "${RUNNER_CRAN_OVERRIDE}" == "1" ]]; then
+  echo 'options(repos = c(CRAN = "https://cloud.r-project.org"))\n' >> ".Rprofile"
+  echo "CRAN URL override enabled"
+fi
+
+
 
 # R CMD CHECK args
 # https://cran.r-project.org/doc/manuals/r-release/R-ints.html#Tools
