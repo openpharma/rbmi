@@ -18,7 +18,7 @@ temp_dir=$(mktemp -d)
 cd ${temp_dir}
 
 
-if [[ "${RUNNER_CRAN_OVERRIDE,,}" == "true" || "${RUNNER_CRAN_OVERRIDE}" == "1" ]]; then
+if [[ "${RUNNER_CRAN_OVERRIDE}" == "true" || "${RUNNER_CRAN_OVERRIDE}" == "TRUE" || "${RUNNER_CRAN_OVERRIDE}" == "1" ]]; then
   echo 'options(repos = c(CRAN = "https://cloud.r-project.org"))\n' >> ".Rprofile"
   echo "CRAN URL override enabled"
 fi
