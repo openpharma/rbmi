@@ -181,6 +181,7 @@ longDataConstructor <- R6::R6Class(
                 lifecycle::deprecate_warn(
                     when = "1.7.0",
                     what = "get_data(nmar.rm)",
+                    with = "get_data(mnar.rm)",
                     details = "nmar.rm argument will be dropped in next release in favor of mnar.rm for nomenclature consistency."
                 )
 
