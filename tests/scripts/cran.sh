@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
 
 unset RBMI_CACHE_DIR
 export RBMI_TEST_EXTENDED=FALSE
@@ -9,16 +11,17 @@ Debug:
 PWD                  = $(pwd)
 RBMI_TEST_CORE       = ${RBMI_TEST_CORE}
 RBMI_TEST_EXTENDED   = ${RBMI_TEST_EXTENDED}
-CI                   = ${CI}
+CI                   = ${CI:-}
 
 "
 
-PKGDIR=$(pwd)
-temp_dir=$(mktemp -d)
-cd ${temp_dir}
+PKGDIR="$(pwd)"
+temp_dir="$(mktemp -d)"
+trap 'rm -rf "${temp_dir}"' EXIT
+cd "${temp_dir}"
 
 
-if [[ "${CI}" == "true" ]]; then
+if [[ "${CI:-}" == "true" ]]; then
   # Override binary CRAN mirror with CRAN cloud mirror to ensure
   # testing as CRAN with R CMD finds the remote databases
   echo 'options(repos = c(CRAN = "https://cloud.r-project.org"))' >> ".Rprofile"
@@ -90,33 +93,30 @@ export _R_CHECK_THINGS_IN_OTHER_DIRS_=true
 R CMD build "${PKGDIR}"
 R CMD check \
     --run-donttest \
-    --output=${temp_dir} \
-    ${temp_dir}/*.tar.gz
-
-if [ $? -ne 0 ]; then
-    exit 1
-fi
+    --output="${temp_dir}" \
+    "${temp_dir}"/*.tar.gz
 
 note_phrase="checking for new files in some other directories ... NOTE"
-if grep -q "${note_phrase}" ${temp_dir}/*.Rcheck/00check.log; then
+check_log=$(echo "${temp_dir}"/*.Rcheck/00check.log)
+if grep -q "${note_phrase}" "${check_log}"; then
     echo "ERROR: Found NOTE about new files in other directories"
     exit 1
 fi
 
 # Check for status line
-if ! grep -q "^Status" ${temp_dir}/*.Rcheck/00check.log; then
+if ! grep -q "^Status" "${check_log}"; then
     echo "ERROR: No status line found in R CMD check log"
     exit 1
 fi
 
 # Check for errors
-if grep -q "ERROR" ${temp_dir}/*.Rcheck/00check.log; then
+if grep -q "ERROR" "${check_log}"; then
     echo "ERROR: R CMD check has errors"
     exit 1
 fi
 
 # Check for warnings
-if grep -q "WARNING" ${temp_dir}/*.Rcheck/00check.log; then
+if grep -q "WARNING" "${check_log}"; then
     echo "ERROR: R CMD check has warnings"
     exit 1
 fi
