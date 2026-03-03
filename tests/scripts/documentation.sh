@@ -12,7 +12,7 @@ fi
 if [ -z "$(git status --porcelain)" ]; then
     echo "Is Clean"
 else
-    echo "Changed Detected"
+    echo "Changes Detected"
     # Print the status so user can see it in log
     git status
     exit 2
