@@ -1,6 +1,6 @@
 Package: rbmi
 Title: Reference Based Multiple Imputation
-Version: 1.6.0
+Version: 1.6.0.9000
 Authors@R: c(
     person("Lukas A.", "Widmer", email = "lukas_andreas.widmer@novartis.com", role = c("aut", "cre")),
     person("Craig", "Gower-Page", email = "craig.gower-page@novartis.com", role = c("aut")),
@@ -15,7 +15,7 @@ Description: Implements standard and reference based multiple imputation methods
     this package supports deterministic conditional mean imputation and jackknifing as described
     in Wolbers et al.  (2022) <doi:10.1002/pst.2234>, Bayesian multiple imputation as described
     in Carpenter et al. (2013) <doi:10.1080/10543406.2013.834911>, and bootstrapped maximum
-    likelihood imputation as described in von Hippel and Bartlett (2021) <doi: 10.1214/20-STS793>.
+    likelihood imputation as described in von Hippel and Bartlett (2021) <doi:10.1214/20-STS793>.
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
@@ -38,7 +38,8 @@ Suggests:
     ggplot2,
     rstan (>= 2.26.0),
     R.rsp,
-    withr
+    withr,
+    spelling
 Config/testthat/edition: 3
 Imports:
     mmrm,
@@ -50,8 +51,10 @@ Imports:
     assertthat,
     jinjar,
     fs,
-    stringr
+    stringr,
+    lifecycle
 Depends: 
     R (>= 3.4.0)
 License: Apache License (>= 2)
 VignetteBuilder: R.rsp
+Language: en-GB

@@ -17,6 +17,6 @@ Key details are that it will always place the outcome variable into
 the first column of the return object.
 }
 \details{
-The outcome column may contain NA's but none of the other variables
+The outcome column may contain NA, but none of the other variables
 listed in the formula should contain missing values
 }

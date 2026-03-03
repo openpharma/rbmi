@@ -18,7 +18,7 @@ ancova(
 \code{visit}, \code{outcome} and \code{covariates} elements are required. See details.}
 
 \item{visits}{An optional character vector specifying which visits to
-fit the ancova model at. If \code{NULL}, a separate ancova model will be fit to the
+fit the ANCOVA model at. If \code{NULL}, a separate ANCOVA model will be fit to the
 outcomes for each visit (as determined by \code{unique(data[[vars$visit]])}).
 See details.}
 
@@ -59,9 +59,9 @@ into a single list suffixed by the visit name, e.g.:
 )
 }\if{html}{\out{</div>}}
 
-Please note that "ref" refers to the first factor level of \code{vars$group} which does not necessarily
-coincide with the control arm. Analogously, "alt" refers to the second factor level of \code{vars$group}.
-"trt" refers to the model contrast translating the mean difference between the second level and first level.
+Please note that \code{ref} refers to the first factor level of \code{vars$group} which does not necessarily
+coincide with the control arm. Analogously, \code{alt} refers to the second factor level of \code{vars$group}.
+\code{trt} refers to the model contrast translating the mean difference between the second level and first level.
 
 If you want to include interaction terms in your model this can be done
 by providing them to the \code{covariates} argument of \code{\link[=set_vars]{set_vars()}}
