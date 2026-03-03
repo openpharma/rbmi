@@ -126,6 +126,11 @@ longDataConstructor <- R6::R6Class(
         #' @param mnar.rm Logical value. If `TRUE` will remove observations that are
         #' not regarded as MAR (as determined from `self$is_mar`).
         #'
+        #' @param nmar.rm `r lifecycle::badge("deprecated")` Logical value.
+        #' If `TRUE` will remove observations that are
+        #' not regarded as MAR (as determined from `self$is_mar`). Superseded
+        #' by `mnar.rm` argument for nomenclature consistency.
+        #'
         #' @param na.rm Logical value. If `TRUE` will remove outcome values that are
         #' missing (as determined from `self$is_missing`).
         #'
@@ -167,10 +172,29 @@ longDataConstructor <- R6::R6Class(
         #' A `data.frame`.
         get_data = function(
             obj = NULL,
+            nmar.rm = FALSE,
             mnar.rm = FALSE,
             na.rm = FALSE,
             idmap = FALSE
         ) {
+            if (!missing(nmar.rm)) {
+                lifecycle::deprecate_warn(
+                    when = "1.7.0",
+                    what = "get_data(nmar.rm)",
+                    with = "get_data(mnar.rm)",
+                    details = "nmar.rm argument will be dropped in next release in favor of mnar.rm for nomenclature consistency."
+                )
+
+                if (!missing(mnar.rm)) {
+                    stop(
+                        "nmar.rm and mnar.rm arguments cannot both be set. nmar.rm is deprecated, please use mnar.rm instead."
+                    )
+                }
+
+                # Copy the argument over until we remove the deprecated argument
+                mnar.rm <- nmar.rm
+            }
+
             if (is.null(obj)) {
                 if (mnar.rm == FALSE & na.rm == FALSE) {
                     return(self$data)

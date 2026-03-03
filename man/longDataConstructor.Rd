@@ -126,6 +126,7 @@ values with new ones if provided.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{longDataConstructor$get_data(
   obj = NULL,
+  nmar.rm = FALSE,
   mnar.rm = FALSE,
   na.rm = FALSE,
   idmap = FALSE
@@ -137,6 +138,11 @@ values with new ones if provided.
 \describe{
 \item{\code{obj}}{Either \code{NULL}, a character vector of subjects IDs or a
 imputation list object. See details.}
+
+\item{\code{nmar.rm}}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Logical value.
+If \code{TRUE} will remove observations that are
+not regarded as MAR (as determined from \code{self$is_mar}). Superseded
+by \code{mnar.rm} argument for nomenclature consistency.}
 
 \item{\code{mnar.rm}}{Logical value. If \code{TRUE} will remove observations that are
 not regarded as MAR (as determined from \code{self$is_mar}).}
