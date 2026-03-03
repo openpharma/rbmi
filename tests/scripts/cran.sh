@@ -9,7 +9,7 @@ Debug:
 PWD                  = $(pwd)
 RBMI_TEST_CORE       = ${RBMI_TEST_CORE}
 RBMI_TEST_EXTENDED   = ${RBMI_TEST_EXTENDED}
-RUNNER_CRAN_OVERRIDE = ${RUNNER_CRAN_OVERRIDE}
+CI                   = ${CI}
 
 "
 
@@ -18,9 +18,11 @@ temp_dir=$(mktemp -d)
 cd ${temp_dir}
 
 
-if [[ "${RUNNER_CRAN_OVERRIDE}" == "true" || "${RUNNER_CRAN_OVERRIDE}" == "TRUE" || "${RUNNER_CRAN_OVERRIDE}" == "1" ]]; then
+if [[ "${CI}" == "true" ]]; then
+  # Override binary CRAN mirror with CRAN cloud mirror to ensure
+  # testing as CRAN with R CMD finds the remote databases
   echo 'options(repos = c(CRAN = "https://cloud.r-project.org"))' >> ".Rprofile"
-  echo "CRAN URL override enabled"
+  echo "Detected CI pipeline - CRAN URL override enabled"
 fi
 
 
