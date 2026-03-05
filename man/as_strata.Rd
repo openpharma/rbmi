@@ -2,7 +2,7 @@
 % Please edit documentation in R/bootstrap.R
 \name{as_strata}
 \alias{as_strata}
-\title{Create vector of Stratas}
+\title{Create vector of strata}
 \usage{
 as_strata(...)
 }

@@ -70,7 +70,7 @@ as_simple_formula <- function(outcome, covars) {
 #' Key details are that it will always place the outcome variable into
 #' the first column of the return object.
 #'
-#' The outcome column may contain NA's but none of the other variables
+#' The outcome column may contain NA, but none of the other variables
 #' listed in the formula should contain missing values
 #'
 #' @param dat a data.frame
@@ -147,10 +147,10 @@ ife <- function(x, a, b) {
 #' @param sigma covariance matrix
 #'
 #' Samples multivariate normal variables by multiplying
-#' univariate random normal variables by the cholesky
+#' univariate random normal variables by the Cholesky
 #' decomposition of the covariance matrix.
 #'
-#' If mu is length 1 then just uses rnorm instead.
+#' If mu is length 1 then just uses `rnorm` instead.
 sample_mvnorm <- function(mu, sigma) {
     if (length(sigma) == 1 && length(mu) == 1) {
         return(rnorm(1, mu, sqrt(sigma)))
@@ -347,7 +347,7 @@ sort_by <- function(df, vars = NULL, decreasing = FALSE) {
 #'
 #' @param group The name of the "Group" variable. A length 1 character vector.
 #'
-#' @param covariates The name of any covariates to be used in the context of modeling.
+#' @param covariates The name of any covariates to be used in the context of modelling.
 #' See details.
 #'
 #' @param strata The name of the any stratification variable to be used in the context of bootstrap
@@ -417,7 +417,7 @@ set_vars <- function(
 #' Validate inputs for `vars`
 #'
 #' Checks that the required variable names are defined within `vars` and
-#' are of appropriate datatypes
+#' are of appropriate data types
 #'
 #' @param x named list indicating the names of key variables in the source dataset
 #' @param ... not used
@@ -532,7 +532,7 @@ format_method_descriptions <- function(method) {
 #' @param x a data.frame like object
 #'
 #' Utility function to convert a "data.frame-like" object to an actual `data.frame`
-#' to avoid issues with inconsistency on methods (such as  `[`() and dplyr's grouped dataframes)
+#' to avoid issues with inconsistency on methods (such as  `[`() and `dplyr`'s grouped dataframes)
 as_dataframe <- function(x) {
     x2 <- as.data.frame(x)
     row.names(x2) <- NULL
@@ -542,7 +542,7 @@ as_dataframe <- function(x) {
 
 #' Ensure `rstan` exists
 #'
-#' Checks to see if rstan exists and if not throws a helpful error message
+#' Checks to see if `rstan` exists and if not throws a helpful error message
 #' @keywords internal
 ensure_rstan <- function() {
     if (!requireNamespace("rstan", quietly = TRUE)) {
@@ -556,7 +556,6 @@ ensure_rstan <- function() {
         )
     }
 }
-
 
 
 #' List of Stan Blocks
@@ -577,7 +576,7 @@ STAN_BLOCKS <- list(
 #' Conversion of Character Vector into Stan Code Block List
 #'
 #' @param x the single Stan code vector.
-#' @param stan_blocks reference list of stan blocks.
+#' @param stan_blocks reference list of Stan blocks.
 #'
 #' @return A list with the Stan code blocks.
 #'
@@ -822,14 +821,22 @@ get_stan_model <- function(covariance, prior_cov) {
     if (getOption("rbmi.enable_cache")) {
         cache_dir <- getOption("rbmi.cache_dir")
         if (
-            is.null(cache_dir) || is.na(cache_dir) ||
-                length(cache_dir) != 1 || !is.character(cache_dir) ||
-                cache_dir == "" || nchar(cache_dir) == 0
+            is.null(cache_dir) ||
+                is.na(cache_dir) ||
+                length(cache_dir) != 1 ||
+                !is.character(cache_dir) ||
+                cache_dir == "" ||
+                nchar(cache_dir) == 0
         ) {
             stop("option(rbmi.cache_dir) is not a valid directory path")
         }
         dir.create(cache_dir, showWarnings = FALSE, recursive = TRUE)
-        file_name <- paste0(model_name, "_", get_unique_hash(model_string), ".stan")
+        file_name <- paste0(
+            model_name,
+            "_",
+            get_unique_hash(model_string),
+            ".stan"
+        )
         file_path <- file.path(cache_dir, file_name)
         if (!file.exists(file_path)) {
             writeLines(model_string, file_path)

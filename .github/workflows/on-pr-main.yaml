@@ -10,7 +10,7 @@ on:
 name: On Pull Request
 
 jobs:
-  
+
   core:
     runs-on: ubuntu-latest
     container:

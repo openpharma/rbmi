@@ -24,7 +24,7 @@ install.packages("rbmi")
 ```
 
 Note that the usage of Bayesian multiple imputation requires the installation of the suggested 
-package [rstan](https://CRAN.R-project.org/package=rstan).
+package [`rstan`](https://CRAN.R-project.org/package=rstan).
 ```
 install.packages("rstan")
 ```

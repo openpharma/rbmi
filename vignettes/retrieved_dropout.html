@@ -521,9 +521,9 @@ visit and treatment group by visit interaction terms in the imputation model whi
 <code>change ~ outcome_bl*visit + group*visit + time_since_ice1*group</code>, where <code>time_since_ice1</code> is set to 0 up to
 the treatment discontinuation and to the time from treatment
 discontinuation (in months) at subsequent visits. This implies a change in the slope of the outcome trajectories after the ICE, which
-is modeled separately for each treatment arm. This model is similar to the “TV2-MAR” estimator in <span class="citation">Noci et al. (<a href="#ref-Noci2021">2023</a>)</span>. Compared to the basic
+is modelled separately for each treatment arm. This model is similar to the “TV2-MAR” estimator in <span class="citation">Noci et al. (<a href="#ref-Noci2021">2023</a>)</span>. Compared to the basic
 MAR model, this model requires estimation of 2 additional parameters.</li>
-<li><strong>Retrieved dropout model 2 (RD2)</strong>: This model uses the following imputation model: <code>change ~ outcome_bl*visit + group*visit +  ind_ice1*group*visit</code>. This assumes a constant shift in outcomes after the ICE, which is modeled separately for each treatment arm
+<li><strong>Retrieved dropout model 2 (RD2)</strong>: This model uses the following imputation model: <code>change ~ outcome_bl*visit + group*visit +  ind_ice1*group*visit</code>. This assumes a constant shift in outcomes after the ICE, which is modelled separately for each treatment arm
 and each visit. This model is analogous to the “MI2” model in <span class="citation">Bell et al. (<a href="#ref-Bell2024">2025</a>)</span>. Compared to the basic MAR model, this model requires
 estimation of 2 times “number of visits” additional parameters. It makes different though rather weaker assumptions than the RD1
 model but might also be harder to fit if post-ICE data collection is sparse at some visits.</li>
