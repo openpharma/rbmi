@@ -7,6 +7,7 @@
 * rbmi now uses the lifecycle package 
 * Deprecated `nmar.rm` argument of `longdata$get_data` in favor of `mnar.rm` 
   for nomenclature consistency.
+* Vignette on retrieved dropout methods is now correctly embedded.
 
 # rbmi 1.6.0
 
