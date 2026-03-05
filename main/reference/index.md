@@ -82,7 +82,7 @@
   : As array
 
 - [`as_strata()`](https://openpharma.github.io/rbmi/reference/as_strata.md)
-  : Create vector of Stratas
+  : Create vector of strata
 
 - [`assert_variables_exist()`](https://openpharma.github.io/rbmi/reference/assert_variables_exist.md)
   : Assert that all variables exist within a dataset
@@ -114,7 +114,7 @@
   [`imputation_list_df()`](https://openpharma.github.io/rbmi/reference/imputation_list_df.md)
   object (i.e. a list of
   [`imputation_df()`](https://openpharma.github.io/rbmi/reference/imputation_df.md)
-  objects's)
+  objects)
 
 - [`d_lagscale()`](https://openpharma.github.io/rbmi/reference/d_lagscale.md)
   : Calculate delta from a lagged scale coefficient
@@ -128,7 +128,9 @@
   Fit the base imputation model and get parameter estimates
 
 - [`eval_mmrm()`](https://openpharma.github.io/rbmi/reference/eval_mmrm.md)
-  : Evaluate a call to mmrm
+  :
+
+  Evaluate a call to `mmrm`
 
 - [`expand()`](https://openpharma.github.io/rbmi/reference/expand.md)
   [`fill_locf()`](https://openpharma.github.io/rbmi/reference/expand.md)
@@ -140,7 +142,7 @@
 - [`extract_covariates()`](https://openpharma.github.io/rbmi/reference/extract_covariates.md)
   : Extract Variables from string vector
 
-- [`extract_data_nmar_as_na()`](https://openpharma.github.io/rbmi/reference/extract_data_nmar_as_na.md)
+- [`extract_data_mnar_as_na()`](https://openpharma.github.io/rbmi/reference/extract_data_mnar_as_na.md)
   : Set to NA outcome values that would be MNAR if they were missing
   (i.e. which occur after an ICE handled using a reference-based
   imputation strategy)
@@ -227,12 +229,14 @@
   Create a valid `imputation_df` object
 
 - [`imputation_list_df()`](https://openpharma.github.io/rbmi/reference/imputation_list_df.md)
-  : List of imputations_df
+  :
+
+  List of `imputation_df`s
 
 - [`imputation_list_single()`](https://openpharma.github.io/rbmi/reference/imputation_list_single.md)
   :
 
-  A collection of `imputation_singles()` grouped by a single subjid ID
+  A collection of `imputation_singles()` grouped by a single `subjid` ID
 
 - [`imputation_single()`](https://openpharma.github.io/rbmi/reference/imputation_single.md)
   :
@@ -303,7 +307,9 @@
   : Set the multiple imputation methodology
 
 - [`par_lapply()`](https://openpharma.github.io/rbmi/reference/par_lapply.md)
-  : Parallelise Lapply
+  :
+
+  Parallelise `lapply`
 
 - [`parametric_ci()`](https://openpharma.github.io/rbmi/reference/parametric_ci.md)
   : Calculate parametric confidence intervals
@@ -503,7 +509,9 @@
   [`validate_datalong_complete()`](https://openpharma.github.io/rbmi/reference/validate_datalong.md)
   [`validate_datalong_unifromStrata()`](https://openpharma.github.io/rbmi/reference/validate_datalong.md)
   [`validate_dataice()`](https://openpharma.github.io/rbmi/reference/validate_datalong.md)
-  : Validate a longdata object
+  :
+
+  Validate a `longdata` object
 
 - [`validate_strategies()`](https://openpharma.github.io/rbmi/reference/validate_strategies.md)
   : Validate user specified strategies

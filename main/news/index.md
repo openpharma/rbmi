@@ -1,6 +1,19 @@
 # Changelog
 
+## rbmi (development version)
+
+### Bug Fixes
+
+- Added en-GB spell-check and a corresponding test to the package
+- Fixed numerous spelling errors and standardised nomenclature for
+  missing not at random to MNAR (rather than a mix of NMAR and MNAR)
+- rbmi now uses the lifecycle package
+- Deprecated `nmar.rm` argument of `longdata$get_data` in favor of
+  `mnar.rm` for nomenclature consistency.
+
 ## rbmi 1.6.0
+
+CRAN release: 2026-01-23
 
 - Stan programs are constructed in memory and respect the cache setting
 - Cache default directory location updated to be the local session
@@ -148,13 +161,13 @@ CRAN release: 2024-10-16
   - `lsmeans(..., weights = "proportional")` has been left in the
     package for backwards compatibility and is an alias for
     `lsmeans(..., weights = "counterfactual")` but now gives a message
-    prompting users to use either “proptional_em” or “counterfactual”
+    prompting users to use either “proportional_em” or “counterfactual”
     instead.
 - Added support for parallel processing in the
   [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
   function ([\#370](https://github.com/openpharma/rbmi/issues/370))
 - Added documentation clarifying potential false-positive warnings from
-  rstan ([\#288](https://github.com/openpharma/rbmi/issues/288))
+  `rstan` ([\#288](https://github.com/openpharma/rbmi/issues/288))
 - Added support for all covariance structures supported by the `mmrm`
   package ([\#437](https://github.com/openpharma/rbmi/issues/437))
 - Updated `rbmi` citation detail
@@ -163,7 +176,7 @@ CRAN release: 2024-10-16
 
 ### Miscellaneous Bug Fixes
 
-- Stopped warning messages being accidentally supressed when changing
+- Stopped warning messages being accidentally suppressed when changing
   the ICE type in
   [`impute()`](https://openpharma.github.io/rbmi/reference/impute.md)
   ([\#408](https://github.com/openpharma/rbmi/issues/408))
@@ -174,8 +187,7 @@ CRAN release: 2024-10-16
 
 CRAN release: 2023-11-24
 
-- Updated unit tests to fix false-positive error on CRAN’s testing
-  servers
+- Updated unit tests to fix false-positive error on CRAN testing servers
 
 ## rbmi 1.2.5
 
@@ -210,7 +222,7 @@ CRAN release: 2022-10-25
 
 CRAN release: 2022-05-18
 
-- Updated urls for references in vignettes
+- Updated URLs for references in vignettes
 - Fixed a bug where visit factor levels were re-constructed incorrectly
   in
   [`delta_template()`](https://openpharma.github.io/rbmi/reference/delta_template.md)

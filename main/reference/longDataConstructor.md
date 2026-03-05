@@ -25,7 +25,7 @@ object should be avoided if possible.
 
 - `vars`:
 
-  The vars object (list of key variables) passed to the constructor
+  The `vars` object (list of key variables) passed to the constructor
 
 - `visits`:
 
@@ -160,6 +160,7 @@ values with new ones if provided.
     longDataConstructor$get_data(
       obj = NULL,
       nmar.rm = FALSE,
+      mnar.rm = FALSE,
       na.rm = FALSE,
       idmap = FALSE
     )
@@ -172,6 +173,12 @@ values with new ones if provided.
   object. See details.
 
 - `nmar.rm`:
+
+  **\[deprecated\]** Logical value. If `TRUE` will remove observations
+  that are not regarded as MAR (as determined from `self$is_mar`).
+  Superseded by `mnar.rm` argument for nomenclature consistency.
+
+- `mnar.rm`:
 
   Logical value. If `TRUE` will remove observations that are not
   regarded as MAR (as determined from `self$is_mar`).
@@ -301,7 +308,7 @@ wrapper to save having to manually grab each element.
 
 ### Method `update_strategies()`
 
-Convenience function to run self\$set_strategies(dat_ice, update=TRUE)
+Convenience function to run `self$set_strategies(dat_ice, update=TRUE)`
 kept for legacy reasons.
 
 #### Usage

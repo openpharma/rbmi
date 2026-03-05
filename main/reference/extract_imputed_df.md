@@ -38,7 +38,7 @@ extract_imputed_df(imputation, ld, delta = NULL, idmap = FALSE)
 
 - idmap:
 
-  Logical. If `TRUE` an attribute called "idmap" is attached to the
+  Logical. If `TRUE` an attribute called `idmap` is attached to the
   return object which contains a `list` that maps the old subject ids
   the new subject ids.
 

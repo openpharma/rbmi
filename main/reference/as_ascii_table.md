@@ -19,7 +19,7 @@ as_ascii_table(dat, line_prefix = "  ", pcol = NULL)
 
 - line_prefix:
 
-  Symbols to prefix infront of every line of the table
+  Symbols to prefix in front of every line of the table
 
 - pcol:
 

@@ -22,14 +22,14 @@ Source:
 [`inst/CITATION`](https://github.com/openpharma/rbmi/blob/main/inst/CITATION)
 
 Widmer L, Gower-Page C, Gravestock I, Noci A, Sabanes Bove D (2026).
-*rbmi: Reference Based Multiple Imputation*. R package version 1.6.0,
-<https://openpharma.github.io/rbmi/>.
+*rbmi: Reference Based Multiple Imputation*. R package version
+1.6.0.9000, <https://openpharma.github.io/rbmi/>.
 
     @Manual{,
       title = {rbmi: Reference Based Multiple Imputation},
       author = {Lukas A. Widmer and Craig Gower-Page and Isaac Gravestock and Alessandro Noci and Daniel {Sabanes Bove}},
       year = {2026},
-      note = {R package version 1.6.0},
+      note = {R package version 1.6.0.9000},
       url = {https://openpharma.github.io/rbmi/},
     }
 

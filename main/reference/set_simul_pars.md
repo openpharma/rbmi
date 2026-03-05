@@ -9,7 +9,7 @@ continuous outcomes and two intercurrent events (ICEs). ICE1 may be
 thought of as a discontinuation from study treatment due to study drug
 or condition related (SDCR) reasons. ICE2 may be thought of as
 discontinuation from study treatment due to uninformative study
-drop-out, i.e. due to not study drug or condition related (NSDRC)
+drop-out, i.e. due to not study drug or condition related (NSDCR)
 reasons and outcome data after ICE2 is always missing.
 
 ## Usage
@@ -68,7 +68,7 @@ set_simul_pars(
   visit is affected by study drop-out. Outcome data at the subject's
   first simulated visit affected by study drop-out and all subsequent
   visits are set to missing. This generates a second intercurrent event
-  ICE2, which may be thought as treatment discontinuation due to NSDRC
+  ICE2, which may be thought as treatment discontinuation due to NSDCR
   reasons with subsequent drop-out. If for a subject, both ICE1 and ICE2
   are simulated to occur, then it is assumed that only the earlier of
   them counts. In case both ICEs are simulated to occur at the same

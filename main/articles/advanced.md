@@ -516,7 +516,7 @@ strategy_CIR
 #>     pars <- list(mu = mu, sigma = sigma)
 #>     return(pars)
 #> }
-#> <bytecode: 0x55d8d598f610>
+#> <bytecode: 0x55cfb1b87520>
 #> <environment: namespace:rbmi>
 ```
 
@@ -749,8 +749,8 @@ freedom are `(M-1)/lambda^2`, where `M` is the number of imputations and
 
 ## 8 Sensitivity analyses: Delta adjustments and tipping point analyses
 
-Delta-adjustments are used to impute missing data under a not missing at
-random (NMAR) assumption. This reflects the belief that unobserved
+Delta-adjustments are used to impute missing data under a missing not at
+random (MNAR) assumption. This reflects the belief that unobserved
 outcomes would have been systematically “worse” (or “better”) than
 “comparable” observed outcomes. For an extensive discussion of
 delta-adjustment methods, we refer to Cro et al.
@@ -1012,7 +1012,7 @@ previous section (and additionally relying on the `is_post_ice`
 variable).
 
 Another way of using these arguments is to set `delta` to the difference
-in time between visits and dlag to be the amount of delta per unit of
+in time between visits and `dlag` to be the amount of delta per unit of
 time. For example, let’s say that visits occur on weeks 1, 5, 6 and 9
 and that we want a delta of 3 to be applied for each week after an ICE.
 For simplicity, we assume that the ICE occurs immediately after the

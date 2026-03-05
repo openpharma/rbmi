@@ -1,7 +1,7 @@
 # Fit the base imputation model using a Bayesian approach
 
 `fit_mcmc()` fits the base imputation model using a Bayesian approach.
-This is done through a MCMC method that is implemented in `stan` and is
+This is done through a MCMC method that is implemented in Stan and is
 run by using the function
 [`rstan::sampling()`](https://mc-stan.org/rstan/reference/stanmodel-method-sampling.html).
 The function returns the draws from the posterior distribution of the
@@ -44,7 +44,7 @@ fit_mcmc(designmat, outcome, group, subjid, visit, method, quiet = FALSE)
 
 - quiet:
 
-  Specify whether the stan sampling log should be printed to the
+  Specify whether the Stan sampling log should be printed to the
   console.
 
 ## Value

@@ -5,7 +5,7 @@ outcome and two intercurrent events (ICEs). ICE1 may be thought of as a
 discontinuation from study treatment due to study drug or condition
 related (SDCR) reasons. ICE2 may be thought of as discontinuation from
 study treatment due to uninformative study drop-out, i.e. due to not
-study drug or condition related (NSDRC) reasons and outcome data after
+study drug or condition related (NSDCR) reasons and outcome data after
 ICE2 is always missing.
 
 ## Usage
@@ -102,7 +102,7 @@ The data generation works as follows:
 - Simulate an additional uninformative study drop-out with probabilities
   `pars_c$prob_ice2` and `pars_t$prob_ice2` at each visit. This
   generates a second intercurrent event ICE2, which may be thought as
-  treatment discontinuation due to NSDRC reasons with subsequent
+  treatment discontinuation due to NSDCR reasons with subsequent
   drop-out. The simulated time of drop-out is the subject's first visit
   which is affected by drop-out and data from this visit and all
   subsequent visits are consequently set to missing. If for a subject,
@@ -120,7 +120,7 @@ The data generation works as follows:
 - Simulate additional intermittent missing outcome data as per arguments
   `pars_c$prob_miss` and `pars_t$prob_miss`.
 
-The probability of the ICE after each visit is modeled according to the
+The probability of the ICE after each visit is modelled according to the
 following logistic regression model:
 `~ 1 + I(visit == 0) + ... + I(visit == n_visits-1) + I((x-alpha))`
 where:

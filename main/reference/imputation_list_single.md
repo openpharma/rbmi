@@ -1,6 +1,6 @@
-# A collection of `imputation_singles()` grouped by a single subjid ID
+# A collection of `imputation_singles()` grouped by a single `subjid` ID
 
-A collection of `imputation_singles()` grouped by a single subjid ID
+A collection of `imputation_singles()` grouped by a single `subjid` ID
 
 ## Usage
 
@@ -25,7 +25,7 @@ imputation_list_single(imputations, D = 1)
   object which contains a matrix of
   [`imputation_single()`](https://openpharma.github.io/rbmi/reference/imputation_single.md)
   objects grouped by a single `id`. The matrix is split so that it has D
-  columns (i.e. for non-bmlmi methods this will always be 1)
+  columns (i.e. for non-BMLMI methods this will always be 1)
 
   The `id` attribute is determined by extracting the `id` attribute from
   the contributing

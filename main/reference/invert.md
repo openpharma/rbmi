@@ -1,7 +1,8 @@
 # invert
 
-Utility function used to replicated purrr::transpose. Turns a list
-inside out.
+Utility function used to replicate
+[`purrr::transpose`](https://purrr.tidyverse.org/reference/transpose.html).
+Turns a list inside out.
 
 ## Usage
 

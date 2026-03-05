@@ -30,8 +30,8 @@ ancova(
 
 - visits:
 
-  An optional character vector specifying which visits to fit the ancova
-  model at. If `NULL`, a separate ancova model will be fit to the
+  An optional character vector specifying which visits to fit the ANCOVA
+  model at. If `NULL`, a separate ANCOVA model will be fit to the
   outcomes for each visit (as determined by
   `unique(data[[vars$visit]])`). See details.
 
@@ -76,9 +76,9 @@ name, e.g.:
        ...
     )
 
-Please note that "ref" refers to the first factor level of `vars$group`
+Please note that `ref` refers to the first factor level of `vars$group`
 which does not necessarily coincide with the control arm. Analogously,
-"alt" refers to the second factor level of `vars$group`. "trt" refers to
+`alt` refers to the second factor level of `vars$group`. `trt` refers to
 the model contrast translating the mean difference between the second
 level and first level.
 

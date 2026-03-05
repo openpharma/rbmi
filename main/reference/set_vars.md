@@ -39,7 +39,7 @@ set_vars(
 
 - covariates:
 
-  The name of any covariates to be used in the context of modeling. See
+  The name of any covariates to be used in the context of modelling. See
   details.
 
 - strata:

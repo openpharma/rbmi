@@ -43,7 +43,7 @@ analyse(
   The number of parallel processes to use when running this function.
   Can also be a cluster object created by
   [`make_rbmi_cluster()`](https://openpharma.github.io/rbmi/reference/make_rbmi_cluster.md).
-  See the parallisation section below.
+  See the parallelisation section below.
 
 - .validate:
 

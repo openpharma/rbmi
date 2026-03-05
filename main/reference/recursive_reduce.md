@@ -1,7 +1,9 @@
 # recursive_reduce
 
-Utility function used to replicated purrr::reduce. Recursively applies a
-function to a list of elements until only 1 element remains
+Utility function used to replicate
+[`purrr::reduce`](https://purrr.tidyverse.org/reference/reduce.html).
+Recursively applies a function to a list of elements until only 1
+element remains
 
 ## Usage
 

@@ -46,13 +46,14 @@ MMRM analyses for clinical trials with longitudinal endpoints.
   the the estimand definition. To facilitate this, it implements methods
   under a range of different missing data assumptions including standard
   missing-at-random (MAR), extended MAR (via inclusion of time-varying
-  covariates), reference-based missingness, and not missing-at-random at
-  random (NMAR; via \\\delta\\-adjustments). In contrast, the standard
-  MMRM model is only valid under a standard MAR assumption which is not
-  always plausible. For example, the standard MAR assumption is rather
-  implausible for implementing a treatment policy strategy for the
-  intercurrent event “treatment discontinuation” if a substantial
-  proportion of subjects are lost-to-follow-up after discontinuation.
+  covariates), reference-based missingness, and not
+  missing-not-at-random (MNAR; via \\\delta\\-adjustments). In contrast,
+  the standard MMRM model is only valid under a standard MAR assumption
+  which is not always plausible. For example, the standard MAR
+  assumption is rather implausible for implementing a treatment policy
+  strategy for the intercurrent event “treatment discontinuation” if a
+  substantial proportion of subjects are lost-to-follow-up after
+  discontinuation.
 - The \\\delta\\-adjustment methods implemented in `rbmi` can be used
   for sensitivity analyses of a primary MMRM- or rbmi-type analysis.
 
@@ -118,7 +119,7 @@ implemented by providing a custom analysis function to the
 [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
 function.
 
-For further expalanations, we also cite the end of section 2.4 of the
+For further explanations, we also cite the end of section 2.4 of the
 conditional mean imputation paper (Wolbers et al.
 ([2022](#ref-Wolbers2021))):
 

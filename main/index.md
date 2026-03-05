@@ -20,7 +20,7 @@ The package can be installed directly from CRAN via:
 
 Note that the usage of Bayesian multiple imputation requires the
 installation of the suggested package
-[rstan](https://CRAN.R-project.org/package=rstan).
+[`rstan`](https://CRAN.R-project.org/package=rstan).
 
     install.packages("rstan")
 

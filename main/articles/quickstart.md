@@ -18,9 +18,9 @@ functions) which are typically called in sequence:
   combines the analysis results across imputed datasets into a single
   statistic
 
-This example in this vignette makes use of Bayesian multiuple
-imputation; this functionality requires the installation of the
-suggested package [rstan](https://CRAN.R-project.org/package=rstan).
+This example in this vignette makes use of Bayesian multiple imputation;
+this functionality requires the installation of the suggested package
+[`rstan`](https://CRAN.R-project.org/package=rstan).
 
     install.packages("rstan")
 
@@ -111,7 +111,7 @@ For the antidepressant trial data, the dataset `data_ice` is not
 provided. However, it can be derived because, in this dataset, the
 subject’s first visit affected by the ICE “study drug discontinuation”
 corresponds to the first terminal missing observation. We first derive
-the dateset `data_ice` and then create 150 Bayesian posterior draws of
+the dataset `data_ice` and then create 150 Bayesian posterior draws of
 the imputation model parameters.
 
 For this example, we assume that the imputation strategy after the ICE
@@ -386,13 +386,13 @@ function which determines the names of the key variables within the data
 and the covariates (in addition to the treatment group) for which the
 analysis model will be adjusted.
 
-Please also note that the names of the analysis estimates contain “ref”
-and “alt” to refer to the two treatment arms. In particular “ref” refers
+Please also note that the names of the analysis estimates contain `ref`
+and `alt` to refer to the two treatment arms. In particular `ref` refers
 to the first factor level of `vars$group` which does not necessarily
 coincide with the control arm. In this example, since
 `levels(dat[[vars$group]]) = c("DRUG", PLACEBO`), the results associated
-with “ref” correspond to the intervention arm, while those associated
-with “alt” correspond to the control arm.
+with `ref` correspond to the intervention arm, while those associated
+with `alt` correspond to the control arm.
 
 Additionally, we can use the `delta` argument of
 [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md) to

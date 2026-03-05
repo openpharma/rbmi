@@ -1,4 +1,4 @@
-# Create vector of Stratas
+# Create vector of strata
 
 Collapse multiple categorical variables into distinct unique categories.
 e.g.

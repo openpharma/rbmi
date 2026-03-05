@@ -69,7 +69,7 @@ many connections between missing data and ICEs. For example, it is often
 difficult to retain subjects in a clinical trial after treatment
 discontinuation and a subject’s dropout from the trial leads to missing
 data. As another example, outcome values after ICEs addressed using a
-hypothetical strateg are not directly observable under the hypothetical
+hypothetical strategy are not directly observable under the hypothetical
 scenario. Consequently, any observed outcome values after such ICEs are
 typically discarded and treated as missing data.
 
@@ -146,7 +146,7 @@ included in every step of the analysis, including in the fitting of the
 imputation model. It assumes that ICEs may impact post-ICE outcomes but
 that otherwise missingness is non-informative. The approach also assumes
 that the time-varying covariates do not contain missing values,
-deviations in outcomes after the ICE are correctly modeled by these
+deviations in outcomes after the ICE are correctly modelled by these
 time-varying covariates, and that sufficient post-ICE data are available
 to inform the regression coefficients of the time-varying covariates.
 The resulting imputation models are called “retrieved dropout models” in
@@ -190,7 +190,7 @@ refer to section [3](#sec:statsMethods) (in particular section
 
 The composite strategy is typically applied to binary or time-to-event
 outcomes but it can also be used for continuous outcomes by ascribing a
-suitably unfavorable value to patients who experience ICEs for which a
+suitably unfavourable value to patients who experience ICEs for which a
 composite strategy has been defined. One possibility to implement this
 is to use MI with a \\\delta\\-adjustment for post-ICE data as described
 in Darken et al. ([2020](#ref-Darken2020)).
@@ -268,7 +268,7 @@ Conventional MI approaches include the following steps:
 
 3.  **Analysis step** (Section [3.6](#sec:analysis))
 
-- Analyze the imputed dataset using an analysis model (e.g. ANCOVA)
+- Analyse the imputed dataset using an analysis model (e.g. ANCOVA)
   resulting in a point estimate and a standard error (with corresponding
   degrees of freedom) of the treatment effect.
 
@@ -363,7 +363,7 @@ The bootstrapped MI approach includes the following steps:
 
 3.  **Analysis step** (Section [3.6](#sec:analysis))
 
-- Analyze each of the \\B\times D\\ imputed datasets using an analysis
+- Analyse each of the \\B\times D\\ imputed datasets using an analysis
   model (e.g. ANCOVA) resulting in \\B\times D\\ point estimates of the
   treatment effect.
 
@@ -535,15 +535,14 @@ symmetric positive definite matrix and \\\nu \in (J-1, \infty)\\. Then
 the symmetric positive definite matrix \\x \in \mathbb{R}^{J \times J}\\
 has density: \\ \text{InvWish}(x \vert \nu, S) = \frac{1}{2^{\nu J/2}}
 \frac{1}{\Gamma_J(\frac{\nu}{2})} \vert S \vert^{\nu/2} \vert x \vert
-^{-(\nu + J + 1)/2} \text{exp}\left(-\frac{1}{2}
-\text{tr}(Sx^{-1})\right). \\ For \\\nu \> J+1\\ the mean is given by:
-\\ E\[x\] = \frac{S}{\nu - J - 1}. \\ We choose \\S\\ equal to the
-estimated covariance matrix from the frequentist REML fit and \\\nu =
-J+2\\ as these are the lowest degrees of freedom that guarantee a finite
-mean. Setting the degrees of freedom with such a low \\\nu\\ ensures
-that the prior has little impact on the posterior. Moreover, this choice
-allows to interpret the parameter \\S\\ as the mean of the prior
-distribution.
+^{-(\nu + J + 1)/2} \text{exp}\left(-\frac{1}{2} \text{tr}(S
+x^{-1})\right). \\ For \\\nu \> J+1\\ the mean is given by: \\ E\[x\] =
+\frac{S}{\nu - J - 1}. \\ We choose \\S\\ equal to the estimated
+covariance matrix from the frequentist REML fit and \\\nu = J+2\\ as
+these are the lowest degrees of freedom that guarantee a finite mean.
+Setting the degrees of freedom with such a low \\\nu\\ ensures that the
+prior has little impact on the posterior. Moreover, this choice allows
+to interpret the parameter \\S\\ as the mean of the prior distribution.
 
 ##### 3.3.3.2 LKJ and scaled inverse chi-squared priors for unstructured covariance matrix
 
@@ -577,7 +576,7 @@ we use a uniform prior on the correlation parameter \\\rho\\ and a
 scaled inverse chi-square prior for the variance parameter \\\sigma^2\\,
 as described above. For the time-heterogeneous version, we simply use
 independent scaled inverse chi-square priors for the time-point specific
-variances, which are centered around the respective estimated variances
+variances, which are centred around the respective estimated variances
 from the frequentist REML fit.
 
 ##### 3.3.3.4 Compound symmetry covariance structure

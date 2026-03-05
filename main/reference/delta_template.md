@@ -142,14 +142,14 @@ that the user can create their own custom logic for defining what
   subject.
 
 The design and implementation of this function is largely based upon the
-same functionality as implemented in the so called "five marcos" by
+same functionality as implemented in the so called "five macros" by
 James Roger. See Roger (2021).
 
 ## References
 
-Roger, James. Reference-based mi via multivariate normal rm (the “five
-macros” and miwithd), 2021. URL
-https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data.
+Roger, James. Reference-based MI via Multivariate Normal RM (the “five
+macros” and MIWithD), 2021. URL
+<https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data>.
 
 ## See also
 

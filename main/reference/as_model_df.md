@@ -22,5 +22,5 @@ as_model_df(dat, frm)
 
 ## Details
 
-The outcome column may contain NA's but none of the other variables
+The outcome column may contain NA, but none of the other variables
 listed in the formula should contain missing values

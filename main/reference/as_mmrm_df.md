@@ -8,8 +8,8 @@ particular this function does the following:
 
 - Ensures all key variables are of the right type
 
-- Inserts the outcome, visit and subjid variables into the `data.frame`
-  naming them as `outcome`, `visit` and `subjid`
+- Inserts the `outcome`, `visit` and `subjid` variables into the
+  `data.frame` naming them as `outcome`, `visit` and `subjid`
 
 - If provided will also insert the group variable into the `data.frame`
   named as `group`

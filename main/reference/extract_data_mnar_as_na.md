@@ -7,7 +7,7 @@ strategy)
 ## Usage
 
 ``` r
-extract_data_nmar_as_na(longdata)
+extract_data_mnar_as_na(longdata)
 ```
 
 ## Arguments

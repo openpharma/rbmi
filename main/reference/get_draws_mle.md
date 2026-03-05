@@ -36,7 +36,7 @@ get_draws_mle(
 
 - sample_stack:
 
-  A stack object containing the subject ids to be used on each mmrm
+  A stack object containing the subject ids to be used on each `mmrm`
   iteration.
 
 - n_target_samples:

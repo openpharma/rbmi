@@ -16,4 +16,4 @@ as_dataframe(x)
 
   Utility function to convert a "data.frame-like" object to an actual
   `data.frame` to avoid issues with inconsistency on methods (such as
-  `[`() and dplyr's grouped dataframes)
+  `[`() and `dplyr`'s grouped dataframes)
