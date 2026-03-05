@@ -14,4 +14,4 @@ RBMI_TEST_EXTENDED  = ${RBMI_TEST_EXTENDED}
 
 "
 
-Rscript -e "devtools::test()"
+Rscript -e "devtools::test(stop_on_failure=TRUE)"
