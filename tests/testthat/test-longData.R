@@ -370,17 +370,17 @@ test_that("Strategies", {
     )
 
     dat_ice <- tribble(
-        ~visit,
-        ~subjid,
-        ~strategy,
-        "Visit 1",
-        "1",
-        "ABC",
-        "Visit 2",
-        "2",
-        "MAR",
-        "Visit 3",
-        "3",
+        ~visit    ,
+        ~subjid   ,
+        ~strategy ,
+        "Visit 1" ,
+        "1"       ,
+        "ABC"     ,
+        "Visit 2" ,
+        "2"       ,
+        "MAR"     ,
+        "Visit 3" ,
+        "3"       ,
         "XYZ"
     )
 
@@ -420,13 +420,13 @@ test_that("Strategies", {
     )
 
     dat_ice <- tribble(
-        ~subjid,
-        ~strategy,
-        "1",
-        "ABC",
-        "2",
-        "MAR",
-        "3",
+        ~subjid   ,
+        ~strategy ,
+        "1"       ,
+        "ABC"     ,
+        "2"       ,
+        "MAR"     ,
+        "3"       ,
         "ABC"
     )
     ld$update_strategies(dat_ice)
@@ -460,12 +460,12 @@ test_that("Strategies", {
     )
 
     dat_ice <- tribble(
-        ~visit,
-        ~subjid,
-        ~strategy,
-        "Visit 1",
-        "2",
-        "ABC",
+        ~visit    ,
+        ~subjid   ,
+        ~strategy ,
+        "Visit 1" ,
+        "2"       ,
+        "ABC"     ,
     )
     expect_error(
         ld$update_strategies(dat_ice),
@@ -473,10 +473,10 @@ test_that("Strategies", {
     )
 
     dat_ice <- tribble(
-        ~subjid,
-        ~strategy,
-        "3",
-        "MAR",
+        ~subjid   ,
+        ~strategy ,
+        "3"       ,
+        "MAR"     ,
     )
 
     expect_warning(
@@ -486,29 +486,29 @@ test_that("Strategies", {
 
     # Ensure that only 1 warning is issued when converting non-MAR to MAR data
     dat_ice <- tribble(
-        ~visit,
-        ~subjid,
-        ~strategy,
-        "Visit 1",
-        "1",
-        "ABC",
-        "Visit 1",
-        "2",
-        "ABC",
-        "Visit 3",
-        "3",
+        ~visit    ,
+        ~subjid   ,
+        ~strategy ,
+        "Visit 1" ,
+        "1"       ,
+        "ABC"     ,
+        "Visit 1" ,
+        "2"       ,
+        "ABC"     ,
+        "Visit 3" ,
+        "3"       ,
         "XYZ"
     )
 
     ld$set_strategies(dat_ice)
 
     upd_dat_ice <- tribble(
-        ~subjid,
-        ~strategy,
-        "2",
-        "MAR",
-        "3",
-        "MAR",
+        ~subjid   ,
+        ~strategy ,
+        "2"       ,
+        "MAR"     ,
+        "3"       ,
+        "MAR"     ,
     )
 
     recorded_result <- record(ld$update_strategies(upd_dat_ice))
@@ -531,17 +531,17 @@ test_that("strategies part 2", {
     dat <- dobj$dat
 
     dat_ice <- tribble(
-        ~visit,
-        ~subjid,
-        ~strategy,
-        "Visit 1",
-        "1",
-        "ABC",
-        "Visit 2",
-        "2",
-        "MAR",
-        "Visit 3",
-        "3",
+        ~visit    ,
+        ~subjid   ,
+        ~strategy ,
+        "Visit 1" ,
+        "1"       ,
+        "ABC"     ,
+        "Visit 2" ,
+        "2"       ,
+        "MAR"     ,
+        "Visit 3" ,
+        "3"       ,
         "XYZ"
     )
 
@@ -549,34 +549,34 @@ test_that("strategies part 2", {
     pre_update_ld <- ld_2_list(ld)
 
     dat_ice <- tribble(
-        ~subjid,
-        ~strategy,
-        ~visit,
-        "1",
-        "ABC",
-        "Visit 2",
-        "2",
-        "MAR",
-        "Visit 7",
-        "3",
-        "XYZ",
+        ~subjid   ,
+        ~strategy ,
+        ~visit    ,
+        "1"       ,
+        "ABC"     ,
+        "Visit 2" ,
+        "2"       ,
+        "MAR"     ,
+        "Visit 7" ,
+        "3"       ,
+        "XYZ"     ,
         "Visit 1"
     )
     ld$update_strategies(dat_ice)
     expect_equal(ld_2_list(ld), pre_update_ld)
 
     dat_ice <- tribble(
-        ~subjid,
-        ~strategy,
-        ~visit,
-        "1",
-        "LKJ",
-        "Visit 2",
-        "2",
-        "MAR",
-        "Visit 7",
-        "3",
-        "XYZ",
+        ~subjid   ,
+        ~strategy ,
+        ~visit    ,
+        "1"       ,
+        "LKJ"     ,
+        "Visit 2" ,
+        "2"       ,
+        "MAR"     ,
+        "Visit 7" ,
+        "3"       ,
+        "XYZ"     ,
         "Visit 1"
     )
 
@@ -604,17 +604,17 @@ test_that("strategies part 2", {
     ld$set_strategies()
 
     dat_ice <- tribble(
-        ~subjid,
-        ~strategy,
-        ~visit,
-        "1",
-        "LKJ",
-        "Visit 2",
-        "2",
-        "MAR",
-        "Visit 7",
-        "3",
-        "XYZ",
+        ~subjid   ,
+        ~strategy ,
+        ~visit    ,
+        "1"       ,
+        "LKJ"     ,
+        "Visit 2" ,
+        "2"       ,
+        "MAR"     ,
+        "Visit 7" ,
+        "3"       ,
+        "XYZ"     ,
         "Visit 1"
     )
     ld$update_strategies(dat_ice)
@@ -1034,12 +1034,12 @@ test_that("check_has_data_at_each_visit() catches the correct visit that has no 
 })
 
 
-test_that("get_data() uses na.rm and nmar.rm correctly", {
+test_that("get_data() uses na.rm and mnar.rm correctly", {
     #
     # This test proves that the bug identified in
     # https://github.com/openpharma/rbmi/issues/347
     # has been resolved.
-    # This was where `na.rm` and `nmar.rm` in `longdata$get_data()` only worked if IDs
+    # This was where `na.rm` and `mnar.rm` in `longdata$get_data()` only worked if IDs
     # were passed to the function
     #
 
@@ -1094,12 +1094,12 @@ test_that("get_data() uses na.rm and nmar.rm correctly", {
     )
 
     expect_equal(
-        ld$get_data(na.rm = TRUE, nmar.rm = TRUE),
+        ld$get_data(na.rm = TRUE, mnar.rm = TRUE),
         dat %>% filter(!is.na(out)) %>% arrange(pt, vis) %>% as.data.frame()
     )
 
     expect_equal(
-        ld$get_data(nmar.rm = TRUE),
+        ld$get_data(mnar.rm = TRUE),
         dat %>% arrange(pt, vis) %>% as.data.frame()
     )
 
@@ -1116,12 +1116,12 @@ test_that("get_data() uses na.rm and nmar.rm correctly", {
     )
 
     expect_equal(
-        ld$get_data(IDS, nmar.rm = TRUE),
+        ld$get_data(IDS, mnar.rm = TRUE),
         dat2 %>% as.data.frame()
     )
 
     expect_equal(
-        ld$get_data(IDS, na.rm = TRUE, nmar.rm = TRUE),
+        ld$get_data(IDS, na.rm = TRUE, mnar.rm = TRUE),
         dat2 %>% filter(!is.na(out)) %>% as.data.frame()
     )
 
@@ -1155,7 +1155,7 @@ test_that("get_data() uses na.rm and nmar.rm correctly", {
     )
 
     expect_equal(
-        ld$get_data(nmar.rm = TRUE),
+        ld$get_data(mnar.rm = TRUE),
         dat %>%
             filter(!(as.numeric(vis) >= 2 & pt == "A")) %>%
             arrange(pt, vis) %>%
@@ -1163,13 +1163,30 @@ test_that("get_data() uses na.rm and nmar.rm correctly", {
     )
 
     expect_equal(
-        ld$get_data(na.rm = TRUE, nmar.rm = TRUE),
+        ld$get_data(na.rm = TRUE, mnar.rm = TRUE),
         dat %>%
             filter(!is.na(out)) %>%
             filter(!(as.numeric(vis) >= 2 & pt == "A")) %>%
             arrange(pt, vis) %>%
             as.data.frame()
     )
+
+    # Test deprecated argument for equivalence
+    expect_warning(
+        nmar_true_val <- ld$get_data(nmar.rm = TRUE),
+        regexp = "nmar\\.rm.+?deprecated"
+    )
+    expect_warning(
+        nmar_false_val <- ld$get_data(nmar.rm = FALSE),
+        regexp = "nmar\\.rm.+?deprecated"
+    )
+
+    expect_equal(ld$get_data(mnar.rm = TRUE), nmar_true_val)
+    expect_equal(ld$get_data(mnar.rm = FALSE), nmar_false_val)
+
+    # Test setting both arguments, this should warn about the deprecated one
+    # and then error
+    expect_error(expect_warning(ld$get_data(nmar.rm = TRUE, mnar.rm = TRUE)))
 
     ### Post-strategies (with ids)
 
@@ -1187,7 +1204,7 @@ test_that("get_data() uses na.rm and nmar.rm correctly", {
     )
 
     expect_equal(
-        ld$get_data(IDS, nmar.rm = TRUE),
+        ld$get_data(IDS, mnar.rm = TRUE),
         dat2 %>%
             filter(
                 !(as.numeric(vis) >= 2 & pt %in% c("new_pt_1", "new_pt_3"))
@@ -1196,7 +1213,7 @@ test_that("get_data() uses na.rm and nmar.rm correctly", {
     )
 
     expect_equal(
-        ld$get_data(IDS, na.rm = TRUE, nmar.rm = TRUE),
+        ld$get_data(IDS, na.rm = TRUE, mnar.rm = TRUE),
         dat2 %>%
             filter(!is.na(out)) %>%
             filter(

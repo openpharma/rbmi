@@ -40,7 +40,8 @@ pkgs <- c(
     "tidymodels",
     "languageserver",
     "fs",
-    "assertthat"
+    "assertthat",
+    "lifecycle"
 )
 
 

@@ -2,7 +2,7 @@
 % Please edit documentation in R/dataclasses.R
 \name{imputation_list_df}
 \alias{imputation_list_df}
-\title{List of imputations_df}
+\title{List of \code{imputation_df}s}
 \usage{
 imputation_list_df(...)
 }

@@ -9,7 +9,7 @@ of 0 and an standard deviation of 1.
 }
 \details{
 The object initialisation
-is used to determine the relevant mean and SD's to scale by and then
+is used to determine the relevant means and standard deviations to scale by and then
 the scaling (and un-scaling) itself is performed by the relevant object
 methods.
 

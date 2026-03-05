@@ -24,7 +24,7 @@ datasets prior to running \code{fun}. See details.}
 \item{...}{Additional arguments passed onto \code{fun}.}
 
 \item{ncores}{The number of parallel processes to use when running this function. Can also be a
-cluster object created by \code{\link[=make_rbmi_cluster]{make_rbmi_cluster()}}. See the parallisation section below.}
+cluster object created by \code{\link[=make_rbmi_cluster]{make_rbmi_cluster()}}. See the parallelisation section below.}
 
 \item{.validate}{Should \code{inputations} be checked to ensure it conforms to the required format
 (default = \code{TRUE}) ? Can gain a small performance increase if this is set to \code{FALSE} when

@@ -49,7 +49,7 @@ random_effects_expr <- function(
 #' In particular this function does the following:
 #' - Renames all covariates as `V1`, `V2`, etc to avoid issues of special characters in variable names
 #' - Ensures all key variables are of the right type
-#' - Inserts the outcome, visit and subjid variables into the `data.frame`
+#' - Inserts the `outcome`, `visit` and `subjid` variables into the `data.frame`
 #' naming them as `outcome`, `visit` and `subjid`
 #' - If provided will also insert the group variable into the `data.frame` named as `group`
 #'
@@ -86,13 +86,13 @@ as_mmrm_df <- function(designmat, outcome, visit, subjid, group = NULL) {
 #' Create MMRM formula
 #'
 #'
-#' Derives the MMRM model formula from the structure of mmrm_df.
+#' Derives the MMRM model formula from the structure of `mmrm_df`.
 #' returns a formula object of the form:
 #'
 #' ```
 #' outcome ~ 0 + V1 + V2 + V4 + ... + us(visit | group / subjid)
 #' ```
-#' @param mmrm_df an mmrm `data.frame` as created by [as_mmrm_df()]
+#' @param mmrm_df an `mmrm` `data.frame` as created by [as_mmrm_df()]
 #' @param cov_struct Character - The covariance structure to be used, must be one of `"us"` (default),
 #' `"ad"`, `"adh"`, `"ar1"`, `"ar1h"`, `"cs"`, `"csh"`, `"toep"`, or `"toeph"`)
 #' @importFrom stats as.formula
@@ -340,9 +340,9 @@ fit_mmrm <- function(
     )
 }
 
-#' Evaluate a call to mmrm
+#' Evaluate a call to `mmrm`
 #'
-#' This is a utility function that attempts to evaluate a call to mmrm
+#' This is a utility function that attempts to evaluate a call to `mmrm`
 #' managing any warnings or errors that are thrown.
 #'
 #' This function was originally developed for use with `glmmTMB` which needed

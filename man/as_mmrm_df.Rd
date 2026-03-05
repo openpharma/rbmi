@@ -27,7 +27,7 @@ In particular this function does the following:
 \itemize{
 \item Renames all covariates as \code{V1}, \code{V2}, etc to avoid issues of special characters in variable names
 \item Ensures all key variables are of the right type
-\item Inserts the outcome, visit and subjid variables into the \code{data.frame}
+\item Inserts the \code{outcome}, \code{visit} and \code{subjid} variables into the \code{data.frame}
 naming them as \code{outcome}, \code{visit} and \code{subjid}
 \item If provided will also insert the group variable into the \code{data.frame} named as \code{group}
 }

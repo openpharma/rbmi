@@ -25,7 +25,7 @@ longDataConstructor <- R6::R6Class(
         #' @field data The original dataset passed to the constructor (sorted by id and visit)
         data = NULL,
 
-        #' @field vars The vars object (list of key variables) passed to the constructor
+        #' @field vars The `vars` object (list of key variables) passed to the constructor
         vars = NULL,
 
         #' @field visits A character vector containing the distinct visit levels
@@ -123,8 +123,13 @@ longDataConstructor <- R6::R6Class(
         #' @param obj Either `NULL`, a character vector of subjects IDs or a
         #' imputation list object. See details.
         #'
-        #' @param nmar.rm Logical value. If `TRUE` will remove observations that are
+        #' @param mnar.rm Logical value. If `TRUE` will remove observations that are
         #' not regarded as MAR (as determined from `self$is_mar`).
+        #'
+        #' @param nmar.rm `r lifecycle::badge("deprecated")` Logical value.
+        #' If `TRUE` will remove observations that are
+        #' not regarded as MAR (as determined from `self$is_mar`). Superseded
+        #' by `mnar.rm` argument for nomenclature consistency.
         #'
         #' @param na.rm Logical value. If `TRUE` will remove outcome values that are
         #' missing (as determined from `self$is_missing`).
@@ -168,11 +173,30 @@ longDataConstructor <- R6::R6Class(
         get_data = function(
             obj = NULL,
             nmar.rm = FALSE,
+            mnar.rm = FALSE,
             na.rm = FALSE,
             idmap = FALSE
         ) {
+            if (!missing(nmar.rm)) {
+                lifecycle::deprecate_warn(
+                    when = "1.7.0",
+                    what = "get_data(nmar.rm)",
+                    with = "get_data(mnar.rm)",
+                    details = "nmar.rm argument will be dropped in next release in favor of mnar.rm for nomenclature consistency."
+                )
+
+                if (!missing(mnar.rm)) {
+                    stop(
+                        "nmar.rm and mnar.rm arguments cannot both be set. nmar.rm is deprecated, please use mnar.rm instead."
+                    )
+                }
+
+                # Copy the argument over until we remove the deprecated argument
+                mnar.rm <- nmar.rm
+            }
+
             if (is.null(obj)) {
-                if (nmar.rm == FALSE & na.rm == FALSE) {
+                if (mnar.rm == FALSE & na.rm == FALSE) {
                     return(self$data)
                 } else {
                     ids <- self$ids
@@ -217,7 +241,7 @@ longDataConstructor <- R6::R6Class(
             self$validate_ids(ids)
             indexes <- self$indexes[ids]
 
-            if (list_flag | nmar.rm | na.rm) {
+            if (list_flag | mnar.rm | na.rm) {
                 is_miss <- unlist(self$is_missing[ids], use.names = FALSE)
                 is_mar <- unlist(self$is_mar[ids], use.names = FALSE)
             }
@@ -241,10 +265,10 @@ longDataConstructor <- R6::R6Class(
                 new_data[is_miss, self$vars$outcome] <- values
             }
 
-            if (nmar.rm | na.rm) {
-                remove_nmar <- !is_mar & nmar.rm
+            if (mnar.rm | na.rm) {
+                remove_mnar <- !is_mar & mnar.rm
                 remove_na <- is_miss & na.rm
-                keep <- !remove_nmar & !remove_na
+                keep <- !remove_mnar & !remove_na
                 new_data <- new_data[keep, ]
             }
 
@@ -355,7 +379,7 @@ longDataConstructor <- R6::R6Class(
         },
 
         #' @description
-        #' Convenience function to run self$set_strategies(dat_ice, update=TRUE)
+        #' Convenience function to run `self$set_strategies(dat_ice, update=TRUE)`
         #' kept for legacy reasons.
         #' @param dat_ice A `data.frame` containing ICE information see [impute()] for the format of this dataframe.
         update_strategies = function(dat_ice) {

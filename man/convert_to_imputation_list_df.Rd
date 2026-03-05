@@ -3,14 +3,14 @@
 \name{convert_to_imputation_list_df}
 \alias{convert_to_imputation_list_df}
 \title{Convert list of \code{\link[=imputation_list_single]{imputation_list_single()}} objects to an \code{\link[=imputation_list_df]{imputation_list_df()}} object
-(i.e. a list of \code{\link[=imputation_df]{imputation_df()}} objects's)}
+(i.e. a list of \code{\link[=imputation_df]{imputation_df()}} objects)}
 \usage{
 convert_to_imputation_list_df(imputes, sample_ids)
 }
 \arguments{
 \item{imputes}{a list of \code{\link[=imputation_list_single]{imputation_list_single()}} objects}
 
-\item{sample_ids}{A list with 1 element per required imputation_df. Each element
+\item{sample_ids}{A list with 1 element per required \code{imputation_df}. Each element
 must contain a vector of "ID"'s which correspond to the \code{\link[=imputation_single]{imputation_single()}} ID's
 that are required for that dataset. The total number of ID's must by equal to the
 total number of rows within all of \code{imputes$imputations}
@@ -77,5 +77,5 @@ sequentially.}
 }
 \description{
 Convert list of \code{\link[=imputation_list_single]{imputation_list_single()}} objects to an \code{\link[=imputation_list_df]{imputation_list_df()}} object
-(i.e. a list of \code{\link[=imputation_df]{imputation_df()}} objects's)
+(i.e. a list of \code{\link[=imputation_df]{imputation_df()}} objects)
 }

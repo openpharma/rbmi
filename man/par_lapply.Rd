@@ -2,7 +2,7 @@
 % Please edit documentation in R/parallel.R
 \name{par_lapply}
 \alias{par_lapply}
-\title{Parallelise Lapply}
+\title{Parallelise \code{lapply}}
 \usage{
 par_lapply(cl, fun, x, ...)
 }
@@ -13,7 +13,7 @@ par_lapply(cl, fun, x, ...)
 
 \item{x}{object to be looped over}
 
-\item{...}{extra arguements passed to \code{fun}}
+\item{...}{extra arguments passed to \code{fun}}
 }
 \description{
 Simple wrapper around \code{lapply} and \code{\link[parallel:clusterApply]{parallel::clusterApplyLB}} to abstract away

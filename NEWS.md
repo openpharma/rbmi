@@ -1,3 +1,12 @@
+# rbmi (development version)
+
+## Bug Fixes
+* Added en-GB spell-check and a corresponding test to the package
+* Fixed numerous spelling errors and standardised nomenclature for missing not
+  at random to MNAR (rather than a mix of NMAR and MNAR)
+* rbmi now uses the lifecycle package 
+* Deprecated `nmar.rm` argument of `longdata$get_data` in favor of `mnar.rm` 
+  for nomenclature consistency.
 
 # rbmi 1.6.0
 
@@ -73,20 +82,20 @@
     * Renamed `lsmeans(..., weights = "proportional")` to `lsmeans(..., weights = "counterfactual")`to more accurately reflect the weights used in the calculation.
     * Added `lsmeans(..., weights = "proportional_em")` which provides consistent results with `emmeans(..., weights = "proportional")`
     * `lsmeans(..., weights = "proportional")` has been left in the package for backwards compatibility and is an alias for `lsmeans(..., weights = "counterfactual")` but now gives
-    a message prompting users to use either "proptional_em" or "counterfactual" instead.
+    a message prompting users to use either "proportional_em" or "counterfactual" instead.
 * Added support for parallel processing in the `analyse()` function (#370)
-* Added documentation clarifying potential false-positive warnings from rstan (#288)
+* Added documentation clarifying potential false-positive warnings from `rstan` (#288)
 * Added support for all covariance structures supported by the `mmrm` package (#437)
 * Updated `rbmi` citation detail (#423 #425)
 
 ## Miscellaneous Bug Fixes
 
-* Stopped warning messages being accidentally supressed when changing the ICE type in `impute()` (#408)
+* Stopped warning messages being accidentally suppressed when changing the ICE type in `impute()` (#408)
 * Fixed equations not rendering properly in the `pkgdown` website (#433) 
 
 # rbmi 1.2.6
 
-* Updated unit tests to fix false-positive error on CRAN's testing servers
+* Updated unit tests to fix false-positive error on CRAN testing servers
 
 # rbmi 1.2.5
 
@@ -105,7 +114,7 @@
 
 # rbmi 1.1.4
 
-* Updated urls for references in vignettes
+* Updated URLs for references in vignettes
 * Fixed a bug where visit factor levels were re-constructed incorrectly in `delta_template()`
 * Fixed a bug where the wrong visit was displayed in the error message for when a specific visit doesn't have any data in `draws()`
 * Fixed a bug where the wrong input parameter was displayed in an error message in `simulate_data()`

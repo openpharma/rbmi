@@ -691,16 +691,16 @@ test_that("validate_strategies", {
     strats <- list("MAR" = function(x) x)
     expect_true(validate_strategies(strats, ld$strategies))
     expect_true(validate_strategies(strats, "MAR"))
-    expect_error(validate_strategies(strats, "NMAR"))
+    expect_error(validate_strategies(strats, "MNAR"))
 
-    strats <- list("MAR" = function(x) x, "NMAR" = function(x) x)
-    expect_true(validate_strategies(strats, "NMAR"))
+    strats <- list("MAR" = function(x) x, "MNAR" = function(x) x)
+    expect_true(validate_strategies(strats, "MNAR"))
 
-    strats <- list("MAR" = function(x) x, "NMAR" = 1)
-    expect_error(validate_strategies(strats, "NMAR"))
+    strats <- list("MAR" = function(x) x, "MNAR" = 1)
+    expect_error(validate_strategies(strats, "MNAR"))
 
-    strats <- c("NMAR")
-    expect_error(validate_strategies(strats, "NMAR"))
+    strats <- c("MNAR")
+    expect_error(validate_strategies(strats, "MNAR"))
 
     # #513 - Test that more informative error message is created when providing an invalid
     # strategy
@@ -710,7 +710,7 @@ test_that("validate_strategies", {
         "AAA" = function(x) x
     )
     e <- tryCatch(
-        validate_strategies(strats, "NMAR"),
+        validate_strategies(strats, "MNAR"),
         error = function(e) e
     )
     expect_snapshot(cat(e$message))

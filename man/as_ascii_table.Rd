@@ -9,7 +9,7 @@ as_ascii_table(dat, line_prefix = "  ", pcol = NULL)
 \arguments{
 \item{dat}{Input dataset to convert into a ascii table}
 
-\item{line_prefix}{Symbols to prefix infront of every line of the table}
+\item{line_prefix}{Symbols to prefix in front of every line of the table}
 
 \item{pcol}{name of column to be handled as a p-value. Sets the value to <0.001 if the value is 0 after rounding}
 }
