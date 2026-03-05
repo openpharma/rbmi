@@ -29,17 +29,6 @@ if [[ "${CI:-}" == "true" ]]; then
 fi
 
 
-
-
-if [[ "${CI}" == "true" ]]; then
-  # Override binary CRAN mirror with CRAN cloud mirror to ensure
-  # testing as CRAN with R CMD finds the remote databases
-  echo 'options(repos = c(CRAN = "https://cloud.r-project.org"))' >> ".Rprofile"
-  echo "Detected CI pipeline - CRAN URL override enabled"
-fi
-
-
-
 # R CMD CHECK args
 # https://cran.r-project.org/doc/manuals/r-release/R-ints.html#Tools
 
