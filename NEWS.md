@@ -7,6 +7,7 @@
 * rbmi now uses the lifecycle package 
 * Deprecated `nmar.rm` argument of `longdata$get_data` in favor of `mnar.rm` 
   for nomenclature consistency.
+* Robustify CI/CD scripts to fail Github CI/CD in case of failing tests.
 
 # rbmi 1.6.0
 
