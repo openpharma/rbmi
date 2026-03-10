@@ -41,7 +41,7 @@ the following assumptions:
   groups is implied by a random intercept and slope model with a
   standard deviation of 5 for both the intercept and the slope, and a
   correlation of 0.25. In addition, an independent residual error with
-  standard deviation 2.5 is added to each assessment.  
+  standard deviation 2.5 is added to each assessment.\
 - The probability of study drug discontinuation after each visit is
   calculated according to a logistic model which depends on the observed
   outcome at that visit. Specifically, a visit-wise discontinuation
@@ -516,7 +516,7 @@ strategy_CIR
 #>     pars <- list(mu = mu, sigma = sigma)
 #>     return(pars)
 #> }
-#> <bytecode: 0x55cfb1b87520>
+#> <bytecode: 0x557328596890>
 #> <environment: namespace:rbmi>
 ```
 
@@ -802,7 +802,7 @@ variable `delta`.
 
 For example, assume that the user wants to implement a delta-adjustment
 to the imputed values under CIR described in section
-[3](#sec:postICEobs).  
+[3](#sec:postICEobs).\
 Specifically, assume that a fixed “worsening adjustment” of +5 points is
 applied to all imputed values regardless of the treatment group. This
 could be programmed as follows:
@@ -1036,7 +1036,7 @@ offsets:
 To wrap up, we show this in action for our simulated dataset from
 section [2](#sec:dataSimul) and the imputed datasets based on a CIR
 assumption from section [3](#sec:postICEobs). The simulation setting
-specified follow-up visits at months 2, 4, 6, 8, 10, and 12.  
+specified follow-up visits at months 2, 4, 6, 8, 10, and 12.\
 Assume that we want to apply a delta-adjustment of 1 for every month
 after an ICE to unobserved post-ICE visits from the intervention group
 only. (E.g. if the ICE occurred immediately after the month 4 visit,

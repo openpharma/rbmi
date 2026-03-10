@@ -56,7 +56,7 @@ Specifically, we simulate a 1:1 randomized trial of an active drug
   groups is implied by a random intercept and slope model with a
   standard deviation of 5 for both the intercept and the slope, and a
   correlation of 0.25. In addition, an independent residual error with
-  standard deviation 2.5 is added to each assessment.  
+  standard deviation 2.5 is added to each assessment.\
 - The probability of the intercurrent event study drug discontinuation
   after each visit is calculated according to a logistic model which
   depends on the observed outcome at that visit. Specifically, a
