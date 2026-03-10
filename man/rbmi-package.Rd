@@ -32,15 +32,15 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Lukas A. Widmer \email{lukas_andreas.widmer@novartis.com}
+\strong{Maintainer}: Lukas A. Widmer \email{lukas_andreas.widmer@novartis.com} (\href{https://orcid.org/0000-0003-1471-3493}{ORCID})
 
 Authors:
 \itemize{
   \item Craig Gower-Page \email{craig.gower-page@novartis.com}
-  \item Isaac Gravestock \email{isaac.gravestock@roche.com}
+  \item Isaac Gravestock \email{isaac.gravestock@roche.com} (\href{https://orcid.org/0000-0003-0283-2065}{ORCID})
   \item Alessandro Noci \email{alessandro.noci@roche.com}
-  \item Marcel Wolbers \email{marcel.wolbers@roche.com}
-  \item Daniel Sabanes Bove \email{daniel.sabanes_bove@rconis.com}
+  \item Marcel Wolbers \email{marcel.wolbers@roche.com} (\href{https://orcid.org/0000-0003-4915-9015}{ORCID})
+  \item Daniel Sabanes Bove \email{daniel.sabanes_bove@rconis.com} (\href{https://orcid.org/0000-0002-0176-9239}{ORCID})
 }
 
 Other contributors:
