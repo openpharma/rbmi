@@ -3,10 +3,11 @@
 ## Bug Fixes
 * Added en-GB spell-check and a corresponding test to the package
 * Fixed numerous spelling errors and standardised nomenclature for missing not
-  at random to MNAR (rather than a mix of NMAR and MNAR)
-* rbmi now uses the lifecycle package 
-* Deprecated `nmar.rm` argument of `longdata$get_data` in favor of `mnar.rm` 
+  at random to `MNAR` (rather than a mix of `NMAR` and `MNAR`)
+* rbmi now uses the `lifecycle` package 
+* Deprecated `nmar.rm` argument of `longdata$get_data` in favour of `mnar.rm` 
   for nomenclature consistency.
+* Fix CI/CD scripts to fail GitHub CI/CD in case of failing tests.
 
 # rbmi 1.6.0
 
