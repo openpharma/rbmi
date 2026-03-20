@@ -516,7 +516,7 @@ strategy_CIR
 #>     pars <- list(mu = mu, sigma = sigma)
 #>     return(pars)
 #> }
-#> <bytecode: 0x55d6152ae540>
+#> <bytecode: 0x558dff253880>
 #> <environment: namespace:rbmi>
 ```
 
