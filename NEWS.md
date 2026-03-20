@@ -7,7 +7,8 @@
 * rbmi now uses the `lifecycle` package 
 * Deprecated `nmar.rm` argument of `longdata$get_data` in favour of `mnar.rm` 
   for nomenclature consistency.
-* Fix CI/CD scripts to fail GitHub CI/CD in case of failing tests.
+* Vignette on retrieved dropout methods is now correctly embedded.
+* Improve CI/CD scripts to reliably fail GitHub CI/CD in case of failing tests.
 
 # rbmi 1.6.0
 
