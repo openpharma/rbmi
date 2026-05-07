@@ -80,6 +80,7 @@
 #' lsmeans(mod, Species = "versicolor", Petal.Length = 1)
 #' }
 #' @importFrom stats model.matrix terms reformulate
+#' @export
 lsmeans <- function(
     model,
     ...,

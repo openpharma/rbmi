@@ -419,6 +419,7 @@ extract_imputed_df <- function(imputation, ld, delta = NULL, idmap = FALSE) {
 #' @param fun The analysis function that was used.
 #' @param fun_name The character name of the analysis function (used for printing)
 #' purposes.
+#' @export
 as_analysis <- function(
     results,
     method,

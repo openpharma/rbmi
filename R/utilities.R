@@ -51,6 +51,7 @@ has_class <- function(x, cls) {
 #' @param covars character (vector). Name of covariates
 #' @return
 #' A formula
+#' @export
 as_simple_formula <- function(outcome, covars) {
     frm <- stats::as.formula(
         paste0(

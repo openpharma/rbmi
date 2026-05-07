@@ -1,5 +1,10 @@
 # rbmi (development version)
 
+## Added
+
+* Exported internal helper functions: `extract_covariates`, `as_simple_formula`, `lsmeans`, `as_analysis`, `transpose_results`, `get_pool_components`, `rubin_rules`, and `parametric_ci`.
+
+
 ## Bug Fixes
 * Added en-GB spell-check and a corresponding test to the package
 * Fixed numerous spelling errors and standardised nomenclature for missing not
