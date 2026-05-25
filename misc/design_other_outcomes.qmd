@@ -92,4 +92,38 @@ We might want to add an argument `df` or so to define the calculation of the deg
 
 ## Internal structure adaptation
 
+### Draws
+
+The `draws()` function needs to be adapted as described above for the user interface. Internally, this means both the generic function as well as the `draws.bayes()` method need to be changed, while the other methods can almost stay as is (they should just assert that the outcome type is "continuous").
+
+Internally, `draws.bayes()` can then dispatch on the outcome type for the correct code path, keeping the current behavior as is for the "continuous" outcome type. In particular, the `fit_mcmc()` function need to also dispatch on the different outcome types, to fit the correct imputation model and draw parameters from the posterior distribution: Instead of calling `fit_mmrm()` for the continuous outcome type, we can call `fit_neg_multinom()` for the count outcome type e.g. However, many of the logistics around the MCMC fitting and parameter drawing can be kept the same across the different outcome types, so we can reuse a lot of code here.
+
+The new fitting functions would use new Stan code from `inst/stan/` for the different outcome types, which would be added to the package. 
+
+Also the post-processing is slightly different depending on outcome. Finally, the `as_draws()` constructor now also attaches the additional class for the outcome type, as described above.
+
+### Impute
+
+For the `impute()` function, we primarily need to change the `impute.random()` method, which needs to dispatch on the outcome type for the correct code path. This means changing `impute_internal()` and the workhorse `impute_data_individual()`, which currently calls `impute_outcome()` which in turn generates multivariate normal samples. In contrast, for the count outcome type e.g., we would need to generate negative binomial samples at the end.
+
+For both the `draws()` and `impute()` steps, we will need to make sure we use the two data sets for intercurrent events and treatment discontinuation correctly for count and survival outcomes. 
+
+### Analyse
+
+Looking at the `analyse()` function's stack [here](https://github.com/openpharma/rbmi/blob/main/R/analyse.R) it seems that most of the code won't need to be adapted a lot. The dispatching on outcome type will matter for small things like the initial input validation only. The most important additions will be the outcome type specific analysis functions, supplementing the existing [ANCOVA](https://github.com/openpharma/rbmi/blob/main/R/ancova.R) function.
+
+### Pool
+
+There is not much to change here.
+As mentioned above we might want to have a `df` argument to be able to optionally choose the simpler degrees of freedom calculation, along these lines (compare [here](https://documentation.sas.com/doc/en/statug/latest/statug_mianalyze_details08.htm)):
+
+```{r}
+#| eval: false
+df_sas <- (M - 1) * (1 + within_var / ((1 + 1/M) * between_var))^2
+df_sas
+t_crit_sas <- qt(1 - alpha/2, df_sas)
+ci_lower_sas <- coef_hat - t_crit_sas * coef_se
+ci_upper_sas <- coef_hat + t_crit_sas * coef_se
+```
+
 ## References
