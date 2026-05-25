@@ -1,0 +1,95 @@
+---
+bibliography: references.bib
+---
+
+# Design doc for extending to other outcomes (count, survival, binary)
+
+Currently, `rbmi` only supports continuous endpoints. However, also for other commonly used endpoints, in particular count, survival and binary endpoints, multiple imputation is often needed. Both the name of the `rbmi` package, as well as the structure of the workflow, would also fit these other endpoint methods for (reference based) multiple imputation. 
+
+## Methodology overview
+
+Here is a first high level overview of important references for the non-continuous endpoints:
+
+- Count:
+  - @keene2014 is the basic proposal for Bayesian multiple imputation for negative binomial count data, covering two time periods: before and after discontinuing the trial and treatment at the same time.
+  - @roger2019 extends this to more than two time periods, in particular a third time period where patients are still continuing the trial, but have stopped treatment already. So this is the more general setting.
+- Survival:
+  - TODO  
+- Binary: 
+  - TODO
+
+### Outcome structure
+
+For the current longitudinal continuous outcome, the structure is that of multiple visits (i.e. preplanned time-points) with a continuous outcome at each visit. This is the same for binary outcomes (e.g. response, relapse, etc.), which are often also measured at the same time-points as the continuous outcomes.
+Missing data occurs because of intercurrent events or missed visits, and the missingness is defined for each visit.
+
+For count outcomes, the structure is different: In the best case where a patient starts treatment and continues it until the end of the trial, we have a single count at the end of the trial. If we have treatment discontinuation and trial drop-out, we can have a maximum of three time periods: (1) before discontinuing the trial and treatment, (2) after discontinuing the treatment but still in the trial, and (3) after discontinuing the trial and treatment.
+After discontinuing the trial, we cannot observe the outcome any longer, and therefore we have missing data for the count outcome in period (3).
+
+For survival outcomes, the structure is similar as for count outcomes: Ideally we have a single survival time at the end of the trial (either the patient had an event before, or the patient is censored at the end of the trial). If we have treatment discontinuation and trial drop-out, we can again have a maximum of three time periods as for count outcomes. At the time of trial discontinuation the patient becomes immediately censored.
+
+### Available imputation methods
+
+For count outcomes, we focus on Bayesian multiple imputation for negative multinomial count data.
+
+TODO survival and binary outcomes.
+
+In the Bayesian multiple imputation methods, we can always use the `rbmi` workflow steps:
+
+- Draw: Fit the initial imputation model via MCMC and draw parameters from the posterior distribution.
+- Impute: Use the drawn parameters and the assumed model to impute the missing data for each parameter draw.
+- Analyse: Analyse each of the imputed datasets with a (fast) analysis model, and save relevant estimators.
+- Pool: Pool the estimators across the imputed datasets to get a single point estimate and confidence interval.
+
+For `rbmi` this means that the other imputation methods, such as conditional mean imputation, are (for now) not relevant and therefore not supported.
+
+## User interface generalization
+
+### Data
+
+- For count and survival outcomes, the same `expand_locf()` function can be used: Instead of the visit variable, we use a "period" or "phase" variable, which indicates whether the patient is in period (1), (2) or (3) as described above. 
+- For count outcomes, we have then in addition a "count" variable, capturing counts for each of the three periods, as well as a "duration" variable capturing the duration of each period (e.g. in years). 
+- For survival outcomes, we also need in addition two variables:
+  - The "event" variable, which is a binary variable indicating whether the patient had an event in the time period or continued without an event (i.e. censored if next time period is not observable)
+  - The "time" variable, which captures either the time to event in the period where there was an event, or the duration of the period if there was no event (i.e. censored).
+
+### Draws
+
+The `draws()` function needs to take the following inputs:
+
+- `outcome`: The outcome type, which defaults to "continuous" (current implementation), but can now also be "count", "survival" or "binary". 
+- `data`: The whole data as described above
+- `data_ice`: The data with intercurrent events (ICE) time points (that lead to discontinuation of follow up) and imputation strategies, which include:
+  - Missing At Random: "MAR"
+  - Jump to Reference: "JR"
+  - Copy Reference: "CR"
+  - Copy Increments from Reference: "CIR"
+  - Last Mean Carried Forward: "LMCF"
+- `data_treatment_ice`: Only needed for count and survival outcomes, the data with treatment discontinuation time points and corresponding off-treatment imputation strategies.
+  - TODO: We might need to be able to specify different strategies here
+- `vars`: In addition to the existing variables, where we use `outcome` to capture counts and binary outcomes, we also need `event` and `time` for survival outcomes, and `duration` for count outcomes.
+- `method`: For now we will only support `method_bayes()`, but could later support additional methods via corresponding `method_*()` constructors.
+
+### Impute
+
+The `impute()` function takes the `draws` object and the reference group mapping, and internally produces the imputed data sets.
+For this to work correctly with different outcome types, the `draws` object needs to have a second (or a more specific) class indicating the outcome type, e.g. `draws_continuous`, `draws_count`, `draws_survival` and `draws_binary`. The `impute()` function can then dispatch on this second class to use the correct imputation method for the different outcome types.
+
+Similarly, the result of the `impute()` call needs to have a second class indicating the outcome type, e.g. `imputation_continuous`, `imputation_count`, `imputation_survival` and `imputation_binary`. This allows the `analyse()` function to dispatch on the correct analysis method for the different outcome types.
+
+### Analyse
+
+In the last step of the workflow, the user chosen analysis model is applied to each of the imputed datasets, and the relevant estimators are saved for pooling. Because we can dispatch on the outcome type, we might have slightly different arguments supported here.
+For example, we will need to check whether a delta adjustment makes sense for the non-normal outcomes.
+
+In addition, `rbmi` can provide the standard analysis functions for the different outcome types. For example, for count outcomes we can provide a `neg_bin_regression` function, for survival outcomes a `cox_regression()` function, and for binary outcomes a `logistic_regression()` function.
+
+### Pool
+
+Here we just want to use Rubin's rules to pool the Bayesian multiple imputation results across the imputed datasets. 
+
+We might want to add an argument `df` or so to define the calculation of the degrees of freedom, because SAS uses a different method and we might want to be able to reproduce that with `rbmi` if needed.
+
+## Internal structure adaptation
+
+## References
