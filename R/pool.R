@@ -280,12 +280,7 @@ pool_internal.rubin <- function(results, conf.level, alternative, type, D) {
     dfs <- results$df
     alpha <- 1 - conf.level
 
-    v_com <- unique(dfs)
-
-    assert_that(
-        length(v_com) == 1,
-        msg = "Degrees of freedom should be consistent across all samples"
-    )
+    v_com <- if (length(unique(dfs)) == 1) unique(dfs) else median(dfs)
 
     res_rubin <- rubin_rules(
         ests = ests,
@@ -302,6 +297,7 @@ pool_internal.rubin <- function(results, conf.level, alternative, type, D) {
         pfun = pt,
         df = res_rubin$df
     )
+    ret$df <- res_rubin$df
 
     return(ret)
 }

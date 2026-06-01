@@ -1,5 +1,9 @@
 # rbmi (development version)
 
+## New Features
+- Expose `df` in the pooled output of `pool_internal_rubin()`
+- Add the `median(dfs)` fallback for varying d.f. (MMRM case)
+
 ## Bug Fixes
 * Added en-GB spell-check and a corresponding test to the package
 * Fixed numerous spelling errors and standardised nomenclature for missing not
