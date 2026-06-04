@@ -10,13 +10,50 @@ Currently, `rbmi` only supports continuous endpoints. However, also for other co
 
 Here is a first high level overview of important references for the non-continuous endpoints:
 
-- Count:
-  - @keene2014 is the basic proposal for Bayesian multiple imputation for negative binomial count data, covering two time periods: before and after discontinuing the trial and treatment at the same time.
-  - @roger2019 extends this to more than two time periods, in particular a third time period where patients are still continuing the trial, but have stopped treatment already. So this is the more general setting.
-- Survival:
-  - TODO  
-- Binary: 
-  - TODO
+### Count outcomes
+
+- @keene2014 is the basic proposal for Bayesian multiple imputation for negative binomial count data, covering two time periods: before and after discontinuing the trial and treatment at the same time.
+- @roger2019 extends this to more than two time periods, in particular a third time period where patients are still continuing the trial, but have stopped treatment already. So this is the more general setting.
+
+### Survival outcomes 
+
+- @lu2015 compare delta-adjustment and reference-based multiple imputation methods:
+  - The delta-adjustment method assumes a multiplicative increase of the hazard for patients who discontinue the treatment early in the experimental arm, but the same hazard as continuing control patients for control patients who discontinue.
+  - The reference-based method assumes that the hazard after discontinuation is in between control and experimental patients (factor $1 - \phi$ is multiplied with $\beta$ to obtain new log hazard ratio). It basically corresponds to "copy reference" approach in longitudinal data, not clear how "jump to reference" would work in survival.
+  - The draw model fit uses `SAS PHREG` with the `bayes` statement. An option is to use piecewise constant hazards. Therefore they use either interpolated Breslow estimate or piecewise exponential model to get the baseline hazard.
+  - For the imputation, they propose both a Bayesian as well as a frequentist MLE approach, and then just draw from the conditional distribution given the censoring time. Interestingly they still censor the observations at the next planned visit.
+  - In the analysis step they just use stanard Cox proportional hazards models, and then combine them with Rubin's rules.
+- @atkinson2019 propose reference based multiple imputation:
+  - They argue that Rubin's rules lead to "information-anchored" inference, which gives a "level playing field" and should be ok to use
+  - For the draw model they propose a simple Weibull proportional hazards model, fit with maximum likelihood and then draw from the asymptotic normal distribution of the parameters
+  - For the imputation they distinguish the different assumptions:
+    - censored at random (CAR): just use the conditional distribution of the survival time given the covariates and censoring time as well as the parameters drawn from the draw step
+    - jump to reference (J2R): the hazard changes after the censoring time immediately to that of the control group. The authors mention that this corresponds to "copy reference" (CR) from longitudinal modeling but I don't really see that ...
+    - copy increment from reference (CIR): the the hazard ratio is taken from the censoring time and then multiplied with reference hazard to obtain the hazard after the censoring time. So this is additive on the log hazard scale.
+    - delta method: the hazard after the censoring time is multiplied with a factor $\delta$, given by the user.
+  - The analysis model is again the same Weibull PH model as for the draw step, but now fit to the imputed data sets, and then combined with Rubin's rules.
+- @hartley2022 extend the idea from the neg bin/count imputation using on/off treatment periods from @roger2019 to survival outcomes:
+  - Note that they describe this as different from reference based multiple imputation
+  - Similar as for counts, also here allow different off treatment imputation models:
+    - either all have the same hazard after discontinuing treatment
+    - or the step change is the same for all
+    - or the arms have individual off treatment hazards (this will need the most observed off treatment data to be able to fit the model)
+  - Proposed steps are:
+    - They bootstrap observed data using cluster sampling
+    - For each bootstrapped data set they fit an Andersen-Gill model (which is the same here as a Cox PH model, right?), including the same covariates as for the analysis model
+    - Then they impute any missing times to event in the original dataset using the estimates from each bootstrapped data set
+      - Note that this is not exactly the same as in the continuous rbmi approach described [here](https://openpharma.github.io/rbmi/latest-tag/articles/stat_specs.html#bootstrapped-mi)
+    - Then they fit the analysis model (Cox model) to each imputed data set and pool using Rubin’s rules
+  - They highlight that it is problematic to use the Cox model when we have piece wise hazard functions - we no longer have the PH assumption fulfilled!
+    - As an alternative, they propose the restricted mean survival time (RMST), estimated here as an integral of the Kaplan-Meier curve
+  - SAS code available at [github.com/GSK-Biostatistics/mi_off_trt](https://github.com/GSK-Biostatistics/mi_off_trt)
+- @garcia2024 propose an analytical solution for delta adjustment and reference-based imputation with time-to-event endpoints
+  - It has a nice table with a literature overview (but misses the @hartley2022 paper in there)
+  - I did not go into detail here because it is not in scope (no MI)
+
+### Binary
+
+TODO
 
 ### Outcome structure
 
@@ -32,7 +69,7 @@ For survival outcomes, the structure is similar as for count outcomes: Ideally w
 
 For count outcomes, we focus on Bayesian multiple imputation for negative multinomial count data.
 
-TODO survival and binary outcomes.
+We see above that also bootstrap-based multiple imputation has been proposed for survival outcomes and could therefore be supported in `rbmi`. We will need to look at the details and see how it best fits in the framework.
 
 In the Bayesian multiple imputation methods, we can always use the `rbmi` workflow steps:
 
@@ -41,7 +78,9 @@ In the Bayesian multiple imputation methods, we can always use the `rbmi` workfl
 - Analyse: Analyse each of the imputed datasets with a (fast) analysis model, and save relevant estimators.
 - Pool: Pool the estimators across the imputed datasets to get a single point estimate and confidence interval.
 
-For `rbmi` this means that the other imputation methods, such as conditional mean imputation, are (for now) not relevant and therefore not supported.
+It seems that the other imputation methods, such as conditional mean imputation, are (for now) not relevant and therefore not supported.
+
+TODO: integrate binary
 
 ## User interface generalization
 
