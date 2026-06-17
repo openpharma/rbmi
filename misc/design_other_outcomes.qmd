@@ -15,6 +15,8 @@ Here is a first high level overview of important references for the non-continuo
 - @keene2014 is the basic proposal for Bayesian multiple imputation for negative binomial count data, covering two time periods: before and after discontinuing the trial and treatment at the same time.
 - @roger2019 extends this to more than two time periods, in particular a third time period where patients are still continuing the trial, but have stopped treatment already. So this is the more general setting.
 
+Time to recurrent events can also be analyzed with Andersen-Gill models, but we will not pursue this further here.
+
 ### Survival outcomes 
 
 - @lu2015 compare delta-adjustment and reference-based multiple imputation methods:
@@ -51,13 +53,21 @@ Here is a first high level overview of important references for the non-continuo
   - It has a nice table with a literature overview (but misses the @hartley2022 paper in there)
   - I did not go into detail here because it is not in scope (no MI)
 
+For our purposes, for survival outcomes we are going to:
+
+- Focus on Bayesian multiple imputation. Bootstrap could be added later if needed (it considers a different variance estimand) and is not a priority.
+- Focus are reference based imputation methods (especially "jump to reference" and "copy increments from reference"), but off-treatment imputation methods can also be beneficial to have. As mentioned below in @outcome-structure, the data structure for survival outcomes is similar to that for count outcomes also in this regard.
+- The delta method is needed as part of a tipping point analysis. There is also a Novartis R package for this particular approach, which could be used for comparison of results. 
+- Different baseline hazard models need to be supported, in particular exponential, Weibull and piecewise constant (exponential) hazards.
+
+
 ### Binary
 
 TODO
 
-### Outcome structure
+### Outcome structure {#outcome-structure}
 
-For the current longitudinal continuous outcome, the structure is that of multiple visits (i.e. preplanned time-points) with a continuous outcome at each visit. This is the same for binary outcomes (e.g. response, relapse, etc.), which are often also measured at the same time-points as the continuous outcomes.
+For the current longitudinal continuous outcome, the structure is that of multiple visits (i.e. preplanned time-points) with a continuous outcome at each visit. This is the same for binary outcomes (e.g. response, relapse, etc.), which are often also measured at the same time-points as the continuous outcomes. Off-treatment modelling for continuous and binary outcomes can be done in a simple way by including an indicator variable for being on/off treatment in the imputation model.
 Missing data occurs because of intercurrent events or missed visits, and the missingness is defined for each visit.
 
 For count outcomes, the structure is different: In the best case where a patient starts treatment and continues it until the end of the trial, we have a single count at the end of the trial. If we have treatment discontinuation and trial drop-out, we can have a maximum of three time periods: (1) before discontinuing the trial and treatment, (2) after discontinuing the treatment but still in the trial, and (3) after discontinuing the trial and treatment.
@@ -67,11 +77,8 @@ For survival outcomes, the structure is similar as for count outcomes: Ideally w
 
 ### Available imputation methods
 
-For count outcomes, we focus on Bayesian multiple imputation for negative multinomial count data.
-
-We see above that also bootstrap-based multiple imputation has been proposed for survival outcomes and could therefore be supported in `rbmi`. We will need to look at the details and see how it best fits in the framework.
-
-In the Bayesian multiple imputation methods, we can always use the `rbmi` workflow steps:
+For all new outcomes, we initally focus on Bayesian multiple imputation methods.
+We can then always use the `rbmi` workflow steps as follows:
 
 - Draw: Fit the initial imputation model via MCMC and draw parameters from the posterior distribution.
 - Impute: Use the drawn parameters and the assumed model to impute the missing data for each parameter draw.
@@ -106,8 +113,10 @@ The `draws()` function needs to take the following inputs:
   - Last Mean Carried Forward: "LMCF"
 - `data_treatment_ice`: Only needed for count and survival outcomes, the data with treatment discontinuation time points and corresponding off-treatment imputation strategies.
   - TODO: We might need to be able to specify different strategies here
+  - TODO: Make sure that we don't have duplicate information with `data_ice`
 - `vars`: In addition to the existing variables, where we use `outcome` to capture counts and binary outcomes, we also need `event` and `time` for survival outcomes, and `duration` for count outcomes.
 - `method`: For now we will only support `method_bayes()`, but could later support additional methods via corresponding `method_*()` constructors.
+  - Here we need to be able to specify the survival model when used together with survival outcomes (in the similar way as now we specify the covariance model for continuous outcomes).
 
 ### Impute
 
@@ -119,15 +128,22 @@ Similarly, the result of the `impute()` call needs to have a second class indica
 ### Analyse
 
 In the last step of the workflow, the user chosen analysis model is applied to each of the imputed datasets, and the relevant estimators are saved for pooling. Because we can dispatch on the outcome type, we might have slightly different arguments supported here.
-For example, we will need to check whether a delta adjustment makes sense for the non-normal outcomes.
 
-In addition, `rbmi` can provide the standard analysis functions for the different outcome types. For example, for count outcomes we can provide a `neg_bin_regression` function, for survival outcomes a `cox_regression()` function, and for binary outcomes a `logistic_regression()` function.
+In addition, `rbmi` can provide the standard analysis functions for the different outcome types. For example:
+
+- For count outcomes we can provide a `neg_bin_regression` function,
+- for survival outcomes a `cox_regression()` function, 
+- and for binary outcomes a `logistic_regression()` function.
+
+Also optional marginalized treatment effect estimators and differences can be valuable (e.g. via an `rmst()` function for restricted mean survival time analysis). We can utilize the [`RobinCar2`](https://openpharma.github.io/RobinCar2/latest-tag/) for this instead of implementing it from scratch.
 
 ### Pool
 
 Here we just want to use Rubin's rules to pool the Bayesian multiple imputation results across the imputed datasets. 
 
-We might want to add an argument `df` or so to define the calculation of the degrees of freedom, because SAS uses a different method and we might want to be able to reproduce that with `rbmi` if needed.
+We initially considered to add an argument `df` or so to define the calculation of the degrees of freedom, because SAS uses a different method and we might want to be able to reproduce that with `rbmi` if needed. However we discussed and since we anyway only pool asymptotically normally distributed test statistics, we can just set the degrees of freedom to infinity and use thereby the normal distribution for the confidence interval calculation. 
+
+Note that this also requires care about the scale at which the pooling is performed: e.g. for survival outcomes we can use the log hazard ratio scale for pooling, which is asymptotically normal, but not the hazard ratio scale itself. Similarly for count outcomes we can use the log rate ratio scale, and for binary outcomes the log odds ratio scale.
 
 ## Internal structure adaptation
 
@@ -145,7 +161,7 @@ Also the post-processing is slightly different depending on outcome. Finally, th
 
 For the `impute()` function, we primarily need to change the `impute.random()` method, which needs to dispatch on the outcome type for the correct code path. This means changing `impute_internal()` and the workhorse `impute_data_individual()`, which currently calls `impute_outcome()` which in turn generates multivariate normal samples. In contrast, for the count outcome type e.g., we would need to generate negative binomial samples at the end.
 
-For both the `draws()` and `impute()` steps, we will need to make sure we use the two data sets for intercurrent events and treatment discontinuation correctly for count and survival outcomes. 
+For both the `draws()` and `impute()` steps, we will need to make sure we use the two data sets for intercurrent events and treatment discontinuation correctly for count and survival outcomes. It might also involve having a time-varying covariate to account for the on/off treatment status in the imputation model.
 
 ### Analyse
 
@@ -154,7 +170,7 @@ Looking at the `analyse()` function's stack [here](https://github.com/openpharma
 ### Pool
 
 There is not much to change here.
-As mentioned above we might want to have a `df` argument to be able to optionally choose the simpler degrees of freedom calculation, along these lines (compare [here](https://documentation.sas.com/doc/en/statug/latest/statug_mianalyze_details08.htm)):
+As mentioned above we initially considered to have a `df` argument to be able to optionally choose the simpler degrees of freedom calculation, along these lines (compare [here](https://documentation.sas.com/doc/en/statug/latest/statug_mianalyze_details08.htm)):
 
 ```{r}
 #| eval: false
@@ -164,5 +180,7 @@ t_crit_sas <- qt(1 - alpha/2, df_sas)
 ci_lower_sas <- coef_hat - t_crit_sas * coef_se
 ci_upper_sas <- coef_hat + t_crit_sas * coef_se
 ```
+
+However, now we decided to just use `qnorm()` instead.
 
 ## References
