@@ -181,6 +181,6 @@ ci_lower_sas <- coef_hat - t_crit_sas * coef_se
 ci_upper_sas <- coef_hat + t_crit_sas * coef_se
 ```
 
-However, now we decided to just use `qnorm()` instead.
+However, as mentioned above, we decided to just use `qnorm()` instead for simplicity.
 
 ## References
