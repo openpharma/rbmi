@@ -192,9 +192,11 @@ test_that("ancova", {
     expect_equal(
         names(result_actual),
         c(
+            "var_visit 1",
             "trt_visit 1",
             "lsm_ref_visit 1",
             "lsm_alt_visit 1",
+            "var_visit 2",
             "trt_visit 2",
             "lsm_ref_visit 2",
             "lsm_alt_visit 2"

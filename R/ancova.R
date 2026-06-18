@@ -196,6 +196,11 @@ ancova_single <- function(
     lsm1 <- do.call(lsmeans, args)
 
     x <- list(
+        var = list(
+            est = summary(mod)$sigma^2,
+            se = summary(mod)$sigma^2 / sqrt(df.residual(mod) / 2),
+            df = df.residual(mod)
+        ),
         trt = list(
             est = coef(mod)[[group]],
             se = sqrt(vcov(mod)[group, group]),
