@@ -63,7 +63,24 @@ For our purposes, for survival outcomes we are going to:
 
 ### Binary
 
-TODO
+- @cro2025 describe two algorithms for reference-based multiple imputation for binary outcomes:
+  - The first uses joint modeling with the multivariate normal distribution and an adaptive rounding algorithm. This is basically using the continuous outcomes approach and then just "rounds back" post-ICE sampled outcome values to 0 and 1 by looking at the samples distribution and assuming a normal shape of it.
+  - The second uses joint modeling too, but with a latent multivariate normal model, that corresponds to a multivariate probit model for the binary outcomes. The computation is a bit more involved, the authors mention specialized MCMC samplers which are e.g. implemented in the [`jomo`](https://cran.r-project.org/web/packages/jomo/index.html) R package. Fortunately multivariate probit models can also be fitted with Stan, see [here](https://mc-stan.org/docs/stan-users-guide/regression.html#multivariate-probit-regression) for details. This could be a better starting point for inclusion in the `rbmi` package.
+  - The paper makes the assumption that all post-ICE binary outcomes are missing.
+  - They use a logistic regression model at a certain time point/visit as the analysis model, and then combine the results with Rubin's rules.
+- @rehal2026 treat the more general case where a part of the patients is still observed after treatment discontinuation (similar as in the negative binomial and survival papers).
+  - A good point they make is that if the underlying outcome is truly continuous then this should be used for imputation instead - however this may be difficult if that outcome is complex! (think about response in oncology studies, where e.g. the RECIST definition is quite complex although it mainly looks at a continuous outcome, the sum of longest diameters of the target lesions)
+  - They use sequential, iterative imputation at each timepoint, separately within each treatment arm - i.e. at each sequence k step it can use both observed and previously imputed data from time points before k (by treating them as covariates)
+  - They propose different conditional regression models:
+    - CICS (common intercepts common slopes)
+    - POOLED OICS (On/Off Intercepts common slopes) - just have an intercept change based on treatment status 
+    - OICS - same but with treatment arm specific parameter estimates (intercepts delta_zj)
+    - OITS - same but with additional time since discontinuation as covariate same as OICS but with additional pattern indicators (ordinal covariate)
+    - FULL - as reference also fitted full model on all observed data
+  - OICS seems most promising based on simulation study results - distinction needs to be made between the pre-and post-IE data and this should be reflected appropriately in MI models to impute the missing data 
+  - They propose to use a pragmatic step-down process when the rate of intercurrent events and missing data are is not clear before the study, i.e. start with the most complex imputation model and only if that fails use the next less complex one etc.
+  - They mention perfect prediction / linear separation issue with logistic regression - I wonder if it would be relatively easy to mitigate this with regularization / prior on the regression coefficients.
+
 
 ### Outcome structure {#outcome-structure}
 
@@ -77,17 +94,17 @@ For survival outcomes, the structure is similar as for count outcomes: Ideally w
 
 ### Available imputation methods
 
-For all new outcomes, we initally focus on Bayesian multiple imputation methods.
+For all new outcomes, we initially focus on Bayesian multiple imputation methods.
 We can then always use the `rbmi` workflow steps as follows:
 
-- Draw: Fit the initial imputation model via MCMC and draw parameters from the posterior distribution.
+- Draw: Fit the initial imputation model via MCMC and draw parameters from the posterior distribution. 
 - Impute: Use the drawn parameters and the assumed model to impute the missing data for each parameter draw.
 - Analyse: Analyse each of the imputed datasets with a (fast) analysis model, and save relevant estimators.
 - Pool: Pool the estimators across the imputed datasets to get a single point estimate and confidence interval.
 
 It seems that the other imputation methods, such as conditional mean imputation, are (for now) not relevant and therefore not supported.
 
-TODO: integrate binary
+Note that the above 4-step workflow assumes a joint model across all timepoints, which is first fitted to the data in the Draw step and then used to impute all missing data in the Impute step. Thus the sequential imputation approach as described in @rehal2026 for binary outcomes is not well in scope.
 
 ## User interface generalization
 
