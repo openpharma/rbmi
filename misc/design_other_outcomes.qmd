@@ -1,5 +1,6 @@
 ---
 bibliography: references.bib
+number-sections: true
 ---
 
 # Design doc for extending to other outcomes (count, survival, binary)
@@ -56,7 +57,7 @@ Time to recurrent events can also be analyzed with Andersen-Gill models, but we 
 For our purposes, for survival outcomes we are going to:
 
 - Focus on Bayesian multiple imputation. Bootstrap could be added later if needed (it considers a different variance estimand) and is not a priority.
-- Focus are reference based imputation methods (especially "jump to reference" and "copy increments from reference"), but off-treatment imputation methods can also be beneficial to have. As mentioned below in @outcome-structure, the data structure for survival outcomes is similar to that for count outcomes also in this regard.
+- Focus are reference based imputation methods (especially "jump to reference" and "copy increments from reference"), but off-treatment imputation methods can also be beneficial to have. As mentioned below in @sec-outcome-structure, the data structure for survival outcomes is similar to that for count outcomes also in this regard.
 - The delta method is needed as part of a tipping point analysis. There is also a Novartis R package for this particular approach, which could be used for comparison of results. 
 - Different baseline hazard models need to be supported, in particular exponential, Weibull and piecewise constant (exponential) hazards.
 
@@ -82,7 +83,7 @@ For our purposes, for survival outcomes we are going to:
   - They mention perfect prediction / linear separation issue with logistic regression - I wonder if it would be relatively easy to mitigate this with regularization / prior on the regression coefficients.
 
 
-### Outcome structure {#outcome-structure}
+### Outcome structure {#sec-outcome-structure}
 
 For the current longitudinal continuous outcome, the structure is that of multiple visits (i.e. preplanned time-points) with a continuous outcome at each visit. This is the same for binary outcomes (e.g. response, relapse, etc.), which are often also measured at the same time-points as the continuous outcomes. Off-treatment modelling for continuous and binary outcomes can be done in a simple way by including an indicator variable for being on/off treatment in the imputation model.
 Missing data occurs because of intercurrent events or missed visits, and the missingness is defined for each visit.
