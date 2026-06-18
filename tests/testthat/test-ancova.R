@@ -192,9 +192,11 @@ test_that("ancova", {
     expect_equal(
         names(result_actual),
         c(
+            "var_visit 1",
             "trt_visit 1",
             "lsm_ref_visit 1",
             "lsm_alt_visit 1",
+            "var_visit 2",
             "trt_visit 2",
             "lsm_ref_visit 2",
             "lsm_alt_visit 2"
@@ -267,8 +269,9 @@ test_that("ancova_m_groups - basic 3-group functionality", {
 
     # Check output structure
     expected_names <- c(
-        "trt_L1_L0_vis1", "trt_L2_L0_vis1",  # Treatment effects vs reference
-        "lsm_L0_vis1", "lsm_L1_vis1", "lsm_L2_vis1"  # LSMeans for all groups
+        "var_vis1",
+        "trt_L1_L0_vis1", "trt_L2_L0_vis1",
+        "lsm_L0_vis1", "lsm_L1_vis1", "lsm_L2_vis1"
     )
     expect_equal(sort(names(result_actual)), sort(expected_names))
 
@@ -320,8 +323,9 @@ test_that("ancova_m_groups - 4-group functionality", {
 
     # Check we have all expected components
     expected_names <- c(
-        "trt_L1_L0_baseline", "trt_L2_L0_baseline", "trt_L3_L0_baseline",  # 3 treatment effects
-        "lsm_L0_baseline", "lsm_L1_baseline", "lsm_L2_baseline", "lsm_L3_baseline"  # 4 LSMeans
+        "var_baseline",
+        "trt_L1_L0_baseline", "trt_L2_L0_baseline", "trt_L3_L0_baseline",
+        "lsm_L0_baseline", "lsm_L1_baseline", "lsm_L2_baseline", "lsm_L3_baseline"
     )
     expect_equal(sort(names(result_actual)), sort(expected_names))
 
@@ -370,6 +374,7 @@ test_that("ancova_m_groups - LSMeans with group interactions", {
 
     # Check structure
     expected_names <- c(
+        "var_week12",
         "trt_L1_L0_week12", "trt_L2_L0_week12",
         "lsm_L0_week12", "lsm_L1_week12", "lsm_L2_week12"
     )
@@ -462,12 +467,12 @@ test_that("ancova_m_groups - multiple visits", {
     visit1_names <- grep("_visit1$", names(result_actual), value = TRUE)
     visit2_names <- grep("_visit2$", names(result_actual), value = TRUE)
 
-    expect_length(visit1_names, 5)  # 2 treatment effects + 3 LSMeans
-    expect_length(visit2_names, 5)  # 2 treatment effects + 3 LSMeans
+    expect_length(visit1_names, 6)  # var + 2 treatment effects + 3 LSMeans
+    expect_length(visit2_names, 6)  # var + 2 treatment effects + 3 LSMeans
 
     expected_names <- c(
-        "trt_L1_L0_visit1", "trt_L2_L0_visit1", "lsm_L0_visit1", "lsm_L1_visit1", "lsm_L2_visit1",
-        "trt_L1_L0_visit2", "trt_L2_L0_visit2",  "lsm_L0_visit2", "lsm_L1_visit2", "lsm_L2_visit2"
+        "var_visit1", "trt_L1_L0_visit1", "trt_L2_L0_visit1", "lsm_L0_visit1", "lsm_L1_visit1", "lsm_L2_visit1",
+        "var_visit2", "trt_L1_L0_visit2", "trt_L2_L0_visit2", "lsm_L0_visit2", "lsm_L1_visit2", "lsm_L2_visit2"
     )
     expect_true(all(expected_names %in% names(result_actual)))
 })
@@ -511,6 +516,7 @@ test_that("ancova_m_groups - no covariates", {
 
     # Check we have all expected components
     expected_names <- c(
+        "var_final",
         "trt_L1_L0_final", "trt_L2_L0_final",
         "lsm_L0_final", "lsm_L1_final", "lsm_L2_final"
     )

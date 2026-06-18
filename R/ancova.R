@@ -312,6 +312,11 @@ ancova_single <- function(
     lsm1 <- do.call(lsmeans, args)
 
     x <- list(
+        var = list(
+            est = summary(mod)$sigma^2,
+            se = summary(mod)$sigma^2 / sqrt(df.residual(mod) / 2),
+            df = df.residual(mod)
+        ),
         trt = list(
             est = coef(mod)[[group]],
             se = sqrt(vcov(mod)[group, group]),
@@ -404,6 +409,8 @@ ancova_single_m_group <- function(
     frm_std <- frm_find_and_replace(frm, as.name(group), as.name("rbmiGroup"))
 
     mod <- lm(formula = frm_std, data = data2)
+    var_est <- summary(mod)$sigma^2
+    var_df <- df.residual(mod)
     args <- list(model = mod, .weights = weights)
 
     lsm <- lapply(
@@ -422,10 +429,19 @@ ancova_single_m_group <- function(
             list(
                 est = coef(mod)[[term]],
                 se = sqrt(vcov(mod)[term, term]),
-                df = df.residual(mod)
+                df = var_df
             )
         }
     )
     names(trt) <- sprintf("trt_%s_L0", levels(data2[["rbmiGroup"]])[-1])
-    append(trt, lsm)
+
+    var <- list(
+        var = list(
+            est = var_est,
+            # Reference: Davison, Statistical Methods, p. 371 (just above 8.3.2)
+            se = var_est / sqrt(var_df / 2),
+            df = var_df
+        )
+    )
+    c(var, trt, lsm)
 }

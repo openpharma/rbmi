@@ -2,6 +2,7 @@
 
 ## Added
 
+* `ancova_single()` and `ancova_single_m_group()` now return residual variance.
 * Exported internal helper functions: `extract_covariates`, `as_simple_formula`, `lsmeans`, `as_analysis`, `transpose_results`, `get_pool_components`, `rubin_rules`, and `parametric_ci`.
 
 
