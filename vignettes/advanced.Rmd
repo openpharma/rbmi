@@ -450,7 +450,7 @@ Rather, in this case the pooled degrees of freedom are `(M-1)/lambda^2`, where `
 
 # Sensitivity analyses: Delta adjustments and tipping point analyses
 
-Delta-adjustments are used to impute missing data under a not missing at random (NMAR) assumption. This reflects the belief that unobserved outcomes would have been systematically "worse" (or "better") than "comparable" observed outcomes. For an extensive discussion of delta-adjustment methods, we refer to @CroEtAlTutorial2020.
+Delta-adjustments are used to impute missing data under a missing not at random (MNAR) assumption. This reflects the belief that unobserved outcomes would have been systematically "worse" (or "better") than "comparable" observed outcomes. For an extensive discussion of delta-adjustment methods, we refer to @CroEtAlTutorial2020.
 
 In `rbmi`, a marginal delta-adjustment approach is implemented. This means that the delta-adjustment is applied to the dataset after data imputation under MAR or  reference-based missing data assumptions and prior to the analysis of the imputed data. 
 Sensitivity analysis using delta-adjustments can therefore be performed without having to re-fit the imputation model. In `rbmi`, they are implemented via the `delta` argument of the `analyse()` function.
@@ -611,7 +611,7 @@ regardless of their proximity to the first ICE visit, one could set `delta = c(5
 Alternatively, it may be more straightforward for this setting to call the `delta_template()` function without the `delta` and `dlag` arguments and then overwrite the `delta` column of the resulting `data.frame` as described in the previous section (and additionally relying on the `is_post_ice` variable). 
 
 Another way of using these arguments is to set `delta` to the difference in time 
-between visits and dlag to be the amount of delta per unit of time. For example, 
+between visits and `dlag` to be the amount of delta per unit of time. For example, 
 let's say that visits occur on weeks 1, 5, 6 and 9 and that we want a delta of 3
 to be applied for each week after an ICE. 
 For simplicity, we assume that the ICE occurs immediately after the subject's last visit which 

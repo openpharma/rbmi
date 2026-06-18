@@ -126,14 +126,14 @@ is_in_rbmi_development <- function() {
 }
 
 
-#' Parallelise Lapply
+#' Parallelise `lapply`
 #'
 #' Simple wrapper around `lapply` and [`parallel::clusterApplyLB`] to abstract away
 #' the logic of deciding which one to use
 #' @param cl Cluster created by [`parallel::makeCluster()`] or `NULL`
 #' @param fun Function to be run
 #' @param x object to be looped over
-#' @param ... extra arguements passed to `fun`
+#' @param ... extra arguments passed to `fun`
 par_lapply <- function(cl, fun, x, ...) {
     result <- if (is.null(cl)) {
         lapply(x, fun, ...)

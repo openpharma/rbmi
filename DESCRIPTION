@@ -1,12 +1,13 @@
 Package: rbmi
 Title: Reference Based Multiple Imputation
-Version: 1.4.9000
+Version: 1.6.0.9000
 Authors@R: c(
-    person("Isaac", "Gravestock", email = "isaac.gravestock@roche.com", role = c("aut", "cre")),
+    person("Lukas A.", "Widmer", email = "lukas_andreas.widmer@novartis.com", role = c("aut", "cre"), comment = c(ORCID = "0000-0003-1471-3493")),
     person("Craig", "Gower-Page", email = "craig.gower-page@novartis.com", role = c("aut")),
+    person("Isaac", "Gravestock", email = "isaac.gravestock@roche.com", role = c("aut"), comment = c(ORCID = "0000-0003-0283-2065")),
     person("Alessandro", "Noci", email = "alessandro.noci@roche.com", role = c("aut")),
-    person("Marcel", "Wolbers", email = "marcel.wolbers@roche.com", role = "ctb"),
-    person("Daniel", "Sabanes Bove", email = "daniel.sabanes_bove@rconis.com", role = c("aut")),
+    person("Marcel", "Wolbers", email = "marcel.wolbers@roche.com", role = "aut", comment = c(ORCID = "0000-0003-4915-9015")),
+    person("Daniel", "Sabanes Bove", email = "daniel.sabanes_bove@rconis.com", role = c("aut"), comment = c(ORCID = "0000-0002-0176-9239")),
     person("F. Hoffmann-La Roche AG", role = c("cph", "fnd"))
     )
 Description: Implements standard and reference based multiple imputation methods for continuous
@@ -14,13 +15,13 @@ Description: Implements standard and reference based multiple imputation methods
     this package supports deterministic conditional mean imputation and jackknifing as described
     in Wolbers et al.  (2022) <doi:10.1002/pst.2234>, Bayesian multiple imputation as described
     in Carpenter et al. (2013) <doi:10.1080/10543406.2013.834911>, and bootstrapped maximum
-    likelihood imputation as described in von Hippel and Bartlett (2021) <doi: 10.1214/20-STS793>.
+    likelihood imputation as described in von Hippel and Bartlett (2021) <doi:10.1214/20-STS793>.
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-URL: https://insightsengineering.github.io/rbmi/, https://github.com/insightsengineering/rbmi
-BugReports: https://github.com/insightsengineering/rbmi/issues
-RoxygenNote: 7.3.2
+URL: https://openpharma.github.io/rbmi/, https://github.com/openpharma/rbmi
+BugReports: https://github.com/openpharma/rbmi/issues
+RoxygenNote: 7.3.3
 Suggests: 
     dplyr,
     tidyr,
@@ -37,7 +38,8 @@ Suggests:
     ggplot2,
     rstan (>= 2.26.0),
     R.rsp,
-    withr
+    withr,
+    spelling
 Config/testthat/edition: 3
 Imports:
     mmrm,
@@ -49,8 +51,10 @@ Imports:
     assertthat,
     jinjar,
     fs,
-    stringr
+    stringr,
+    lifecycle
 Depends: 
     R (>= 3.4.0)
 License: Apache License (>= 2)
 VignetteBuilder: R.rsp
+Language: en-GB

@@ -118,6 +118,7 @@ pool <- function(
 #'
 #' @param x Character name of the analysis method, must one of
 #' either `"rubin"`, `"jackknife"`, "`bootstrap"` or `"bmlmi"`.
+#' @export
 get_pool_components <- function(x) {
     switch(
         x,
@@ -383,6 +384,7 @@ rubin_df <- function(v_com, var_b, var_t, M) {
 #' Roderick J. A. Little and Donald B. Rubin. Statistical Analysis with Missing
 #' Data, Second Edition. John Wiley & Sons, Hoboken, New Jersey, 2002. \[Section 5.4\]
 #' @importFrom stats var
+ #' @export
 rubin_rules <- function(ests, ses, v_com) {
     M <- length(ests)
     est_point <- mean(ests)
@@ -568,6 +570,7 @@ pool_bootstrap_normal <- function(est, conf.level, alternative) {
 #'
 #' @param ... additional arguments passed on `qfun` and `pfun` i.e. `df = 102`.
 #'
+#' @export
 parametric_ci <- function(point, se, alpha, alternative, qfun, pfun, ...) {
     ci <- switch(
         alternative,
@@ -652,6 +655,7 @@ parametric_ci <- function(point, se, alpha, alternative, qfun, pfun, ...) {
 #'     )
 #' )
 #' ```
+ #' @export
 transpose_results <- function(results, components) {
     elements <- names(results[[1]])
     results_transpose <- list()

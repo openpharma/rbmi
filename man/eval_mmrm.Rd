@@ -2,7 +2,7 @@
 % Please edit documentation in R/mmrm.R
 \name{eval_mmrm}
 \alias{eval_mmrm}
-\title{Evaluate a call to mmrm}
+\title{Evaluate a call to \code{mmrm}}
 \usage{
 eval_mmrm(expr)
 }
@@ -10,7 +10,7 @@ eval_mmrm(expr)
 \item{expr}{An expression to be evaluated. Should be a call to \code{\link[mmrm:mmrm]{mmrm::mmrm()}}.}
 }
 \description{
-This is a utility function that attempts to evaluate a call to mmrm
+This is a utility function that attempts to evaluate a call to \code{mmrm}
 managing any warnings or errors that are thrown.
 }
 \details{

@@ -22,7 +22,7 @@ to this object should be avoided if possible.
 \describe{
 \item{\code{data}}{The original dataset passed to the constructor (sorted by id and visit)}
 
-\item{\code{vars}}{The vars object (list of key variables) passed to the constructor}
+\item{\code{vars}}{The \code{vars} object (list of key variables) passed to the constructor}
 
 \item{\code{visits}}{A character vector containing the distinct visit levels}
 
@@ -127,6 +127,7 @@ values with new ones if provided.
 \if{html}{\out{<div class="r">}}\preformatted{longDataConstructor$get_data(
   obj = NULL,
   nmar.rm = FALSE,
+  mnar.rm = FALSE,
   na.rm = FALSE,
   idmap = FALSE
 )}\if{html}{\out{</div>}}
@@ -138,7 +139,12 @@ values with new ones if provided.
 \item{\code{obj}}{Either \code{NULL}, a character vector of subjects IDs or a
 imputation list object. See details.}
 
-\item{\code{nmar.rm}}{Logical value. If \code{TRUE} will remove observations that are
+\item{\code{nmar.rm}}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Logical value.
+If \code{TRUE} will remove observations that are
+not regarded as MAR (as determined from \code{self$is_mar}). Superseded
+by \code{mnar.rm} argument for nomenclature consistency.}
+
+\item{\code{mnar.rm}}{Logical value. If \code{TRUE} will remove observations that are
 not regarded as MAR (as determined from \code{self$is_mar}).}
 
 \item{\code{na.rm}}{Logical value. If \code{TRUE} will remove outcome values that are
@@ -260,7 +266,7 @@ to save having to manually grab each element.
 \if{html}{\out{<a id="method-longdata-update_strategies"></a>}}
 \if{latex}{\out{\hypertarget{method-longdata-update_strategies}{}}}
 \subsection{Method \code{update_strategies()}}{
-Convenience function to run self$set_strategies(dat_ice, update=TRUE)
+Convenience function to run \code{self$set_strategies(dat_ice, update=TRUE)}
 kept for legacy reasons.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{longDataConstructor$update_strategies(dat_ice)}\if{html}{\out{</div>}}

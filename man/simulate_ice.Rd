@@ -30,7 +30,7 @@ by the ICE and \code{0} otherwise.
 Simulate intercurrent event
 }
 \details{
-The probability of the ICE after each visit is modeled according to the following
+The probability of the ICE after each visit is modelled according to the following
 logistic regression model:
 \code{~ 1 + I(visit == 0) + ... + I(visit == n_visits-1) + I((x-alpha))} where:
 \itemize{
