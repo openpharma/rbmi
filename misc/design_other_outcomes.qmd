@@ -120,6 +120,7 @@ Let's create some examples to make this easier to describe.
 #### Continuous example
 
 ```{r}
+#| message: false
 library(rbmi)
 library(dplyr)
 
