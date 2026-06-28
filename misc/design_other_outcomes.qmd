@@ -112,7 +112,7 @@ Note that the above 4-step workflow assumes a joint model across all timepoints,
 ### Data
 
 - For count and survival outcomes, the same `expand_locf()` function can be used: Instead of the visit variable, we use a "period" or "phase" variable, which indicates whether the patient is in period (1), (2) or (3) as described above. 
-- For count outcomes, we capture the counts in the "outcome" variable, capturing counts for each of the three periods, as well as a "duration" variable capturing the duration of each period (e.g. in years). 
+- For count outcomes, we capture the counts for each of the three periods in the "outcome" variable, and use an additional "duration" variable containing the duration of each period (e.g. in years). 
 - For survival outcomes, we use the same columns as for counts, but now the "outcome" variable becomes a binary variable indicating whether the patient had an event at the end of the time period or continued without an event (i.e. censored if next time period is not observable).
 
 Let's create some examples to make this easier to describe.
