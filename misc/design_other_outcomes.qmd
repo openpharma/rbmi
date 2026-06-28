@@ -85,10 +85,10 @@ For our purposes, for survival outcomes we are going to:
 
 ### Outcome structure {#sec-outcome-structure}
 
-For the current longitudinal continuous outcome, the structure is that of multiple visits (i.e. preplanned time-points) with a continuous outcome at each visit. This is the same for binary outcomes (e.g. response, relapse, etc.), which are often also measured at the same time-points as the continuous outcomes. Off-treatment modelling for continuous and binary outcomes can be done in a simple way by including an indicator variable for being on/off treatment in the imputation model.
+For the current longitudinal continuous outcome, the structure is that of multiple visits (i.e. preplanned time-points) with a continuous outcome at each visit. This is the same for binary outcomes (e.g. response, relapse, etc.), which are often also measured at the same time-points as the continuous outcomes. Off-treatment modelling for continuous and binary outcomes can be done in a simple way by including an indicator variable for being on/off treatment in the imputation model (see @rehal2026 examples mentioned above).
 Missing data occurs because of intercurrent events or missed visits, and the missingness is defined for each visit.
 
-For count outcomes, the structure is different: In the best case where a patient starts treatment and continues it until the end of the trial, we have a single count at the end of the trial. If we have treatment discontinuation and trial drop-out, we can have a maximum of three time periods: (1) before discontinuing the trial and treatment, (2) after discontinuing the treatment but still in the trial, and (3) after discontinuing the trial and treatment.
+For count outcomes, the structure is different: In the best case where a patient starts treatment and continues it until the end of the trial, we have a single count at the end of the trial. If we have treatment discontinuation and trial drop-out, we can have a maximum of three time periods: (1) before discontinuing the trial and treatment, (2) after discontinuing the treatment but still continuing in the trial, and (3) after discontinuing both the trial and the treatment.
 After discontinuing the trial, we cannot observe the outcome any longer, and therefore we have missing data for the count outcome in period (3).
 
 For survival outcomes, the structure is similar as for count outcomes: Ideally we have a single survival time at the end of the trial (either the patient had an event before, or the patient is censored at the end of the trial). If we have treatment discontinuation and trial drop-out, we can again have a maximum of three time periods as for count outcomes. At the time of trial discontinuation the patient becomes immediately censored.
@@ -98,8 +98,8 @@ For survival outcomes, the structure is similar as for count outcomes: Ideally w
 For all new outcomes, we initially focus on Bayesian multiple imputation methods.
 We can then always use the `rbmi` workflow steps as follows:
 
-- Draw: Fit the initial imputation model via MCMC and draw parameters from the posterior distribution. 
-- Impute: Use the drawn parameters and the assumed model to impute the missing data for each parameter draw.
+- Draw: Fit the initial imputation model via MCMC and draw parameter samples from the (approximate) posterior distribution. 
+- Impute: Use the parameter samples and the assumed model to impute the missing data for each parameter draw.
 - Analyse: Analyse each of the imputed datasets with a (fast) analysis model, and save relevant estimators.
 - Pool: Pool the estimators across the imputed datasets to get a single point estimate and confidence interval.
 
@@ -112,10 +112,96 @@ Note that the above 4-step workflow assumes a joint model across all timepoints,
 ### Data
 
 - For count and survival outcomes, the same `expand_locf()` function can be used: Instead of the visit variable, we use a "period" or "phase" variable, which indicates whether the patient is in period (1), (2) or (3) as described above. 
-- For count outcomes, we have then in addition a "count" variable, capturing counts for each of the three periods, as well as a "duration" variable capturing the duration of each period (e.g. in years). 
-- For survival outcomes, we also need in addition two variables:
-  - The "event" variable, which is a binary variable indicating whether the patient had an event in the time period or continued without an event (i.e. censored if next time period is not observable)
-  - The "time" variable, which captures either the time to event in the period where there was an event, or the duration of the period if there was no event (i.e. censored).
+- For count outcomes, we capture the counts in the "outcome" variable, capturing counts for each of the three periods, as well as a "duration" variable capturing the duration of each period (e.g. in years). 
+- For survival outcomes, we use the same columns as for counts, but now the "outcome" variable becomes a binary variable indicating whether the patient had an event at the end of the time period or continued without an event (i.e. censored if next time period is not observable).
+
+Let's create some examples to make this easier to describe.
+
+#### Continuous example
+
+```{r}
+library(rbmi)
+library(dplyr)
+
+dat <- antidepressant_data
+
+dat_continuous <- expand_locf(
+    dat,
+    PATIENT = levels(dat$PATIENT), # expand by PATIENT and VISIT 
+    VISIT = levels(dat$VISIT),
+    vars = c("BASVAL", "THERAPY"), # fill with LOCF BASVAL and THERAPY
+    group = c("PATIENT"),
+    order = c("PATIENT", "VISIT")
+)
+```
+
+So the continuous data looks like this:
+
+```{r}
+head(dat_continuous)
+```
+
+For each patient, and for each visit, we repeat any baseline covariates (here e.g. `BASVAL` and `THERAPY`) and capture time-varying outcome (here `CHANGE`) and covariates (e.g. `HAMATOTL`).
+
+#### Binary example
+
+The binary data looks basically the same, but the outcome variable is now binary (e.g. `RESPONSE`):
+
+```{r}
+dat_binary <- dat_continuous |> 
+    mutate(RESPONSE = ifelse(CHANGE >= 0, 1, 0)) |> 
+    select(PATIENT, VISIT, RESPONSE, BASVAL, THERAPY, HAMATOTL)
+  
+head(dat_binary)
+```
+
+#### Count example
+
+The count data just three "period" rows for each patient, with the count outcome (here `COUNT`)and the duration of each period:
+
+```{r}
+dat_count <- data.frame(
+    PATIENT = c(1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4),
+    PERIOD = c(1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3),
+    COUNT = c(5, NA, NA, 2, 2, NA, 4, 1, NA, 3, NA, NA),
+    DURATION = c(1.1, 0, 0, 0.25, 0.8, 0, 0.3, 0.3, 0.4, 0.5, 0, 0.5),
+    THERAPY = c("A", "A", "A", "B", "B", "B", "C", "C", "C", "D", "D", "D"),
+    BASVAL = c(10, 10, 10, 20, 20, 20, 15, 15, 15, 25, 25, 25)
+)
+dat_count
+```
+
+We see the different patterns here:
+
+- Patient 1: Never stopped treatment, completed the trial after 1.1 years.
+- Patient 2: Stopped treatment after 0.25 years, but continued the trial for another 0.8 years.
+- Patient 3: Stopped treatment after 0.3 years, and stopped the trial after another 0.3 years. If we assume that the total planned trial duration was 1 year, then we have 0.4 years of period 3 (i.e. no treatment and no follow up) that is not observable and therefore missing.
+- Patient 4: Stopped treatment and dropped out of the trial after 0.5 years, so we have 0.5 years of period 3 that is not observable and therefore missing.
+
+We implicitly assume here that there are no time-varying covariates, because then we would have even more periods per patient.
+
+#### Survival example
+
+We use the same columns as for count outcomes for survival outcomes, but now the outcome variable is binary (1 = event, 0 = censored):
+
+```{r}
+dat_survival <- data.frame(
+    PATIENT = c(1, 1, 1, 2, 2, 2, 3, 3, 3),
+    PERIOD = c(1, 2, 3, 1, 2, 3, 1, 2, 3),
+    EVENT = c(0, NA, NA, 0, 1, NA, 0, 0, 1),
+    DURATION = c(1.1, 0, 0, 0.25, 0.8, 0, 0.3, 0.3, 0.7),
+    THERAPY = c("A", "A", "A", "B", "B", "B", "C", "C", "C"),
+    BASVAL = c(10, 10, 10, 20, 20, 20, 15, 15, 15)
+)
+```
+
+We see the different patterns here:
+
+- Patient 1: Never stopped treatment, completed the trial after 1.1 years without an event (censored).
+- Patient 2: Stopped treatment after 0.25 years, had an event after another 0.8 years (i.e. at 1.05 years).
+- Patient 3: Stopped treatment after 0.3 years, and stopped the trial after another 0.3 years (i.e. at 0.6 years). After another 0.7 years (i.e. at 1.3 years) the patient had an event.
+
+So it basically works similarly as for count outcomes, but the outcome variable (here `EVENT`) is binary and informs what happened at the end of each period (patient with or without event). Summing up the duration variable (here `DURATION`) gives the total follow up time for each patient, and the last period is either censored or has an event.
 
 ### Draws
 
@@ -129,10 +215,9 @@ The `draws()` function needs to take the following inputs:
   - Copy Reference: "CR"
   - Copy Increments from Reference: "CIR"
   - Last Mean Carried Forward: "LMCF"
-- `data_treatment_ice`: Only needed for count and survival outcomes, the data with treatment discontinuation time points and corresponding off-treatment imputation strategies.
-  - TODO: We might need to be able to specify different strategies here
-  - TODO: Make sure that we don't have duplicate information with `data_ice`
-- `vars`: In addition to the existing variables, where we use `outcome` to capture counts and binary outcomes, we also need `event` and `time` for survival outcomes, and `duration` for count outcomes.
+- `data_treatment_ice`: Only needed for count and survival outcomes, can be used to specify off-treatment imputation strategies.
+  - TODO: What are the different strategies here?
+- `vars`: In addition to the existing variables, where we use `outcome` to capture counts, binary outcomes and event indicators, we need `duration` for count and survival outcomes, which captures the duration of each period (which is captured in a `period` variable).
 - `method`: For now we will only support `method_bayes()`, but could later support additional methods via corresponding `method_*()` constructors.
   - Here we need to be able to specify the survival model when used together with survival outcomes (in the similar way as now we specify the covariance model for continuous outcomes).
 
@@ -169,7 +254,7 @@ Note that this also requires care about the scale at which the pooling is perfor
 
 The `draws()` function needs to be adapted as described above for the user interface. Internally, this means both the generic function as well as the `draws.bayes()` method need to be changed, while the other methods can almost stay as is (they should just assert that the outcome type is "continuous").
 
-Internally, `draws.bayes()` can then dispatch on the outcome type for the correct code path, keeping the current behavior as is for the "continuous" outcome type. In particular, the `fit_mcmc()` function need to also dispatch on the different outcome types, to fit the correct imputation model and draw parameters from the posterior distribution: Instead of calling `fit_mmrm()` for the continuous outcome type, we can call `fit_neg_multinom()` for the count outcome type e.g. However, many of the logistics around the MCMC fitting and parameter drawing can be kept the same across the different outcome types, so we can reuse a lot of code here.
+Internally, `draws.bayes()` can then dispatch on the outcome type for the correct code path, keeping the current behaviour as is for the "continuous" outcome type. In particular, the `fit_mcmc()` function need to also dispatch on the different outcome types, to fit the correct imputation model and draw parameters from the posterior distribution: Instead of calling `fit_mmrm()` for the continuous outcome type, we can call `fit_neg_multinom()` for the count outcome type e.g. However, many of the logistics around the MCMC fitting and parameter drawing can be kept the same across the different outcome types, so we can reuse a lot of code here.
 
 The new fitting functions would use new Stan code from `inst/stan/` for the different outcome types, which would be added to the package. 
 

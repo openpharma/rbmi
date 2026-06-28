@@ -62,3 +62,5 @@ docs
 
 local/
 *.rds
+
+cspell.json
