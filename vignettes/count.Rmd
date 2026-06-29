@@ -32,3 +32,95 @@ Now we'll walk through how count data can be modeled using the `rbmi` package. T
 
 ## The Data
 
+We are going to take the `epil` dataset from the `MASS` package as starting point and then wrangle it into the format we need for `rbmi`:
+
+```{r, message = FALSE}
+library(MASS)
+library(dplyr)
+
+dat_count <- epil |> 
+    select(
+        subject, 
+        period, 
+        count = y, 
+        treatment = trt,
+        baseline = base,
+        age
+    ) |> 
+    mutate(
+        subject = as.character(subject),
+        duration = 2
+    ) |> 
+    filter(period %in% c(1, 2, 3))
+```
+
+Note that we do change the interpretation and meaning of the data now substantially. This is not supposed to be a realistic analysis of the `epil` data!
+
+To make things more interesting, let's introduce missing values as well, according to these patterns:
+
+- Pattern 0 (no missings): Stayed in the trial and received treatment. Then only period 1 is available, the other periods 2 and 3 have duration zero and missing counts.
+- Pattern 1: Stopped treatment, but always stayed in the trial. Then we have duration zero for period 3.
+- Pattern 2: Stopped first treatment, and then dropped out of the trial. Then all 3 periods are relevant, i.e. have positive duration, but period 3 has missing counts.
+- Pattern 3: Stopped treatment and dropped out of the trial at the same time. Then period 2 has duration zero and missing counts, and period 3 has positive duration and also missing counts. (In general, period 3 always has missing counts.)
+
+```{r}
+set.seed(123)
+
+subject_ids <- unique(dat_count$subject)
+
+# For each patient, draw a pattern from 0 to 3.
+pattern <- data.frame(
+    subject = subject_ids,
+    pattern = sample(
+        0:3, 
+        size = length(subject_ids), 
+        replace = TRUE, 
+        prob = c(0.5, 0.3, 0.1, 0.1)
+    )
+)
+
+# Then change the data according to the pattern.
+dat_count <- dat_count |> 
+    left_join(pattern, by = "subject") |> 
+    mutate(
+        duration = case_when(
+            pattern == 0 & period %in% c(2, 3) ~ 0,
+            pattern == 1 & period == 3 ~ 0,
+            pattern == 3 & period == 2 ~ 0,
+            TRUE ~ duration
+        ),
+        count = case_when(
+            pattern == 0 & period %in% c(2, 3) ~ NA,
+            pattern == 1 & period == 3 ~ NA,
+            pattern == 2 & period == 3 ~ NA,
+            pattern == 3 & period %in% c(2, 3) ~ NA,
+            TRUE ~ count
+        )
+    )
+head(dat_count)
+```
+
+The `expand_locf()` function might come in handy when there are some periods not available yet in the data set. Say, we omit the rows with duration 0:
+
+```{r}
+dat_count_without_duration0 <- dat_count |> 
+    filter(duration > 0)
+```
+
+Then we can use the function - after converting period to character:
+
+```{r}
+devtools::load_all()
+dat_count_filled <- dat_count_without_duration0 |> 
+    mutate(period = as.character(period)) |>
+    expand_locf(
+        subject = unique(dat_count_without_duration0$subject),
+        period = as.character(1:3),
+        vars = c("treatment", "baseline", "age", "pattern"),
+        group = "subject",
+        order = c("subject", "period")
+    ) |> 
+    mutate(
+        duration = ifelse(is.na(duration), 0, duration)
+    )
+```
