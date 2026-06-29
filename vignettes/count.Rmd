@@ -183,4 +183,37 @@ vars <- set_vars(
 )
 ```
 
+### Method
+
+We just use the standard Bayesian method options:
+
+```{r}
+method <- method_bayes(
+    n_samples = 150,
+    control = control_bayes(
+        warmup = 200,
+        thin = 5,
+        seed = 1821 # Seed to be used by Stan
+    )
+)
+```
+
+### Sampling
+
+Finally we can call the `draws()` function to draw samples from the posterior distribution of the model parameters:
+
+```{r}
+set.seed(987)
+drawObj <- draws(
+    outcome = "count",
+    data = dat,
+    data_ice = dat_ice,
+    data_treatment_ice = dat_treatment_ice,
+    vars = vars,
+    method = method,
+    quiet = TRUE
+)
+drawObj
+```
+
 ## References 
