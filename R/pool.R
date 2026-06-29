@@ -280,7 +280,12 @@ pool_internal.rubin <- function(results, conf.level, alternative, type, D) {
     dfs <- results$df
     alpha <- 1 - conf.level
 
-    v_com <- if (length(unique(dfs)) == 1) unique(dfs) else median(dfs)
+    v_com <- unique(dfs)
+
+    assert_that(
+        length(v_com) == 1,
+        msg = "Degrees of freedom should be consistent across all samples"
+    )
 
     res_rubin <- rubin_rules(
         ests = ests,
@@ -672,10 +677,15 @@ as_data_frame_internal <- function(x) {
         msg = "`x` must be a pool or mcse object"
     )
 
+    df_col <- vapply(x$pars, function(p) {
+        if (is.null(p$df)) NA_real_ else p$df
+    }, numeric(1))
+
     data.frame(
         parameter = names(x$pars),
         est = vapply(x$pars, function(x) x$est, numeric(1)),
         se = vapply(x$pars, function(x) x$se, numeric(1)),
+        df = df_col,
         lci = vapply(x$pars, function(x) x$ci[[1]], numeric(1)),
         uci = vapply(x$pars, function(x) x$ci[[2]], numeric(1)),
         pval = vapply(x$pars, function(x) x$pvalue, numeric(1)),

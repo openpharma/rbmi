@@ -1,8 +1,7 @@
 # rbmi (development version)
 
 ## New Features
-- Expose `df` in the pooled output of `pool_internal_rubin()`
-- Add the `median(dfs)` fallback for varying d.f. (MMRM case)
+* `pool()` now returns `df` and in the `data.frame` returned by `as.data.frame.pool()`.
 
 ## Bug Fixes
 * Added en-GB spell-check and a corresponding test to the package
