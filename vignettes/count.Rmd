@@ -124,3 +124,63 @@ dat_count_filled <- dat_count_without_duration0 |>
         duration = ifelse(is.na(duration), 0, duration)
     )
 ```
+
+## Draws
+
+The inputs to the `draws()` function are now:
+
+- `data`: The data frame as prepared above.
+- `data_ice`: The data with follow-up intercurrent events (ICE)imputation strategies for each patient
+- `vars`: The variables to be used in the model
+- `method`: Here we can only use `method_bayes()` for fully Bayesian multiple imputation for our count data
+- `outcome` (new): The outcome type, which defaults to "continuous", but here we will choose "count"
+- `data_treatment_ice` (new): The off-treatment imputation strategies for each patient
+
+Note that for count data we do not need to provide the time points of the intercurrent events in `data_ice` (or `data_treatment_ice`), because these are calculated automatically from the `duration` variable in the data.
+
+### Imputation strategies
+
+Here we just use the same imputation strategy for all patients, but we would also be able to provide different strategies for each patient. 
+
+Let's use the "Jump to Reference" (JR) strategy for all patients who discontinued the trial, i.e. those with pattern 2 or 3:
+
+```{r}
+dat_ice <- dat_count_filled |> 
+    filter(pattern %in% c(2, 3)) |> 
+    select(subject) |> 
+    distinct() |> 
+    mutate(
+        strategy = "JR"
+    )
+```
+
+For the off-treatment imputation strategy, we choose here the "On/Off Intercepts Common Slope" (OICS) strategy [@Rehal2026] for all patients who discontinued treatment, i.e. those with pattern 1 to 3:
+
+```{r}
+dat_treatment_ice <- dat_count_filled |> 
+    filter(pattern %in% c(1, 2, 3)) |> 
+    select(subject) |> 
+    distinct() |> 
+    mutate(
+        strategy = "OICS"
+    )
+```
+
+This means that in the imputation model we use treatment arm specific intercepts for the on- and off-treatment periods, but common coefficients for the other covariates. (We could also say we thus use an interaction term between treatment and the on/off-treatment indicator in the model.)
+
+### Variables
+
+Next we define the variables to be used in the model. 
+
+```{r}
+vars <- set_vars(
+    outcome = "count",
+    subjid = "subject",
+    period = "period",
+    duration = "duration",
+    group = "treatment",
+    covariates = c("baseline", "age")
+)
+```
+
+## References 

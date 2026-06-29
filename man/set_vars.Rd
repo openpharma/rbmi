@@ -7,6 +7,8 @@
 set_vars(
   subjid = "subjid",
   visit = "visit",
+  period = NULL,
+  duration = NULL,
   outcome = "outcome",
   group = "group",
   covariates = character(0),
@@ -18,6 +20,15 @@ set_vars(
 \item{subjid}{The name of the "Subject ID" variable. A length 1 character vector.}
 
 \item{visit}{The name of the "Visit" variable. A length 1 character vector.}
+
+\item{period}{Alternatively to \code{visit}, the name of the "Period" variable.
+A length 1 character vector. The corresponding data column must contain
+character values \code{"1"}, \code{"2"} and \code{"3"}.}
+
+\item{duration}{The name of the "Duration" variable. A length 1 character
+vector or \code{NULL}. If \code{period} is specified, this argument is required. The
+corresponding data column must be numeric, finite, and greater than or equal
+to zero, apart from missing values.}
 
 \item{outcome}{The name of the "Outcome" variable. A length 1 character vector.}
 

@@ -543,8 +543,14 @@ longDataConstructor <- R6::R6Class(
             validate_datalong(data_raw, vars)
             data_nochar <- char2fct(
                 data_raw,
-                extract_covariates(vars$covariates)
+                unique(c(vars$visit, extract_covariates(vars$covariates)))
             )
+            if (!is.null(vars$period)) {
+                data_nochar[[vars$period]] <- factor(
+                    data_nochar[[vars$period]],
+                    levels = valid_periods()
+                )
+            }
             # rerun as_dataframe to reset the rownames
             self$data <- as_dataframe(sort_by(
                 data_nochar,

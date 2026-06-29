@@ -343,6 +343,15 @@ sort_by <- function(df, vars = NULL, decreasing = FALSE) {
 #'
 #' @param visit The name of the "Visit" variable. A length 1 character vector.
 #'
+#' @param period Alternatively to `visit`, the name of the "Period" variable.
+#' A length 1 character vector. The corresponding data column must contain
+#' character values `"1"`, `"2"` and `"3"`.
+#'
+#' @param duration The name of the "Duration" variable. A length 1 character
+#' vector or `NULL`. If `period` is specified, this argument is required. The
+#' corresponding data column must be numeric, finite, and greater than or equal
+#' to zero, apart from missing values.
+#'
 #' @param outcome The name of the "Outcome" variable. A length 1 character vector.
 #'
 #' @param group The name of the "Group" variable. A length 1 character vector.
@@ -393,15 +402,26 @@ sort_by <- function(df, vars = NULL, decreasing = FALSE) {
 set_vars <- function(
     subjid = "subjid",
     visit = "visit",
+    period = NULL,
+    duration = NULL,
     outcome = "outcome",
     group = "group",
     covariates = character(0),
     strata = group,
     strategy = "strategy"
 ) {
+    if (!is.null(period)) {
+        assert_that(
+            missing(visit),
+            msg = "Only one of `visit` and `period` should be specified"
+        )
+        visit <- period
+    }
     x <- list(
         subjid = subjid,
         visit = visit,
+        period = period,
+        duration = duration,
         outcome = outcome,
         group = group,
         covariates = covariates,
@@ -437,6 +457,23 @@ validate.ivars <- function(x, ...) {
         is_char_one(x$visit),
         msg = "`vars$visit` should be a length 1 character"
     )
+
+    if (!is.null(x$period)) {
+        assert_that(
+            is_char_one(x$period),
+            identical(x$visit, x$period),
+            msg = "`vars$period` should be a length 1 character"
+        )
+        assert_that(
+            is_char_one(x$duration),
+            msg = "`vars$duration` should be a length 1 character when `vars$period` is specified"
+        )
+    } else if (!is.null(x$duration)) {
+        assert_that(
+            is_char_one(x$duration),
+            msg = "`vars$duration` should be NULL or a length 1 character"
+        )
+    }
 
     assert_that(
         is_char_one(x$subjid),
