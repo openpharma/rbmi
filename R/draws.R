@@ -571,7 +571,6 @@ draws.bayes <- function(
     ncores = 1,
     quiet = FALSE
 ) {
-    browser()
     outcome <- match.arg(outcome)
     longdata <- longDataConstructor$new(data, vars)
     longdata$set_strategies(data_ice)
@@ -589,37 +588,18 @@ draws.bayes <- function(
     model_df_scaled <- scaler$scale(model_df)
 
     fit <- fit_mcmc(
+        outcome_type = outcome,
         designmat = model_df_scaled[, -1, drop = FALSE],
         outcome = model_df_scaled[, 1, drop = TRUE],
+        outcome_unscaled = model_df[, 1, drop = TRUE],
         group = data2[[vars$group]],
         visit = data2[[vars$visit]],
+        period = data2[[vars$period]],
+        duration = data2[[vars$duration]],
         subjid = data2[[vars$subjid]],
         method = method,
+        scaler = scaler,
         quiet = quiet
-    )
-
-    # set names of covariance matrices
-    fit$samples$sigma <- lapply(
-        fit$samples$sigma,
-        function(sample_cov) {
-            lvls <- levels(data2[[vars$group]])
-            sample_cov <- ife(
-                method$same_cov == TRUE,
-                rep(sample_cov, length(lvls)),
-                sample_cov
-            )
-            setNames(sample_cov, lvls)
-        }
-    )
-
-    # unscale samples
-    samples <- mapply(
-        function(x, y) list("beta" = x, "sigma" = y),
-        lapply(fit$samples$beta, scaler$unscale_beta),
-        lapply(fit$samples$sigma, function(covs) {
-            lapply(covs, scaler$unscale_sigma)
-        }),
-        SIMPLIFY = FALSE
     )
 
     # set ids associated to each sample

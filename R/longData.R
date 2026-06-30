@@ -573,7 +573,6 @@ longDataConstructor <- R6::R6Class(
         #' @param data longitudinal dataset.
         #' @param vars an `ivars` object created by [set_vars()].
         initialize = function(data, vars) {
-            browser()
             data_raw <- as_dataframe(data)
             validate(vars)
             validate_datalong(data_raw, vars)
@@ -599,7 +598,6 @@ longDataConstructor <- R6::R6Class(
                         vars$group,
                         character()
                     ),
-                    vars$period,
                     vars$covariates
                 )
             } else {
