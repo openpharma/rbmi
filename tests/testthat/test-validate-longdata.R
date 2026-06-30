@@ -266,7 +266,10 @@ test_that("validate_datalong_types", {
 
     dat2 <- dat_period
     dat2$period[1] <- "4"
-    expect_error(validate_datalong_types(dat2, vars_period), "\"1\", \"2\" and \"3\"")
+    expect_error(
+        validate_datalong_types(dat2, vars_period),
+        "\"1\", \"2\" and \"3\""
+    )
 
     dat2 <- dat_period
     dat2$duration[1] <- -1
@@ -341,16 +344,16 @@ test_that("validate_datalong_complete", {
 })
 
 
-test_that("validate_datalong_unifromStrata", {
-    expect_true(validate_datalong_unifromStrata(dat, vars))
+test_that("validate_datalong_uniformStrata", {
+    expect_true(validate_datalong_uniformStrata(dat, vars))
 
     vars2 <- vars
     vars2$strata <- character(0)
-    expect_true(validate_datalong_unifromStrata(dat, vars2))
+    expect_true(validate_datalong_uniformStrata(dat, vars2))
 
     dat2 <- dat
     dat2$strata[[1]] <- "AXS"
-    expect_error(validate_datalong_unifromStrata(dat2, vars))
+    expect_error(validate_datalong_uniformStrata(dat2, vars))
 })
 
 

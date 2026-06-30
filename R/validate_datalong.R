@@ -29,7 +29,7 @@
 #' - `validate_datalong_complete` - Checks that `data` is complete i.e. there is 1 row for each subject *
 #' visit combination. e.g. that `nrow(data) == length(unique(subjects)) * length(unique(visits))`
 #'
-#' - `validate_datalong_unifromStrata` - Checks to make sure that any variables listed as stratification
+#' - `validate_datalong_uniformStrata` - Checks to make sure that any variables listed as stratification
 #' variables do not vary over time. e.g. that subjects don't switch between stratification groups.
 #'
 validate_datalong <- function(data, vars) {
@@ -37,7 +37,7 @@ validate_datalong <- function(data, vars) {
     validate_datalong_types(data, vars)
     validate_datalong_notMissing(data, vars)
     validate_datalong_complete(data, vars)
-    validate_datalong_unifromStrata(data, vars)
+    validate_datalong_uniformStrata(data, vars)
     return(invisible(TRUE))
 }
 
@@ -54,17 +54,24 @@ validate_datalong_varExists <- function(data, vars) {
         msg = sprintf("Cannot find %s in `data`", vars$group)
     )
 
-    assert_that(
-        vars$visit %in% names(data),
-        msg = sprintf("Cannot find %s in `data`", vars$visit)
-    )
+    if (uses_visit(vars)) {
+        assert_that(
+            vars$visit %in% names(data),
+            msg = sprintf("Cannot find %s in `data`", vars$visit)
+        )
+    }
 
     assert_that(
         vars$subjid %in% names(data),
         msg = sprintf("Cannot find %s in `data`", vars$subjid)
     )
 
-    if (!is.null(vars$duration)) {
+    if (uses_period(vars)) {
+        assert_that(
+            vars$period %in% names(data),
+            msg = sprintf("Cannot find %s in `data`", vars$period)
+        )
+
         assert_that(
             vars$duration %in% names(data),
             msg = sprintf("Cannot find %s in `data`", vars$duration)
@@ -111,8 +118,11 @@ validate_datalong_types <- function(data, vars) {
         period_values <- data[[vars$period]]
         period_values <- period_values[!is.na(period_values)]
         assert_that(
-            is.character(data[[vars$period]]),
-            msg = sprintf("Variable `%s` should be of type character", vars$period)
+            is.character(data[[vars$period]]) || is.factor(data[[vars$period]]),
+            msg = sprintf(
+                "Variable `%s` should be of type character or factor",
+                vars$period
+            )
         )
         assert_that(
             all(period_values %in% valid_periods()),
@@ -141,7 +151,7 @@ validate_datalong_types <- function(data, vars) {
         msg = sprintf("Variable `%s` should be of type numeric", vars$outcome)
     )
 
-    if (!is.null(vars$duration)) {
+    if (uses_period(vars)) {
         duration <- data[[vars$duration]]
         duration <- duration[!is.na(duration)]
         assert_that(
@@ -202,20 +212,35 @@ validate_datalong_notMissing <- function(data, vars) {
 #' @rdname validate_datalong
 validate_datalong_complete <- function(data, vars) {
     unique_subjects <- unique(data[[vars$subjid]])
-    unique_visits <- visit_levels(data, vars)
 
-    data_dedup <- unique(data[, c(vars$subjid, vars$visit)])
+    if (uses_visit(vars)) {
+        unique_visits <- visit_levels(data, vars)
 
-    assert_that(
-        nrow(data) == length(unique_subjects) * length(unique_visits),
-        nrow(data_dedup) == nrow(data),
-        msg = "At least one subject has either incomplete or duplicated data"
-    )
+        data_dedup <- unique(data[, c(vars$subjid, vars$visit)])
+
+        assert_that(
+            nrow(data) == length(unique_subjects) * length(unique_visits),
+            nrow(data_dedup) == nrow(data),
+            msg = "At least one subject has either incomplete or duplicated data"
+        )
+    } else {
+        assert_that(uses_period(vars))
+
+        unique_periods <- valid_periods()
+
+        data_dedup <- unique(data[, c(vars$subjid, vars$period)])
+
+        assert_that(
+            nrow(data) == length(unique_subjects) * length(unique_periods),
+            nrow(data_dedup) == nrow(data),
+            msg = "At least one subject has either incomplete or duplicated data"
+        )
+    }
     return(invisible(TRUE))
 }
 
 #' @rdname validate_datalong
-validate_datalong_unifromStrata <- function(data, vars) {
+validate_datalong_uniformStrata <- function(data, vars) {
     for (var in vars$strata) {
         x <- tapply(
             data[[var]],
@@ -239,7 +264,6 @@ validate_dataice <- function(data, data_ice, vars, update = FALSE) {
     validate(vars)
 
     strategy <- vars$strategy
-    visit <- vars$visit
     subjid <- vars$subjid
 
     assert_that(
@@ -260,18 +284,24 @@ validate_dataice <- function(data, data_ice, vars, update = FALSE) {
     )
 
     if (!update) {
-        valid_visits <- unique(as.character(data[[visit]]))
+        if (uses_visit(vars)) {
+            visit <- vars$visit
+            valid_visits <- unique(as.character(data[[visit]]))
 
-        assert_that(
-            is.character(data_ice[[visit]]) | is.factor(data_ice[[visit]]),
-            all(!is.na(data_ice[[visit]])),
-            msg = "`data_ice[[vars$visit]]` must be a non-missing character or factor vector"
-        )
+            assert_that(
+                is.character(data_ice[[visit]]) | is.factor(data_ice[[visit]]),
+                all(!is.na(data_ice[[visit]])),
+                msg = "`data_ice[[vars$visit]]` must be a non-missing character or factor vector"
+            )
 
-        assert_that(
-            all(as.character(data_ice[[visit]]) %in% valid_visits),
-            msg = "`data_ice[[vars$visit]]` contains values that are not in `data[[vars$visit]]`"
-        )
+            assert_that(
+                all(as.character(data_ice[[visit]]) %in% valid_visits),
+                msg = "`data_ice[[vars$visit]]` contains values that are not in `data[[vars$visit]]`"
+            )
+        }
+
+        # Note: When period is used, then data_ice does not need
+        # to contain a period variable.
     }
 
     assert_that(
@@ -283,6 +313,10 @@ validate_dataice <- function(data, data_ice, vars, update = FALSE) {
     )
 
     return(TRUE)
+}
+
+uses_visit <- function(vars) {
+    !is.null(vars$visit)
 }
 
 uses_period <- function(vars) {

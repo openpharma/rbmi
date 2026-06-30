@@ -39,7 +39,7 @@ library(MASS)
 library(dplyr)
 
 dat_count <- epil |> 
-    select(
+    dplyr::select(
         subject, 
         period, 
         count = y, 
@@ -147,7 +147,7 @@ Let's use the "Jump to Reference" (JR) strategy for all patients who discontinue
 ```{r}
 dat_ice <- dat_count_filled |> 
     filter(pattern %in% c(2, 3)) |> 
-    select(subject) |> 
+    dplyr::select(subject) |> 
     distinct() |> 
     mutate(
         strategy = "JR"
@@ -159,7 +159,7 @@ For the off-treatment imputation strategy, we choose here the "On/Off Intercepts
 ```{r}
 dat_treatment_ice <- dat_count_filled |> 
     filter(pattern %in% c(1, 2, 3)) |> 
-    select(subject) |> 
+    dplyr::select(subject) |> 
     distinct() |> 
     mutate(
         strategy = "OICS"
@@ -206,7 +206,7 @@ Finally we can call the `draws()` function to draw samples from the posterior di
 set.seed(987)
 drawObj <- draws(
     outcome = "count",
-    data = dat,
+    data = dat_count_filled,
     data_ice = dat_ice,
     data_treatment_ice = dat_treatment_ice,
     vars = vars,

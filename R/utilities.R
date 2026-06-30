@@ -415,7 +415,7 @@ set_vars <- function(
             missing(visit),
             msg = "Only one of `visit` and `period` should be specified"
         )
-        visit <- period
+        visit <- NULL
     }
     x <- list(
         subjid = subjid,
@@ -453,25 +453,28 @@ validate.ivars <- function(x, ...) {
         msg = "`vars$group` should be a length 1 character"
     )
 
-    assert_that(
-        is_char_one(x$visit),
-        msg = "`vars$visit` should be a length 1 character"
-    )
-
-    if (!is.null(x$period)) {
+    if (!is.null(x$visit)) {
+        assert_that(
+            is_char_one(x$visit),
+            msg = "`vars$visit` should be a length 1 character"
+        )
+        assert_that(
+            is.null(x$period),
+            msg = "`vars$period` should be NULL when `vars$visit` is specified"
+        )
+    }
+    if (!is.null(x$period) || !is.null(x$duration)) {
         assert_that(
             is_char_one(x$period),
-            identical(x$visit, x$period),
-            msg = "`vars$period` should be a length 1 character"
+            msg = "`vars$period` should be a length 1 character when `vars$duration` is specified"
         )
         assert_that(
             is_char_one(x$duration),
             msg = "`vars$duration` should be a length 1 character when `vars$period` is specified"
         )
-    } else if (!is.null(x$duration)) {
         assert_that(
-            is_char_one(x$duration),
-            msg = "`vars$duration` should be NULL or a length 1 character"
+            is.null(x$visit),
+            msg = "`vars$visit` should be NULL when `vars$period` is specified"
         )
     }
 

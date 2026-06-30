@@ -31,6 +31,9 @@ longDataConstructor <- R6::R6Class(
         #' @field visits A character vector containing the distinct visit levels
         visits = NULL,
 
+        #' @field periods A character vector containing the distinct period levels
+        periods = NULL,
+
         #' @field ids A character vector containing the unique ids of each subject in `self$data`
         ids = NULL,
 
@@ -423,11 +426,17 @@ longDataConstructor <- R6::R6Class(
                 new_strategy <- dat_ice_pt[[self$vars$strategy]]
 
                 if (!update) {
-                    visit <- dat_ice_pt[[self$vars$visit]]
-                    self$ice_visit_index[[subject]] <- which(
-                        self$visits == visit
-                    )
+                    if (uses_visit(self$vars)) {
+                        visit <- dat_ice_pt[[self$vars$visit]]
+                        self$ice_visit_index[[subject]] <- which(
+                            self$visits == visit
+                        )
+                    }
                 } else {
+                    assert_that(
+                        uses_visit(self$vars),
+                        msg = "update=TRUE is only valid for visit based data"
+                    )
                     if (self$strategy_lock[[subject]]) {
                         current_strategy <- self$strategies[[subject]]
                         if (current_strategy == "MAR" & new_strategy != "MAR") {
@@ -475,7 +484,33 @@ longDataConstructor <- R6::R6Class(
                 ))
             }
 
-            self$check_has_data_at_each_visit()
+            if (uses_period(self$vars)) {
+                self$check_has_all_periods()
+            } else {
+                self$check_has_data_at_each_visit()
+            }
+        },
+
+        #' @description
+        #' Ensures that all subjects have data for all periods. Throws an error if this criteria is not met.
+        check_has_all_periods = function() {
+            periods <- self$data[[self$vars$period]]
+            period_levels <- levels(periods)
+            for (id in self$ids) {
+                periods_id <- unique(periods[self$indexes[[id]]])
+                missing_periods <- setdiff(period_levels, periods_id)
+                assert_that(
+                    length(missing_periods) == 0,
+                    msg = paste(
+                        sprintf(
+                            "Subject %s is missing the following period(s): %s",
+                            id,
+                            paste0("`", missing_periods, "`", collapse = ", ")
+                        ),
+                        "Please ensure that all subjects have data for all periods."
+                    )
+                )
+            }
         },
 
         #' @description
@@ -538,6 +573,7 @@ longDataConstructor <- R6::R6Class(
         #' @param data longitudinal dataset.
         #' @param vars an `ivars` object created by [set_vars()].
         initialize = function(data, vars) {
+            browser()
             data_raw <- as_dataframe(data)
             validate(vars)
             validate_datalong(data_raw, vars)
@@ -545,28 +581,46 @@ longDataConstructor <- R6::R6Class(
                 data_raw,
                 unique(c(vars$visit, extract_covariates(vars$covariates)))
             )
-            if (!is.null(vars$period)) {
+            if (uses_period(vars)) {
                 data_nochar[[vars$period]] <- factor(
                     data_nochar[[vars$period]],
                     levels = valid_periods()
                 )
+                # rerun as_dataframe to reset the rownames
+                self$data <- as_dataframe(sort_by(
+                    data_nochar,
+                    c(vars$subjid, vars$period)
+                ))
+                self$vars <- vars
+                self$periods <- valid_periods()
+                frmvars <- c(
+                    ife(
+                        nlevels(self$data[[vars$group]]) >= 2,
+                        vars$group,
+                        character()
+                    ),
+                    vars$period,
+                    vars$covariates
+                )
+            } else {
+                assert_that(uses_visit(vars))
+                # rerun as_dataframe to reset the rownames
+                self$data <- as_dataframe(sort_by(
+                    data_nochar,
+                    c(vars$subjid, vars$visit)
+                ))
+                self$vars <- vars
+                self$visits <- levels(self$data[[self$vars$visit]])
+                frmvars <- c(
+                    ife(
+                        nlevels(self$data[[vars$group]]) >= 2,
+                        vars$group,
+                        character()
+                    ),
+                    vars$visit,
+                    vars$covariates
+                )
             }
-            # rerun as_dataframe to reset the rownames
-            self$data <- as_dataframe(sort_by(
-                data_nochar,
-                c(vars$subjid, vars$visit)
-            ))
-            self$vars <- vars
-            self$visits <- levels(self$data[[self$vars$visit]])
-            frmvars <- c(
-                ife(
-                    nlevels(self$data[[vars$group]]) >= 2,
-                    vars$group,
-                    character()
-                ),
-                vars$visit,
-                vars$covariates
-            )
             self$formula <- as_simple_formula(vars$outcome, frmvars)
             subjects <- levels(self$data[[self$vars$subjid]])
             for (id in subjects) {
@@ -574,7 +628,11 @@ longDataConstructor <- R6::R6Class(
             }
             self$ids <- subjects
             self$set_strata()
-            self$check_has_data_at_each_visit()
+            if (uses_period(vars)) {
+                self$check_has_all_periods()
+            } else {
+                self$check_has_data_at_each_visit()
+            }
         }
     )
 )
