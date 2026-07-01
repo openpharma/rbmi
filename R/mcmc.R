@@ -218,7 +218,7 @@ fit_mcmc <- function(
             subjid = subjid,
             period = period,
             duration = duration,
-            outcome = outcome
+            outcome = outcome_unscaled
         )
 
         control <- complete_control_bayes_count(

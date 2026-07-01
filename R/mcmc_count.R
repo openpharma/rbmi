@@ -7,30 +7,33 @@
 #' @param subjid A vector of subject IDs
 #' @param period A vector of period values
 #' @param duration A vector of duration values
-#' @param outcome A vector of outcome values
-#' @param group A vector of group values
+#' @param outcome A vector of integer outcome values (unscaled, i.e. raw counts)
 #'
 #' @return A `stan_data_count` object. A named list containing all the
 #' required inputs as required by the `data{}` block of the Count Stan program:group
 #'
-#' - `N`: The number of observations
-#' TODO complete
+#' - `N`: The number of patients
+#' - `K`: The number of periods to analyze
+#' - `P`: The number of design matrix columns in each period
+#' - `y`: N x K matrix of outcome values for each period
+#' - `X`: K x N x P array of design matrices for each period
+#' - `log_offset`: N x K matrix of log offsets for each period
+#' - `is_avail`: N x K matrix of 0/1 indicator whether
+#'    the outcome is available for each patient for each period
 prepare_stan_data_count <- function(
     ddat,
     subjid,
     period,
     duration,
-    outcome,
-    group
+    outcome
 ) {
     assert_that(
-        is.factor(group) | is.numeric(group),
         is.factor(period) | is.character(period),
         is.numeric(duration) & all(duration >= 0),
         is.character(subjid) | is.factor(subjid),
-        is.numeric(outcome) & all(outcome >= 0),
+        is.numeric(outcome) &
+            all((outcome == trunc(outcome) & (outcome >= 0)) | is.na(outcome)),
         is.data.frame(ddat) | is.matrix(ddat),
-        length(group) == length(period),
         length(period) == length(duration),
         length(duration) == length(outcome),
         length(outcome) == length(subjid),
@@ -41,15 +44,33 @@ prepare_stan_data_count <- function(
     design_variables <- paste0("V", seq_len(ncol(ddat)))
     ddat <- as.data.frame(ddat)
     names(ddat) <- design_variables
-    ddat$subjid <- as.character(subjid)
-    ddat$period <- as.character(period)
-    ddat$outcome <- outcome
-    ddat$group <- group
-    ddat$is_avail <- (!is.na(ddat$outcome)) * 1
 
-    ddat <- remove_if_all_missing(ddat, timevar = "period")
+    N <- length(unique(subjid))
+    K <- 2 # on-treatment and off-treatment periods
+    P <- ncol(ddat)
+    y <- matrix(NA, nrow = N, ncol = K)
+    y[, 1] <- outcome[period == "1"]
+    y[, 2] <- outcome[period == "2"]
+    X <- array(NA, dim = c(K, N, P))
+    X[1, , ] <- as.matrix(ddat[period == "1", ])
+    X[2, , ] <- as.matrix(ddat[period == "2", ])
+    log_offset <- matrix(NA, nrow = N, ncol = K)
+    log_offset[, 1] <- log(duration[period == "1"])
+    log_offset[, 2] <- log(duration[period == "2"])
+    is_avail <- matrix(NA, nrow = N, ncol = K)
+    is_avail_vec <- (!is.na(outcome)) * 1
+    is_avail[, 1] <- is_avail_vec[period == "1"]
+    is_avail[, 2] <- is_avail_vec[period == "2"]
 
-    stan_dat <- list()
+    stan_dat <- list(
+        N = N,
+        K = K,
+        P = P,
+        y = y,
+        X = X,
+        log_offset = log_offset,
+        is_avail = is_avail
+    )
 
     class(stan_dat) <- c("list", "stan_data", "stan_data_count")
     validate(stan_dat)
@@ -61,8 +82,19 @@ prepare_stan_data_count <- function(
 #'
 #' @param x A `stan_data_count` object.
 #' @param ... Not used.
+#' @export
 validate.stan_data_count <- function(x, ...) {
-    assert_that(,
+    assert_that(
+        x$N == nrow(x$y),
+        x$N == nrow(x$log_offset),
+        x$N == nrow(x$is_avail),
+        x$N == dim(x$X)[2],
+        x$K == ncol(x$y),
+        x$K == ncol(x$log_offset),
+        x$K == ncol(x$is_avail),
+        x$K == dim(x$X)[1],
+        x$P == dim(x$X)[3],
+        # TODO: Complete with additional checks
         msg = "Invalid Stan Data Object for Count Outcome"
     )
 }
@@ -151,6 +183,14 @@ get_stan_model_count <- function() {
     file_loc_count_model <- find_stan_file(
         "count_model.stan"
     )
+    model_template <- jinjar::parse_template(
+        fs::path(file_loc_count_model),
+        .config = jinjar::jinjar_config(
+            trim_blocks = TRUE,
+            lstrip_blocks = TRUE
+        )
+    )
+    model_string <- jinjar::render(model_template)
 
     model_name <- "rbmi_count_model"
 
