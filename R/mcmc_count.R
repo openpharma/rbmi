@@ -45,6 +45,19 @@ prepare_stan_data_count <- function(
     ddat <- as.data.frame(ddat)
     names(ddat) <- design_variables
 
+    # Omit period 3 because all data are missing there
+    # so we cannot use it.
+    is_period_3 <- period == "3"
+    ddat <- ddat[!is_period_3, ]
+    subjid <- subjid[!is_period_3]
+    period <- period[!is_period_3]
+    outcome <- outcome[!is_period_3]
+    duration <- duration[!is_period_3]
+
+    # Now we know that outcome is only missing if duration
+    # is 0 for periods 1 and 2:
+    assert_that(all(is.na(outcome) == (duration == 0)))
+
     N <- length(unique(subjid))
     K <- 2 # on-treatment and off-treatment periods
     P <- ncol(ddat)
@@ -58,9 +71,12 @@ prepare_stan_data_count <- function(
     log_offset[, 1] <- log(duration[period == "1"])
     log_offset[, 2] <- log(duration[period == "2"])
     is_avail <- matrix(NA, nrow = N, ncol = K)
-    is_avail_vec <- (!is.na(outcome)) * 1
-    is_avail[, 1] <- is_avail_vec[period == "1"]
-    is_avail[, 2] <- is_avail_vec[period == "2"]
+    is_avail[, 1] <- !is.na(outcome[period == "1"])
+    is_avail[, 2] <- !is.na(outcome[period == "2"])
+
+    # Stan does not allow NA.
+    y[!is_avail] <- 999
+    log_offset[!is_avail] <- 999
 
     stan_dat <- list(
         N = N,
@@ -94,7 +110,9 @@ validate.stan_data_count <- function(x, ...) {
         x$K == ncol(x$is_avail),
         x$K == dim(x$X)[1],
         x$P == dim(x$X)[3],
-        # TODO: Complete with additional checks
+        !anyNA(x$y),
+        all(is.finite(x$log_offset)),
+        all(x$is_avail == 0 | x$is_avail == 1),
         msg = "Invalid Stan Data Object for Count Outcome"
     )
 }

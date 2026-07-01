@@ -21,6 +21,7 @@ data {
   int<lower=0> y[N, K];                 // Event counts by patient and period
   array[K] matrix[N, P] X;              // Period-specific design matrices
   matrix[N, K] log_offset;              // log(T_ij)
+  matrix[N, K] is_avail;                // 1 if patient i is available in period j, 0 otherwise
 }
 
 parameters {
@@ -29,8 +30,8 @@ parameters {
 }
 
 transformed parameters {
-  matrix<lower=0>[N, K] mu;
-  matrix<lower=0, upper=1>[N, K] p;
+  matrix<lower=0>[N, K] mu = rep_matrix(0.0, N, K);
+  matrix<lower=0, upper=1>[N, K] p = rep_matrix(0.0, N, K);
   vector<lower=0, upper=1>[N] p0;
   real<lower=0> inv_phi;
 
@@ -40,13 +41,23 @@ transformed parameters {
   // and p_ij = mu_ij / (r + sum_k mu_ik).
 
   for (j in 1:K) {
-    mu[, j] = exp(log_offset[, j] + X[j] * beta);
+    // Be careful to only use the available patients in this period.
+    for (n in 1:N) {
+      if (is_avail[n, j] == 1) {
+        mu[n, j] = exp(log_offset[n, j] + X[j][n, ] * beta);
+      }
+    }
   }
 
   for (n in 1:N) {
     real denom = inv_phi + sum(to_vector(mu[n, ]));
     for (j in 1:K) {
-      p[n, j] = mu[n, j] / denom;
+      if (is_avail[n, j] == 1) {
+        p[n, j] = mu[n, j] / denom;
+      }
+      // otherwise p[n, j] remains 0, which is correct since
+      // this period does not exist for this patient and thus the patient cannot
+      // have any events in this period.
     }
     p0[n] = 1 - sum(to_vector(p[n, ]));
   }
@@ -59,6 +70,21 @@ model {
   phi ~ gamma(0.0001, 0.0001);
 
   for (n in 1:N) {
-    target += neg_multinomial_lpmf(y[n] | inv_phi, to_vector(p[n, ]));
+    // Be careful to only use the available periods.
+    int n_avail = 0;
+    int y_avail[K];
+    vector[K] p_avail;
+
+    for (j in 1:K) {
+      if (is_avail[n, j] == 1) {
+        n_avail += 1;
+        y_avail[n_avail] = y[n, j];
+        p_avail[n_avail] = p[n, j];
+      }
+    }
+
+    if (n_avail > 0) {
+      target += neg_multinomial_lpmf(y_avail[1:n_avail] | inv_phi, p_avail[1:n_avail]);
+    }
   }
 }
