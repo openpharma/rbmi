@@ -232,7 +232,7 @@ fit_mcmc <- function(
             list(
                 object = get_stan_model_count(),
                 data = stan_data,
-                pars = c("beta") # TODO more?
+                pars = c("beta", "phi")
             ),
             control
         )
@@ -287,6 +287,19 @@ fit_mcmc <- function(
                 lapply(covs, scaler$unscale_sigma)
             }),
             SIMPLIFY = FALSE
+        )
+
+        # set ids associated to each sample
+        draws <- lapply(
+            draws,
+            function(x) {
+                sample_single(
+                    ids = longdata$ids,
+                    beta = x$beta,
+                    sigma = x$sigma,
+                    failed = FALSE
+                )
+            }
         )
     } else {
         draws <- extract_draws_count(fit, method$n_samples)
@@ -425,7 +438,8 @@ extract_draws <- function(stan_fit, n_samples) {
 #' A named vector containing the ESS for each parameter of the model.
 #'
 get_ESS <- function(stan_fit) {
-    return(rstan::summary(stan_fit, pars = c("beta", "Sigma"))$summary[,
+    # TODO: Have a better way to select correct parameters
+    return(rstan::summary(stan_fit, pars = stan_fit@model_pars[1:2])$summary[,
         "n_eff"
     ])
 }

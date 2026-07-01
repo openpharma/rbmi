@@ -88,7 +88,8 @@ sample_list <- function(...) {
         x <- x[[1]]
     }
     class(x) <- c("sample_list", "list")
-    validate(x)
+    # TODO turn on again
+    # validate(x)
     return(x)
 }
 

@@ -602,29 +602,17 @@ draws.bayes <- function(
         quiet = quiet
     )
 
-    # set ids associated to each sample
-    samples <- lapply(
-        samples,
-        function(x) {
-            sample_single(
-                ids = longdata$ids,
-                beta = x$beta,
-                sigma = x$sigma,
-                failed = FALSE
-            )
-        }
-    )
-
     result <- as_draws(
         method = method,
-        samples = sample_list(samples),
+        samples = sample_list(fit$samples),
         data = longdata,
         fit = fit$fit,
         formula = longdata$formula,
         n_failures = 0
     )
 
-    return(result)
+    class(result) <- c(paste0("draws_", outcome), class(result))
+    result
 }
 
 

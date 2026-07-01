@@ -223,3 +223,25 @@ get_stan_model_count <- function() {
 
     model
 }
+
+
+#' Extract draws from a Stan fit object for count outcome
+#'
+#' TODO complete docs
+extract_draws_count <- function(stan_fit, n_samples) {
+    assertthat::assert_that(assertthat::is.number(n_samples))
+
+    pars <- rstan::extract(stan_fit, pars = c("beta", "phi"))
+    names(pars) <- c("beta", "phi")
+
+    pars$beta <- split_dim(pars$beta, 1)
+    pars$beta <- lapply(pars$beta, as.vector)
+    assertthat::assert_that(length(pars$beta) >= n_samples)
+    pars$beta <- pars$beta[seq_len(n_samples)]
+
+    pars$phi <- as.list(pars$phi)
+    assertthat::assert_that(length(pars$phi) >= n_samples)
+    pars$phi <- pars$phi[seq_len(n_samples)]
+
+    return(pars)
+}
