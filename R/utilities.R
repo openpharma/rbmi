@@ -20,6 +20,8 @@ as_class <- function(x, cls) {
 #'
 #' @param x object to add a class to.
 #' @param cls the class to be added.
+#' @return `x` with `cls` appended after its existing class attribute.
+#' @keywords internal
 #' @export
 add_class <- function(x, cls) {
     class(x) <- c(class(x), cls)
