@@ -4,6 +4,8 @@
 #'
 #' @param x object to set the class of.
 #' @param cls the class to be set.
+#' @return `x` with its class attribute set to `cls`.
+#' @keywords internal
 #' @export
 as_class <- function(x, cls) {
     class(x) <- cls
