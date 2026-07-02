@@ -54,6 +54,12 @@
 #' @seealso [analyse()]
 #' @seealso [stats::lm()]
 #' @seealso [set_vars()]
+#' @return
+#' A named list with one set of entries per visit. For each visit the list
+#' contains the estimated treatment effect (`trt_<visit>`) and the least square
+#' means for the reference and alternative groups (`lsm_ref_<visit>` and
+#' `lsm_alt_<visit>`). Each of these elements is itself a list holding the
+#' estimate (`est`), standard error (`se`) and degrees of freedom (`df`).
 #' @export
 ancova <- function(
     data,
