@@ -804,6 +804,10 @@ jackknife_se <- function(pars_jackknife) {
 #' @rdname mcse_internal
 #' @param jackknife_results the list of jackknife results of all parameters, in the same format as
 #'   the pooled parameter estimates.
+#' @return
+#' `mcse_combine_all_pars()` returns a list mirroring the structure of the
+#' pooled parameters in which each statistic is replaced by its jackknife
+#' Monte Carlo standard error.
 #' @export
 mcse_combine_all_pars <- function(jackknife_results) {
     assert_that(
