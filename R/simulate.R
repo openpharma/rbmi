@@ -148,6 +148,10 @@ simulate_test_data <- function(
 
 
 #' @rdname simulate_test_data
+#' @return
+#' `as_vcov()` returns a symmetric positive-definite covariance matrix (a numeric
+#' matrix) constructed from the vector of standard deviations `sd` and the
+#' correlation entries `cor`.
 #' @export
 as_vcov <- function(sd, cor) {
     x <- diag(rep(1, length(sd)))
