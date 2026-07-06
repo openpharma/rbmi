@@ -55,6 +55,20 @@
 #' Maximum likelihood multiple imputation: Faster imputations and consistent standard
 #' errors without posterior draws. 2021.
 
+#' @return
+#' A `pool` object; a list of class `"pool"` containing the pooled analysis
+#' results with the following elements:
+#' - `pars`: a named list with one entry per parameter, each itself a list
+#'   containing the pooled point estimate (`est`), confidence interval (`ci`),
+#'   standard error (`se`) and p-value (`pvalue`).
+#' - `conf.level`: the confidence level used for the confidence intervals.
+#' - `alternative`: the alternative hypothesis used to derive the p-values.
+#' - `N`: the number of analysis results that were combined.
+#' - `method`: the pooling method that was used.
+#'
+#' The `as.data.frame()` method returns a `data.frame` with one row per
+#' parameter (columns `parameter`, `est`, `se`, `lci`, `uci`, `pval`) and the
+#' `print()` method returns its input invisibly.
 #' @export
 pool <- function(
     results,
