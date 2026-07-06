@@ -221,6 +221,12 @@ strategy_LMCF <- function(pars_group, pars_ref, index_mar) {
 #' @param ... User defined methods to be added to the return list. Input must
 #' be a function.
 #'
+#' @return
+#' A named list of imputation strategy functions. By default this contains the
+#' built-in strategies `JR`, `CR`, `CIR`, `LMCF` and `MAR`, together with (or
+#' overwritten by) any user-defined strategies supplied via `...`. Each element
+#' is a function taking `pars_group`, `pars_ref` and `index_mar`.
+#'
 #' @examples
 #' \dontrun{
 #' getStrategies()
