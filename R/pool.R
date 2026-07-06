@@ -830,6 +830,11 @@ mcse_combine_all_pars <- function(jackknife_results) {
     mcse_results
 }
 
+#' @return
+#' `mcse()` returns an `mcse` object; a list of class `"mcse"` containing `pars`
+#' (the Monte Carlo standard errors of the pooled estimates, in the same
+#' structure as the `pars` element of a `pool` object) and `N` (the number of
+#' results combined).
 #' @rdname pool
 #' @export
 mcse <- function(x, results) {
