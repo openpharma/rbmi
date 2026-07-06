@@ -153,7 +153,14 @@ get_pool_components <- function(x) {
 #' `analyse` object created by [analyse()]).
 #' @param D numeric representing the number of imputations between each bootstrap sample in the BMLMI method.
 #'
+#' @return
+#' A list containing the pooled results for a single parameter with elements
+#' `est` (point estimate), `ci` (confidence interval), `se` (standard error)
+#' and `pvalue` (p-value). The specific computation is determined by the class
+#' of `results` via S3 dispatch.
+#'
 #' @name pool_internal
+#' @keywords internal
 #' @export
 pool_internal <- function(results, conf.level, alternative, type, D) {
     UseMethod("pool_internal")
