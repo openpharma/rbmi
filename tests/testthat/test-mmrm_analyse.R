@@ -5,8 +5,6 @@ suppressPackageStartupMessages({
 })
 
 
-# ---- helpers ----------------------------------------------------------------
-
 make_mmrm_data <- function(n = 80, n_arms = 2, seed = 101) {
     set.seed(seed)
     sigma <- as_vcov(c(3, 4, 5), c(0.4, 0.5, 0.3))
@@ -35,8 +33,6 @@ make_mmrm_data <- function(n = 80, n_arms = 2, seed = 101) {
         )
 }
 
-
-# ---- output structure -------------------------------------------------------
 
 test_that("mmrm_analyse returns correct names for 2-arm case", {
     dat  <- make_mmrm_data(n_arms = 2)
@@ -103,8 +99,6 @@ test_that("each element of mmrm_analyse result has est, se, df", {
 })
 
 
-# ---- var entries ------------------------------------------------------------
-
 test_that("var_* est matches VarCorr diagonal", {
     dat  <- make_mmrm_data(n_arms = 2)
     vars <- set_vars(
@@ -117,7 +111,6 @@ test_that("var_* est matches VarCorr diagonal", {
 
     res <- mmrm_analyse(dat, vars)
 
-    # Refit manually to get VarCorr
     fit <- mmrm::mmrm(
         outcome ~ group + visit + age + us(visit | id),
         data = dat
@@ -134,8 +127,6 @@ test_that("var_* est matches VarCorr diagonal", {
     }
 })
 
-
-# ---- trt estimates ----------------------------------------------------------
 
 test_that("trt_* est matches emmeans contrast", {
     dat  <- make_mmrm_data(n_arms = 2)
@@ -167,8 +158,6 @@ test_that("trt_* est matches emmeans contrast", {
     }
 })
 
-
-# ---- visit subsetting -------------------------------------------------------
 
 test_that("visits argument restricts output to requested visits", {
     dat  <- make_mmrm_data(n_arms = 2)
@@ -202,8 +191,6 @@ test_that("invalid visit raises an error", {
 })
 
 
-# ---- cov_struct argument ----------------------------------------------------
-
 test_that("cov_struct argument is passed through to mmrm", {
     dat  <- make_mmrm_data(n_arms = 2)
     vars <- set_vars(
@@ -213,14 +200,11 @@ test_that("cov_struct argument is passed through to mmrm", {
         visit   = "visit"
     )
 
-    # ar1 should fit without error and return the same structure
     res <- mmrm_analyse(dat, vars, cov_struct = "ar1")
     expect_true(length(res) > 0)
     expect_true(all(c("est", "se", "df") %in% names(res[[1]])))
 })
 
-
-# ---- integration with analyse() / pool() ------------------------------------
 
 test_that("mmrm_analyse integrates with analyse() and pool() for approxbayes", {
     skip_if_not(is_core_test())
@@ -273,7 +257,6 @@ test_that("mmrm_analyse integrates with analyse() and pool() for approxbayes", {
     expect_true(inherits(pool_obj, "pool"))
     expect_true(length(pool_obj$pars) > 0)
 
-    # All parameter names should follow the arm-labelled convention
     par_names <- names(pool_obj$pars)
     expect_true(all(grepl("^(var|trt|lsm)_", par_names)))
 })

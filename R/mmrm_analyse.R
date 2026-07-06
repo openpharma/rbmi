@@ -171,10 +171,6 @@ mmrm_analyse_single <- function(fit, visit_level, visit, group, weights) {
     cont_res <- emmeans::contrast(em_res, "trt.vs.ctrl", ref = ref_level)
     cont_df  <- as.data.frame(cont_res)
 
-    # df source: contrast df (rounded), stable across imputations.
-    # lsm Satterthwaite df vary per imputation and break pool_internal.rubin.
-    # Map each arm to its contrast df: alt arms use their own contrast row;
-    # ref arm uses the first alt arm's contrast df (same visit, same model).
     get_cont_row <- function(arm) {
         cont_df[cont_df[["contrast"]] == paste(arm, "-", ref_level), , drop = FALSE]
     }
@@ -193,7 +189,6 @@ mmrm_analyse_single <- function(fit, visit_level, visit, group, weights) {
     })
     names(all_trt) <- paste0("trt_", alt_levels)
 
-    # var entries: residual variance estimate; se/df from the corresponding contrast
     all_var <- lapply(alt_levels, function(arm) {
         row <- get_cont_row(arm)
         list(est = var_est, se = row[["SE"]], df = round(row[["df"]]))
