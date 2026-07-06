@@ -784,6 +784,9 @@ mcse_jackknife <- function(results, omit_index, conf.level, alternative) {
 }
 
 #' @param pars_jackknife the numeric vector of the jackknife results.
+#' @return
+#' `jackknife_se()` returns the numeric scalar jackknife standard error
+#' computed from `pars_jackknife`.
 #' @rdname mcse_internal
 #' @export
 jackknife_se <- function(pars_jackknife) {
