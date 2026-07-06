@@ -749,9 +749,14 @@ print.pool <- function(x, ...) {
 #' These functions are used by [mcse()] to compute the Monte Carlo standard error using the Jackknife approach.
 #'
 #' @name mcse_internal
+#' @keywords internal
 
 #' @inheritParams pool
 #' @param omit_index the index of the result to omit.
+#' @return
+#' `mcse_jackknife()` returns the pooled parameter estimates (in the same
+#' structure as the `pars` element of a [pool()] object) recomputed with the
+#' `omit_index`-th result left out.
 #' @rdname mcse_internal
 #' @export
 mcse_jackknife <- function(results, omit_index, conf.level, alternative) {
