@@ -393,6 +393,11 @@ sort_by <- function(df, vars = NULL, decreasing = FALSE) {
 #'
 #' }
 #'
+#' @return
+#' A `vars` object; a named list of class `ivars` recording the names of the key
+#' variables (`subjid`, `visit`, `outcome`, `group`, `covariates`, `strata` and
+#' `strategy`) used throughout `rbmi` by functions such as [draws()], [ancova()]
+#' and [analyse()].
 #' @export
 set_vars <- function(
     subjid = "subjid",
