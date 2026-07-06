@@ -103,6 +103,13 @@ locf <- function(x) {
 #'     order = "visit"
 #' )
 #' }
+#' @return
+#' A `data.frame` (of the same class as the input `data`). `expand()` returns
+#' `data` with all missing combinations of the expanded variables inserted as
+#' new rows, with the expanded variables cast to factors. `fill_locf()` returns
+#' `data` with the named `vars` imputed by last observation carried forward
+#' (in the original row order). `expand_locf()` returns the result of applying
+#' `fill_locf()` to the output of `expand()`.
 #' @export
 expand <- function(data, ...) {
     vars <- list(...)
