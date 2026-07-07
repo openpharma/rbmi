@@ -25,7 +25,7 @@ control_bayes(
 
 \item{seed}{a numeric, the seed used to initialise the MCMC sampler.}
 
-\item{...}{additional arguments to be passed to \code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}}.}
+\item{...}{additional arguments to be passed to \code{\link[rstan:sampling]{rstan::sampling()}}.}
 }
 \value{
 A named list of control parameters (\code{warmup}, \code{thin}, \code{chains}, \code{init},
@@ -47,7 +47,7 @@ seed.
 \item The samples are split across the chains, such that each chain produces \code{n_samples / chains}
 (rounded up) samples. The total number of samples that will be returned across all chains is \code{n_samples}
 as specified in \code{\link[=method_bayes]{method_bayes()}}.
-\item Therefore, the additional parameters passed to \code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}} must not contain
+\item Therefore, the additional parameters passed to \code{\link[rstan:sampling]{rstan::sampling()}} must not contain
 \code{n_samples} or \code{iter}. Instead, the number of samples must only be provided directly via the
 \code{n_samples} argument of \code{\link[=method_bayes]{method_bayes()}}. Similarly, the \code{refresh} argument is also not allowed
 here, instead use the \code{quiet} argument directly in \code{\link[=draws]{draws()}}.

@@ -121,7 +121,7 @@ argument. Currently supported structures include:
 \item Heterogeneous Toeplitz (\code{"toeph"})
 }
 
-For full details please see \code{\link[mmrm:covariance_types]{mmrm::cov_types()}}.
+For full details please see \code{\link[mmrm:cov_types]{mmrm::cov_types()}}.
 
 In the case of \code{method_condmean(type = "bootstrap")}, \code{method_approxbayes()} and \code{method_bmlmi()} repeated
 bootstrap samples of the original dataset are taken with an MMRM fitted to each sample.
