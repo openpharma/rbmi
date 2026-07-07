@@ -3,9 +3,15 @@
 \name{Stack}
 \alias{Stack}
 \title{R6 Class for a FIFO stack}
+\value{
+A \code{Stack} generator object (an \link[R6:R6Class]{R6::R6Class} generator). Call \code{Stack$new()}
+to create an instance, which exposes \code{add()} and \code{pop()} methods for storing
+and retrieving elements in first-in-first-out order.
+}
 \description{
 This is a simple stack object offering add / pop functionality
 }
+\keyword{internal}
 \section{Public fields}{
 \if{html}{\out{<div class="r6-fields">}}
 \describe{
