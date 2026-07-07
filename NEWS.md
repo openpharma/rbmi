@@ -1,5 +1,8 @@
 # rbmi (development version)
 
+## New Features
+* Added `mmrm_analyse()` as a built-in mmrm analysis function for use with `analyse()`.
+
 ## Bug Fixes
 * Added en-GB spell-check and a corresponding test to the package
 * Fixed numerous spelling errors and standardised nomenclature for missing not
