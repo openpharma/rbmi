@@ -12,6 +12,7 @@
 #' fails; otherwise returns invisibly (the exact value depends on the method,
 #' typically `invisible(TRUE)` or `invisible(NULL)`).
 #'
+#' @keywords internal
 #' @export
 validate <- function(x, ...) {
     UseMethod("validate")
