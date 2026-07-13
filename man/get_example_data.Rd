@@ -47,6 +47,12 @@ This is compatible with a copy increments in reference (CIR) assumption.
 of 50\% leading to missing outcome data from that time point onward.
 }
 }
+\examples{
+set.seed(1974)
+dat <- get_example_data()
+head(dat)
+
+}
 \seealso{
 \code{\link[=simulate_data]{simulate_data()}}, \code{\link[=set_simul_pars]{set_simul_pars()}}
 }
