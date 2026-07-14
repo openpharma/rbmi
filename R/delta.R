@@ -298,7 +298,7 @@ apply_delta <- function(data, delta = NULL, group = NULL, outcome = NULL) {
     assert_that(
         is.data.frame(data),
         is.data.frame(delta) | is.null(delta),
-        msg = "`dat` and `delta` must be data.frames"
+        msg = "`data` and `delta` must be data.frames (`delta` may be NULL)"
     )
 
     assert_that(
