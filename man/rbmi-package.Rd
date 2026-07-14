@@ -36,6 +36,7 @@ Useful links:
 
 Authors:
 \itemize{
+  \item Lukas A. Widmer \email{lukas_andreas.widmer@novartis.com} (\href{https://orcid.org/0000-0003-1471-3493}{ORCID})
   \item Craig Gower-Page \email{craig.gower-page@novartis.com}
   \item Isaac Gravestock \email{isaac.gravestock@roche.com} (\href{https://orcid.org/0000-0003-0283-2065}{ORCID})
   \item Alessandro Noci \email{alessandro.noci@roche.com}
