@@ -9,6 +9,8 @@
   for nomenclature consistency.
 * Vignette on retrieved dropout methods is now correctly embedded.
 * Improve CI/CD scripts to reliably fail GitHub CI/CD in case of failing tests.
+* Fix error message for `mu$visit` in `simulate_test_data()` to refer to `visit`
+  instead of `trt` (#578)
 
 # rbmi 1.6.0
 
