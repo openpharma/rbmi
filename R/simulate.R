@@ -83,7 +83,7 @@ simulate_test_data <- function(
 
     assert_that(
         length(mu$visit) %in% c(1, nv),
-        msg = sprintf("`mu$trt` must be of length 1 or %s", nv)
+        msg = sprintf("`mu$visit` must be of length 1 or %s", nv)
     )
 
     pt_ids <- sprintf(paste0("P%0", num_dig, "d"), seq_len(n))
