@@ -450,16 +450,17 @@ We expect that conditional mean imputation is also valid if a general MMRM model
 </div>
 <div id="is-ancova-on-more-than-2-treatment-groups-supported" class="section level2" number="1.7">
 <h2><span class="header-section-number">1.7</span> Is ANCOVA on more than 2 treatment groups supported?</h2>
-<p>This can be implemented by using the <code>ancova_m_groups()</code> function instead of the default <code>ancova()</code> function e.g.</p>
+<p>Yes. The default <code>ancova()</code> function supports two or more treatment groups directly, so no
+special handling is required:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>anaObj <span class="ot">&lt;-</span> rbmi<span class="sc">::</span><span class="fu">analyse</span>(</span>
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>    imputeObj,</span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>    ancova_m_groups,</span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>    <span class="at">vars =</span> vars</span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a> )</span></code></pre></div>
-<p>Please note that the object created by this function uses a different naming convention to
-that of the <code>ancova()</code> function which means any manual extraction code looking for specific
-names such as <code>&quot;lsm_alt&quot;</code> will need to be updated. Please see the documentation for <code>ancova_m_groups()</code>
-for more details.</p>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>    <span class="at">vars =</span> vars</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a> )</span></code></pre></div>
+<p>For more than two groups the <code>ref</code> / <code>alt</code> naming scheme is extended with <code>alt2</code>, <code>alt3</code>,
+etc. (based on the factor levels of <code>vars$group</code>). By default a treatment effect is
+estimated for every non-reference group versus the reference group; the set of contrasts
+can be customised via the <code>group_contrasts</code> argument of <code>set_vars()</code>. Please see the
+documentation for <code>ancova()</code> and <code>set_vars()</code> for more details.</p>
 <p><br></p>
 <div id="refs" class="references csl-bib-body hanging-indent">
 <div id="ref-White2005" class="csl-entry">

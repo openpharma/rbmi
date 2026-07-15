@@ -593,16 +593,15 @@ function which determines the names of the key variables within the data and the
 (in addition to the treatment group) for which the analysis model will be adjusted.</p>
 <p>Please also note that the names of the analysis estimates contain <code>ref</code> and <code>alt</code> to refer to the two treatment arms. In particular <code>ref</code> refers to the first factor level of <code>vars$group</code> which does not necessarily
 coincide with the control arm. In this example, since <code>levels(dat[[vars$group]]) = c(&quot;DRUG&quot;, PLACEBO</code>), the results associated with <code>ref</code> correspond to the intervention arm, while those associated with <code>alt</code> correspond to the control arm.</p>
-<p>Note that as of verion 1.5.0 rbmi provides the <code>ancova_m_groups()</code> function; this is an extension to
-the <code>ancova()</code> function which supports the analysis of more than 2 treatment arms.
-The <code>ancova()</code> function is left as the default for backwards compatibility as <code>ancova_m_groups()</code>
-uses a different naming structure. That is, instead of <code>&quot;ref&quot;</code> and “<code>alt</code>” the values <code>&quot;L0&quot;</code>, <code>&quot;L1&quot;</code>, <code>&quot;L2&quot;</code>, …
-are used to represent the different arms where <code>&quot;L0&quot;</code> is the reference level and <code>&quot;L1&quot;</code> is the first
-offset group (e.g. the second factor level). That is the resulting list will contain entries such as:
-<code>lsm_L1_day40</code> which contains the least square mean for the second factor level at the <code>&quot;day40&quot;</code>
-visit. For treatment effects it will contain entries such as <code>trt_L1_L0_day40</code> which contains
-the treatment effect for the second factor level compared to the reference level at the <code>&quot;day40&quot;</code>
-visit. See the documentation for <code>ancova_m_groups()</code> for more details.</p>
+<p>Note that <code>ancova()</code> supports the analysis of two or more treatment arms. For more than
+two arms the <code>ref</code> / <code>alt</code> naming scheme is extended so that <code>alt2</code>, <code>alt3</code>, … represent
+the third, fourth, … factor levels; e.g. the resulting list will contain entries such as
+<code>lsm_alt2_day40</code> (the least square mean for the third factor level at the <code>&quot;day40&quot;</code> visit)
+and, for treatment effects, <code>trt_alt2_day40</code> (the third factor level compared to the
+reference level at the <code>&quot;day40&quot;</code> visit). By default a treatment effect is estimated for
+every non-reference group versus the reference group; a bespoke set of contrasts can be
+requested via the <code>group_contrasts</code> argument of <code>set_vars()</code>. See the documentation for
+<code>ancova()</code> and <code>set_vars()</code> for more details.</p>
 <p>Additionally, we can use the <code>delta</code> argument of <code>analyse()</code> to perform a delta adjustments of the imputed datasets prior to the analysis.
 In brief, this is implemented by specifying a data.frame that contains the amount
 of adjustment to be added to each longitudinal outcome for each subject and visit, i.e. 
@@ -713,19 +712,19 @@ in the original call to <code>draws()</code>:</p>
 <span id="cb9-32"><a href="#cb9-32" tabindex="-1"></a><span class="co">#&gt;   --------------------------------------------------</span></span></code></pre></div>
 <p>The table of values shown in the print message for <code>poolObj</code> can also be extracted using the <code>as.data.frame()</code> function:</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">as.data.frame</span>(poolObj)</span>
-<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co">#&gt;    parameter         est        se         lci        uci         pval</span></span>
-<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">#&gt; 1      trt_4 -0.09180645 0.6826279 -1.43949684  1.2558839 8.931772e-01</span></span>
-<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">#&gt; 2  lsm_ref_4 -1.61581996 0.4862316 -2.57577141 -0.6558685 1.093708e-03</span></span>
-<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt; 3  lsm_alt_4 -1.70762640 0.4749573 -2.64531931 -0.7699335 4.262148e-04</span></span>
-<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt; 4      trt_5  1.33036878 0.9239311 -0.49439426  3.1551318 1.518620e-01</span></span>
-<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">#&gt; 5  lsm_ref_5 -4.15040536 0.6590542 -5.45206801 -2.8487427 2.847887e-09</span></span>
-<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt; 6  lsm_alt_5 -2.82003658 0.6464215 -4.09683850 -1.5432347 2.319168e-05</span></span>
-<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt; 7      trt_6  1.95324204 0.9976499 -0.01761942  3.9241035 5.205766e-02</span></span>
-<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt; 8  lsm_ref_6 -6.08995154 0.7153681 -7.50333618 -4.6765669 1.545921e-14</span></span>
-<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co">#&gt; 9  lsm_alt_6 -4.13670950 0.7007487 -5.52128259 -2.7521364 2.275505e-08</span></span>
-<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co">#&gt; 10     trt_7  2.16554484 1.1184001 -0.04484704  4.3759367 5.476906e-02</span></span>
-<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="co">#&gt; 11 lsm_ref_7 -6.97430508 0.8210463 -8.59804208 -5.3505681 3.164128e-14</span></span>
-<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="co">#&gt; 12 lsm_alt_7 -4.80876024 0.7805370 -6.35149800 -3.2660225 6.806194e-09</span></span></code></pre></div>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co">#&gt;    parameter         est        se         lci        uci         pval estimate_type   group group_level_1 group_level_2 visit</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">#&gt; 1      trt_4 -0.09180645 0.6826279 -1.43949684  1.2558839 8.931772e-01      contrast THERAPY       PLACEBO          DRUG     4</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">#&gt; 2  lsm_ref_4 -1.61581996 0.4862316 -2.57577141 -0.6558685 1.093708e-03           lsm THERAPY          DRUG          &lt;NA&gt;     4</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt; 3  lsm_alt_4 -1.70762640 0.4749573 -2.64531931 -0.7699335 4.262148e-04           lsm THERAPY       PLACEBO          &lt;NA&gt;     4</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt; 4      trt_5  1.33036878 0.9239311 -0.49439426  3.1551318 1.518620e-01      contrast THERAPY       PLACEBO          DRUG     5</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">#&gt; 5  lsm_ref_5 -4.15040536 0.6590542 -5.45206801 -2.8487427 2.847887e-09           lsm THERAPY          DRUG          &lt;NA&gt;     5</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt; 6  lsm_alt_5 -2.82003658 0.6464215 -4.09683850 -1.5432347 2.319168e-05           lsm THERAPY       PLACEBO          &lt;NA&gt;     5</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt; 7      trt_6  1.95324204 0.9976499 -0.01761942  3.9241035 5.205766e-02      contrast THERAPY       PLACEBO          DRUG     6</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt; 8  lsm_ref_6 -6.08995154 0.7153681 -7.50333618 -4.6765669 1.545921e-14           lsm THERAPY          DRUG          &lt;NA&gt;     6</span></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co">#&gt; 9  lsm_alt_6 -4.13670950 0.7007487 -5.52128259 -2.7521364 2.275505e-08           lsm THERAPY       PLACEBO          &lt;NA&gt;     6</span></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co">#&gt; 10     trt_7  2.16554484 1.1184001 -0.04484704  4.3759367 5.476906e-02      contrast THERAPY       PLACEBO          DRUG     7</span></span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="co">#&gt; 11 lsm_ref_7 -6.97430508 0.8210463 -8.59804208 -5.3505681 3.164128e-14           lsm THERAPY          DRUG          &lt;NA&gt;     7</span></span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="co">#&gt; 12 lsm_alt_7 -4.80876024 0.7805370 -6.35149800 -3.2660225 6.806194e-09           lsm THERAPY       PLACEBO          &lt;NA&gt;     7</span></span></code></pre></div>
 <p>These outputs gives an estimated difference of
 2.166 (95% CI -0.045 to 4.376)
 between the two groups at the last visit with an associated p-value of 0.055.</p>
