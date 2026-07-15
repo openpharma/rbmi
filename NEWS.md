@@ -9,6 +9,8 @@
   for nomenclature consistency.
 * Vignette on retrieved dropout methods is now correctly embedded.
 * Improve CI/CD scripts to reliably fail GitHub CI/CD in case of failing tests.
+* Fixed a bug where each non-ignorable Stan warning from the Bayesian sampler
+  was reported multiple times instead of once. (#572)
 
 # rbmi 1.6.0
 
