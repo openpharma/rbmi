@@ -1,5 +1,18 @@
 # rbmi (development version)
 
+## New Features
+* `ancova()` now supports the analysis of two or more treatment groups. For more than two
+  groups the `ref` / `alt` naming scheme is extended with `alt2`, `alt3`, etc. based on the
+  factor levels of `vars$group`; the two-group output is unchanged (`trt`, `lsm_ref`,
+  `lsm_alt`) for backwards compatibility. (#520)
+* `set_vars()` gained a `group_contrasts` argument allowing users to specify a bespoke set
+  of treatment-group contrasts for `ancova()`. By default a contrast of each non-reference
+  group versus the reference group is estimated. (#520)
+* The `data.frame` produced by `as.data.frame()` / `pool()` now includes explicit
+  `estimate_type`, `group`, `group_level_1`, `group_level_2` and `visit` columns when the
+  analysis was performed with `ancova()`. The existing `parameter` column is retained for
+  backwards compatibility. (#520)
+
 ## Bug Fixes
 * Added en-GB spell-check and a corresponding test to the package
 * Fixed numerous spelling errors and standardised nomenclature for missing not
@@ -36,7 +49,6 @@
 
 * All covariance structures are now also supported for Bayesian multiple imputation: `method_bayes()` gained additional `covariance` and `prior_cov` arguments to allow users to specify the covariance structure and prior for the Bayesian imputation model. Please see the updated statistical specifications vignette for details. (#501, #518)
 * New function `mcse()` to calculate the Monte Carlo standard error for pooled estimates from (approximate) Bayesian imputation. (#493)
-* Added support for multi-group ANCOVA analysis with `ancova_m_groups()` function. This enables analysis of covariance with more than two treatment groups, where each non-reference group is compared against the reference group. (#520)
 
 
 ## Bug Fixes

@@ -11,7 +11,8 @@ set_vars(
   group = "group",
   covariates = character(0),
   strata = group,
-  strategy = "strategy"
+  strategy = "strategy",
+  group_contrasts = NULL
 )
 }
 \arguments{
@@ -30,6 +31,11 @@ See details.}
 sampling. See details.}
 
 \item{strategy}{The name of the "strategy" variable. A length 1 character vector.}
+
+\item{group_contrasts}{Optional specification of the treatment-group contrasts to be
+estimated by \code{\link[=ancova]{ancova()}}. Either \code{NULL} (the default) or a list of length-2 character
+vectors. Each element is of the form \code{c(minuend, subtrahend)} giving the two levels of
+\code{group} to be contrasted (i.e. \code{minuend - subtrahend}). See details.}
 }
 \description{
 This function is used to define the names of key variables within the \code{data.frame}'s
@@ -41,6 +47,13 @@ which variables should be included in the imputation and analysis models respect
 to include interaction terms these need to be manually specified i.e.
 \code{covariates = c("group*visit", "age*sex")}. Please note that the use of the \code{\link[=I]{I()}} function to
 inhibit the interpretation/conversion of objects is not supported.
+
+The \code{group_contrasts} argument is only used by \code{\link[=ancova]{ancova()}}. If \code{NULL} (default) a
+treatment effect is estimated for every non-reference group versus the reference group
+(the first factor level of \code{group}). Alternatively a bespoke set of contrasts can be
+requested, e.g. \code{group_contrasts = list(c("A", "Placebo"), c("B", "Placebo"))} requests
+the contrasts \code{A - Placebo} and \code{B - Placebo}. See \code{\link[=ancova]{ancova()}} for the resulting naming
+scheme.
 
 Currently \code{strata} is only used by \code{\link[=draws]{draws()}} in combination with \code{method_condmean(type = "bootstrap")}
 and \code{method_approxbayes()} in order to allow for the specification of stratified bootstrap sampling.

@@ -128,19 +128,20 @@ anaObj <- rbmi::analyse(
 
 ## Is ANCOVA on more than 2 treatment groups supported?
 
-This can be implemented by using the `ancova_m_groups()` function instead of the default `ancova()` function e.g.
+Yes. The default `ancova()` function supports two or more treatment groups directly, so no
+special handling is required:
 
 ```r
 anaObj <- rbmi::analyse(
     imputeObj,
-    ancova_m_groups,
     vars = vars
  )
 ```
 
-Please note that the object created by this function uses a different naming convention to
-that of the `ancova()` function which means any manual extraction code looking for specific
-names such as `"lsm_alt"` will need to be updated. Please see the documentation for `ancova_m_groups()`
-for more details.
+For more than two groups the `ref` / `alt` naming scheme is extended with `alt2`, `alt3`,
+etc. (based on the factor levels of `vars$group`). By default a treatment effect is
+estimated for every non-reference group versus the reference group; the set of contrasts
+can be customised via the `group_contrasts` argument of `set_vars()`. Please see the
+documentation for `ancova()` and `set_vars()` for more details.
 
 <br>

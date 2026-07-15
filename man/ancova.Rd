@@ -28,8 +28,8 @@ Specifies the weighting strategy to be used when calculating the lsmeans.
 See the weighting section for more details.}
 }
 \description{
-Performs an analysis of covariance between two groups returning the estimated
-"treatment effect" (i.e. the contrast between the two treatment groups) and
+Performs an analysis of covariance between two or more treatment groups returning the
+estimated "treatment effect" (i.e. the contrast between treatment groups) and
 the least square means estimates in each group.
 }
 \details{
@@ -59,9 +59,23 @@ into a single list suffixed by the visit name, e.g.:
 )
 }\if{html}{\out{</div>}}
 
-Please note that \code{ref} refers to the first factor level of \code{vars$group} which does not necessarily
-coincide with the control arm. Analogously, \code{alt} refers to the second factor level of \code{vars$group}.
-\code{trt} refers to the model contrast translating the mean difference between the second level and first level.
+\code{ancova()} supports two or more treatment groups. The group levels are referred to
+via a fixed naming scheme derived from the factor levels of \code{vars$group}: \code{ref} is the
+first factor level, \code{alt} the second, \code{alt2} the third, \code{alt3} the fourth, and so on.
+Note that \code{ref} does not necessarily coincide with the control arm; it is simply the
+first factor level.
+
+The least square means for each group are returned as \code{lsm_ref}, \code{lsm_alt}, \code{lsm_alt2},
+etc. Treatment effects (model contrasts) are returned as \code{trt} for the \code{alt} vs \code{ref}
+comparison, \code{trt_alt2} for \code{alt2} vs \code{ref}, and so on. For the common case of two groups
+this reduces to the original \code{trt}, \code{lsm_ref} and \code{lsm_alt} naming, ensuring backwards
+compatibility.
+
+By default a treatment effect is calculated for every non-reference group versus the
+reference group. Alternatively, a bespoke set of contrasts can be requested via the
+\code{group_contrasts} argument of \code{\link[=set_vars]{set_vars()}}; see its documentation for details. When a
+contrast is between two non-reference groups it is named \verb{trt_<minuend>_<subtrahend>}
+using the corresponding \code{ref}/\code{alt} labels, e.g. \code{trt_alt2_alt} for \code{alt2} vs \code{alt}.
 
 If you want to include interaction terms in your model this can be done
 by providing them to the \code{covariates} argument of \code{\link[=set_vars]{set_vars()}}
@@ -120,8 +134,6 @@ for \code{weights = "counterfactual"}.
 }
 
 \seealso{
-\code{\link[=ancova_m_groups]{ancova_m_groups()}} for multi-group analysis
-
 \code{\link[=analyse]{analyse()}}
 
 \code{\link[stats:lm]{stats::lm()}}

@@ -355,6 +355,11 @@ sort_by <- function(df, vars = NULL, decreasing = FALSE) {
 #'
 #' @param strategy The name of the "strategy" variable. A length 1 character vector.
 #'
+#' @param group_contrasts Optional specification of the treatment-group contrasts to be
+#' estimated by [ancova()]. Either `NULL` (the default) or a list of length-2 character
+#' vectors. Each element is of the form `c(minuend, subtrahend)` giving the two levels of
+#' `group` to be contrasted (i.e. `minuend - subtrahend`). See details.
+#'
 #' @details
 #'
 #' In both [draws()] and [ancova()] the `covariates` argument can be specified to indicate
@@ -362,6 +367,13 @@ sort_by <- function(df, vars = NULL, decreasing = FALSE) {
 #' to include interaction terms these need to be manually specified i.e.
 #' `covariates = c("group*visit", "age*sex")`. Please note that the use of the [I()] function to
 #' inhibit the interpretation/conversion of objects is not supported.
+#'
+#' The `group_contrasts` argument is only used by [ancova()]. If `NULL` (default) a
+#' treatment effect is estimated for every non-reference group versus the reference group
+#' (the first factor level of `group`). Alternatively a bespoke set of contrasts can be
+#' requested, e.g. `group_contrasts = list(c("A", "Placebo"), c("B", "Placebo"))` requests
+#' the contrasts `A - Placebo` and `B - Placebo`. See [ancova()] for the resulting naming
+#' scheme.
 #'
 #' Currently `strata` is only used by [draws()] in combination with `method_condmean(type = "bootstrap")`
 #' and `method_approxbayes()` in order to allow for the specification of stratified bootstrap sampling.
@@ -397,7 +409,8 @@ set_vars <- function(
     group = "group",
     covariates = character(0),
     strata = group,
-    strategy = "strategy"
+    strategy = "strategy",
+    group_contrasts = NULL
 ) {
     x <- list(
         subjid = subjid,
@@ -406,7 +419,8 @@ set_vars <- function(
         group = group,
         covariates = covariates,
         strata = strata,
-        strategy = strategy
+        strategy = strategy,
+        group_contrasts = group_contrasts
     )
     class(x) <- c("ivars", "list")
     validate(x)
@@ -458,6 +472,25 @@ validate.ivars <- function(x, ...) {
         is.character(x$strata) | is.null(x$strata),
         msg = "`vars$strata` should be a character vector or NULL"
     )
+
+    assert_that(
+        is.null(x$group_contrasts) || is.list(x$group_contrasts),
+        msg = "`vars$group_contrasts` should be NULL or a list"
+    )
+    if (is.list(x$group_contrasts)) {
+        assert_that(
+            length(x$group_contrasts) >= 1,
+            all(vapply(
+                x$group_contrasts,
+                function(ct) is.character(ct) && length(ct) == 2,
+                logical(1)
+            )),
+            msg = paste(
+                "`vars$group_contrasts` should be a non-empty list of length-2",
+                "character vectors"
+            )
+        )
+    }
     return(invisible(TRUE))
 }
 

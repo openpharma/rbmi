@@ -89,10 +89,10 @@ method (\code{method = method_condmean()} in \code{\link[=draws]{draws()}}) reli
 a linear transformation of the outcomes.
 Thus care is required when applying alternative analysis functions in this setting.
 
-Note that as of verion 1.5.0 rbmi provides the \code{ancova_m_groups()} function; this is an extension to
-the \code{ancova()} function which supports the analysis of more than 2 treatment arms.
-The \code{ancova()} function is left as the default for backwards compatibility as \code{ancova_m_groups()}
-uses a different naming structure.
+Note that \code{\link[=ancova]{ancova()}} supports the analysis of two or more treatment arms; for more than
+two arms it extends the \code{ref} / \code{alt} naming scheme with \code{alt2}, \code{alt3}, etc. The set of
+treatment-group contrasts to estimate can be customised via the \code{group_contrasts}
+argument of \code{\link[=set_vars]{set_vars()}}. See \code{\link[=ancova]{ancova()}} for full details.
 
 The \code{delta} argument can be used to specify offsets to be applied
 to the outcome variable in the imputed datasets prior to the analysis.
