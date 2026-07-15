@@ -227,10 +227,10 @@ impute_internal <- function(
 
 
 #' Convert list of [imputation_list_single()] objects to an [imputation_list_df()] object
-#' (i.e. a list of [imputation_df()] objects's)
+#' (i.e. a list of [imputation_df()] objects)
 #'
 #' @param imputes a list of [imputation_list_single()] objects
-#' @param sample_ids A list with 1 element per required imputation_df. Each element
+#' @param sample_ids A list with 1 element per required `imputation_df`. Each element
 #' must contain a vector of "ID"'s which correspond to the [imputation_single()] ID's
 #' that are required for that dataset. The total number of ID's must by equal to the
 #' total number of rows within all of `imputes$imputations`
@@ -489,7 +489,7 @@ invert_indexes <- function(x) {
 #' Note that this function performs all of the required imputations for a subject at the
 #' same time. I.e. if a subject is included in samples  1,3,5,9 then all imputations (using
 #' sample-dependent imputation model parameters) are performed in one step in order to avoid
-#' having to look up a subjects's covariates and expanding them to a design matrix multiple times
+#' having to look up a subjects' covariates and expanding them to a design matrix multiple times
 #' (which would be more computationally expensive).
 #' The function also supports subject belonging to the same sample multiple times,
 #' i.e. 1,1,2,3,5,5, as will typically occur for bootstrapped datasets.

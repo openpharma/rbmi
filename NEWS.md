@@ -1,4 +1,36 @@
-# rbmi 1.4.9000
+# rbmi (development version)
+
+## Bug Fixes
+* Added en-GB spell-check and a corresponding test to the package
+* Fixed numerous spelling errors and standardised nomenclature for missing not
+  at random to `MNAR` (rather than a mix of `NMAR` and `MNAR`)
+* rbmi now uses the `lifecycle` package 
+* Deprecated `nmar.rm` argument of `longdata$get_data` in favour of `mnar.rm` 
+  for nomenclature consistency.
+* Vignette on retrieved dropout methods is now correctly embedded.
+* Improve CI/CD scripts to reliably fail GitHub CI/CD in case of failing tests.
+
+# rbmi 1.6.0
+
+* Stan programs are constructed in memory and respect the cache setting
+* Cache default directory location updated to be the local session (e.g. default cache won't persist across R sessions)
+* Bug fixes to caching hash to better detect when cache is stale
+* Rework of unit tests to have multiple tiers of tests which run under different scenarios
+* Illustrate how to set Stan seed in `control_bayes()` in the quickstart vignette
+
+# rbmi 1.5.2
+
+## Bug Fixes
+
+* Disable caching in tests on CRAN and reduce tests run on CRAN to conform to 10-minute limit
+
+# rbmi 1.5.1
+
+## Bug Fixes
+
+* Modify caching in tests to speed up testing on CRAN.
+
+# rbmi 1.5.0
 
 ## New Features
 
@@ -6,6 +38,11 @@
 * New function `mcse()` to calculate the Monte Carlo standard error for pooled estimates from (approximate) Bayesian imputation. (#493)
 * Added support for multi-group ANCOVA analysis with `ancova_m_groups()` function. This enables analysis of covariance with more than two treatment groups, where each non-reference group is compared against the reference group. (#520)
 
+
+## Bug Fixes
+
+* Fixed cluster used in parallel test and make sure tests clean up Stan files properly. (#523)
+* Small updates and fixes to documentation. (#504, #506, #498)
 
 # rbmi 1.4.1
 
@@ -49,20 +86,20 @@
     * Renamed `lsmeans(..., weights = "proportional")` to `lsmeans(..., weights = "counterfactual")`to more accurately reflect the weights used in the calculation.
     * Added `lsmeans(..., weights = "proportional_em")` which provides consistent results with `emmeans(..., weights = "proportional")`
     * `lsmeans(..., weights = "proportional")` has been left in the package for backwards compatibility and is an alias for `lsmeans(..., weights = "counterfactual")` but now gives
-    a message prompting users to use either "proptional_em" or "counterfactual" instead.
+    a message prompting users to use either "proportional_em" or "counterfactual" instead.
 * Added support for parallel processing in the `analyse()` function (#370)
-* Added documentation clarifying potential false-positive warnings from rstan (#288)
+* Added documentation clarifying potential false-positive warnings from `rstan` (#288)
 * Added support for all covariance structures supported by the `mmrm` package (#437)
 * Updated `rbmi` citation detail (#423 #425)
 
 ## Miscellaneous Bug Fixes
 
-* Stopped warning messages being accidentally supressed when changing the ICE type in `impute()` (#408)
+* Stopped warning messages being accidentally suppressed when changing the ICE type in `impute()` (#408)
 * Fixed equations not rendering properly in the `pkgdown` website (#433) 
 
 # rbmi 1.2.6
 
-* Updated unit tests to fix false-positive error on CRAN's testing servers
+* Updated unit tests to fix false-positive error on CRAN testing servers
 
 # rbmi 1.2.5
 
@@ -81,7 +118,7 @@
 
 # rbmi 1.1.4
 
-* Updated urls for references in vignettes
+* Updated URLs for references in vignettes
 * Fixed a bug where visit factor levels were re-constructed incorrectly in `delta_template()`
 * Fixed a bug where the wrong visit was displayed in the error message for when a specific visit doesn't have any data in `draws()`
 * Fixed a bug where the wrong input parameter was displayed in an error message in `simulate_data()`

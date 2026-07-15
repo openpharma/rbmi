@@ -9,9 +9,9 @@ prepare_prior_params(stan_data, covariance, prior_cov, mmrm_initial, same_cov)
 \arguments{
 \item{stan_data}{A list containing the Stan data, to which the prior parameters will be added.}
 
-\item{covariance}{A character string indicating the covariance structure (e.g., "us", "ar1").}
+\item{covariance}{A character string indicating the covariance structure (e.g., \code{"us"}, \code{"ar1"}).}
 
-\item{prior_cov}{A character string indicating the prior covariance type (e.g., "default", "lkj").}
+\item{prior_cov}{A character string indicating the prior covariance type (e.g., \code{"default"}, \code{"lkj"}).}
 
 \item{mmrm_initial}{A list containing the initial MMRM fit results, which includes
 the relevant frequentist estimates.}

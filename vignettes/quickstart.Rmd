@@ -38,8 +38,8 @@ The `rbmi` package consists of 4 core functions (plus several helper functions) 
 - `pool()` - combines the analysis results across imputed datasets into a single statistic
 
 
-This example in this vignette makes use of Bayesian multiuple imputation; this functionality
-requires the installation of the suggested package [rstan](https://CRAN.R-project.org/package=rstan).
+This example in this vignette makes use of Bayesian multiple imputation; this functionality
+requires the installation of the suggested package [`rstan`](https://CRAN.R-project.org/package=rstan).
 ```
 install.packages("rstan")
 ```
@@ -87,7 +87,7 @@ The three main inputs to the `draws()` function are:
 
 For the antidepressant trial data, the dataset `data_ice` is not provided. However, it can be derived because, in this dataset, 
 the subject's first visit affected by the ICE "study drug discontinuation" corresponds to the first terminal missing observation. 
-We first derive the dateset `data_ice` and then create 150 Bayesian posterior draws of the imputation model parameters. 
+We first derive the dataset `data_ice` and then create 150 Bayesian posterior draws of the imputation model parameters. 
 
 For this example, we assume that the imputation strategy after the ICE is Jump To Reference (JR) for all subjects
 and that 150 multiple imputed datasets using Bayesian posterior draws from the imputation model are to be created. 
@@ -128,6 +128,7 @@ method <- method_bayes(
     control = control_bayes(
         warmup = 200,
         thin = 5,
+        seed = 1821 # Seed to be used by Stan
     )
 )
 
@@ -226,8 +227,8 @@ Note that, similar to `draws()`, the `ancova()` function uses the `set_vars()`
 function which determines the names of the key variables within the data and the covariates 
 (in addition to the treatment group) for which the analysis model will be adjusted.
 
-Please also note that the names of the analysis estimates contain "ref" and "alt" to refer to the two treatment arms. In particular "ref" refers to the first factor level of `vars$group` which does not necessarily
-coincide with the control arm. In this example, since `levels(dat[[vars$group]]) = c("DRUG", PLACEBO`), the results associated with "ref" correspond to the intervention arm, while those associated with "alt" correspond to the control arm.
+Please also note that the names of the analysis estimates contain `ref` and `alt` to refer to the two treatment arms. In particular `ref` refers to the first factor level of `vars$group` which does not necessarily
+coincide with the control arm. In this example, since `levels(dat[[vars$group]]) = c("DRUG", PLACEBO`), the results associated with `ref` correspond to the intervention arm, while those associated with `alt` correspond to the control arm.
 
 Note that as of verion 1.5.0 rbmi provides the `ancova_m_groups()` function; this is an extension to
 the `ancova()` function which supports the analysis of more than 2 treatment arms.
@@ -370,6 +371,7 @@ method <- method_bayes(
     control = control_bayes(
         warmup = 200,
         thin = 5,
+        seed = 1821 # Seed to be used by Stan
     )
 )
 
@@ -427,8 +429,8 @@ anaObj_delta <- analyse(
 
 # Pool the results
 poolObj <- pool(
-    anaObj, 
-    conf.level = 0.95, 
+    anaObj,
+    conf.level = 0.95,
     alternative = "two.sided"
 )
 ```

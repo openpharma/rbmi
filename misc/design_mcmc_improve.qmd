@@ -11,7 +11,7 @@ This design doc proposes several updates to the `rbmi` package to improve the op
 
 ## Sampling controls
 
-Currently the `rstan` sampling details are controlled by a hard coded list in [`fit_mcmc`](https://github.com/insightsengineering/rbmi/blob/main/R/mcmc.R#L94). A few of the parameters are exposed in `method_bayes()` to the user.
+Currently the `rstan` sampling details are controlled by a hard coded list in [`fit_mcmc`](https://github.com/openpharma/rbmi/blob/main/R/mcmc.R#L94). A few of the parameters are exposed in `method_bayes()` to the user.
 
 The `sampling()` function is described [here](https://mc-stan.org/rstan/reference/stanmodel-method-sampling.html). In particular, the `control` argument allows to further specify the sampling behavior, which is documented [here](https://mc-stan.org/rstan/reference/stan.html).
 

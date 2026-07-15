@@ -4,7 +4,7 @@
 \alias{progressLogger}
 \title{R6 Class for printing current sampling progress}
 \description{
-Object is initalised with total number of iterations that are expected to occur.
+Object is initialised with total number of iterations that are expected to occur.
 User can then update the object with the \code{add} method to indicate how many more iterations
 have just occurred.
 Every time \code{step} * 100 \% of iterations have occurred a message is printed to the console.
@@ -41,7 +41,7 @@ acts as the denominator for calculating progress percentages}
 \if{html}{\out{<a id="method-progressLogger-new"></a>}}
 \if{latex}{\out{\hypertarget{method-progressLogger-new}{}}}
 \subsection{Method \code{new()}}{
-Create progressLogger object
+Create \code{progressLogger} object
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{progressLogger$new(n_max, quiet = FALSE, step = 0.1)}\if{html}{\out{</div>}}
 }

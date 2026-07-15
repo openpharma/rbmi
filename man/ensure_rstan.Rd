@@ -7,6 +7,6 @@
 ensure_rstan()
 }
 \description{
-Checks to see if rstan exists and if not throws a helpful error message
+Checks to see if \code{rstan} exists and if not throws a helpful error message
 }
 \keyword{internal}

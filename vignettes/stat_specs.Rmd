@@ -53,7 +53,7 @@ For the composite strategy, the ICE itself is included as a component of the end
 
 ## Alignment between the estimand and the estimation method 
 
-The ICH E9(R1) addendum distinguishes between ICEs and missing data (@iche9r1). Whereas ICEs such as treatment discontinuations reflect clinical practice, the amount of missing data can be minimized in the conduct of a clinical trial. However, there are many connections between missing data and ICEs. For example, it is often difficult to retain subjects in a clinical trial after treatment discontinuation and a subject's dropout from the trial leads to missing data. As another example, outcome values after ICEs addressed using a hypothetical strateg are not directly observable under the hypothetical scenario. Consequently, any observed outcome values after such ICEs are typically discarded and treated as missing data. 
+The ICH E9(R1) addendum distinguishes between ICEs and missing data (@iche9r1). Whereas ICEs such as treatment discontinuations reflect clinical practice, the amount of missing data can be minimized in the conduct of a clinical trial. However, there are many connections between missing data and ICEs. For example, it is often difficult to retain subjects in a clinical trial after treatment discontinuation and a subject's dropout from the trial leads to missing data. As another example, outcome values after ICEs addressed using a hypothetical strategy are not directly observable under the hypothetical scenario. Consequently, any observed outcome values after such ICEs are typically discarded and treated as missing data. 
 
 The addendum proposes that estimation methods to address the problem presented by missing data should be selected to align with the estimand. A recent overview of methods to align the estimator with the estimand is @Mallinckrodt2020. A short introduction on estimation methods for studies with longitudinal endpoints can also be found in @Wolbers2021. One prominent statistical method for this purpose is multiple imputation (MI), which is the target of the `rbmi` package. 
 
@@ -74,14 +74,14 @@ Indeed, such post-ICE data are increasingly systematically collected in RCTs.
 However, despite best efforts, missing data after an ICE such as study treatment discontinuation may still occur because the subject drops out from the study after discontinuation. It is difficult to give definite recommendations regarding the implementation of the treatment policy strategy in the presence of missing data at this stage because the optimal method is highly context dependent and a topic of ongoing statistical research.
 
 For ICEs which are thought to have a negligible effect on efficacy outcomes, standard MAR-based imputation which ignores whether an outcome is observed pre- or post-ICE may be appropriate. 
-In contrast, an ICE such as treatment discontinuation may be expected to have a more substantial impact on efficacy outcomes. In such settings, the MAR assumption may still be plausible after conditioning on the subject's time-varying treatment status (@Guizzaro2021). In this case, one option is to impute missing post-discontinuation data based on subjects who also discontinued treatment but continued to be followed up. Another option which may require somewhat less post-discontinuation data is to include all subjects in the imputation procedure but to model post-discontinuation data by using time-varying treatment status indicators (@Guizzaro2021, @PolverejanDragalin2020, @Noci2021, @Drury2024, @Bell2024). In this approach, post-ICE outcomes are included in every step of the analysis, including in the fitting of the imputation model. It assumes that ICEs may impact post-ICE outcomes but that otherwise missingness is non-informative. The approach also assumes that the time-varying covariates do not contain missing values, deviations in outcomes after the ICE are correctly modeled by these time-varying covariates, and that sufficient post-ICE data are available to inform the regression coefficients of the time-varying covariates. 
+In contrast, an ICE such as treatment discontinuation may be expected to have a more substantial impact on efficacy outcomes. In such settings, the MAR assumption may still be plausible after conditioning on the subject's time-varying treatment status (@Guizzaro2021). In this case, one option is to impute missing post-discontinuation data based on subjects who also discontinued treatment but continued to be followed up. Another option which may require somewhat less post-discontinuation data is to include all subjects in the imputation procedure but to model post-discontinuation data by using time-varying treatment status indicators (@Guizzaro2021, @PolverejanDragalin2020, @Noci2021, @Drury2024, @Bell2024). In this approach, post-ICE outcomes are included in every step of the analysis, including in the fitting of the imputation model. It assumes that ICEs may impact post-ICE outcomes but that otherwise missingness is non-informative. The approach also assumes that the time-varying covariates do not contain missing values, deviations in outcomes after the ICE are correctly modelled by these time-varying covariates, and that sufficient post-ICE data are available to inform the regression coefficients of the time-varying covariates. 
 The resulting imputation models are called "retrieved dropout models" in the statistical literature. These models tend to have less bias than alternative analysis approaches based on imputation under a basic MAR assumption or a reference-based missing data assumption. However, retrieved dropout models have been associated with inflated standard errors of associated treatment effect estimators which has a detrimental effect on  study power. In particular, it has been observed that once the post-ICE observation percentages falls below 50%, the power loss can be quite dramatic [@Bell2024]. We illustrate the implementation of retrieved dropout models in the vignette "Implementation of retrieved-dropout models using rbmi" (`vignette(topic = "retrieved_dropout", package = "rbmi")`).
 
 In some trial settings, only few subjects discontinue the randomized treatment. In other settings, treatment discontinuation rates are higher but it is difficult to retain subjects in the trial after treatment discontinuation leading to sparse data collection after treatment discontinuation. In both settings, the amount of available data after treatment discontinuation may be insufficient to inform an imputation model which explicitly models post-discontinuation data. Depending on the disease area and the anticipated mechanism of action of the intervention, it may be plausible to assume that subjects in the intervention group behave similarly to subjects in the control group after the ICE treatment discontinuation. In this case, reference-based imputation methods are an option (@Mallinckrodt2020). Reference-based imputation methods formalize the idea to impute missing data in the intervention group based on data from a control or reference group. For a general description and review of reference-based imputation methods, we refer to @CarpenterEtAl2013, @CroEtAlTutorial2020, @White2020causal and @Wolbers2021. For a technical description of the implemented statistical methodology for reference-based imputation, we refer to section \@ref(sec:statsMethods) (in particular section \@ref(sec:imputationStep)). 
 
 ### Implementation of the composite strategy
 
-The composite strategy is typically applied to binary or time-to-event outcomes but it can also be used for continuous outcomes by ascribing a suitably unfavorable value to patients who experience ICEs for which a composite strategy has been defined. One possibility to implement this is to use MI with a $\delta$-adjustment for post-ICE data as described in @Darken2020.
+The composite strategy is typically applied to binary or time-to-event outcomes but it can also be used for continuous outcomes by ascribing a suitably unfavourable value to patients who experience ICEs for which a composite strategy has been defined. One possibility to implement this is to use MI with a $\delta$-adjustment for post-ICE data as described in @Darken2020.
 
 # Statistical methodology {#sec:statsMethods}
 
@@ -121,7 +121,7 @@ Conventional MI approaches include the following steps:
 
 3. **Analysis step** (Section \@ref(sec:analysis))
 
-  + Analyze the imputed dataset using an analysis model (e.g. ANCOVA) resulting in a point estimate and a standard error (with corresponding degrees of freedom) of the treatment effect. 
+  + Analyse the imputed dataset using an analysis model (e.g. ANCOVA) resulting in a point estimate and a standard error (with corresponding degrees of freedom) of the treatment effect. 
   
 4. **Pooling step for inference** (Section \@ref(sec:pooling))
 
@@ -174,7 +174,7 @@ The bootstrapped MI approach includes the following steps:
 
 3. **Analysis step** (Section \@ref(sec:analysis))
 
-  + Analyze each of the $B\times D$ imputed datasets using an analysis model (e.g. ANCOVA) resulting in $B\times D$ point estimates of the treatment effect.
+  + Analyse each of the $B\times D$ imputed datasets using an analysis model (e.g. ANCOVA) resulting in $B\times D$ point estimates of the treatment effect.
   
 4. **Pooling step for inference** (Section \@ref(sec:poolbmlmi))
 
@@ -235,7 +235,7 @@ We now describe the available combinations of covariance models and prior specif
 
 By default, the same prior distributions as in the SAS implementation of the "five macros" are used (@FiveMacros), i.e. an improper flat priors for the regression coefficients and a weakly informative inverse Wishart prior for the covariance matrix (or matrices). Specifically, let $S \in \mathbb{R}^{J \times J}$ be a symmetric positive definite matrix and $\nu \in (J-1, \infty)$. Then the symmetric positive definite matrix $x \in \mathbb{R}^{J \times J}$ has density:
 $$
-\text{InvWish}(x \vert \nu, S) = \frac{1}{2^{\nu J/2}} \frac{1}{\Gamma_J(\frac{\nu}{2})} \vert S \vert^{\nu/2} \vert x \vert ^{-(\nu + J + 1)/2} \text{exp}\left(-\frac{1}{2} \text{tr}(Sx^{-1})\right).
+\text{InvWish}(x \vert \nu, S) = \frac{1}{2^{\nu J/2}} \frac{1}{\Gamma_J(\frac{\nu}{2})} \vert S \vert^{\nu/2} \vert x \vert ^{-(\nu + J + 1)/2} \text{exp}\left(-\frac{1}{2} \text{tr}(S x^{-1})\right).
 $$
 For $\nu > J+1$ the mean is given by: 
 $$
@@ -261,7 +261,7 @@ This distribution is a special case of the inverse-Wishart distribution for a un
 #### Autoregressive order 1 covariance structure
 
 For the time-homogeneous version of the AR(1) covariance structure (see [here](https://openpharma.github.io/mmrm/latest-tag/articles/covariance.html#homogeneous-ar1-and-heterogeneous-ar1h-autoregressive)), we use a uniform prior on the correlation parameter $\rho$ and a scaled inverse chi-square prior for the variance parameter $\sigma^2$, as described above.
-For the time-heterogeneous version, we simply use independent scaled inverse chi-square priors for the time-point specific variances, which are centered around the respective estimated variances from the frequentist REML fit. 
+For the time-heterogeneous version, we simply use independent scaled inverse chi-square priors for the time-point specific variances, which are centred around the respective estimated variances from the frequentist REML fit. 
 
 #### Compound symmetry covariance structure
 
