@@ -9,6 +9,8 @@
   for nomenclature consistency.
 * Vignette on retrieved dropout methods is now correctly embedded.
 * Improve CI/CD scripts to reliably fail GitHub CI/CD in case of failing tests.
+* Replaced deprecated `structure()` special name `.Dim` with `dim` in unit tests
+  to resolve an `R CMD check` NOTE.
 
 # rbmi 1.6.0
 
