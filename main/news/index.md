@@ -38,6 +38,10 @@
 - Fixed a bug where each non-ignorable Stan warning from the Bayesian
   sampler was reported multiple times instead of once.
   ([\#572](https://github.com/openpharma/rbmi/issues/572))
+- Fixed the error message in
+  [`apply_delta()`](https://openpharma.github.io/rbmi/reference/apply_delta.md)
+  to correctly refer to `data` instead of `dat`
+  ([\#576](https://github.com/openpharma/rbmi/issues/576))
 - Replaced deprecated
   [`structure()`](https://rdrr.io/r/base/structure.html) special name
   `.Dim` with `dim` in unit tests to resolve an `R CMD check` NOTE
