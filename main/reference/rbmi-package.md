@@ -40,6 +40,9 @@ Useful links:
 
 Authors:
 
+- Lukas A. Widmer <lukas_andreas.widmer@novartis.com>
+  ([ORCID](https://orcid.org/0000-0003-1471-3493))
+
 - Craig Gower-Page <craig.gower-page@novartis.com>
 
 - Isaac Gravestock <isaac.gravestock@roche.com>

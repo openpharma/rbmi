@@ -126,38 +126,38 @@ object should be avoided if possible.
 
 ### Public methods
 
-- [`longDataConstructor$get_data()`](#method-longdata-get_data)
+- [`longdata$get_data()`](#method-longdata-get_data)
 
-- [`longDataConstructor$add_subject()`](#method-longdata-add_subject)
+- [`longdata$add_subject()`](#method-longdata-add_subject)
 
-- [`longDataConstructor$validate_ids()`](#method-longdata-validate_ids)
+- [`longdata$validate_ids()`](#method-longdata-validate_ids)
 
-- [`longDataConstructor$sample_ids()`](#method-longdata-sample_ids)
+- [`longdata$sample_ids()`](#method-longdata-sample_ids)
 
-- [`longDataConstructor$extract_by_id()`](#method-longdata-extract_by_id)
+- [`longdata$extract_by_id()`](#method-longdata-extract_by_id)
 
-- [`longDataConstructor$update_strategies()`](#method-longdata-update_strategies)
+- [`longdata$update_strategies()`](#method-longdata-update_strategies)
 
-- [`longDataConstructor$set_strategies()`](#method-longdata-set_strategies)
+- [`longdata$set_strategies()`](#method-longdata-set_strategies)
 
-- [`longDataConstructor$check_has_data_at_each_visit()`](#method-longdata-check_has_data_at_each_visit)
+- [`longdata$check_has_data_at_each_visit()`](#method-longdata-check_has_data_at_each_visit)
 
-- [`longDataConstructor$set_strata()`](#method-longdata-set_strata)
+- [`longdata$set_strata()`](#method-longdata-set_strata)
 
-- [`longDataConstructor$new()`](#method-longdata-new)
+- [`longdata$new()`](#method-longdata-initialize)
 
-- [`longDataConstructor$clone()`](#method-longdata-clone)
+- [`longdata$clone()`](#method-longdata-clone)
 
 ------------------------------------------------------------------------
 
-### Method `get_data()`
+### `longdata$get_data()`
 
 Returns a `data.frame` based upon required subject IDs. Replaces missing
 values with new ones if provided.
 
 #### Usage
 
-    longDataConstructor$get_data(
+    longdata$get_data(
       obj = NULL,
       nmar.rm = FALSE,
       mnar.rm = FALSE,
@@ -233,7 +233,7 @@ A `data.frame`.
 
 ------------------------------------------------------------------------
 
-### Method `add_subject()`
+### `longdata$add_subject()`
 
 This function decomposes a patient data from `self$data` and populates
 all the corresponding lists i.e. `self$is_missing`, `self$values`,
@@ -242,7 +242,7 @@ initialization.
 
 #### Usage
 
-    longDataConstructor$add_subject(id)
+    longdata$add_subject(id)
 
 #### Arguments
 
@@ -252,14 +252,14 @@ initialization.
 
 ------------------------------------------------------------------------
 
-### Method `validate_ids()`
+### `longdata$validate_ids()`
 
 Throws an error if any element of `ids` is not within the source data
 `self$data`.
 
 #### Usage
 
-    longDataConstructor$validate_ids(ids)
+    longdata$validate_ids(ids)
 
 #### Arguments
 
@@ -273,7 +273,7 @@ TRUE
 
 ------------------------------------------------------------------------
 
-### Method [`sample_ids()`](https://openpharma.github.io/rbmi/reference/sample_ids.md)
+### `longdata$sample_ids()`
 
 Performs random stratified sampling of patient ids (with replacement)
 Each patient has an equal weight of being picked within their strata
@@ -281,7 +281,7 @@ Each patient has an equal weight of being picked within their strata
 
 #### Usage
 
-    longDataConstructor$sample_ids()
+    longdata$sample_ids()
 
 #### Returns
 
@@ -289,14 +289,14 @@ Character vector of ids.
 
 ------------------------------------------------------------------------
 
-### Method `extract_by_id()`
+### `longdata$extract_by_id()`
 
 Returns a list of key information for a given subject. Is a convenience
 wrapper to save having to manually grab each element.
 
 #### Usage
 
-    longDataConstructor$extract_by_id(id)
+    longdata$extract_by_id(id)
 
 #### Arguments
 
@@ -306,14 +306,14 @@ wrapper to save having to manually grab each element.
 
 ------------------------------------------------------------------------
 
-### Method `update_strategies()`
+### `longdata$update_strategies()`
 
 Convenience function to run `self$set_strategies(dat_ice, update=TRUE)`
 kept for legacy reasons.
 
 #### Usage
 
-    longDataConstructor$update_strategies(dat_ice)
+    longdata$update_strategies(dat_ice)
 
 #### Arguments
 
@@ -325,14 +325,14 @@ kept for legacy reasons.
 
 ------------------------------------------------------------------------
 
-### Method `set_strategies()`
+### `longdata$set_strategies()`
 
 Updates the `self$strategies`, `self$is_mar`, `self$is_post_ice`
 variables based upon the provided ICE information.
 
 #### Usage
 
-    longDataConstructor$set_strategies(dat_ice = NULL, update = FALSE)
+    longdata$set_strategies(dat_ice = NULL, update = FALSE)
 
 #### Arguments
 
@@ -356,7 +356,7 @@ of post-ICE observations.
 
 ------------------------------------------------------------------------
 
-### Method `check_has_data_at_each_visit()`
+### `longdata$check_has_data_at_each_visit()`
 
 Ensures that all visits have at least 1 observed "MAR" observation.
 Throws an error if this criteria is not met. This is to ensure that the
@@ -364,11 +364,11 @@ initial MMRM can be resolved.
 
 #### Usage
 
-    longDataConstructor$check_has_data_at_each_visit()
+    longdata$check_has_data_at_each_visit()
 
 ------------------------------------------------------------------------
 
-### Method `set_strata()`
+### `longdata$set_strata()`
 
 Populates the `self$strata` variable. If the user has specified
 stratification variables The first visit is used to determine the value
@@ -377,17 +377,17 @@ then everyone is defined as being in strata 1.
 
 #### Usage
 
-    longDataConstructor$set_strata()
+    longdata$set_strata()
 
 ------------------------------------------------------------------------
 
-### Method `new()`
+### `longdata$new()`
 
 Constructor function.
 
 #### Usage
 
-    longDataConstructor$new(data, vars)
+    longdata$new(data, vars)
 
 #### Arguments
 
@@ -402,13 +402,13 @@ Constructor function.
 
 ------------------------------------------------------------------------
 
-### Method `clone()`
+### `longdata$clone()`
 
 The objects of this class are cloneable with this method.
 
 #### Usage
 
-    longDataConstructor$clone(deep = FALSE)
+    longdata$clone(deep = FALSE)
 
 #### Arguments
 

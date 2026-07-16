@@ -9,7 +9,3 @@ covariance / prior Stan definition file.
 ``` r
 STAN_BLOCKS
 ```
-
-## Format
-
-An object of class `list` of length 6.
