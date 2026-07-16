@@ -16,6 +16,11 @@
 
 ### Bug Fixes
 
+- Fixed a misleading error message in
+  [`imputation_list_single()`](https://openpharma.github.io/rbmi/reference/imputation_list_single.md)
+  where a failure of the imputation-count-divisible-by-`D` check
+  incorrectly reported that “multiple `ids` were detected”
+  ([\#574](https://github.com/openpharma/rbmi/issues/574))
 - Added en-GB spell-check and a corresponding test to the package
 - Fixed numerous spelling errors and standardised nomenclature for
   missing not at random to `MNAR` (rather than a mix of `NMAR` and
@@ -26,12 +31,17 @@
 - Vignette on retrieved dropout methods is now correctly embedded.
 - Improve CI/CD scripts to reliably fail GitHub CI/CD in case of failing
   tests.
+- Fix error message for `mu$visit` in
+  [`simulate_test_data()`](https://openpharma.github.io/rbmi/reference/simulate_test_data.md)
+  to refer to `visit` instead of `trt`
+  ([\#578](https://github.com/openpharma/rbmi/issues/578))
 - Fixed a bug where each non-ignorable Stan warning from the Bayesian
   sampler was reported multiple times instead of once.
   ([\#572](https://github.com/openpharma/rbmi/issues/572))
 - Replaced deprecated
   [`structure()`](https://rdrr.io/r/base/structure.html) special name
-  `.Dim` with `dim` in unit tests to resolve an `R CMD check` NOTE.
+  `.Dim` with `dim` in unit tests to resolve an `R CMD check` NOTE
+  ([\#581](https://github.com/openpharma/rbmi/issues/581))
 
 ### Miscellaneous
 
