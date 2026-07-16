@@ -10,6 +10,9 @@
 * Vignette on retrieved dropout methods is now correctly embedded.
 * Improve CI/CD scripts to reliably fail GitHub CI/CD in case of failing tests.
 
+## Miscellaneous
+* Updated Marcel Wolbers' e-mail address (#583)
+
 # rbmi 1.6.0
 
 * Stan programs are constructed in memory and respect the cache setting
