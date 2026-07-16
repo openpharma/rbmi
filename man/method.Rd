@@ -142,3 +142,24 @@ As such care must be taken when using Stan across different machines. For more i
 on this limitation please consult the Stan documentation
 \url{https://mc-stan.org/docs/2_27/reference-manual/reproducibility-chapter.html}
 }
+\examples{
+# Bayesian multiple imputation with 150 imputed datasets
+method_bayes(
+    n_samples = 150,
+    control = control_bayes(warmup = 200, thin = 5)
+)
+
+# Approximate Bayesian multiple imputation with 20 imputed datasets
+method_approxbayes(n_samples = 20)
+
+# Conditional mean imputation with jackknife resampling
+method_condmean(type = "jackknife")
+
+# Conditional mean imputation with 100 bootstrap samples
+method_condmean(type = "bootstrap", n_samples = 100)
+
+# Bootstrapped maximum likelihood multiple imputation with D = 2 random
+# imputations for each bootstrap sample and B = 20 bootstrap samples
+method_bmlmi(B = 20, D = 2)
+
+}

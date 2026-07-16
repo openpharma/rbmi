@@ -22,6 +22,7 @@
 #' [draws()] to sample and reconstruct datasets.
 #'
 #' @import R6
+#' @keywords internal
 #' @export
 longDataConstructor <- R6::R6Class(
     classname = "longdata",

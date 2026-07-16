@@ -41,6 +41,7 @@ add_class <- function(x, cls) {
 #'
 #' @param x the object we want to check the class of.
 #' @param cls the class we want to know if it has or not.
+#' @keywords internal
 #' @export
 has_class <- function(x, cls) {
     cls %in% class(x)
