@@ -8,6 +8,9 @@
   `longDataConstructor` with `@keywords internal` (#570).
 
 ## Bug Fixes
+* Fixed a misleading error message in `imputation_list_single()` where a failure of
+  the imputation-count-divisible-by-`D` check incorrectly reported that "multiple
+  `ids` were detected" (#574)
 * Added en-GB spell-check and a corresponding test to the package
 * Fixed numerous spelling errors and standardised nomenclature for missing not
   at random to `MNAR` (rather than a mix of `NMAR` and `MNAR`)
