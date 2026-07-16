@@ -16,10 +16,12 @@
   for nomenclature consistency.
 * Vignette on retrieved dropout methods is now correctly embedded.
 * Improve CI/CD scripts to reliably fail GitHub CI/CD in case of failing tests.
+* Fix error message for `mu$visit` in `simulate_test_data()` to refer to `visit`
+  instead of `trt` (#578)
 * Fixed a bug where each non-ignorable Stan warning from the Bayesian sampler
   was reported multiple times instead of once. (#572)
 * Replaced deprecated `structure()` special name `.Dim` with `dim` in unit tests
-  to resolve an `R CMD check` NOTE.
+  to resolve an `R CMD check` NOTE (#581)
 
 ## Miscellaneous
 * Updated Marcel Wolbers' e-mail address (#583)
