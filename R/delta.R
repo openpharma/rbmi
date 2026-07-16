@@ -130,6 +130,12 @@
 #' delta_template(imputeObj, delta = c(5,6,7,8), dlag = c(1,2,3,4))
 #' }
 #' @seealso [analyse()]
+#' @return
+#' A `data.frame` with one row per subject per visit containing the variables
+#' `vars$subjid`, `vars$visit` and `delta` (the delta offset to apply), together
+#' with the utility variables `is_mar`, `is_missing`, `is_post_ice` and
+#' `strategy` which can be used to define custom delta logic. If `delta` is
+#' `NULL` the `delta` column is 0 for all observations.
 #' @export
 delta_template <- function(
     imputations,

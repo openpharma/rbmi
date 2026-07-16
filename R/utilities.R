@@ -4,6 +4,8 @@
 #'
 #' @param x object to set the class of.
 #' @param cls the class to be set.
+#' @return `x` with its class attribute set to `cls`.
+#' @keywords internal
 #' @export
 as_class <- function(x, cls) {
     class(x) <- cls
@@ -18,6 +20,8 @@ as_class <- function(x, cls) {
 #'
 #' @param x object to add a class to.
 #' @param cls the class to be added.
+#' @return `x` with `cls` appended after its existing class attribute.
+#' @keywords internal
 #' @export
 add_class <- function(x, cls) {
     class(x) <- c(class(x), cls)
@@ -389,6 +393,11 @@ sort_by <- function(df, vars = NULL, decreasing = FALSE) {
 #'
 #' }
 #'
+#' @return
+#' A `vars` object; a named list of class `ivars` recording the names of the key
+#' variables (`subjid`, `visit`, `outcome`, `group`, `covariates`, `strata` and
+#' `strategy`) used throughout `rbmi` by functions such as [draws()], [ancova()]
+#' and [analyse()].
 #' @export
 set_vars <- function(
     subjid = "subjid",

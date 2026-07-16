@@ -27,6 +27,11 @@ control_bayes(
 
 \item{...}{additional arguments to be passed to \code{\link[rstan:sampling]{rstan::sampling()}}.}
 }
+\value{
+A named list of control parameters (\code{warmup}, \code{thin}, \code{chains}, \code{init},
+\code{seed} and any additional arguments passed via \code{...}) that control the MCMC
+sampler used by \code{\link[=method_bayes]{method_bayes()}}.
+}
 \description{
 These functions control lower level computational details of the imputation methods.
 }

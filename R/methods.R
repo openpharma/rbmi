@@ -94,6 +94,12 @@
 #' on this limitation please consult the Stan documentation
 #' <https://mc-stan.org/docs/2_27/reference-manual/reproducibility-chapter.html>
 #'
+#' @return
+#' A `method` object; a named list of class `c("method", <type>)` where `<type>`
+#' is one of `"bayes"`, `"approxbayes"`, `"condmean"` or `"bmlmi"`. It stores the
+#' chosen imputation methodology and its settings and is passed to the `method`
+#' argument of [draws()].
+#'
 #' @export
 method_bayes <- function(
     covariance = c(
