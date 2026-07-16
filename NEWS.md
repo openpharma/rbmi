@@ -1,5 +1,12 @@
 # rbmi (development version)
 
+## Documentation
+* Documented the return value (`@return`) of all exported functions and marked
+  internal helpers with `@keywords internal` (#567).
+* Added executable `@examples` to the exported user-facing functions that were
+  missing them, and marked the internal-only `has_class()`, `validate()` and
+  `longDataConstructor` with `@keywords internal` (#570).
+
 ## Bug Fixes
 * Added en-GB spell-check and a corresponding test to the package
 * Fixed numerous spelling errors and standardised nomenclature for missing not
@@ -11,6 +18,8 @@
 * Improve CI/CD scripts to reliably fail GitHub CI/CD in case of failing tests.
 * Fix error message for `mu$visit` in `simulate_test_data()` to refer to `visit`
   instead of `trt` (#578)
+* Replaced deprecated `structure()` special name `.Dim` with `dim` in unit tests
+  to resolve an `R CMD check` NOTE (#581)
 
 # rbmi 1.6.0
 
