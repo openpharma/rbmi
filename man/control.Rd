@@ -58,3 +58,17 @@ For full reproducibility of the imputation results, it is required to use a \cod
 before defining the \code{control} list, and calling the \code{draws()} function. It is not sufficient to
 merely set the \code{seed} argument in the \code{control} list.
 }
+\examples{
+# Default control settings
+control_bayes()
+
+# Customise the warmup, thinning and seed used by the MCMC sampler
+control_bayes(warmup = 200, thin = 5, seed = 1821)
+
+# Pass the control settings on to method_bayes()
+method_bayes(
+    n_samples = 150,
+    control = control_bayes(warmup = 200, thin = 5, seed = 1821)
+)
+
+}

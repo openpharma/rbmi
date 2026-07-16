@@ -96,6 +96,67 @@ see Efron & Tibshirani (1994).
 See Von Hippel & Bartlett (2021).
 }
 }
+\examples{
+# Prepare the data: expand to one row per subject and visit
+dat <- expand_locf(
+    antidepressant_data,
+    PATIENT = levels(antidepressant_data$PATIENT),
+    VISIT = levels(antidepressant_data$VISIT),
+    vars = c("BASVAL", "THERAPY"),
+    group = c("PATIENT"),
+    order = c("PATIENT", "VISIT")
+)
+
+# Derive data_ice: first missing-outcome visit per patient, imputed under JR.
+# Subject 3618 has only an intermittent missing value and is removed.
+is_missing <- is.na(dat$CHANGE)
+dat_ice <- dat[is_missing, c("PATIENT", "VISIT")]
+dat_ice <- dat_ice[!duplicated(dat_ice$PATIENT), ]
+dat_ice$strategy <- "JR"
+dat_ice <- dat_ice[dat_ice$PATIENT != 3618, ]
+
+vars <- set_vars(
+    outcome = "CHANGE",
+    visit = "VISIT",
+    subjid = "PATIENT",
+    group = "THERAPY",
+    covariates = c("BASVAL*VISIT", "THERAPY*VISIT")
+)
+
+\donttest{
+# Approximate Bayesian imputation, so that pooling uses Rubin's rules
+set.seed(987)
+drawObj <- draws(
+    data = dat,
+    data_ice = dat_ice,
+    vars = vars,
+    method = method_approxbayes(n_samples = 20),
+    quiet = TRUE
+)
+imputeObj <- impute(
+    drawObj,
+    references = c("DRUG" = "PLACEBO", "PLACEBO" = "PLACEBO")
+)
+anaObj <- analyse(
+    imputeObj,
+    ancova,
+    vars = set_vars(
+        subjid = "PATIENT",
+        outcome = "CHANGE",
+        visit = "VISIT",
+        group = "THERAPY",
+        covariates = "BASVAL"
+    )
+)
+
+# Pool the analysis results across the imputed datasets
+poolObj <- pool(anaObj)
+poolObj
+
+# Monte Carlo standard errors of the pooled estimates
+mcse(poolObj, anaObj)
+}
+}
 \references{
 Bradley Efron and Robert J Tibshirani. An introduction to the bootstrap. CRC
 press, 1994. [Section 11]

@@ -22,6 +22,7 @@ It is recognised that this objects functionality is fairly overloaded and is hop
 be split out into more area specific objects / functions in the future. Further additions of functionality
 to this object should be avoided if possible.
 }
+\keyword{internal}
 \section{Public fields}{
   \if{html}{\out{<div class="r6-fields">}}
   \describe{

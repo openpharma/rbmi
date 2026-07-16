@@ -126,6 +126,30 @@ for \code{weights = "counterfactual"}.
 }
 }
 
+\examples{
+# Simulate a small dataset with a single visit, a treatment group and a
+# baseline covariate to adjust for.
+set.seed(101)
+dat <- data.frame(
+    visit = factor("visit_1"),
+    group = factor(rep(c("Control", "Intervention"), each = 50)),
+    basval = rnorm(100)
+)
+dat$outcome <- 5 + 2 * (dat$group == "Intervention") + dat$basval + rnorm(100)
+
+vars <- set_vars(
+    outcome = "outcome",
+    group = "group",
+    visit = "visit",
+    covariates = "basval"
+)
+
+# Estimated treatment effect and least square means for the single visit.
+# In a full `rbmi` analysis, `ancova()` is passed to `analyse()` rather than
+# called directly; see [analyse()].
+ancova(dat, vars)
+
+}
 \seealso{
 \code{\link[=analyse]{analyse()}}
 

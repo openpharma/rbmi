@@ -75,3 +75,12 @@ b  c  1  f
 d  e  f  1
 }\if{html}{\out{</div>}}
 }
+\examples{
+# Construct a 3x3 covariance matrix from standard deviations and correlations.
+# `cor` gives the upper-triangular correlations in row-major order:
+# cor(1,2), cor(1,3), cor(2,3).
+as_vcov(
+    sd = c(1, 3, 2),
+    cor = c(0.4, 0.5, 0.45)
+)
+}
