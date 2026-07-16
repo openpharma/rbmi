@@ -20,6 +20,8 @@
   instead of `trt` (#578)
 * Fixed a bug where each non-ignorable Stan warning from the Bayesian sampler
   was reported multiple times instead of once. (#572)
+* Fixed the error message in `apply_delta()` to correctly refer to `data`
+  instead of `dat` (#576)
 * Replaced deprecated `structure()` special name `.Dim` with `dim` in unit tests
   to resolve an `R CMD check` NOTE (#581)
 
