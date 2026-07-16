@@ -154,3 +154,62 @@ which is an alias for `weights = "counterfactual"`.
 [`stats::lm()`](https://rdrr.io/r/stats/lm.html)
 
 [`set_vars()`](https://openpharma.github.io/rbmi/reference/set_vars.md)
+
+## Examples
+
+``` r
+# Simulate a small dataset with a single visit, a treatment group and a
+# baseline covariate to adjust for.
+set.seed(101)
+dat <- data.frame(
+    visit = factor("visit_1"),
+    group = factor(rep(c("Control", "Intervention"), each = 50)),
+    basval = rnorm(100)
+)
+dat$outcome <- 5 + 2 * (dat$group == "Intervention") + dat$basval + rnorm(100)
+
+vars <- set_vars(
+    outcome = "outcome",
+    group = "group",
+    visit = "visit",
+    covariates = "basval"
+)
+
+# Estimated treatment effect and least square means for the single visit.
+# In a full `rbmi` analysis, `ancova()` is passed to `analyse()` rather than
+# called directly; see [analyse()].
+ancova(dat, vars)
+#> $trt_visit_1
+#> $trt_visit_1$est
+#> [1] 2.044359
+#> 
+#> $trt_visit_1$se
+#> [1] 0.2025468
+#> 
+#> $trt_visit_1$df
+#> [1] 97
+#> 
+#> 
+#> $lsm_ref_visit_1
+#> $lsm_ref_visit_1$est
+#> [1] 4.898627
+#> 
+#> $lsm_ref_visit_1$se
+#> [1] 0.1429097
+#> 
+#> $lsm_ref_visit_1$df
+#> [1] 97
+#> 
+#> 
+#> $lsm_alt_visit_1
+#> $lsm_alt_visit_1$est
+#> [1] 6.942986
+#> 
+#> $lsm_alt_visit_1$se
+#> [1] 0.1429097
+#> 
+#> $lsm_alt_visit_1$df
+#> [1] 97
+#> 
+#> 
+```

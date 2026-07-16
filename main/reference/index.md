@@ -208,9 +208,6 @@
 - [`get_visit_distribution_parameters()`](https://openpharma.github.io/rbmi/reference/get_visit_distribution_parameters.md)
   : Derive visit distribution parameters
 
-- [`has_class()`](https://openpharma.github.io/rbmi/reference/has_class.md)
-  : Does object have a class ?
-
 - [`ife()`](https://openpharma.github.io/rbmi/reference/ife.md) : if
   else
 
@@ -269,9 +266,6 @@
 
 - [`locf()`](https://openpharma.github.io/rbmi/reference/locf.md) : Last
   Observation Carried Forward
-
-- [`longDataConstructor`](https://openpharma.github.io/rbmi/reference/longDataConstructor.md)
-  : R6 Class for Storing / Accessing & Sampling Longitudinal Data
 
 - [`ls_design_equal()`](https://openpharma.github.io/rbmi/reference/ls_design.md)
   [`ls_design_counterfactual()`](https://openpharma.github.io/rbmi/reference/ls_design.md)
@@ -435,9 +429,6 @@
 
 - [`transpose_samples()`](https://openpharma.github.io/rbmi/reference/transpose_samples.md)
   : Transpose samples
-
-- [`validate()`](https://openpharma.github.io/rbmi/reference/validate.md)
-  : Generic validation method
 
 - [`validate(`*`<analysis>`*`)`](https://openpharma.github.io/rbmi/reference/validate.analysis.md)
   :

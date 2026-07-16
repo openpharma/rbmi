@@ -65,3 +65,25 @@ assumptions:
 
 [`simulate_data()`](https://openpharma.github.io/rbmi/reference/simulate_data.md),
 [`set_simul_pars()`](https://openpharma.github.io/rbmi/reference/set_simul_pars.md)
+
+## Examples
+
+``` r
+set.seed(1974)
+dat <- get_example_data()
+head(dat)
+#>     id visit   group outcome_bl outcome_noICE ind_ice1 ind_ice2 dropout_ice1
+#> 1 id_1     0 Control   50.85458      50.85458        0        0            0
+#> 2 id_1     1 Control   50.85458      53.65971        0        0            0
+#> 3 id_1     2 Control   50.85458      52.99386        0        0            0
+#> 4 id_1     3 Control   50.85458      59.01861        0        0            0
+#> 5 id_1     4 Control   50.85458      54.69410        0        0            0
+#> 6 id_1     5 Control   50.85458      57.31806        0        0            0
+#>    outcome
+#> 1 50.85458
+#> 2 53.65971
+#> 3 52.99386
+#> 4 59.01861
+#> 5 54.69410
+#> 6 57.31806
+```

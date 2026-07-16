@@ -94,3 +94,62 @@ For the details, please see
 ## See also
 
 [`simulate_data()`](https://openpharma.github.io/rbmi/reference/simulate_data.md)
+
+## Examples
+
+``` r
+# Simulation parameters for a group with 5 visits (including baseline)
+time <- c(0, 3, 6, 9, 12)
+
+# Mean outcome trajectory
+mu <- c(50.0, 52.5, 55.0, 57.5, 60.0)
+
+# Covariance matrix implied by a random intercept and slope model
+sd_error <- 2.5
+covRE <- rbind(
+    c(25.0, 6.25),
+    c(6.25, 25.0)
+)
+sigma <- cbind(1, time / 12) %*% covRE %*% rbind(1, time / 12) +
+    diag(sd_error^2, nrow = length(time))
+
+set_simul_pars(
+    mu = mu,
+    sigma = sigma,
+    n = 100,
+    prob_ice1 = 0.03,
+    or_outcome_ice1 = 1.10,
+    prob_post_ice1_dropout = 0.5
+)
+#> $mu
+#> [1] 50.0 52.5 55.0 57.5 60.0
+#> 
+#> $sigma
+#>         [,1]    [,2]    [,3]    [,4]    [,5]
+#> [1,] 31.2500 26.5625 28.1250 29.6875 31.2500
+#> [2,] 26.5625 35.9375 32.8125 35.9375 39.0625
+#> [3,] 28.1250 32.8125 43.7500 42.1875 46.8750
+#> [4,] 29.6875 35.9375 42.1875 54.6875 54.6875
+#> [5,] 31.2500 39.0625 46.8750 54.6875 68.7500
+#> 
+#> $n
+#> [1] 100
+#> 
+#> $prob_ice1
+#> [1] 0.03
+#> 
+#> $or_outcome_ice1
+#> [1] 1.1
+#> 
+#> $prob_post_ice1_dropout
+#> [1] 0.5
+#> 
+#> $prob_ice2
+#> [1] 0
+#> 
+#> $prob_miss
+#> [1] 0
+#> 
+#> attr(,"class")
+#> [1] "simul_pars"
+```

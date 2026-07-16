@@ -7,6 +7,12 @@
 - Documented the return value (`@return`) of all exported functions and
   marked internal helpers with `@keywords internal`
   ([\#567](https://github.com/openpharma/rbmi/issues/567)).
+- Added executable `@examples` to the exported user-facing functions
+  that were missing them, and marked the internal-only
+  [`has_class()`](https://openpharma.github.io/rbmi/reference/has_class.md),
+  [`validate()`](https://openpharma.github.io/rbmi/reference/validate.md)
+  and `longDataConstructor` with `@keywords internal`
+  ([\#570](https://github.com/openpharma/rbmi/issues/570)).
 
 ### Bug Fixes
 

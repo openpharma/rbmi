@@ -88,3 +88,80 @@ defining the `control` list, and calling the
 [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md)
 function. It is not sufficient to merely set the `seed` argument in the
 `control` list.
+
+## Examples
+
+``` r
+# Default control settings
+control_bayes()
+#> $warmup
+#> [1] 200
+#> 
+#> $thin
+#> [1] 50
+#> 
+#> $chains
+#> [1] 1
+#> 
+#> $init
+#> [1] "mmrm"
+#> 
+#> $seed
+#> [1] 1867699052
+#> 
+
+# Customise the warmup, thinning and seed used by the MCMC sampler
+control_bayes(warmup = 200, thin = 5, seed = 1821)
+#> $warmup
+#> [1] 200
+#> 
+#> $thin
+#> [1] 5
+#> 
+#> $chains
+#> [1] 1
+#> 
+#> $init
+#> [1] "mmrm"
+#> 
+#> $seed
+#> [1] 1821
+#> 
+
+# Pass the control settings on to method_bayes()
+method_bayes(
+    n_samples = 150,
+    control = control_bayes(warmup = 200, thin = 5, seed = 1821)
+)
+#> $covariance
+#> [1] "us"
+#> 
+#> $same_cov
+#> [1] TRUE
+#> 
+#> $n_samples
+#> [1] 150
+#> 
+#> $prior_cov
+#> [1] "default"
+#> 
+#> $control
+#> $control$warmup
+#> [1] 200
+#> 
+#> $control$thin
+#> [1] 5
+#> 
+#> $control$chains
+#> [1] 1
+#> 
+#> $control$init
+#> [1] "mmrm"
+#> 
+#> $control$seed
+#> [1] 1821
+#> 
+#> 
+#> attr(,"class")
+#> [1] "method" "bayes" 
+```

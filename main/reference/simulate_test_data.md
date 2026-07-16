@@ -86,3 +86,19 @@ The correlation matrix is constructed from `cor` as follows. Let
     a  1  c  e
     b  c  1  f
     d  e  f  1
+
+## Examples
+
+``` r
+# Construct a 3x3 covariance matrix from standard deviations and correlations.
+# `cor` gives the upper-triangular correlations in row-major order:
+# cor(1,2), cor(1,3), cor(2,3).
+as_vcov(
+    sd = c(1, 3, 2),
+    cor = c(0.4, 0.5, 0.45)
+)
+#>      [,1] [,2] [,3]
+#> [1,]  1.0  1.2  1.0
+#> [2,]  1.2  9.0  2.7
+#> [3,]  1.0  2.7  4.0
+```

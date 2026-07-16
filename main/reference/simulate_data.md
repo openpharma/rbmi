@@ -139,3 +139,61 @@ where:
 
 Please note that the baseline outcome cannot be missing nor be affected
 by any ICEs.
+
+## Examples
+
+``` r
+set.seed(1392)
+
+time <- c(0, 3, 6, 9, 12)
+
+# Mean outcome trajectory in the control and intervention groups
+muC <- c(50.0, 52.5, 55.0, 57.5, 60.0)
+muT <- c(50.0, 52.5, 55.0, 56.25, 57.50)
+
+# Covariance matrix implied by a random intercept and slope model
+sd_error <- 2.5
+covRE <- rbind(
+    c(25.0, 6.25),
+    c(6.25, 25.0)
+)
+Sigma <- cbind(1, time / 12) %*% covRE %*% rbind(1, time / 12) +
+    diag(sd_error^2, nrow = length(time))
+
+# Simulation parameters of the control group
+parsC <- set_simul_pars(
+    mu = muC,
+    sigma = Sigma,
+    n = 100,
+    prob_ice1 = 0.03,
+    or_outcome_ice1 = 1.10,
+    prob_post_ice1_dropout = 0.5
+)
+
+# Simulation parameters of the intervention group
+parsT <- parsC
+parsT$mu <- muT
+parsT$prob_ice1 <- 0.04
+
+# Simulate a dataset with a copy-increments-in-reference post-ICE1 trajectory
+data <- simulate_data(
+    pars_c = parsC,
+    pars_t = parsT,
+    post_ice1_traj = "CIR"
+)
+head(data)
+#>     id visit   group outcome_bl outcome_noICE ind_ice1 ind_ice2 dropout_ice1
+#> 1 id_1     0 Control   53.35397      53.35397        0        0            0
+#> 2 id_1     1 Control   53.35397      55.15100        0        0            0
+#> 3 id_1     2 Control   53.35397      59.81038        0        0            0
+#> 4 id_1     3 Control   53.35397      61.59709        0        0            0
+#> 5 id_1     4 Control   53.35397      67.08044        0        0            0
+#> 6 id_2     0 Control   53.31025      53.31025        0        0            0
+#>    outcome
+#> 1 53.35397
+#> 2 55.15100
+#> 3 59.81038
+#> 4 61.59709
+#> 5 67.08044
+#> 6 53.31025
+```

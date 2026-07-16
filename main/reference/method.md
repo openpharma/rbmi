@@ -189,3 +189,131 @@ when the same seed is used. As such care must be taken when using Stan
 across different machines. For more information on this limitation
 please consult the Stan documentation
 <https://mc-stan.org/docs/2_27/reference-manual/reproducibility-chapter.html>
+
+## Examples
+
+``` r
+# Bayesian multiple imputation with 150 imputed datasets
+method_bayes(
+    n_samples = 150,
+    control = control_bayes(warmup = 200, thin = 5)
+)
+#> $covariance
+#> [1] "us"
+#> 
+#> $same_cov
+#> [1] TRUE
+#> 
+#> $n_samples
+#> [1] 150
+#> 
+#> $prior_cov
+#> [1] "default"
+#> 
+#> $control
+#> $control$warmup
+#> [1] 200
+#> 
+#> $control$thin
+#> [1] 5
+#> 
+#> $control$chains
+#> [1] 1
+#> 
+#> $control$init
+#> [1] "mmrm"
+#> 
+#> $control$seed
+#> [1] 192290823
+#> 
+#> 
+#> attr(,"class")
+#> [1] "method" "bayes" 
+
+# Approximate Bayesian multiple imputation with 20 imputed datasets
+method_approxbayes(n_samples = 20)
+#> $covariance
+#> [1] "us"
+#> 
+#> $threshold
+#> [1] 0.01
+#> 
+#> $same_cov
+#> [1] TRUE
+#> 
+#> $REML
+#> [1] TRUE
+#> 
+#> $n_samples
+#> [1] 20
+#> 
+#> attr(,"class")
+#> [1] "method"      "approxbayes"
+
+# Conditional mean imputation with jackknife resampling
+method_condmean(type = "jackknife")
+#> $covariance
+#> [1] "us"
+#> 
+#> $threshold
+#> [1] 0.01
+#> 
+#> $same_cov
+#> [1] TRUE
+#> 
+#> $REML
+#> [1] TRUE
+#> 
+#> $type
+#> [1] "jackknife"
+#> 
+#> attr(,"class")
+#> [1] "method"   "condmean"
+
+# Conditional mean imputation with 100 bootstrap samples
+method_condmean(type = "bootstrap", n_samples = 100)
+#> $covariance
+#> [1] "us"
+#> 
+#> $threshold
+#> [1] 0.01
+#> 
+#> $same_cov
+#> [1] TRUE
+#> 
+#> $REML
+#> [1] TRUE
+#> 
+#> $type
+#> [1] "bootstrap"
+#> 
+#> $n_samples
+#> [1] 100
+#> 
+#> attr(,"class")
+#> [1] "method"   "condmean"
+
+# Bootstrapped maximum likelihood multiple imputation with D = 2 random
+# imputations for each bootstrap sample and B = 20 bootstrap samples
+method_bmlmi(B = 20, D = 2)
+#> $covariance
+#> [1] "us"
+#> 
+#> $threshold
+#> [1] 0.01
+#> 
+#> $same_cov
+#> [1] TRUE
+#> 
+#> $REML
+#> [1] TRUE
+#> 
+#> $B
+#> [1] 20
+#> 
+#> $D
+#> [1] 2
+#> 
+#> attr(,"class")
+#> [1] "method" "bmlmi" 
+```
