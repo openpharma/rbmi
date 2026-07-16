@@ -86,6 +86,12 @@ Must be one of \code{"bootstrap"} or \code{"jackknife"}.}
 \item{D}{a numeric that determines the number of random imputations for each bootstrap sample.
 Needed for \code{method_bmlmi()}.}
 }
+\value{
+A \code{method} object; a named list of class \verb{c("method", <type>)} where \verb{<type>}
+is one of \code{"bayes"}, \code{"approxbayes"}, \code{"condmean"} or \code{"bmlmi"}. It stores the
+chosen imputation methodology and its settings and is passed to the \code{method}
+argument of \code{\link[=draws]{draws()}}.
+}
 \description{
 These functions determine what methods \code{rbmi} should use when creating
 the imputation models, generating imputed values and pooling the results.

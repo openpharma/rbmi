@@ -21,6 +21,7 @@ LazyData: true
 Roxygen: list(markdown = TRUE)
 URL: https://openpharma.github.io/rbmi/, https://github.com/openpharma/rbmi
 BugReports: https://github.com/openpharma/rbmi/issues
+RoxygenNote: 8.0.0
 Suggests: 
     dplyr,
     tidyr,

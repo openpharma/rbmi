@@ -51,6 +51,28 @@ in the original call to \code{\link[=draws]{draws()}}.}
 
 \item{pval_nsmall}{the minimum number of digits to print for p-values' MCSE.}
 }
+\value{
+A \code{pool} object; a list of class \code{"pool"} containing the pooled analysis
+results with the following elements:
+\itemize{
+\item \code{pars}: a named list with one entry per parameter, each itself a list
+containing the pooled point estimate (\code{est}), confidence interval (\code{ci}),
+standard error (\code{se}) and p-value (\code{pvalue}).
+\item \code{conf.level}: the confidence level used for the confidence intervals.
+\item \code{alternative}: the alternative hypothesis used to derive the p-values.
+\item \code{N}: the number of analysis results that were combined.
+\item \code{method}: the pooling method that was used.
+}
+
+The \code{as.data.frame()} method returns a \code{data.frame} with one row per
+parameter (columns \code{parameter}, \code{est}, \code{se}, \code{lci}, \code{uci}, \code{pval}) and the
+\code{print()} method returns its input invisibly.
+
+\code{mcse()} returns an \code{mcse} object; a list of class \code{"mcse"} containing \code{pars}
+(the Monte Carlo standard errors of the pooled estimates, in the same
+structure as the \code{pars} element of a \code{pool} object) and \code{N} (the number of
+results combined).
+}
 \description{
 Pool analysis results obtained from the imputed datasets
 }

@@ -1,5 +1,9 @@
 # rbmi (development version)
 
+## Documentation
+* Documented the return value (`@return`) of all exported functions and marked
+  internal helpers with `@keywords internal` (#567).
+
 ## Bug Fixes
 * Added en-GB spell-check and a corresponding test to the package
 * Fixed numerous spelling errors and standardised nomenclature for missing not
@@ -9,6 +13,8 @@
   for nomenclature consistency.
 * Vignette on retrieved dropout methods is now correctly embedded.
 * Improve CI/CD scripts to reliably fail GitHub CI/CD in case of failing tests.
+* Replaced deprecated `structure()` special name `.Dim` with `dim` in unit tests
+  to resolve an `R CMD check` NOTE.
 
 ## Miscellaneous
 * Updated Marcel Wolbers' e-mail address (#583)
