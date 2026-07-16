@@ -20,3 +20,8 @@ validate_analyse_pars(results, pars)
 
   A list of expected parameters in each of the analysis. lists i.e.
   `c("est", "se", "df")`.
+
+## Value
+
+`TRUE` (invisibly) if `results` conforms to the expected structure;
+otherwise an error is thrown describing the first failed check.

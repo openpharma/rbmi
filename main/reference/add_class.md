@@ -18,3 +18,7 @@ add_class(x, cls)
 - cls:
 
   the class to be added.
+
+## Value
+
+`x` with `cls` appended after its existing class attribute.

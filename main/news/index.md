@@ -2,6 +2,12 @@
 
 ## rbmi (development version)
 
+### Documentation
+
+- Documented the return value (`@return`) of all exported functions and
+  marked internal helpers with `@keywords internal`
+  ([\#567](https://github.com/openpharma/rbmi/issues/567)).
+
 ### Bug Fixes
 
 - Added en-GB spell-check and a corresponding test to the package

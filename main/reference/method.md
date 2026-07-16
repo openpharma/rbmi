@@ -121,6 +121,14 @@ method_bmlmi(
   a numeric that determines the number of random imputations for each
   bootstrap sample. Needed for `method_bmlmi()`.
 
+## Value
+
+A `method` object; a named list of class `c("method", <type>)` where
+`<type>` is one of `"bayes"`, `"approxbayes"`, `"condmean"` or
+`"bmlmi"`. It stores the chosen imputation methodology and its settings
+and is passed to the `method` argument of
+[`draws()`](https://openpharma.github.io/rbmi/reference/draws.md).
+
 ## Details
 
 In the case of `method_condmean(type = "bootstrap")` there will be

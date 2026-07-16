@@ -2,6 +2,14 @@
 
 This is a simple stack object offering add / pop functionality
 
+## Value
+
+A `Stack` generator object (an
+[R6::R6Class](https://r6.r-lib.org/reference/R6Class.html) generator).
+Call `Stack$new()` to create an instance, which exposes `add()` and
+`pop()` methods for storing and retrieving elements in
+first-in-first-out order.
+
 ## Public fields
 
 - `stack`:

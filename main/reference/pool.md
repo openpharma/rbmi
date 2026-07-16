@@ -73,6 +73,34 @@ print(x, ..., pval_digits = 2, pval_eps = 1e-06, pval_nsmall = 5)
 
   the minimum number of digits to print for p-values' MCSE.
 
+## Value
+
+A `pool` object; a list of class `"pool"` containing the pooled analysis
+results with the following elements:
+
+- `pars`: a named list with one entry per parameter, each itself a list
+  containing the pooled point estimate (`est`), confidence interval
+  (`ci`), standard error (`se`) and p-value (`pvalue`).
+
+- `conf.level`: the confidence level used for the confidence intervals.
+
+- `alternative`: the alternative hypothesis used to derive the p-values.
+
+- `N`: the number of analysis results that were combined.
+
+- `method`: the pooling method that was used.
+
+The [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html)
+method returns a `data.frame` with one row per parameter (columns
+`parameter`, `est`, `se`, `lci`, `uci`, `pval`) and the
+[`print()`](https://rdrr.io/r/base/print.html) method returns its input
+invisibly.
+
+`mcse()` returns an `mcse` object; a list of class `"mcse"` containing
+`pars` (the Monte Carlo standard errors of the pooled estimates, in the
+same structure as the `pars` element of a `pool` object) and `N` (the
+number of results combined).
+
 ## Details
 
 The calculation used to generate the point estimate, standard errors and

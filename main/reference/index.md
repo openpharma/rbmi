@@ -8,12 +8,6 @@
 - [`STAN_BLOCKS`](https://openpharma.github.io/rbmi/reference/STAN_BLOCKS.md)
   : List of Stan Blocks
 
-- [`Stack`](https://openpharma.github.io/rbmi/reference/Stack.md) : R6
-  Class for a FIFO stack
-
-- [`add_class()`](https://openpharma.github.io/rbmi/reference/add_class.md)
-  : Add a class
-
 - [`adjust_trajectories()`](https://openpharma.github.io/rbmi/reference/adjust_trajectories.md)
   : Adjust trajectories due to the intercurrent event (ICE)
 
@@ -43,9 +37,6 @@
 
 - [`as_ascii_table()`](https://openpharma.github.io/rbmi/reference/as_ascii_table.md)
   : as_ascii_table
-
-- [`as_class()`](https://openpharma.github.io/rbmi/reference/as_class.md)
-  : Set Class
 
 - [`as_cropped_char()`](https://openpharma.github.io/rbmi/reference/as_cropped_char.md)
   : as_cropped_char
@@ -295,11 +286,6 @@
 
   Create a `rbmi` ready cluster
 
-- [`mcse_jackknife()`](https://openpharma.github.io/rbmi/reference/mcse_internal.md)
-  [`jackknife_se()`](https://openpharma.github.io/rbmi/reference/mcse_internal.md)
-  [`mcse_combine_all_pars()`](https://openpharma.github.io/rbmi/reference/mcse_internal.md)
-  : Internal MCSE Computations
-
 - [`method_bayes()`](https://openpharma.github.io/rbmi/reference/method.md)
   [`method_approxbayes()`](https://openpharma.github.io/rbmi/reference/method.md)
   [`method_condmean()`](https://openpharma.github.io/rbmi/reference/method.md)
@@ -327,9 +313,6 @@
 
 - [`pool_bootstrap_percentile()`](https://openpharma.github.io/rbmi/reference/pool_bootstrap_percentile.md)
   : Bootstrap Pooling via Percentiles
-
-- [`pool_internal()`](https://openpharma.github.io/rbmi/reference/pool_internal.md)
-  : Internal Pool Methods
 
 - [`prepare_stan_data()`](https://openpharma.github.io/rbmi/reference/prepare_stan_data.md)
   : Prepare input data to run the Stan model
@@ -498,9 +481,6 @@
   :
 
   Validate a `stan_data` object
-
-- [`validate_analyse_pars()`](https://openpharma.github.io/rbmi/reference/validate_analyse_pars.md)
-  : Validate analysis results
 
 - [`validate_datalong()`](https://openpharma.github.io/rbmi/reference/validate_datalong.md)
   [`validate_datalong_varExists()`](https://openpharma.github.io/rbmi/reference/validate_datalong.md)

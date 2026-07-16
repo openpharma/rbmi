@@ -35,6 +35,14 @@ strategy_LMCF(pars_group, pars_ref, index_mar)
   the subject. I.e. this identifies the observations after a non-MAR
   intercurrent event (ICE).
 
+## Value
+
+A list with elements `mu` (a numeric vector of means) and `sigma` (a
+covariance matrix) giving the parameters of the subject's imputation
+distribution, formed by combining their own group's parameters
+(`pars_group`) with the reference group's parameters (`pars_ref`)
+according to the chosen strategy.
+
 ## Details
 
 `pars_group` and `pars_ref` both must be a list containing elements `mu`

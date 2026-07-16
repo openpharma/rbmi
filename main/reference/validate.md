@@ -19,3 +19,9 @@ validate(x, ...)
 - ...:
 
   additional arguments to pass to the specific validation method.
+
+## Value
+
+Called for its side effect of validating `x`. Throws an error if any
+check fails; otherwise returns invisibly (the exact value depends on the
+method, typically `invisible(TRUE)` or `invisible(NULL)`).

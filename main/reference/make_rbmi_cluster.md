@@ -36,6 +36,14 @@ make_rbmi_cluster(ncores = 1, objects = NULL, packages = NULL)
   then this function just takes care of inserting the relevant `rbmi`
   objects into the existing cluster.
 
+## Value
+
+A parallel socket cluster object (as created by
+[`parallel::makePSOCKcluster()`](https://rdrr.io/r/parallel/makeCluster.html))
+configured for use with `rbmi`, or `NULL` if `ncores = 1`. When `ncores`
+is an existing cluster it is returned with the required `rbmi` objects
+and libraries loaded into it.
+
 ## Examples
 
 ``` r

@@ -44,6 +44,13 @@ control_bayes(
   additional arguments to be passed to
   [`rstan::sampling()`](https://mc-stan.org/rstan/reference/stanmodel-method-sampling.html).
 
+## Value
+
+A named list of control parameters (`warmup`, `thin`, `chains`, `init`,
+`seed` and any additional arguments passed via `...`) that control the
+MCMC sampler used by
+[`method_bayes()`](https://openpharma.github.io/rbmi/reference/method.md).
+
 ## Details
 
 Currently only the Bayesian imputation via

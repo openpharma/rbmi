@@ -39,6 +39,12 @@ as_vcov(sd, cor)
   visit. Must be a named list with elements `int`, `age`, `sex`, `trt` &
   `visit`. See details.
 
+## Value
+
+`as_vcov()` returns a symmetric positive-definite covariance matrix (a
+numeric matrix) constructed from the vector of standard deviations `sd`
+and the correlation entries `cor`.
+
 ## Details
 
 The number of visits is determined by the size of the variance

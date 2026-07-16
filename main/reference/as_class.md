@@ -17,3 +17,7 @@ as_class(x, cls)
 - cls:
 
   the class to be set.
+
+## Value
+
+`x` with its class attribute set to `cls`.

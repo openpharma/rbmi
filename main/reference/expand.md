@@ -43,6 +43,16 @@ expand_locf(data, ..., vars, group, order)
   character vector containing the names of additional variables to sort
   the `data.frame` by before performing LOCF.
 
+## Value
+
+A `data.frame` (of the same class as the input `data`). `expand()`
+returns `data` with all missing combinations of the expanded variables
+inserted as new rows, with the expanded variables cast to factors.
+`fill_locf()` returns `data` with the named `vars` imputed by last
+observation carried forward (in the original row order). `expand_locf()`
+returns the result of applying `fill_locf()` to the output of
+`expand()`.
+
 ## Details
 
 The [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md)

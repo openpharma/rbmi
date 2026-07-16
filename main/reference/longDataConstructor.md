@@ -5,6 +5,14 @@ longitudinal datasets for use in bootstrap sampling. The object works by
 de-constructing the data into lists based upon subject id thus enabling
 efficient lookup.
 
+## Value
+
+Call `longDataConstructor$new(data, vars)` to create a `longdata` R6
+object which stores the longitudinal data and provides methods used
+internally by
+[`draws()`](https://openpharma.github.io/rbmi/reference/draws.md) to
+sample and reconstruct datasets.
+
 ## Details
 
 The object also handles multiple other operations specific to `rbmi`
