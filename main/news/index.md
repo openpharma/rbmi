@@ -26,9 +26,17 @@
 - Vignette on retrieved dropout methods is now correctly embedded.
 - Improve CI/CD scripts to reliably fail GitHub CI/CD in case of failing
   tests.
+- Fixed a bug where each non-ignorable Stan warning from the Bayesian
+  sampler was reported multiple times instead of once.
+  ([\#572](https://github.com/openpharma/rbmi/issues/572))
 - Replaced deprecated
   [`structure()`](https://rdrr.io/r/base/structure.html) special name
   `.Dim` with `dim` in unit tests to resolve an `R CMD check` NOTE.
+
+### Miscellaneous
+
+- Updated Marcel Wolbers’ e-mail address
+  ([\#583](https://github.com/openpharma/rbmi/issues/583))
 
 ## rbmi 1.6.0
 

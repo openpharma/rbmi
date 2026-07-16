@@ -50,7 +50,7 @@ Authors:
 
 - Alessandro Noci <alessandro.noci@roche.com>
 
-- Marcel Wolbers <marcel.wolbers@roche.com>
+- Marcel Wolbers <marcel.wolbers@bayer.com>
   ([ORCID](https://orcid.org/0000-0003-4915-9015))
 
 - Daniel Sabanes Bove <daniel.sabanes_bove@rconis.com>
