@@ -6,7 +6,7 @@ Authors@R: c(
     person("Craig", "Gower-Page", email = "craig.gower-page@novartis.com", role = c("aut")),
     person("Isaac", "Gravestock", email = "isaac.gravestock@roche.com", role = c("aut"), comment = c(ORCID = "0000-0003-0283-2065")),
     person("Alessandro", "Noci", email = "alessandro.noci@roche.com", role = c("aut")),
-    person("Marcel", "Wolbers", email = "marcel.wolbers@roche.com", role = "aut", comment = c(ORCID = "0000-0003-4915-9015")),
+    person("Marcel", "Wolbers", email = "marcel.wolbers@bayer.com", role = "aut", comment = c(ORCID = "0000-0003-4915-9015")),
     person("Daniel", "Sabanes Bove", email = "daniel.sabanes_bove@rconis.com", role = c("aut"), comment = c(ORCID = "0000-0002-0176-9239")),
     person("F. Hoffmann-La Roche AG", role = c("cph", "fnd"))
     )

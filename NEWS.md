@@ -21,6 +21,9 @@
 * Replaced deprecated `structure()` special name `.Dim` with `dim` in unit tests
   to resolve an `R CMD check` NOTE.
 
+## Miscellaneous
+* Updated Marcel Wolbers' e-mail address (#583)
+
 # rbmi 1.6.0
 
 * Stan programs are constructed in memory and respect the cache setting
