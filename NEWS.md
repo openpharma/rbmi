@@ -12,7 +12,7 @@
   `longDataConstructor` with `@keywords internal` (#570).
 
 ## Bug Fixes
-* Vignette on retrieved dropout methods is now correctly embedded.
+* The vignette on retrieved dropout methods is now correctly embedded.
 * Fixed numerous spelling errors and standardised nomenclature for missing not
   at random to `MNAR` (rather than a mix of `NMAR` and `MNAR`)
 * Deprecated `nmar.rm` argument of `longdata$get_data` in favour of `mnar.rm` 
