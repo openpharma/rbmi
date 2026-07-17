@@ -1,4 +1,4 @@
-# rbmi (development version)
+# rbmi 1.6.1
 
 ## Documentation
 * Documented the return value (`@return`) of all exported functions and marked
