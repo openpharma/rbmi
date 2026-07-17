@@ -78,6 +78,7 @@ test_that("vcov", {
 
 
 test_that("simulate_test_data errors reference the correct argument", {
+    skip_if_not(is_core_test())
     # `n` must be even
     expect_error(
         simulate_test_data(n = 5),
