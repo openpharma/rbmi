@@ -1,6 +1,11 @@
 # Changelog
 
-## rbmi (development version)
+## rbmi 1.6.1
+
+### New Features
+
+- rbmi now uses the `lifecycle` package
+- Added en-GB spell-check and a corresponding test to the package
 
 ### Documentation
 
@@ -16,22 +21,20 @@
 
 ### Bug Fixes
 
+- The vignette on retrieved dropout methods is now correctly embedded.
+- Fixed numerous spelling errors and standardised nomenclature for
+  missing not at random to `MNAR` (rather than a mix of `NMAR` and
+  `MNAR`)
+- Deprecated `nmar.rm` argument of `longdata$get_data` in favour of
+  `mnar.rm` for nomenclature consistency.
 - Fixed a misleading error message in
   [`imputation_list_single()`](https://openpharma.github.io/rbmi/reference/imputation_list_single.md)
   where a failure of the imputation-count-divisible-by-`D` check
   incorrectly reported that “multiple `ids` were detected”
   ([\#574](https://github.com/openpharma/rbmi/issues/574))
-- Added en-GB spell-check and a corresponding test to the package
-- Fixed numerous spelling errors and standardised nomenclature for
-  missing not at random to `MNAR` (rather than a mix of `NMAR` and
-  `MNAR`)
-- rbmi now uses the `lifecycle` package
-- Deprecated `nmar.rm` argument of `longdata$get_data` in favour of
-  `mnar.rm` for nomenclature consistency.
-- Vignette on retrieved dropout methods is now correctly embedded.
-- Improve CI/CD scripts to reliably fail GitHub CI/CD in case of failing
-  tests.
-- Fix error message for `mu$visit` in
+- Improved CI/CD scripts to reliably fail GitHub CI/CD in case of
+  failing tests.
+- Fixed error message for `mu$visit` in
   [`simulate_test_data()`](https://openpharma.github.io/rbmi/reference/simulate_test_data.md)
   to refer to `visit` instead of `trt`
   ([\#578](https://github.com/openpharma/rbmi/issues/578))
@@ -42,13 +45,15 @@
   [`apply_delta()`](https://openpharma.github.io/rbmi/reference/apply_delta.md)
   to correctly refer to `data` instead of `dat`
   ([\#576](https://github.com/openpharma/rbmi/issues/576))
+- Fixed the broken GitHub badge in `README.md`
+  ([\#548](https://github.com/openpharma/rbmi/issues/548))
+
+### Miscellaneous
+
 - Replaced deprecated
   [`structure()`](https://rdrr.io/r/base/structure.html) special name
   `.Dim` with `dim` in unit tests to resolve an `R CMD check` NOTE
   ([\#581](https://github.com/openpharma/rbmi/issues/581))
-
-### Miscellaneous
-
 - Updated Marcel Wolbers’ e-mail address
   ([\#583](https://github.com/openpharma/rbmi/issues/583))
 
