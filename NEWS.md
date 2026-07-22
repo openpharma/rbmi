@@ -27,7 +27,7 @@
   was reported multiple times instead of once. (#572)
 * Fixed the error message in `apply_delta()` to correctly refer to `data`
   instead of `dat` (#576)
-* Fixed the broken Github badge in README.md (#548)
+* Fixed the broken GitHub badge in `README.md` (#548)
 
 
 ## Miscellaneous
