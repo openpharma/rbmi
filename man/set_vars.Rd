@@ -37,6 +37,12 @@ estimated by \code{\link[=ancova]{ancova()}}. Either \code{NULL} (the default) o
 vectors. Each element is of the form \code{c(minuend, subtrahend)} giving the two levels of
 \code{group} to be contrasted (i.e. \code{minuend - subtrahend}). See details.}
 }
+\value{
+A \code{vars} object; a named list of class \code{ivars} recording the names of the key
+variables (\code{subjid}, \code{visit}, \code{outcome}, \code{group}, \code{covariates}, \code{strata} and
+\code{strategy}) used throughout \code{rbmi} by functions such as \code{\link[=draws]{draws()}}, \code{\link[=ancova]{ancova()}}
+and \code{\link[=analyse]{analyse()}}.
+}
 \description{
 This function is used to define the names of key variables within the \code{data.frame}'s
 that are provided as input arguments to \code{\link[=draws]{draws()}} and \code{\link[=ancova]{ancova()}}.
