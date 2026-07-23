@@ -1,7 +1,7 @@
 # Create MMRM formula
 
-Derives the MMRM model formula from the structure of mmrm_df. returns a
-formula object of the form:
+Derives the MMRM model formula from the structure of `mmrm_df`. returns
+a formula object of the form:
 
 ## Usage
 
@@ -13,7 +13,7 @@ as_mmrm_formula(mmrm_df, cov_struct)
 
 - mmrm_df:
 
-  an mmrm `data.frame` as created by
+  an `mmrm` `data.frame` as created by
   [`as_mmrm_df()`](https://openpharma.github.io/rbmi/reference/as_mmrm_df.md)
 
 - cov_struct:

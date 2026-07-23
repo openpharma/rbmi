@@ -72,10 +72,10 @@ missing and there is a single additional intermittent missing
 observation.
 
 We consider an imputation model with the mean change from baseline in
-the HAMD17 score as the outcome (variable CHANGE in the dataset). The
+the HAMD17 score as the outcome (variable `CHANGE` in the dataset). The
 following covariates are included in the imputation model: the treatment
-group (THERAPY), the (categorical) visit (VISIT), treatment-by-visit
-interactions, the baseline HAMD17 score (BASVAL), and baseline HAMD17
+group (`THERAPY`), the (categorical) visit (`VISIT`), treatment-by-visit
+interactions, the baseline HAMD17 score (`BASVAL`), and baseline HAMD17
 score-by-visit interactions. A common unstructured covariance matrix
 structure is assumed for both groups. The analysis model is an ANCOVA
 model with the treatment group as the primary factor and adjustment for
@@ -579,7 +579,7 @@ at the last visit with an associated p-value of 0.058. Per construction
 of the delta-adjustment, the point estimate is identical to the
 frequentist analysis. However, its standard error is much larger (1.12
 vs. 0.86). Indeed, the information-anchored standard error (and the
-resulting inference) is very similar to the results for Baysesian
+resulting inference) is very similar to the results for Bayesian
 multiple imputation using Rubin’s rules for which a standard error of
 1.13 was reported in the quickstart vignette
 (`vignette(topic = "quickstart", package = "rbmi"`). Of note, as shown

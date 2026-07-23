@@ -46,7 +46,7 @@ affected by the ICE and `0` otherwise.
 
 ## Details
 
-The probability of the ICE after each visit is modeled according to the
+The probability of the ICE after each visit is modelled according to the
 following logistic regression model:
 `~ 1 + I(visit == 0) + ... + I(visit == n_visits-1) + I((x-alpha))`
 where:

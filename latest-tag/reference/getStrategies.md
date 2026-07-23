@@ -17,6 +17,14 @@ getStrategies(...)
   User defined methods to be added to the return list. Input must be a
   function.
 
+## Value
+
+A named list of imputation strategy functions. By default this contains
+the built-in strategies `JR`, `CR`, `CIR`, `LMCF` and `MAR`, together
+with (or overwritten by) any user-defined strategies supplied via `...`.
+Each element is a function taking `pars_group`, `pars_ref` and
+`index_mar`.
+
 ## Details
 
 By default Jump to Reference (JR), Copy Reference (CR), Copy Increments

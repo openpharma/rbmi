@@ -18,9 +18,9 @@ functions) which are typically called in sequence:
   combines the analysis results across imputed datasets into a single
   statistic
 
-This example in this vignette makes use of Bayesian multiuple
-imputation; this functionality requires the installation of the
-suggested package [rstan](https://CRAN.R-project.org/package=rstan).
+This example in this vignette makes use of Bayesian multiple imputation;
+this functionality requires the installation of the suggested package
+[`rstan`](https://CRAN.R-project.org/package=rstan).
 
     install.packages("rstan")
 
@@ -111,7 +111,7 @@ For the antidepressant trial data, the dataset `data_ice` is not
 provided. However, it can be derived because, in this dataset, the
 subject’s first visit affected by the ICE “study drug discontinuation”
 corresponds to the first terminal missing observation. We first derive
-the dateset `data_ice` and then create 150 Bayesian posterior draws of
+the dataset `data_ice` and then create 150 Bayesian posterior draws of
 the imputation model parameters.
 
 For this example, we assume that the imputation strategy after the ICE
@@ -183,6 +183,19 @@ drawObj <- draws(
     method = method,
     quiet = TRUE
 )
+#> Trying to compile a simple C file
+#> Running /usr/local/lib/R/bin/R CMD SHLIB foo.c
+#> using C compiler: ‘gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0’
+#> gcc -std=gnu2x -I"/usr/local/lib/R/include" -DNDEBUG   -I"/usr/local/lib/R/site-library/Rcpp/include/"  -I"/usr/local/lib/R/site-library/RcppEigen/include/"  -I"/usr/local/lib/R/site-library/RcppEigen/include/unsupported"  -I"/usr/local/lib/R/site-library/BH/include" -I"/usr/local/lib/R/site-library/StanHeaders/include/src/"  -I"/usr/local/lib/R/site-library/StanHeaders/include/"  -I"/usr/local/lib/R/site-library/RcppParallel/include/"  -I"/usr/local/lib/R/site-library/rstan/include" -DEIGEN_NO_DEBUG  -DBOOST_DISABLE_ASSERTS  -DBOOST_PENDING_INTEGER_LOG2_HPP  -DSTAN_THREADS  -DUSE_STANC3 -DSTRICT_R_HEADERS  -DBOOST_PHOENIX_NO_VARIADIC_EXPRESSION  -D_HAS_AUTO_PTR_ETC=0  -include '/usr/local/lib/R/site-library/StanHeaders/include/stan/math/prim/fun/Eigen.hpp'  -D_REENTRANT -DRCPP_PARALLEL_USE_TBB=1   -I/usr/local/include    -fpic  -g -O2 -fstack-protector-strong -Wformat -Werror=format-security -Wdate-time -D_FORTIFY_SOURCE=2 -g  -c foo.c -o foo.o
+#> In file included from /usr/local/lib/R/site-library/RcppEigen/include/Eigen/Core:19,
+#>                  from /usr/local/lib/R/site-library/RcppEigen/include/Eigen/Dense:1,
+#>                  from /usr/local/lib/R/site-library/StanHeaders/include/stan/math/prim/fun/Eigen.hpp:22,
+#>                  from <command-line>:
+#> /usr/local/lib/R/site-library/RcppEigen/include/Eigen/src/Core/util/Macros.h:679:10: fatal error: cmath: No such file or directory
+#>   679 | #include <cmath>
+#>       |          ^~~~~~~
+#> compilation terminated.
+#> make: *** [/usr/local/lib/R/etc/Makeconf:202: foo.o] Error 1
 drawObj
 #> 
 #> Draws Object
@@ -386,13 +399,13 @@ function which determines the names of the key variables within the data
 and the covariates (in addition to the treatment group) for which the
 analysis model will be adjusted.
 
-Please also note that the names of the analysis estimates contain “ref”
-and “alt” to refer to the two treatment arms. In particular “ref” refers
+Please also note that the names of the analysis estimates contain `ref`
+and `alt` to refer to the two treatment arms. In particular `ref` refers
 to the first factor level of `vars$group` which does not necessarily
 coincide with the control arm. In this example, since
 `levels(dat[[vars$group]]) = c("DRUG", PLACEBO`), the results associated
-with “ref” correspond to the intervention arm, while those associated
-with “alt” correspond to the control arm.
+with `ref` correspond to the intervention arm, while those associated
+with `alt` correspond to the control arm.
 
 Additionally, we can use the `delta` argument of
 [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md) to

@@ -56,7 +56,7 @@ Specifically, we simulate a 1:1 randomized trial of an active drug
   groups is implied by a random intercept and slope model with a
   standard deviation of 5 for both the intercept and the slope, and a
   correlation of 0.25. In addition, an independent residual error with
-  standard deviation 2.5 is added to each assessment.  
+  standard deviation 2.5 is added to each assessment.\
 - The probability of the intercurrent event study drug discontinuation
   after each visit is calculated according to a logistic model which
   depends on the observed outcome at that visit. Specifically, a
@@ -239,7 +239,7 @@ Specifically, we consider the following imputation models:
   where `time_since_ice1` is set to 0 up to the treatment
   discontinuation and to the time from treatment discontinuation (in
   months) at subsequent visits. This implies a change in the slope of
-  the outcome trajectories after the ICE, which is modeled separately
+  the outcome trajectories after the ICE, which is modelled separately
   for each treatment arm. This model is similar to the “TV2-MAR”
   estimator in Noci et al. ([2023](#ref-Noci2021)). Compared to the
   basic MAR model, this model requires estimation of 2 additional
@@ -247,7 +247,7 @@ Specifically, we consider the following imputation models:
 - **Retrieved dropout model 2 (RD2)**: This model uses the following
   imputation model:
   `change ~ outcome_bl*visit + group*visit + ind_ice1*group*visit`. This
-  assumes a constant shift in outcomes after the ICE, which is modeled
+  assumes a constant shift in outcomes after the ICE, which is modelled
   separately for each treatment arm and each visit. This model is
   analogous to the “MI2” model in Bell et al. ([2025](#ref-Bell2024)).
   Compared to the basic MAR model, this model requires estimation of 2

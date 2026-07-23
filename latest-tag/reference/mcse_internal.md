@@ -43,3 +43,17 @@ mcse_combine_all_pars(jackknife_results)
 
   the list of jackknife results of all parameters, in the same format as
   the pooled parameter estimates.
+
+## Value
+
+`mcse_jackknife()` returns the pooled parameter estimates (in the same
+structure as the `pars` element of a
+[`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) object)
+recomputed with the `omit_index`-th result left out.
+
+`jackknife_se()` returns the numeric scalar jackknife standard error
+computed from `pars_jackknife`.
+
+`mcse_combine_all_pars()` returns a list mirroring the structure of the
+pooled parameters in which each statistic is replaced by its jackknife
+Monte Carlo standard error.

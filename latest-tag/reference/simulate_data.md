@@ -5,7 +5,7 @@ outcome and two intercurrent events (ICEs). ICE1 may be thought of as a
 discontinuation from study treatment due to study drug or condition
 related (SDCR) reasons. ICE2 may be thought of as discontinuation from
 study treatment due to uninformative study drop-out, i.e. due to not
-study drug or condition related (NSDRC) reasons and outcome data after
+study drug or condition related (NSDCR) reasons and outcome data after
 ICE2 is always missing.
 
 ## Usage
@@ -102,7 +102,7 @@ The data generation works as follows:
 - Simulate an additional uninformative study drop-out with probabilities
   `pars_c$prob_ice2` and `pars_t$prob_ice2` at each visit. This
   generates a second intercurrent event ICE2, which may be thought as
-  treatment discontinuation due to NSDRC reasons with subsequent
+  treatment discontinuation due to NSDCR reasons with subsequent
   drop-out. The simulated time of drop-out is the subject's first visit
   which is affected by drop-out and data from this visit and all
   subsequent visits are consequently set to missing. If for a subject,
@@ -120,7 +120,7 @@ The data generation works as follows:
 - Simulate additional intermittent missing outcome data as per arguments
   `pars_c$prob_miss` and `pars_t$prob_miss`.
 
-The probability of the ICE after each visit is modeled according to the
+The probability of the ICE after each visit is modelled according to the
 following logistic regression model:
 `~ 1 + I(visit == 0) + ... + I(visit == n_visits-1) + I((x-alpha))`
 where:
@@ -139,3 +139,61 @@ where:
 
 Please note that the baseline outcome cannot be missing nor be affected
 by any ICEs.
+
+## Examples
+
+``` r
+set.seed(1392)
+
+time <- c(0, 3, 6, 9, 12)
+
+# Mean outcome trajectory in the control and intervention groups
+muC <- c(50.0, 52.5, 55.0, 57.5, 60.0)
+muT <- c(50.0, 52.5, 55.0, 56.25, 57.50)
+
+# Covariance matrix implied by a random intercept and slope model
+sd_error <- 2.5
+covRE <- rbind(
+    c(25.0, 6.25),
+    c(6.25, 25.0)
+)
+Sigma <- cbind(1, time / 12) %*% covRE %*% rbind(1, time / 12) +
+    diag(sd_error^2, nrow = length(time))
+
+# Simulation parameters of the control group
+parsC <- set_simul_pars(
+    mu = muC,
+    sigma = Sigma,
+    n = 100,
+    prob_ice1 = 0.03,
+    or_outcome_ice1 = 1.10,
+    prob_post_ice1_dropout = 0.5
+)
+
+# Simulation parameters of the intervention group
+parsT <- parsC
+parsT$mu <- muT
+parsT$prob_ice1 <- 0.04
+
+# Simulate a dataset with a copy-increments-in-reference post-ICE1 trajectory
+data <- simulate_data(
+    pars_c = parsC,
+    pars_t = parsT,
+    post_ice1_traj = "CIR"
+)
+head(data)
+#>     id visit   group outcome_bl outcome_noICE ind_ice1 ind_ice2 dropout_ice1
+#> 1 id_1     0 Control   53.35397      53.35397        0        0            0
+#> 2 id_1     1 Control   53.35397      55.15100        0        0            0
+#> 3 id_1     2 Control   53.35397      59.81038        0        0            0
+#> 4 id_1     3 Control   53.35397      61.59709        0        0            0
+#> 5 id_1     4 Control   53.35397      67.08044        0        0            0
+#> 6 id_2     0 Control   53.31025      53.31025        0        0            0
+#>    outcome
+#> 1 53.35397
+#> 2 55.15100
+#> 3 59.81038
+#> 4 61.59709
+#> 5 67.08044
+#> 6 53.31025
+```

@@ -8,12 +8,6 @@
 - [`STAN_BLOCKS`](https://openpharma.github.io/rbmi/reference/STAN_BLOCKS.md)
   : List of Stan Blocks
 
-- [`Stack`](https://openpharma.github.io/rbmi/reference/Stack.md) : R6
-  Class for a FIFO stack
-
-- [`add_class()`](https://openpharma.github.io/rbmi/reference/add_class.md)
-  : Add a class
-
 - [`adjust_trajectories()`](https://openpharma.github.io/rbmi/reference/adjust_trajectories.md)
   : Adjust trajectories due to the intercurrent event (ICE)
 
@@ -43,9 +37,6 @@
 
 - [`as_ascii_table()`](https://openpharma.github.io/rbmi/reference/as_ascii_table.md)
   : as_ascii_table
-
-- [`as_class()`](https://openpharma.github.io/rbmi/reference/as_class.md)
-  : Set Class
 
 - [`as_cropped_char()`](https://openpharma.github.io/rbmi/reference/as_cropped_char.md)
   : as_cropped_char
@@ -82,7 +73,7 @@
   : As array
 
 - [`as_strata()`](https://openpharma.github.io/rbmi/reference/as_strata.md)
-  : Create vector of Stratas
+  : Create vector of strata
 
 - [`assert_variables_exist()`](https://openpharma.github.io/rbmi/reference/assert_variables_exist.md)
   : Assert that all variables exist within a dataset
@@ -114,7 +105,7 @@
   [`imputation_list_df()`](https://openpharma.github.io/rbmi/reference/imputation_list_df.md)
   object (i.e. a list of
   [`imputation_df()`](https://openpharma.github.io/rbmi/reference/imputation_df.md)
-  objects's)
+  objects)
 
 - [`d_lagscale()`](https://openpharma.github.io/rbmi/reference/d_lagscale.md)
   : Calculate delta from a lagged scale coefficient
@@ -128,7 +119,9 @@
   Fit the base imputation model and get parameter estimates
 
 - [`eval_mmrm()`](https://openpharma.github.io/rbmi/reference/eval_mmrm.md)
-  : Evaluate a call to mmrm
+  :
+
+  Evaluate a call to `mmrm`
 
 - [`expand()`](https://openpharma.github.io/rbmi/reference/expand.md)
   [`fill_locf()`](https://openpharma.github.io/rbmi/reference/expand.md)
@@ -140,7 +133,7 @@
 - [`extract_covariates()`](https://openpharma.github.io/rbmi/reference/extract_covariates.md)
   : Extract Variables from string vector
 
-- [`extract_data_nmar_as_na()`](https://openpharma.github.io/rbmi/reference/extract_data_nmar_as_na.md)
+- [`extract_data_mnar_as_na()`](https://openpharma.github.io/rbmi/reference/extract_data_mnar_as_na.md)
   : Set to NA outcome values that would be MNAR if they were missing
   (i.e. which occur after an ICE handled using a reference-based
   imputation strategy)
@@ -215,9 +208,6 @@
 - [`get_visit_distribution_parameters()`](https://openpharma.github.io/rbmi/reference/get_visit_distribution_parameters.md)
   : Derive visit distribution parameters
 
-- [`has_class()`](https://openpharma.github.io/rbmi/reference/has_class.md)
-  : Does object have a class ?
-
 - [`ife()`](https://openpharma.github.io/rbmi/reference/ife.md) : if
   else
 
@@ -227,12 +217,14 @@
   Create a valid `imputation_df` object
 
 - [`imputation_list_df()`](https://openpharma.github.io/rbmi/reference/imputation_list_df.md)
-  : List of imputations_df
+  :
+
+  List of `imputation_df`s
 
 - [`imputation_list_single()`](https://openpharma.github.io/rbmi/reference/imputation_list_single.md)
   :
 
-  A collection of `imputation_singles()` grouped by a single subjid ID
+  A collection of `imputation_singles()` grouped by a single `subjid` ID
 
 - [`imputation_single()`](https://openpharma.github.io/rbmi/reference/imputation_single.md)
   :
@@ -275,9 +267,6 @@
 - [`locf()`](https://openpharma.github.io/rbmi/reference/locf.md) : Last
   Observation Carried Forward
 
-- [`longDataConstructor`](https://openpharma.github.io/rbmi/reference/longDataConstructor.md)
-  : R6 Class for Storing / Accessing & Sampling Longitudinal Data
-
 - [`ls_design_equal()`](https://openpharma.github.io/rbmi/reference/ls_design.md)
   [`ls_design_counterfactual()`](https://openpharma.github.io/rbmi/reference/ls_design.md)
   [`ls_design_proportional()`](https://openpharma.github.io/rbmi/reference/ls_design.md)
@@ -291,11 +280,6 @@
 
   Create a `rbmi` ready cluster
 
-- [`mcse_jackknife()`](https://openpharma.github.io/rbmi/reference/mcse_internal.md)
-  [`jackknife_se()`](https://openpharma.github.io/rbmi/reference/mcse_internal.md)
-  [`mcse_combine_all_pars()`](https://openpharma.github.io/rbmi/reference/mcse_internal.md)
-  : Internal MCSE Computations
-
 - [`method_bayes()`](https://openpharma.github.io/rbmi/reference/method.md)
   [`method_approxbayes()`](https://openpharma.github.io/rbmi/reference/method.md)
   [`method_condmean()`](https://openpharma.github.io/rbmi/reference/method.md)
@@ -303,7 +287,9 @@
   : Set the multiple imputation methodology
 
 - [`par_lapply()`](https://openpharma.github.io/rbmi/reference/par_lapply.md)
-  : Parallelise Lapply
+  :
+
+  Parallelise `lapply`
 
 - [`parametric_ci()`](https://openpharma.github.io/rbmi/reference/parametric_ci.md)
   : Calculate parametric confidence intervals
@@ -321,9 +307,6 @@
 
 - [`pool_bootstrap_percentile()`](https://openpharma.github.io/rbmi/reference/pool_bootstrap_percentile.md)
   : Bootstrap Pooling via Percentiles
-
-- [`pool_internal()`](https://openpharma.github.io/rbmi/reference/pool_internal.md)
-  : Internal Pool Methods
 
 - [`prepare_stan_data()`](https://openpharma.github.io/rbmi/reference/prepare_stan_data.md)
   : Prepare input data to run the Stan model
@@ -447,9 +430,6 @@
 - [`transpose_samples()`](https://openpharma.github.io/rbmi/reference/transpose_samples.md)
   : Transpose samples
 
-- [`validate()`](https://openpharma.github.io/rbmi/reference/validate.md)
-  : Generic validation method
-
 - [`validate(`*`<analysis>`*`)`](https://openpharma.github.io/rbmi/reference/validate.analysis.md)
   :
 
@@ -493,9 +473,6 @@
 
   Validate a `stan_data` object
 
-- [`validate_analyse_pars()`](https://openpharma.github.io/rbmi/reference/validate_analyse_pars.md)
-  : Validate analysis results
-
 - [`validate_datalong()`](https://openpharma.github.io/rbmi/reference/validate_datalong.md)
   [`validate_datalong_varExists()`](https://openpharma.github.io/rbmi/reference/validate_datalong.md)
   [`validate_datalong_types()`](https://openpharma.github.io/rbmi/reference/validate_datalong.md)
@@ -503,7 +480,9 @@
   [`validate_datalong_complete()`](https://openpharma.github.io/rbmi/reference/validate_datalong.md)
   [`validate_datalong_unifromStrata()`](https://openpharma.github.io/rbmi/reference/validate_datalong.md)
   [`validate_dataice()`](https://openpharma.github.io/rbmi/reference/validate_datalong.md)
-  : Validate a longdata object
+  :
+
+  Validate a `longdata` object
 
 - [`validate_strategies()`](https://openpharma.github.io/rbmi/reference/validate_strategies.md)
   : Validate user specified strategies

@@ -1,4 +1,4 @@
-# Parallelise Lapply
+# Parallelise `lapply`
 
 Simple wrapper around `lapply` and
 [`parallel::clusterApplyLB`](https://rdrr.io/r/parallel/clusterApply.html)
@@ -28,4 +28,4 @@ par_lapply(cl, fun, x, ...)
 
 - ...:
 
-  extra arguements passed to `fun`
+  extra arguments passed to `fun`

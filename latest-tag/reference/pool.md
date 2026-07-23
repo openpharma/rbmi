@@ -73,6 +73,34 @@ print(x, ..., pval_digits = 2, pval_eps = 1e-06, pval_nsmall = 5)
 
   the minimum number of digits to print for p-values' MCSE.
 
+## Value
+
+A `pool` object; a list of class `"pool"` containing the pooled analysis
+results with the following elements:
+
+- `pars`: a named list with one entry per parameter, each itself a list
+  containing the pooled point estimate (`est`), confidence interval
+  (`ci`), standard error (`se`) and p-value (`pvalue`).
+
+- `conf.level`: the confidence level used for the confidence intervals.
+
+- `alternative`: the alternative hypothesis used to derive the p-values.
+
+- `N`: the number of analysis results that were combined.
+
+- `method`: the pooling method that was used.
+
+The [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html)
+method returns a `data.frame` with one row per parameter (columns
+`parameter`, `est`, `se`, `lci`, `uci`, `pval`) and the
+[`print()`](https://rdrr.io/r/base/print.html) method returns its input
+invisibly.
+
+`mcse()` returns an `mcse` object; a list of class `"mcse"` containing
+`pars` (the Monte Carlo standard errors of the pooled estimates, in the
+same structure as the `pars` element of a `pool` object) and `N` (the
+number of results combined).
+
 ## Details
 
 The calculation used to generate the point estimate, standard errors and
@@ -122,3 +150,118 @@ missing values: New features for mim. Stata Journal, 9(2): 252-264,
 Von Hippel, Paul T and Bartlett, Jonathan W. Maximum likelihood multiple
 imputation: Faster imputations and consistent standard errors without
 posterior draws. 2021.
+
+## Examples
+
+``` r
+# Prepare the data: expand to one row per subject and visit
+dat <- expand_locf(
+    antidepressant_data,
+    PATIENT = levels(antidepressant_data$PATIENT),
+    VISIT = levels(antidepressant_data$VISIT),
+    vars = c("BASVAL", "THERAPY"),
+    group = c("PATIENT"),
+    order = c("PATIENT", "VISIT")
+)
+
+# Derive data_ice: first missing-outcome visit per patient, imputed under JR.
+# Subject 3618 has only an intermittent missing value and is removed.
+is_missing <- is.na(dat$CHANGE)
+dat_ice <- dat[is_missing, c("PATIENT", "VISIT")]
+dat_ice <- dat_ice[!duplicated(dat_ice$PATIENT), ]
+dat_ice$strategy <- "JR"
+dat_ice <- dat_ice[dat_ice$PATIENT != 3618, ]
+
+vars <- set_vars(
+    outcome = "CHANGE",
+    visit = "VISIT",
+    subjid = "PATIENT",
+    group = "THERAPY",
+    covariates = c("BASVAL*VISIT", "THERAPY*VISIT")
+)
+
+# \donttest{
+# Approximate Bayesian imputation, so that pooling uses Rubin's rules
+set.seed(987)
+drawObj <- draws(
+    data = dat,
+    data_ice = dat_ice,
+    vars = vars,
+    method = method_approxbayes(n_samples = 20),
+    quiet = TRUE
+)
+imputeObj <- impute(
+    drawObj,
+    references = c("DRUG" = "PLACEBO", "PLACEBO" = "PLACEBO")
+)
+anaObj <- analyse(
+    imputeObj,
+    ancova,
+    vars = set_vars(
+        subjid = "PATIENT",
+        outcome = "CHANGE",
+        visit = "VISIT",
+        group = "THERAPY",
+        covariates = "BASVAL"
+    )
+)
+
+# Pool the analysis results across the imputed datasets
+poolObj <- pool(anaObj)
+poolObj
+#> 
+#> Pool Object
+#> -----------
+#> Number of Results Combined: 20
+#> Method: rubin
+#> Confidence Level: 0.95
+#> Alternative: two.sided
+#> 
+#> Results:
+#> 
+#>   ==================================================
+#>    parameter   est     se     lci     uci     pval  
+#>   --------------------------------------------------
+#>      trt_4    -0.092  0.683  -1.439  1.256   0.893  
+#>    lsm_ref_4  -1.616  0.486  -2.576  -0.656  0.001  
+#>    lsm_alt_4  -1.708  0.475  -2.645  -0.77   <0.001 
+#>      trt_5    1.317   0.945  -0.552  3.185   0.166  
+#>    lsm_ref_5  -4.127  0.674  -5.459  -2.795  <0.001 
+#>    lsm_alt_5  -2.81   0.651  -4.095  -1.525  <0.001 
+#>      trt_6    1.956   1.02   -0.06   3.973   0.057  
+#>    lsm_ref_6  -6.122  0.722  -7.55   -4.694  <0.001 
+#>    lsm_alt_6  -4.166  0.714  -5.579  -2.752  <0.001 
+#>      trt_7    2.084   1.122  -0.136  4.303   0.066  
+#>    lsm_ref_7  -7.058  0.857  -8.761  -5.355  <0.001 
+#>    lsm_alt_7  -4.974  0.78   -6.518  -3.43   <0.001 
+#>   --------------------------------------------------
+#> 
+
+# Monte Carlo standard errors of the pooled estimates
+mcse(poolObj, anaObj)
+#> 
+#> Monte Carlo Standard Errors for Pooled Estimates (mcse Object)
+#> -----------
+#> Number of Results Combined: 20
+#> 
+#> Results:
+#> 
+#>   ===================================================
+#>    parameter   est    se     lci    uci      pval    
+#>   ---------------------------------------------------
+#>      trt_4      0      0      0      0    < 0.000001 
+#>    lsm_ref_4    0      0      0      0    < 0.000001 
+#>    lsm_alt_4    0      0      0      0    < 0.000001 
+#>      trt_5    0.061  0.017  0.076  0.063   0.02205   
+#>    lsm_ref_5  0.044  0.011  0.04   0.057  < 0.000001 
+#>    lsm_alt_5  0.037  0.008  0.035  0.044  0.0000098  
+#>      trt_6    0.074  0.022  0.066  0.104   0.00818   
+#>    lsm_ref_6  0.05   0.012  0.06   0.051  < 0.000001 
+#>    lsm_alt_6  0.054  0.016  0.054  0.071  < 0.000001 
+#>      trt_7    0.088  0.018  0.103  0.087   0.01287   
+#>    lsm_ref_7  0.093  0.028  0.099  0.119  < 0.000001 
+#>    lsm_alt_7  0.061  0.024  0.089  0.069  < 0.000001 
+#>   ---------------------------------------------------
+#> 
+# }
+```

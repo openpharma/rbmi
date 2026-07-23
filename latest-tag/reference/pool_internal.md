@@ -59,3 +59,10 @@ pool_internal(results, conf.level, alternative, type, D)
 
   numeric representing the number of imputations between each bootstrap
   sample in the BMLMI method.
+
+## Value
+
+A list containing the pooled results for a single parameter with
+elements `est` (point estimate), `ci` (confidence interval), `se`
+(standard error) and `pvalue` (p-value). The specific computation is
+determined by the class of `results` via S3 dispatch.

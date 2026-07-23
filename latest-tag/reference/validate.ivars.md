@@ -1,7 +1,7 @@
 # Validate inputs for `vars`
 
 Checks that the required variable names are defined within `vars` and
-are of appropriate datatypes
+are of appropriate data types
 
 ## Usage
 

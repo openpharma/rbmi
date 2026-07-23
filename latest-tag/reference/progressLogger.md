@@ -1,6 +1,6 @@
 # R6 Class for printing current sampling progress
 
-Object is initalised with total number of iterations that are expected
+Object is initialised with total number of iterations that are expected
 to occur. User can then update the object with the `add` method to
 indicate how many more iterations have just occurred. Every time `step`
 \* 100 % of iterations have occurred a message is printed to the
@@ -36,7 +36,7 @@ anything at all
 
 ### Public methods
 
-- [`progressLogger$new()`](#method-progressLogger-new)
+- [`progressLogger$new()`](#method-progressLogger-initialize)
 
 - [`progressLogger$add()`](#method-progressLogger-add)
 
@@ -46,9 +46,9 @@ anything at all
 
 ------------------------------------------------------------------------
 
-### Method `new()`
+### `progressLogger$new()`
 
-Create progressLogger object
+Create `progressLogger` object
 
 #### Usage
 
@@ -70,7 +70,7 @@ Create progressLogger object
 
 ------------------------------------------------------------------------
 
-### Method `add()`
+### `progressLogger$add()`
 
 Records that `n` more iterations have been completed this will add that
 number to the current step count (`step_current`) and will print a
@@ -90,7 +90,7 @@ This function will do nothing if `quiet` has been set to `TRUE`
 
 ------------------------------------------------------------------------
 
-### Method `print_progress()`
+### `progressLogger$print_progress()`
 
 method to print the current state of progress
 
@@ -100,7 +100,7 @@ method to print the current state of progress
 
 ------------------------------------------------------------------------
 
-### Method `clone()`
+### `progressLogger$clone()`
 
 The objects of this class are cloneable with this method.
 

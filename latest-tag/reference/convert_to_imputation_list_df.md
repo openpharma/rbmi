@@ -1,4 +1,4 @@
-# Convert list of [`imputation_list_single()`](https://openpharma.github.io/rbmi/reference/imputation_list_single.md) objects to an [`imputation_list_df()`](https://openpharma.github.io/rbmi/reference/imputation_list_df.md) object (i.e. a list of [`imputation_df()`](https://openpharma.github.io/rbmi/reference/imputation_df.md) objects's)
+# Convert list of [`imputation_list_single()`](https://openpharma.github.io/rbmi/reference/imputation_list_single.md) objects to an [`imputation_list_df()`](https://openpharma.github.io/rbmi/reference/imputation_list_df.md) object (i.e. a list of [`imputation_df()`](https://openpharma.github.io/rbmi/reference/imputation_df.md) objects)
 
 Convert list of
 [`imputation_list_single()`](https://openpharma.github.io/rbmi/reference/imputation_list_single.md)
@@ -6,7 +6,7 @@ objects to an
 [`imputation_list_df()`](https://openpharma.github.io/rbmi/reference/imputation_list_df.md)
 object (i.e. a list of
 [`imputation_df()`](https://openpharma.github.io/rbmi/reference/imputation_df.md)
-objects's)
+objects)
 
 ## Usage
 
@@ -24,7 +24,7 @@ convert_to_imputation_list_df(imputes, sample_ids)
 
 - sample_ids:
 
-  A list with 1 element per required imputation_df. Each element must
+  A list with 1 element per required `imputation_df`. Each element must
   contain a vector of "ID"'s which correspond to the
   [`imputation_single()`](https://openpharma.github.io/rbmi/reference/imputation_single.md)
   ID's that are required for that dataset. The total number of ID's must

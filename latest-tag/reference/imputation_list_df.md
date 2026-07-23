@@ -1,4 +1,4 @@
-# List of imputations_df
+# List of `imputation_df`s
 
 A container for multiple
 [imputation_df](https://openpharma.github.io/rbmi/reference/imputation_df.md)'s

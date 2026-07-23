@@ -1,6 +1,67 @@
 # Changelog
 
+## rbmi 1.6.1
+
+CRAN release: 2026-07-22
+
+### New Features
+
+- rbmi now uses the `lifecycle` package
+- Added en-GB spell-check and a corresponding test to the package
+
+### Documentation
+
+- Documented the return value (`@return`) of all exported functions and
+  marked internal helpers with `@keywords internal`
+  ([\#567](https://github.com/openpharma/rbmi/issues/567)).
+- Added executable `@examples` to the exported user-facing functions
+  that were missing them, and marked the internal-only
+  [`has_class()`](https://openpharma.github.io/rbmi/reference/has_class.md),
+  [`validate()`](https://openpharma.github.io/rbmi/reference/validate.md)
+  and `longDataConstructor` with `@keywords internal`
+  ([\#570](https://github.com/openpharma/rbmi/issues/570)).
+
+### Bug Fixes
+
+- The vignette on retrieved dropout methods is now correctly embedded.
+- Fixed numerous spelling errors and standardised nomenclature for
+  missing not at random to `MNAR` (rather than a mix of `NMAR` and
+  `MNAR`)
+- Deprecated `nmar.rm` argument of `longdata$get_data` in favour of
+  `mnar.rm` for nomenclature consistency.
+- Fixed a misleading error message in
+  [`imputation_list_single()`](https://openpharma.github.io/rbmi/reference/imputation_list_single.md)
+  where a failure of the imputation-count-divisible-by-`D` check
+  incorrectly reported that “multiple `ids` were detected”
+  ([\#574](https://github.com/openpharma/rbmi/issues/574))
+- Improved CI/CD scripts to reliably fail GitHub CI/CD in case of
+  failing tests.
+- Fixed error message for `mu$visit` in
+  [`simulate_test_data()`](https://openpharma.github.io/rbmi/reference/simulate_test_data.md)
+  to refer to `visit` instead of `trt`
+  ([\#578](https://github.com/openpharma/rbmi/issues/578))
+- Fixed a bug where each non-ignorable Stan warning from the Bayesian
+  sampler was reported multiple times instead of once.
+  ([\#572](https://github.com/openpharma/rbmi/issues/572))
+- Fixed the error message in
+  [`apply_delta()`](https://openpharma.github.io/rbmi/reference/apply_delta.md)
+  to correctly refer to `data` instead of `dat`
+  ([\#576](https://github.com/openpharma/rbmi/issues/576))
+- Fixed the broken GitHub badge in `README.md`
+  ([\#548](https://github.com/openpharma/rbmi/issues/548))
+
+### Miscellaneous
+
+- Replaced deprecated
+  [`structure()`](https://rdrr.io/r/base/structure.html) special name
+  `.Dim` with `dim` in unit tests to resolve an `R CMD check` NOTE
+  ([\#581](https://github.com/openpharma/rbmi/issues/581))
+- Updated Marcel Wolbers’ e-mail address
+  ([\#583](https://github.com/openpharma/rbmi/issues/583))
+
 ## rbmi 1.6.0
+
+CRAN release: 2026-01-23
 
 - Stan programs are constructed in memory and respect the cache setting
 - Cache default directory location updated to be the local session
@@ -148,13 +209,13 @@ CRAN release: 2024-10-16
   - `lsmeans(..., weights = "proportional")` has been left in the
     package for backwards compatibility and is an alias for
     `lsmeans(..., weights = "counterfactual")` but now gives a message
-    prompting users to use either “proptional_em” or “counterfactual”
+    prompting users to use either “proportional_em” or “counterfactual”
     instead.
 - Added support for parallel processing in the
   [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
   function ([\#370](https://github.com/openpharma/rbmi/issues/370))
 - Added documentation clarifying potential false-positive warnings from
-  rstan ([\#288](https://github.com/openpharma/rbmi/issues/288))
+  `rstan` ([\#288](https://github.com/openpharma/rbmi/issues/288))
 - Added support for all covariance structures supported by the `mmrm`
   package ([\#437](https://github.com/openpharma/rbmi/issues/437))
 - Updated `rbmi` citation detail
@@ -163,7 +224,7 @@ CRAN release: 2024-10-16
 
 ### Miscellaneous Bug Fixes
 
-- Stopped warning messages being accidentally supressed when changing
+- Stopped warning messages being accidentally suppressed when changing
   the ICE type in
   [`impute()`](https://openpharma.github.io/rbmi/reference/impute.md)
   ([\#408](https://github.com/openpharma/rbmi/issues/408))
@@ -174,8 +235,7 @@ CRAN release: 2024-10-16
 
 CRAN release: 2023-11-24
 
-- Updated unit tests to fix false-positive error on CRAN’s testing
-  servers
+- Updated unit tests to fix false-positive error on CRAN testing servers
 
 ## rbmi 1.2.5
 
@@ -210,7 +270,7 @@ CRAN release: 2022-10-25
 
 CRAN release: 2022-05-18
 
-- Updated urls for references in vignettes
+- Updated URLs for references in vignettes
 - Fixed a bug where visit factor levels were re-constructed incorrectly
   in
   [`delta_template()`](https://openpharma.github.io/rbmi/reference/delta_template.md)

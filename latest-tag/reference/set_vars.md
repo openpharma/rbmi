@@ -39,7 +39,7 @@ set_vars(
 
 - covariates:
 
-  The name of any covariates to be used in the context of modeling. See
+  The name of any covariates to be used in the context of modelling. See
   details.
 
 - strata:
@@ -50,6 +50,15 @@ set_vars(
 - strategy:
 
   The name of the "strategy" variable. A length 1 character vector.
+
+## Value
+
+A `vars` object; a named list of class `ivars` recording the names of
+the key variables (`subjid`, `visit`, `outcome`, `group`, `covariates`,
+`strata` and `strategy`) used throughout `rbmi` by functions such as
+[`draws()`](https://openpharma.github.io/rbmi/reference/draws.md),
+[`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md) and
+[`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md).
 
 ## Details
 

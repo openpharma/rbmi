@@ -5,9 +5,9 @@ of 0 and an standard deviation of 1.
 
 ## Details
 
-The object initialisation is used to determine the relevant mean and
-SD's to scale by and then the scaling (and un-scaling) itself is
-performed by the relevant object methods.
+The object initialisation is used to determine the relevant means and
+standard deviations to scale by and then the scaling (and un-scaling)
+itself is performed by the relevant object methods.
 
 Un-scaling is done on linear model Beta and Sigma coefficients. For this
 purpose the first column on the dataset to be scaled is assumed to be
@@ -31,19 +31,19 @@ already been expanded).
 
 ### Public methods
 
-- [`scalerConstructor$new()`](#method-scaler-new)
+- [`scaler$new()`](#method-scaler-initialize)
 
-- [`scalerConstructor$scale()`](#method-scaler-scale)
+- [`scaler$scale()`](#method-scaler-scale)
 
-- [`scalerConstructor$unscale_sigma()`](#method-scaler-unscale_sigma)
+- [`scaler$unscale_sigma()`](#method-scaler-unscale_sigma)
 
-- [`scalerConstructor$unscale_beta()`](#method-scaler-unscale_beta)
+- [`scaler$unscale_beta()`](#method-scaler-unscale_beta)
 
-- [`scalerConstructor$clone()`](#method-scaler-clone)
+- [`scaler$clone()`](#method-scaler-clone)
 
 ------------------------------------------------------------------------
 
-### Method `new()`
+### `scaler$new()`
 
 Uses `dat` to determine the relevant column means and standard
 deviations to use when scaling and un-scaling future datasets.
@@ -51,7 +51,7 @@ Implicitly assumes that new datasets have the same column order as `dat`
 
 #### Usage
 
-    scalerConstructor$new(dat)
+    scaler$new(dat)
 
 #### Arguments
 
@@ -68,14 +68,14 @@ corresponding values of centre to `0` and scale to `1`.
 
 ------------------------------------------------------------------------
 
-### Method [`scale()`](https://rdrr.io/r/base/scale.html)
+### `scaler$scale()`
 
 Scales a dataset so that all continuous variables have a mean of 0 and a
 standard deviation of 1.
 
 #### Usage
 
-    scalerConstructor$scale(dat)
+    scaler$scale(dat)
 
 #### Arguments
 
@@ -87,7 +87,7 @@ standard deviation of 1.
 
 ------------------------------------------------------------------------
 
-### Method `unscale_sigma()`
+### `scaler$unscale_sigma()`
 
 Unscales a sigma value (or matrix) as estimated by a linear model using
 a design matrix scaled by this object. This function only works if the
@@ -96,7 +96,7 @@ variable.
 
 #### Usage
 
-    scalerConstructor$unscale_sigma(sigma)
+    scaler$unscale_sigma(sigma)
 
 #### Arguments
 
@@ -110,7 +110,7 @@ A numeric value or matrix
 
 ------------------------------------------------------------------------
 
-### Method `unscale_beta()`
+### `scaler$unscale_beta()`
 
 Unscales a beta value (or vector) as estimated by a linear model using a
 design matrix scaled by this object. This function only works if the
@@ -119,7 +119,7 @@ variable.
 
 #### Usage
 
-    scalerConstructor$unscale_beta(beta)
+    scaler$unscale_beta(beta)
 
 #### Arguments
 
@@ -134,13 +134,13 @@ A numeric vector.
 
 ------------------------------------------------------------------------
 
-### Method `clone()`
+### `scaler$clone()`
 
 The objects of this class are cloneable with this method.
 
 #### Usage
 
-    scalerConstructor$clone(deep = FALSE)
+    scaler$clone(deep = FALSE)
 
 #### Arguments
 

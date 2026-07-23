@@ -18,13 +18,13 @@ prepare_prior_params(stan_data, covariance, prior_cov, mmrm_initial, same_cov)
 
 - covariance:
 
-  A character string indicating the covariance structure (e.g., "us",
-  "ar1").
+  A character string indicating the covariance structure (e.g., `"us"`,
+  `"ar1"`).
 
 - prior_cov:
 
   A character string indicating the prior covariance type (e.g.,
-  "default", "lkj").
+  `"default"`, `"lkj"`).
 
 - mmrm_initial:
 

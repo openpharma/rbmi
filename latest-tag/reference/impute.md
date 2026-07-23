@@ -69,6 +69,17 @@ impute(
   [`getStrategies()`](https://openpharma.github.io/rbmi/reference/getStrategies.md)
   for more details.
 
+## Value
+
+An `imputation` object; a list of class `"imputation"` containing the
+original longitudinal `data`, a list of imputations (one entry per
+imputed dataset, each recording the imputed values needed to reconstruct
+a completed dataset) and the `method` used. This object is typically
+passed on to
+[`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md);
+the completed datasets can be extracted with
+[`extract_imputed_dfs()`](https://openpharma.github.io/rbmi/reference/extract_imputed_dfs.md).
+
 ## Details
 
 `impute()` uses the imputation model parameter estimates, as generated

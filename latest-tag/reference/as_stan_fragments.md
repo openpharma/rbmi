@@ -16,7 +16,7 @@ as_stan_fragments(x, stan_blocks = STAN_BLOCKS)
 
 - stan_blocks:
 
-  reference list of stan blocks.
+  reference list of Stan blocks.
 
 ## Value
 

@@ -55,7 +55,7 @@
 <url><loc>https://openpharma.github.io/rbmi/reference/eval_mmrm.html</loc></url>
 <url><loc>https://openpharma.github.io/rbmi/reference/expand.html</loc></url>
 <url><loc>https://openpharma.github.io/rbmi/reference/extract_covariates.html</loc></url>
-<url><loc>https://openpharma.github.io/rbmi/reference/extract_data_nmar_as_na.html</loc></url>
+<url><loc>https://openpharma.github.io/rbmi/reference/extract_data_mnar_as_na.html</loc></url>
 <url><loc>https://openpharma.github.io/rbmi/reference/extract_draws.html</loc></url>
 <url><loc>https://openpharma.github.io/rbmi/reference/extract_imputed_df.html</loc></url>
 <url><loc>https://openpharma.github.io/rbmi/reference/extract_imputed_dfs.html</loc></url>

@@ -43,13 +43,22 @@ analyse(
   The number of parallel processes to use when running this function.
   Can also be a cluster object created by
   [`make_rbmi_cluster()`](https://openpharma.github.io/rbmi/reference/make_rbmi_cluster.md).
-  See the parallisation section below.
+  See the parallelisation section below.
 
 - .validate:
 
   Should `inputations` be checked to ensure it conforms to the required
   format (default = `TRUE`) ? Can gain a small performance increase if
   this is set to `FALSE` when analysing a large number of samples.
+
+## Value
+
+An `analysis` object; a list of class `"analysis"` containing the
+analysis `results` (one entry per imputed dataset, each a named list of
+parameter estimates), the name of the analysis function (`fun_name`),
+the applied `delta` data.frame, the analysis function (`fun`) and the
+imputation `method`. This object is normally passed on to
+[`pool()`](https://openpharma.github.io/rbmi/reference/pool.md).
 
 ## Details
 

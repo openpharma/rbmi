@@ -36,19 +36,26 @@ Useful links:
 ## Author
 
 **Maintainer**: Lukas A. Widmer <lukas_andreas.widmer@novartis.com>
+([ORCID](https://orcid.org/0000-0003-1471-3493))
 
 Authors:
+
+- Lukas A. Widmer <lukas_andreas.widmer@novartis.com>
+  ([ORCID](https://orcid.org/0000-0003-1471-3493))
 
 - Craig Gower-Page <craig.gower-page@novartis.com>
 
 - Isaac Gravestock <isaac.gravestock@roche.com>
+  ([ORCID](https://orcid.org/0000-0003-0283-2065))
 
 - Alessandro Noci <alessandro.noci@roche.com>
 
+- Marcel Wolbers <marcel.wolbers@bayer.com>
+  ([ORCID](https://orcid.org/0000-0003-4915-9015))
+
 - Daniel Sabanes Bove <daniel.sabanes_bove@rconis.com>
+  ([ORCID](https://orcid.org/0000-0002-0176-9239))
 
 Other contributors:
-
-- Marcel Wolbers <marcel.wolbers@roche.com> \[contributor\]
 
 - F. Hoffmann-La Roche AG \[copyright holder, funder\]

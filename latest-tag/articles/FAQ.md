@@ -6,7 +6,7 @@ This document provides answers to common questions about the `rbmi`
 package. It is intended to be read after the `rbmi: Quickstart`
 vignette.
 
-  
+\
 
 ### 1.1 Is `rbmi` validated?
 
@@ -33,7 +33,7 @@ This documentation and test coverage enable `rbmi` to be easily
 installed and integrated into any R system, in alignment with the
 system’s broader validation process.
 
-  
+\
 
 ### 1.2 How do the methods in `rbmi` compare to the mixed model for repeated measures (MMRM) implemented in the `mmrm` package?
 
@@ -46,13 +46,14 @@ MMRM analyses for clinical trials with longitudinal endpoints.
   the the estimand definition. To facilitate this, it implements methods
   under a range of different missing data assumptions including standard
   missing-at-random (MAR), extended MAR (via inclusion of time-varying
-  covariates), reference-based missingness, and not missing-at-random at
-  random (NMAR; via \\\delta\\-adjustments). In contrast, the standard
-  MMRM model is only valid under a standard MAR assumption which is not
-  always plausible. For example, the standard MAR assumption is rather
-  implausible for implementing a treatment policy strategy for the
-  intercurrent event “treatment discontinuation” if a substantial
-  proportion of subjects are lost-to-follow-up after discontinuation.
+  covariates), reference-based missingness, and not
+  missing-not-at-random (MNAR; via \\\delta\\-adjustments). In contrast,
+  the standard MMRM model is only valid under a standard MAR assumption
+  which is not always plausible. For example, the standard MAR
+  assumption is rather implausible for implementing a treatment policy
+  strategy for the intercurrent event “treatment discontinuation” if a
+  substantial proportion of subjects are lost-to-follow-up after
+  discontinuation.
 - The \\\delta\\-adjustment methods implemented in `rbmi` can be used
   for sensitivity analyses of a primary MMRM- or rbmi-type analysis.
 
@@ -63,7 +64,7 @@ MMRM analyses for clinical trials with longitudinal endpoints.
 - `rbmi` is computationally more intensive and using it requires more
   careful planning.
 
-  
+\
 
 ### 1.3 How does `rbmi` compare to general-purpose software for multiple imputation (MI) such as `mice`?
 
@@ -93,7 +94,7 @@ MI software:
 However, `rbmi` is much more limited in its functionality than
 general-purpose MI software.
 
-  
+\
 
 ### 1.4 How to handle missing data in baseline covariates in `rbmi`?
 
@@ -104,7 +105,7 @@ to be made on a case-by-case basis but in the context of randomized
 trials, relatively simple approach are often sufficient (White and
 Thompson ([2005](#ref-White2005))).
 
-  
+\
 
 ### 1.5 Why does `rbmi` by default use an ANCOVA analysis model and not an MMRM analysis model?
 
@@ -118,7 +119,7 @@ implemented by providing a custom analysis function to the
 [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
 function.
 
-For further expalanations, we also cite the end of section 2.4 of the
+For further explanations, we also cite the end of section 2.4 of the
 conditional mean imputation paper (Wolbers et al.
 ([2022](#ref-Wolbers2021))):
 
@@ -134,7 +135,7 @@ conditional mean imputation paper (Wolbers et al.
 > analysis but more involved argument would be required to formally
 > justify this.
 
-  
+\
 
 ### 1.6 How can I analyse the change-from-baseline in the analysis model when imputation was done on the original outcomes?
 
@@ -155,7 +156,7 @@ anaObj <- rbmi::analyse(
  )
 ```
 
-  
+\
 
 White, Ian R, and Simon G Thompson. 2005. “Adjusting for Partially
 Missing Baseline Measurements in Randomized Trials.” *Statistics in
