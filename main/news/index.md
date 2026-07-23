@@ -1,6 +1,10 @@
 # Changelog
 
+## rbmi (development version)
+
 ## rbmi 1.6.1
+
+CRAN release: 2026-07-22
 
 ### New Features
 
