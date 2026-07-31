@@ -68,7 +68,11 @@
 #'
 #' The `as.data.frame()` method returns a `data.frame` with one row per
 #' parameter (columns `parameter`, `est`, `se`, `lci`, `uci`, `pval`) and the
-#' `print()` method returns its input invisibly.
+#' `print()` method returns its input invisibly. When the analysis function
+#' attached per-parameter metadata (as [ancova()] does), `as.data.frame()`
+#' additionally appends the metadata columns (`estimate_type`, `group`,
+#' `group_level_1`, `group_level_2`, `visit`); the `print()` method still shows
+#' only the six classic columns for a compact display.
 #'
 #' @examples
 #' # Prepare the data: expand to one row per subject and visit
@@ -775,6 +779,16 @@ as_data_frame_internal <- function(x) {
     par_meta <- x[["par_meta"]]
     if (!is.null(par_meta)) {
         idx <- match(df[["parameter"]], par_meta[["parameter"]])
+        assert_that(
+            !any(is.na(idx)),
+            msg = sprintf(
+                paste0(
+                    "Internal error: pooled parameter(s) without matching metadata: %s. ",
+                    "The metadata and pooled parameter names have drifted."
+                ),
+                paste(df[["parameter"]][is.na(idx)], collapse = ", ")
+            )
+        )
         for (col in c(
             "estimate_type",
             "group",
