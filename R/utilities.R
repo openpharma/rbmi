@@ -971,6 +971,11 @@ set_options <- function() {
 #'
 #' @return The modified language object with all instances of \code{find_sym} replaced by \code{replace_sym}.
 #'
+#' @details
+#' Replacement happens for symbols found within calls (recursively). A `frm` that is
+#' itself a bare symbol equal to `find_sym` is returned unchanged; this is not reachable
+#' from the `ancova()` call site because the input is always a formula (a call).
+#'
 #' @examples
 #' \dontrun{
 #' expr <- quote(a + b * c)
@@ -983,7 +988,9 @@ frm_find_and_replace <- function(frm, find_sym, replace_sym) {
         if (is.call(frm[[i]])) {
             frm[[i]] <- frm_find_and_replace(frm[[i]], find_sym, replace_sym)
         } else if (is.name(frm[[i]])) {
-            frm[[i]] <- ifelse(frm[[i]] == find_sym, replace_sym, frm[[i]])
+            if (frm[[i]] == find_sym) {
+                frm[[i]] <- replace_sym
+            }
         }
     }
     frm
