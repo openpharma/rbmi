@@ -794,6 +794,7 @@ as_data_frame_internal <- function(x) {
             "group",
             "group_level_1",
             "group_level_2",
+            "contrast_label",
             "visit"
         )) {
             df[[col]] <- par_meta[[col]][idx]

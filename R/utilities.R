@@ -361,9 +361,16 @@ sort_by <- function(df, vars = NULL, decreasing = FALSE) {
 #' @param strategy The name of the "strategy" variable. A length 1 character vector.
 #'
 #' @param group_contrasts Optional specification of the treatment-group contrasts to be
-#' estimated by [ancova()]. Either `NULL` (the default) or a list of length-2 character
-#' vectors. Each element is of the form `c(minuend, subtrahend)` giving the two levels of
-#' `group` to be contrasted (i.e. `minuend - subtrahend`). See details.
+#' estimated by [ancova()]. Either `NULL` (the default) or a fully named list whose
+#' elements are one of:
+#' * a length-2 character vector `c(minuend, subtrahend)` giving a pairwise contrast
+#'   `minuend - subtrahend` between two levels of `group`; or
+#' * a numeric weight vector over the group levels (summing to zero), either named by
+#'   the levels of `group` (unlisted levels default to `0`) or of the same length as the
+#'   number of levels (in factor order).
+#'
+#' Each element must be named; the name is used as the output `parameter` name (and must
+#' not start with `lsm_`, which is reserved for the least-squares means). See details.
 #'
 #' @details
 #'
@@ -376,9 +383,14 @@ sort_by <- function(df, vars = NULL, decreasing = FALSE) {
 #' The `group_contrasts` argument is only used by [ancova()]. If `NULL` (default) a
 #' treatment effect is estimated for every non-reference group versus the reference group
 #' (the first factor level of `group`). Alternatively a bespoke set of contrasts can be
-#' requested, e.g. `group_contrasts = list(c("A", "Placebo"), c("B", "Placebo"))` requests
-#' the contrasts `A - Placebo` and `B - Placebo`. See [ancova()] for the resulting naming
-#' scheme.
+#' requested. Pairwise contrasts are given as length-2 character vectors, e.g.
+#' `group_contrasts = list(c("A", "Placebo"), c("B", "Placebo"))` requests the contrasts
+#' `A - Placebo` and `B - Placebo`. More general linear contrasts are given as named
+#' numeric weight vectors over the group levels, e.g.
+#' `group_contrasts = list(pooled_vs_pbo = c(Placebo = -1, A = 0.5, B = 0.5))` contrasts
+#' the average of `A` and `B` against `Placebo`. List names are carried through to the
+#' `contrast_label` column of the [pool()] output; weight-vector contrasts must be named.
+#' See [ancova()] for the resulting `parameter` naming scheme.
 #'
 #' Currently `strata` is only used by [draws()] in combination with `method_condmean(type = "bootstrap")`
 #' and `method_approxbayes()` in order to allow for the specification of stratified bootstrap sampling.
@@ -488,16 +500,26 @@ validate.ivars <- function(x, ...) {
         msg = "`vars$group_contrasts` should be NULL or a list"
     )
     if (is.list(x$group_contrasts)) {
+        gc <- x$group_contrasts
+        nms <- names(gc)
         assert_that(
-            length(x$group_contrasts) >= 1,
-            all(vapply(
-                x$group_contrasts,
-                function(ct) is.character(ct) && length(ct) == 2,
-                logical(1)
-            )),
+            length(gc) >= 1,
+            !is.null(nms) && all(nzchar(nms)),
+            msg = "`vars$group_contrasts` should be a non-empty, fully named list"
+        )
+        ok <- vapply(
+            gc,
+            function(el) {
+                (is.character(el) && length(el) == 2) ||
+                    (is.numeric(el) && length(el) >= 2)
+            },
+            logical(1)
+        )
+        assert_that(
+            all(ok),
             msg = paste(
-                "`vars$group_contrasts` should be a non-empty list of length-2",
-                "character vectors"
+                "each `vars$group_contrasts` element should be a length-2 character",
+                "vector or a numeric weight vector of length >= 2"
             )
         )
     }

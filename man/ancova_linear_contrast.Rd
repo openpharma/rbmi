@@ -4,12 +4,11 @@
 \alias{ancova_linear_contrast}
 \title{Compute a single ANCOVA linear contrast}
 \usage{
-ancova_linear_contrast(i, j, beta, vcov_mod, df_res, intcode)
+ancova_linear_contrast(weights, beta, vcov_mod, df_res, grp_names, cmat)
 }
 \arguments{
-\item{i}{Integer, 1-based index of the minuend (active) group level.}
-
-\item{j}{Integer, 1-based index of the subtrahend (comparator) group level.}
+\item{weights}{Numeric weight vector over the group levels (factor order), summing
+to zero.}
 
 \item{beta}{Numeric vector of model coefficients.}
 
@@ -17,26 +16,32 @@ ancova_linear_contrast(i, j, beta, vcov_mod, df_res, intcode)
 
 \item{df_res}{Residual degrees of freedom.}
 
-\item{intcode}{Character vector of standardised level codes (e.g. \code{"L1"}, \code{"L2"}).}
+\item{grp_names}{Character vector of the coefficient names for the \code{rbmiGroup} main
+effect (columns of \code{cmat}, in order).}
+
+\item{cmat}{Contrast matrix of the \code{rbmiGroup} factor (\code{n_levels} rows, one column
+per group coefficient).}
 }
 \value{
 A list with elements \code{est}, \code{se} and \code{df}.
 }
 \description{
-Evaluates a linear contrast between two group levels as a linear combination of the
-model coefficients. For a contrast versus the reference level this reduces exactly to
-the corresponding group coefficient (preserving backwards compatibility with the
-two-group implementation).
+Evaluates a linear contrast over the group levels as a linear combination of the
+model coefficients. The group-level weights are mapped onto the model's group
+coefficients using the factor's own contrast matrix, so the result is independent
+of the active \code{contrasts} coding and reduces exactly to the group coefficient for a
+pairwise contrast versus the reference level (preserving backwards compatibility
+with the two-group implementation).
 }
 \details{
-The contrast vector is built by looking up each group's coefficient by name rather
-than assuming the reference level has no explicit coefficient. In the usual
-intercept model the reference level (\code{rbmiGroupL1}) is absorbed by the intercept and
-has no coefficient, so its contribution is correctly omitted. If the model has no
-intercept every level receives its own coefficient (including \code{rbmiGroupL1}); looking
-the coefficient up by name ensures the reference level is still subtracted rather than
-silently returning the minuend group's absolute mean. Any \emph{other} missing or aliased
-(\code{NA}) coefficient indicates a rank-deficient design and triggers an error rather than
-a silently dropped term.
+The contrast is evaluated at the covariate reference (covariate = 0): covariate
+main-effect and interaction columns receive zero weight and cancel for a
+sum-to-zero contrast, so \code{trt} remains the group main-effect contrast (matching the
+original two-group behaviour and independent of the \code{weights} argument). Building
+the contrast from the factor's contrast matrix rather than by parsing coefficient
+names keeps it correct under non-default contrast codings (e.g. \code{contr.sum}). A
+group coefficient that is missing, aliased (\code{NA}) or absent from the
+variance-covariance matrix indicates a rank-deficient design and triggers an error
+rather than a silently dropped term.
 }
 \keyword{internal}

@@ -702,31 +702,29 @@ test_that("ancova - custom group_contrasts", {
             covariates = "age",
             visit = "visit",
             group_contrasts = list(
-                c("A", "Placebo"),
-                c("B", "Placebo"),
-                c("B", "A")
+                a_vs_pbo = c("A", "Placebo"),
+                b_vs_pbo = c("B", "Placebo"),
+                b_vs_a = c("B", "A")
             )
         )
     )
 
-    # A - Placebo => alt vs ref => "trt"
-    # B - Placebo => alt2 vs ref => "trt_alt2"
-    # B - A       => alt2 vs alt => "trt_alt2_alt"
+    # Explicit contrasts are named; the names become the parameter names.
     expect_true(all(
-        c("trt_v1", "trt_alt2_v1", "trt_alt2_alt_v1") %in% names(res)
+        c("a_vs_pbo_v1", "b_vs_pbo_v1", "b_vs_a_v1") %in% names(res)
     ))
 
-    expect_equal(res$trt_v1$est, coef(mod)[["grpA"]])
-    expect_equal(res$trt_alt2_v1$est, coef(mod)[["grpB"]])
+    expect_equal(res$a_vs_pbo_v1$est, coef(mod)[["grpA"]])
+    expect_equal(res$b_vs_pbo_v1$est, coef(mod)[["grpB"]])
     expect_equal(
-        res$trt_alt2_alt_v1$est,
+        res$b_vs_a_v1$est,
         coef(mod)[["grpB"]] - coef(mod)[["grpA"]]
     )
 
     se_ba <- sqrt(
         vc["grpB", "grpB"] + vc["grpA", "grpA"] - 2 * vc["grpB", "grpA"]
     )
-    expect_equal(res$trt_alt2_alt_v1$se, se_ba)
+    expect_equal(res$b_vs_a_v1$se, se_ba)
 
     # Referencing a level that is not present should error
     expect_error(
@@ -737,24 +735,47 @@ test_that("ancova - custom group_contrasts", {
                 group = "grp",
                 covariates = "age",
                 visit = "visit",
-                group_contrasts = list(c("A", "Z"))
+                group_contrasts = list(a_vs_z = c("A", "Z"))
             )
         ),
         regexp = "not present in the data"
+    )
+
+    # A contrast name colliding with the lsm_ prefix should error
+    expect_error(
+        ancova(
+            dat,
+            list(
+                outcome = "out",
+                group = "grp",
+                covariates = "age",
+                visit = "visit",
+                group_contrasts = list(lsm_ref = c("A", "Placebo"))
+            )
+        ),
+        regexp = "reserved for least-squares means"
     )
 })
 
 
 test_that("set_vars validates group_contrasts", {
-    expect_silent(set_vars(group = "grp", group_contrasts = list(c("A", "B"))))
+    expect_silent(set_vars(
+        group = "grp",
+        group_contrasts = list(ab = c("A", "B"))
+    ))
     expect_null(set_vars(group = "grp")$group_contrasts)
 
+    # Explicit contrasts must be named
     expect_error(
-        set_vars(group = "grp", group_contrasts = list(c("A"))),
+        set_vars(group = "grp", group_contrasts = list(c("A", "B"))),
+        regexp = "named"
+    )
+    expect_error(
+        set_vars(group = "grp", group_contrasts = list(ab = c("A"))),
         regexp = "group_contrasts"
     )
     expect_error(
-        set_vars(group = "grp", group_contrasts = list(1:2)),
+        set_vars(group = "grp", group_contrasts = list(x = "A")),
         regexp = "group_contrasts"
     )
     expect_error(
@@ -838,72 +859,64 @@ test_that("as.data.frame.pool errors when metadata does not match parameters", {
 })
 
 
-test_that("ancova_linear_contrast subtracts the reference under intercept-less models", {
-    # In the usual intercept model the reference level has no explicit
-    # coefficient (it is absorbed by the intercept), so contrasts against it
-    # reduce to the minuend coefficient.
-    beta_int <- c(`(Intercept)` = 50, age = 2, rbmiGroupL2 = 3, rbmiGroupL3 = 6)
-    vc_int <- diag(length(beta_int))
-    dimnames(vc_int) <- list(names(beta_int), names(beta_int))
-    r_int <- ancova_linear_contrast(
-        2,
-        1,
-        beta_int,
-        vc_int,
-        100,
-        c("L1", "L2", "L3")
-    )
-    expect_equal(r_int$est, 3) # alt vs ref == coef(rbmiGroupL2)
+test_that("ancova_linear_contrast reproduces coefficient contrasts (treatment coding)", {
+    # Intercept model, treatment coding: reference level is absorbed by the
+    # intercept and has coefficients rbmiGroupL2, rbmiGroupL3.
+    beta <- c(`(Intercept)` = 50, age = 2, rbmiGroupL2 = 3, rbmiGroupL3 = 6)
+    vc <- diag(length(beta))
+    dimnames(vc) <- list(names(beta), names(beta))
+    grp_names <- c("rbmiGroupL2", "rbmiGroupL3")
+    cmat <- stats::contr.treatment(3) # rows L1..L3, cols L2, L3
+    rownames(cmat) <- c("L1", "L2", "L3")
 
-    # In a no-intercept model every level (including the reference) gets its own
-    # coefficient; the reference must still be subtracted rather than returning
-    # the minuend group's absolute mean.
-    beta_noint <- c(
-        age = 2,
-        rbmiGroupL1 = 50,
-        rbmiGroupL2 = 53,
-        rbmiGroupL3 = 56
-    )
-    vc_noint <- diag(length(beta_noint))
-    dimnames(vc_noint) <- list(names(beta_noint), names(beta_noint))
-    r_noint <- ancova_linear_contrast(
-        2,
-        1,
-        beta_noint,
-        vc_noint,
-        100,
-        c("L1", "L2", "L3")
-    )
-    expect_equal(r_noint$est, 3) # 53 - 50, not 53
-    # SE uses both coefficients: sqrt(v_L2 + v_L1) with unit diagonal == sqrt(2)
-    expect_equal(r_noint$se, sqrt(2))
+    # alt vs ref: weights c(-1, 1, 0) -> coef(rbmiGroupL2)
+    r1 <- ancova_linear_contrast(c(-1, 1, 0), beta, vc, 100, grp_names, cmat)
+    expect_equal(r1$est, 3)
+    expect_equal(r1$se, 1) # sqrt(v_L2) with unit diagonal
+
+    # alt2 vs alt: weights c(0, -1, 1) -> coef(rbmiGroupL3) - coef(rbmiGroupL2)
+    r2 <- ancova_linear_contrast(c(0, -1, 1), beta, vc, 100, grp_names, cmat)
+    expect_equal(r2$est, 3)
+    expect_equal(r2$se, sqrt(2)) # v_L3 + v_L2 - 2 v_23 = 1 + 1 - 0
+
+    # pooled: 0.5*L2 + 0.5*L3 - L1 -> 0.5*3 + 0.5*6
+    r3 <- ancova_linear_contrast(c(-1, 0.5, 0.5), beta, vc, 100, grp_names, cmat)
+    expect_equal(r3$est, 0.5 * 3 + 0.5 * 6)
 })
 
 
 test_that("ancova_linear_contrast fails loudly on invalid arguments", {
-    beta <- c(`(Intercept)` = 50, rbmiGroupL2 = 3)
+    beta <- c(`(Intercept)` = 50, rbmiGroupL2 = 3, rbmiGroupL3 = 6)
     vc <- diag(length(beta))
     dimnames(vc) <- list(names(beta), names(beta))
+    grp_names <- c("rbmiGroupL2", "rbmiGroupL3")
+    cmat <- stats::contr.treatment(3)
+    rownames(cmat) <- c("L1", "L2", "L3")
 
-    # Out-of-range contrast index
+    # Weights that do not sum to zero
     expect_error(
-        ancova_linear_contrast(3, 1, beta, vc, 100, c("L1", "L2")),
-        regexp = "out of range"
+        ancova_linear_contrast(c(1, 0, 0), beta, vc, 100, grp_names, cmat),
+        regexp = "sum to zero"
     )
 
-    # Coefficient / vcov name misalignment (e.g. an aliased term dropped from vcov)
-    vc_bad <- vc[1, 1, drop = FALSE]
+    # Wrong number of weights
     expect_error(
-        ancova_linear_contrast(2, 1, beta, vc_bad, 100, c("L1", "L2")),
-        regexp = "aligned by name and dimension"
+        ancova_linear_contrast(c(-1, 1), beta, vc, 100, grp_names, cmat),
+        regexp = "one entry per group level"
     )
 
-    # A required (non-reference) coefficient is missing / aliased -> rank-deficient
-    beta_na <- c(`(Intercept)` = 50, rbmiGroupL2 = NA_real_)
-    vc_na <- diag(length(beta_na))
-    dimnames(vc_na) <- list(names(beta_na), names(beta_na))
+    # A required group coefficient is aliased (NA) -> rank-deficient
+    beta_na <- beta
+    beta_na[["rbmiGroupL3"]] <- NA_real_
     expect_error(
-        ancova_linear_contrast(2, 1, beta_na, vc_na, 100, c("L1", "L2")),
+        ancova_linear_contrast(c(-1, 0, 1), beta_na, vc, 100, grp_names, cmat),
+        regexp = "rank-deficient"
+    )
+
+    # A group coefficient missing from the vcov matrix -> rank-deficient
+    vc_bad <- vc[c("(Intercept)", "rbmiGroupL2"), c("(Intercept)", "rbmiGroupL2")]
+    expect_error(
+        ancova_linear_contrast(c(-1, 0, 1), beta, vc_bad, 100, grp_names, cmat),
         regexp = "rank-deficient"
     )
 })
@@ -982,3 +995,155 @@ test_that("ancova metadata propagates through pool() -> as.data.frame() (integra
     expect_equal(lsm_row$group_level_1, "B")
     expect_true(is.na(lsm_row$group_level_2))
 })
+
+
+test_that("ancova - weight-vector (pooled) contrasts", {
+    set.seed(451)
+    n <- 900
+    grp_levels <- c("Placebo", "A", "B")
+    dat <- tibble(
+        visit = "v1",
+        age = rnorm(n),
+        grp = factor(
+            sample(grp_levels, size = n, replace = TRUE),
+            levels = grp_levels
+        ),
+        out = rnorm(
+            n,
+            mean = 50 + 2 * age + 3 * (grp == "A") + 6 * (grp == "B"),
+            sd = 8
+        )
+    )
+    mod <- lm(out ~ age + grp, data = dat)
+    vc <- vcov(mod)
+
+    res <- ancova(
+        dat,
+        set_vars(
+            outcome = "out",
+            group = "grp",
+            covariates = "age",
+            visit = "visit",
+            group_contrasts = list(
+                pooled_vs_pbo = c(Placebo = -1, A = 0.5, B = 0.5)
+            )
+        )
+    )
+
+    expect_true("pooled_vs_pbo_v1" %in% names(res))
+    # 0.5 * coef(A) + 0.5 * coef(B)  (Placebo is the reference)
+    expect_equal(
+        res$pooled_vs_pbo_v1$est,
+        0.5 * coef(mod)[["grpA"]] + 0.5 * coef(mod)[["grpB"]]
+    )
+    lvec <- c(0.5, 0.5)
+    v <- vc[c("grpA", "grpB"), c("grpA", "grpB")]
+    expect_equal(res$pooled_vs_pbo_v1$se, sqrt(drop(t(lvec) %*% v %*% lvec)))
+
+    # An unnamed weight vector must error
+    expect_error(
+        ancova(
+            dat,
+            set_vars(
+                outcome = "out",
+                group = "grp",
+                covariates = "age",
+                visit = "visit",
+                group_contrasts = list(c(Placebo = -1, A = 0.5, B = 0.5))
+            )
+        ),
+        regexp = "named"
+    )
+})
+
+
+test_that("ancova - contrasts are invariant to the active contrasts coding", {
+    set.seed(452)
+    n <- 900
+    grp_levels <- c("Placebo", "A", "B")
+    dat <- tibble(
+        visit = "v1",
+        age = rnorm(n),
+        grp = factor(
+            sample(grp_levels, size = n, replace = TRUE),
+            levels = grp_levels
+        ),
+        out = rnorm(
+            n,
+            mean = 50 + 2 * age + 3 * (grp == "A") + 6 * (grp == "B"),
+            sd = 8
+        )
+    )
+    vars <- set_vars(
+        outcome = "out",
+        group = "grp",
+        covariates = "age",
+        visit = "visit",
+        group_contrasts = list(
+            a_vs_pbo = c("A", "Placebo"),
+            pooled = c(Placebo = -1, A = 0.5, B = 0.5)
+        )
+    )
+
+    res_default <- ancova(dat, vars)
+
+    old <- options(contrasts = c("contr.sum", "contr.poly"))
+    on.exit(options(old), add = TRUE)
+    res_sum <- ancova(dat, vars)
+
+    expect_equal(res_sum$a_vs_pbo_v1$est, res_default$a_vs_pbo_v1$est)
+    expect_equal(res_sum$a_vs_pbo_v1$se, res_default$a_vs_pbo_v1$se)
+    expect_equal(res_sum$pooled_v1$est, res_default$pooled_v1$est)
+    expect_equal(res_sum$pooled_v1$se, res_default$pooled_v1$se)
+})
+
+
+test_that("ancova - named contrasts populate the contrast_label metadata", {
+    set.seed(453)
+    n <- 300
+    grp_levels <- c("Placebo", "A", "B")
+    dat <- tibble(
+        visit = "v1",
+        age = rnorm(n),
+        grp = factor(
+            sample(grp_levels, size = n, replace = TRUE),
+            levels = grp_levels
+        ),
+        out = rnorm(n, mean = 50 + 2 * age, sd = 8)
+    )
+    vars <- set_vars(
+        outcome = "out",
+        group = "grp",
+        covariates = "age",
+        visit = "visit",
+        group_contrasts = list(
+            A_vs_PBO = c("A", "Placebo"),
+            pooled = c(Placebo = -1, A = 0.5, B = 0.5)
+        )
+    )
+    ana <- ancova(dat, vars)
+    meta <- attr(ana, "rbmi_par_meta")
+
+    # Named pairwise contrast: the label is the parameter name and contrast_label.
+    row_a <- meta[meta$parameter == "A_vs_PBO_v1", ]
+    expect_equal(row_a$contrast_label, "A_vs_PBO")
+    expect_equal(row_a$group_level_1, "A")
+    expect_equal(row_a$group_level_2, "Placebo")
+
+    # Weight-vector contrast uses the label as the parameter name; levels are NA.
+    row_p <- meta[meta$parameter == "pooled_v1", ]
+    expect_equal(row_p$contrast_label, "pooled")
+    expect_true(is.na(row_p$group_level_1))
+    expect_true(is.na(row_p$group_level_2))
+
+    # contrast_label flows through pool() -> as.data.frame()
+    ana_obj <- as_analysis(
+        results = replicate(3, ana, simplify = FALSE),
+        method = method_bayes(n_samples = 3),
+        par_meta = meta
+    )
+    df <- as.data.frame(pool(ana_obj))
+    expect_true("contrast_label" %in% names(df))
+    expect_equal(df$contrast_label[df$parameter == "pooled_v1"], "pooled")
+})
+

@@ -33,9 +33,18 @@ sampling. See details.}
 \item{strategy}{The name of the "strategy" variable. A length 1 character vector.}
 
 \item{group_contrasts}{Optional specification of the treatment-group contrasts to be
-estimated by \code{\link[=ancova]{ancova()}}. Either \code{NULL} (the default) or a list of length-2 character
-vectors. Each element is of the form \code{c(minuend, subtrahend)} giving the two levels of
-\code{group} to be contrasted (i.e. \code{minuend - subtrahend}). See details.}
+estimated by \code{\link[=ancova]{ancova()}}. Either \code{NULL} (the default) or a fully named list whose
+elements are one of:
+\itemize{
+\item a length-2 character vector \code{c(minuend, subtrahend)} giving a pairwise contrast
+\code{minuend - subtrahend} between two levels of \code{group}; or
+\item a numeric weight vector over the group levels (summing to zero), either named by
+the levels of \code{group} (unlisted levels default to \code{0}) or of the same length as the
+number of levels (in factor order).
+}
+
+Each element must be named; the name is used as the output \code{parameter} name (and must
+not start with \code{lsm_}, which is reserved for the least-squares means). See details.}
 }
 \value{
 A \code{vars} object; a named list of class \code{ivars} recording the names of the key
@@ -57,9 +66,14 @@ inhibit the interpretation/conversion of objects is not supported.
 The \code{group_contrasts} argument is only used by \code{\link[=ancova]{ancova()}}. If \code{NULL} (default) a
 treatment effect is estimated for every non-reference group versus the reference group
 (the first factor level of \code{group}). Alternatively a bespoke set of contrasts can be
-requested, e.g. \code{group_contrasts = list(c("A", "Placebo"), c("B", "Placebo"))} requests
-the contrasts \code{A - Placebo} and \code{B - Placebo}. See \code{\link[=ancova]{ancova()}} for the resulting naming
-scheme.
+requested. Pairwise contrasts are given as length-2 character vectors, e.g.
+\code{group_contrasts = list(c("A", "Placebo"), c("B", "Placebo"))} requests the contrasts
+\code{A - Placebo} and \code{B - Placebo}. More general linear contrasts are given as named
+numeric weight vectors over the group levels, e.g.
+\code{group_contrasts = list(pooled_vs_pbo = c(Placebo = -1, A = 0.5, B = 0.5))} contrasts
+the average of \code{A} and \code{B} against \code{Placebo}. List names are carried through to the
+\code{contrast_label} column of the \code{\link[=pool]{pool()}} output; weight-vector contrasts must be named.
+See \code{\link[=ancova]{ancova()}} for the resulting \code{parameter} naming scheme.
 
 Currently \code{strata} is only used by \code{\link[=draws]{draws()}} in combination with \code{method_condmean(type = "bootstrap")}
 and \code{method_approxbayes()} in order to allow for the specification of stratified bootstrap sampling.

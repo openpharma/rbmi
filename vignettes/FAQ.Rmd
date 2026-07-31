@@ -141,9 +141,10 @@ anaObj <- rbmi::analyse(
 For more than two groups the `ref` / `alt` naming scheme is extended with `alt2`, `alt3`,
 etc. (based on the factor levels of `vars$group`). By default a treatment effect is
 estimated for every non-reference group versus the reference group; the set of contrasts
-can be customised via the `group_contrasts` argument of `set_vars()`. For example, with
-three arms `"Placebo"`, `"Low"` and `"High"` (in that factor-level order) you can request
-a bespoke set of pairwise contrasts:
+can be customised via the `group_contrasts` argument of `set_vars()`. Custom contrasts
+must be named, and the names become the output parameter names. For example, with three
+arms `"Placebo"`, `"Low"` and `"High"` you can request a bespoke set of pairwise
+contrasts:
 
 ```r
 vars <- set_vars(
@@ -153,13 +154,32 @@ vars <- set_vars(
     group = "THERAPY",
     covariates = c("BASVAL*VISIT", "THERAPY*VISIT"),
     group_contrasts = list(
-        c("Low", "Placebo"),   # -> trt          (alt  vs ref)
-        c("High", "Placebo"),  # -> trt_alt2     (alt2 vs ref)
-        c("High", "Low")       # -> trt_alt2_alt (alt2 vs alt)
+        low_vs_pbo  = c("Low", "Placebo"),
+        high_vs_pbo = c("High", "Placebo"),
+        high_vs_low = c("High", "Low")
     )
 )
 
 anaObj <- rbmi::analyse(imputeObj, vars = vars)
+```
+
+Contrasts are not restricted to pairwise comparisons. A contrast can also be given as a
+named numeric weight vector over the group levels (which must sum to zero), for example to
+compare the average of the two active arms against `"Placebo"`. The list name is used as
+the parameter name and is carried through to the `contrast_label` column of the `pool()`
+output:
+
+```r
+vars <- set_vars(
+    subjid = "PATIENT",
+    visit = "VISIT",
+    outcome = "CHANGE",
+    group = "THERAPY",
+    covariates = c("BASVAL*VISIT", "THERAPY*VISIT"),
+    group_contrasts = list(
+        pooled_vs_pbo = c(Placebo = -1, Low = 0.5, High = 0.5)
+    )
+)
 ```
 
 Please see the documentation for `ancova()` and `set_vars()` for more details.

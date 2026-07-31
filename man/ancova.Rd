@@ -88,10 +88,13 @@ this reduces to the original \code{trt}, \code{lsm_ref} and \code{lsm_alt} namin
 compatibility.
 
 By default a treatment effect is calculated for every non-reference group versus the
-reference group. Alternatively, a bespoke set of contrasts can be requested via the
-\code{group_contrasts} argument of \code{\link[=set_vars]{set_vars()}}; see its documentation for details. When a
-contrast is between two non-reference groups it is named \verb{trt_<minuend>_<subtrahend>}
-using the corresponding \code{ref}/\code{alt} labels, e.g. \code{trt_alt2_alt} for \code{alt2} vs \code{alt}.
+reference group, using the \code{trt} / \code{trt_alt2} / ... names described above. Alternatively
+a bespoke set of contrasts can be requested via the \code{group_contrasts} argument of
+\code{\link[=set_vars]{set_vars()}}; see its documentation for details. Such contrasts must be named, and the
+supplied name is used as the \code{parameter} name and carried through to the
+\code{contrast_label} column of the \code{\link[=pool]{pool()}} output. Contrasts may be pairwise (a length-2
+\code{c(minuend, subtrahend)} character vector) or general linear contrasts (a named numeric
+weight vector over the group levels).
 
 If you want to include interaction terms in your model this can be done
 by providing them to the \code{covariates} argument of \code{\link[=set_vars]{set_vars()}}
@@ -180,9 +183,10 @@ vars <- set_vars(
 # called directly; see [analyse()].
 ancova(dat, vars)
 
-# Multi-arm ANCOVA with a bespoke set of contrasts. With three groups the
-# default would compare each active arm against the reference ("Placebo");
-# here we additionally request the "High" vs "Low" contrast.
+# Multi-arm ANCOVA with a bespoke, named set of contrasts. With three groups
+# the default would compare each active arm against the reference ("Placebo");
+# here we additionally request the "High" vs "Low" contrast. Explicit contrasts
+# must be named, and the names become the output parameter names.
 set.seed(102)
 dat3 <- data.frame(
     visit = factor("visit_1"),
@@ -204,14 +208,14 @@ vars3 <- set_vars(
     visit = "visit",
     covariates = "basval",
     group_contrasts = list(
-        c("Low", "Placebo"),
-        c("High", "Placebo"),
-        c("High", "Low")
+        low_vs_pbo  = c("Low", "Placebo"),
+        high_vs_pbo = c("High", "Placebo"),
+        high_vs_low = c("High", "Low")
     )
 )
 
-# Output names: `trt` (Low - Placebo), `trt_alt2` (High - Placebo),
-# `trt_alt2_alt` (High - Low), plus `lsm_ref` / `lsm_alt` / `lsm_alt2`.
+# Output names: `low_vs_pbo`, `high_vs_pbo`, `high_vs_low`, plus
+# `lsm_ref` / `lsm_alt` / `lsm_alt2`.
 names(ancova(dat3, vars3))
 
 }

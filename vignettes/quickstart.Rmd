@@ -237,8 +237,9 @@ the third, fourth, ... factor levels; e.g. the resulting list will contain entri
 and, for treatment effects, `trt_alt2_day40` (the third factor level compared to the
 reference level at the `"day40"` visit). By default a treatment effect is estimated for
 every non-reference group versus the reference group; a bespoke set of contrasts can be
-requested via the `group_contrasts` argument of `set_vars()`. For example, with three
-arms `"Placebo"`, `"Low"` and `"High"` (in that factor-level order):
+requested via the `group_contrasts` argument of `set_vars()`. Custom contrasts must be
+named, and the names become the output parameter names. For example, with three arms
+`"Placebo"`, `"Low"` and `"High"`:
 
 ```r
 vars <- set_vars(
@@ -247,9 +248,27 @@ vars <- set_vars(
     visit = "visit",
     covariates = c("BASVAL"),
     group_contrasts = list(
-        c("Low", "Placebo"),   # -> trt          (alt  vs ref)
-        c("High", "Placebo"),  # -> trt_alt2     (alt2 vs ref)
-        c("High", "Low")       # -> trt_alt2_alt (alt2 vs alt)
+        low_vs_pbo  = c("Low", "Placebo"),
+        high_vs_pbo = c("High", "Placebo"),
+        high_vs_low = c("High", "Low")
+    )
+)
+anaObj <- analyse(imputeObj, ancova, vars = vars)
+```
+
+Contrasts need not be pairwise. A contrast can also be specified as a named numeric weight
+vector over the group levels (summing to zero) -- for example to compare the average of the
+two active arms against `"Placebo"`. The list name becomes the parameter name and is
+carried through to the `contrast_label` column of the `pool()` output:
+
+```r
+vars <- set_vars(
+    outcome = "outcome",
+    group = "group",
+    visit = "visit",
+    covariates = c("BASVAL"),
+    group_contrasts = list(
+        pooled_vs_pbo = c(Placebo = -1, Low = 0.5, High = 0.5)
     )
 )
 anaObj <- analyse(imputeObj, ancova, vars = vars)
