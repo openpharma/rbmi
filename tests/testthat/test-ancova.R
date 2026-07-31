@@ -809,3 +809,176 @@ test_that("as.data.frame.pool appends ancova metadata columns", {
     df2 <- as.data.frame(pool_no_meta)
     expect_equal(names(df2), c("parameter", "est", "se", "lci", "uci", "pval"))
 })
+
+
+test_that("as.data.frame.pool errors when metadata does not match parameters", {
+    pars <- list(
+        trt_v1 = list(est = 1, se = 0.5, ci = c(0, 2), pvalue = 0.05),
+        lsm_ref_v1 = list(est = 10, se = 1, ci = c(8, 12), pvalue = 0.001)
+    )
+    # Metadata is missing an entry for `lsm_ref_v1`, which must not be silently
+    # filled with `NA` columns.
+    par_meta <- data.frame(
+        parameter = "trt_v1",
+        estimate_type = "contrast",
+        group = "grp",
+        group_level_1 = "B",
+        group_level_2 = "A",
+        visit = "v1",
+        stringsAsFactors = FALSE
+    )
+    pool_bad_meta <- structure(
+        list(pars = pars, par_meta = par_meta),
+        class = "pool"
+    )
+    expect_error(
+        as.data.frame(pool_bad_meta),
+        regexp = "without matching metadata"
+    )
+})
+
+
+test_that("ancova_linear_contrast subtracts the reference under intercept-less models", {
+    # In the usual intercept model the reference level has no explicit
+    # coefficient (it is absorbed by the intercept), so contrasts against it
+    # reduce to the minuend coefficient.
+    beta_int <- c(`(Intercept)` = 50, age = 2, rbmiGroupL2 = 3, rbmiGroupL3 = 6)
+    vc_int <- diag(length(beta_int))
+    dimnames(vc_int) <- list(names(beta_int), names(beta_int))
+    r_int <- ancova_linear_contrast(
+        2,
+        1,
+        beta_int,
+        vc_int,
+        100,
+        c("L1", "L2", "L3")
+    )
+    expect_equal(r_int$est, 3) # alt vs ref == coef(rbmiGroupL2)
+
+    # In a no-intercept model every level (including the reference) gets its own
+    # coefficient; the reference must still be subtracted rather than returning
+    # the minuend group's absolute mean.
+    beta_noint <- c(
+        age = 2,
+        rbmiGroupL1 = 50,
+        rbmiGroupL2 = 53,
+        rbmiGroupL3 = 56
+    )
+    vc_noint <- diag(length(beta_noint))
+    dimnames(vc_noint) <- list(names(beta_noint), names(beta_noint))
+    r_noint <- ancova_linear_contrast(
+        2,
+        1,
+        beta_noint,
+        vc_noint,
+        100,
+        c("L1", "L2", "L3")
+    )
+    expect_equal(r_noint$est, 3) # 53 - 50, not 53
+    # SE uses both coefficients: sqrt(v_L2 + v_L1) with unit diagonal == sqrt(2)
+    expect_equal(r_noint$se, sqrt(2))
+})
+
+
+test_that("ancova_linear_contrast fails loudly on invalid arguments", {
+    beta <- c(`(Intercept)` = 50, rbmiGroupL2 = 3)
+    vc <- diag(length(beta))
+    dimnames(vc) <- list(names(beta), names(beta))
+
+    # Out-of-range contrast index
+    expect_error(
+        ancova_linear_contrast(3, 1, beta, vc, 100, c("L1", "L2")),
+        regexp = "out of range"
+    )
+
+    # Coefficient / vcov name misalignment (e.g. an aliased term dropped from vcov)
+    vc_bad <- vc[1, 1, drop = FALSE]
+    expect_error(
+        ancova_linear_contrast(2, 1, beta, vc_bad, 100, c("L1", "L2")),
+        regexp = "aligned by name and dimension"
+    )
+
+    # A required (non-reference) coefficient is missing / aliased -> rank-deficient
+    beta_na <- c(`(Intercept)` = 50, rbmiGroupL2 = NA_real_)
+    vc_na <- diag(length(beta_na))
+    dimnames(vc_na) <- list(names(beta_na), names(beta_na))
+    expect_error(
+        ancova_linear_contrast(2, 1, beta_na, vc_na, 100, c("L1", "L2")),
+        regexp = "rank-deficient"
+    )
+})
+
+
+test_that("ancova metadata propagates through pool() -> as.data.frame() (integration)", {
+    set.seed(401)
+    n <- 300
+    grp_levels <- c("Placebo", "A", "B")
+    dat <- tibble(
+        visit = "v1",
+        age = rnorm(n),
+        grp = factor(
+            sample(grp_levels, size = n, replace = TRUE),
+            levels = grp_levels
+        ),
+        out = rnorm(
+            n,
+            mean = 50 + 2 * age + 3 * (grp == "A") + 6 * (grp == "B"),
+            sd = 8
+        )
+    )
+    vars <- set_vars(
+        outcome = "out",
+        group = "grp",
+        covariates = "age",
+        visit = "visit"
+    )
+
+    # Real ANCOVA output carries the per-parameter metadata attribute.
+    ana <- ancova(dat, vars)
+    meta <- attr(ana, "rbmi_par_meta")
+    expect_false(is.null(meta))
+
+    # Emulate `analyse()` collecting per-sample results, then pool with Rubin's
+    # rules and materialise as a data.frame. This exercises the real
+    # ancova() -> pool() -> as.data.frame() metadata-propagation path.
+    ana_obj <- as_analysis(
+        results = replicate(3, ana, simplify = FALSE),
+        method = method_bayes(n_samples = 3),
+        par_meta = meta
+    )
+    pool_obj <- pool(ana_obj)
+    df <- as.data.frame(pool_obj)
+
+    expect_true(all(
+        c(
+            "estimate_type",
+            "group",
+            "group_level_1",
+            "group_level_2",
+            "visit"
+        ) %in%
+            names(df)
+    ))
+    # Multi-arm parameters are all present and correctly typed.
+    expect_setequal(
+        df$parameter,
+        c(
+            "trt_v1",
+            "trt_alt2_v1",
+            "lsm_ref_v1",
+            "lsm_alt_v1",
+            "lsm_alt2_v1"
+        )
+    )
+    # Metadata is aligned to the correct rows (no NA drift).
+    trt_row <- df[df$parameter == "trt_alt2_v1", ]
+    expect_equal(trt_row$estimate_type, "contrast")
+    expect_equal(trt_row$group_level_1, "B")
+    expect_equal(trt_row$group_level_2, "Placebo")
+    expect_equal(trt_row$group, "grp")
+    expect_equal(trt_row$visit, "v1")
+    lsm_row <- df[df$parameter == "lsm_alt2_v1", ]
+    expect_equal(lsm_row$estimate_type, "lsm")
+    expect_equal(lsm_row$group_level_1, "B")
+    expect_true(is.na(lsm_row$group_level_2))
+})
