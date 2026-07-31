@@ -880,7 +880,14 @@ test_that("ancova_linear_contrast reproduces coefficient contrasts (treatment co
     expect_equal(r2$se, sqrt(2)) # v_L3 + v_L2 - 2 v_23 = 1 + 1 - 0
 
     # pooled: 0.5*L2 + 0.5*L3 - L1 -> 0.5*3 + 0.5*6
-    r3 <- ancova_linear_contrast(c(-1, 0.5, 0.5), beta, vc, 100, grp_names, cmat)
+    r3 <- ancova_linear_contrast(
+        c(-1, 0.5, 0.5),
+        beta,
+        vc,
+        100,
+        grp_names,
+        cmat
+    )
     expect_equal(r3$est, 0.5 * 3 + 0.5 * 6)
 })
 
@@ -914,7 +921,10 @@ test_that("ancova_linear_contrast fails loudly on invalid arguments", {
     )
 
     # A group coefficient missing from the vcov matrix -> rank-deficient
-    vc_bad <- vc[c("(Intercept)", "rbmiGroupL2"), c("(Intercept)", "rbmiGroupL2")]
+    vc_bad <- vc[
+        c("(Intercept)", "rbmiGroupL2"),
+        c("(Intercept)", "rbmiGroupL2")
+    ]
     expect_error(
         ancova_linear_contrast(c(-1, 0, 1), beta, vc_bad, 100, grp_names, cmat),
         regexp = "rank-deficient"
@@ -1146,4 +1156,3 @@ test_that("ancova - named contrasts populate the contrast_label metadata", {
     expect_true("contrast_label" %in% names(df))
     expect_equal(df$contrast_label[df$parameter == "pooled_v1"], "pooled")
 })
-

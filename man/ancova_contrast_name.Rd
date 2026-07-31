@@ -2,14 +2,12 @@
 % Please edit documentation in R/ancova.R
 \name{ancova_contrast_name}
 \alias{ancova_contrast_name}
-\title{Name an ANCOVA treatment-effect contrast}
+\title{Name a default ANCOVA treatment-effect contrast}
 \usage{
-ancova_contrast_name(i, j, labels)
+ancova_contrast_name(i, labels)
 }
 \arguments{
-\item{i}{Integer, 1-based index of the minuend (active) group level.}
-
-\item{j}{Integer, 1-based index of the subtrahend (comparator) group level.}
+\item{i}{Integer, 1-based index of the (non-reference) group level.}
 
 \item{labels}{Character vector of level labels as returned by \code{\link[=ancova_group_labels]{ancova_group_labels()}}.}
 }
@@ -17,9 +15,9 @@ ancova_contrast_name(i, j, labels)
 A length 1 character vector with the parameter name.
 }
 \description{
-Determines the parameter name for a contrast between two group levels (given by
-their 1-based factor level indices). Contrasts against the reference level use the
-backwards-compatible \code{trt} / \code{trt_alt2} / ... naming; contrasts between two
-non-reference levels are named \verb{trt_<minuend>_<subtrahend>}.
+Determines the \code{parameter} name for a default contrast of a non-reference level against
+the reference level: the second factor level is \code{trt}, the third \code{trt_alt2}, the fourth
+\code{trt_alt3}, and so on. Only used for the default (\code{group_contrasts = NULL}) set;
+user-supplied contrasts are named explicitly by the caller.
 }
 \keyword{internal}

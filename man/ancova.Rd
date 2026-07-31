@@ -31,10 +31,11 @@ See the weighting section for more details.}
 A named list with one set of entries per visit, each suffixed by the visit name.
 For each visit the list contains:
 \itemize{
-\item the estimated treatment effect(s) (\verb{trt_<visit>} for the \code{alt} vs \code{ref} comparison,
-\verb{trt_alt2_<visit>}, \verb{trt_alt3_<visit>}, ... for further non-reference groups vs the
-reference group, and \verb{trt_<minuend>_<subtrahend>_<visit>} for custom contrasts
-between two non-reference groups requested via \code{group_contrasts}), and
+\item the estimated treatment effect(s). For the default (\code{group_contrasts = NULL}) these
+are \verb{trt_<visit>} for the \code{alt} vs \code{ref} comparison and \verb{trt_alt2_<visit>},
+\verb{trt_alt3_<visit>}, ... for further non-reference groups versus the reference group.
+When \code{group_contrasts} is supplied each contrast is named \verb{<name>_<visit>} using the
+list name given for that contrast. Also
 \item the least square means for each group (\verb{lsm_ref_<visit>}, \verb{lsm_alt_<visit>},
 \verb{lsm_alt2_<visit>}, ...).
 }

@@ -83,10 +83,11 @@
 #' A named list with one set of entries per visit, each suffixed by the visit name.
 #' For each visit the list contains:
 #'
-#' - the estimated treatment effect(s) (`trt_<visit>` for the `alt` vs `ref` comparison,
-#'   `trt_alt2_<visit>`, `trt_alt3_<visit>`, ... for further non-reference groups vs the
-#'   reference group, and `trt_<minuend>_<subtrahend>_<visit>` for custom contrasts
-#'   between two non-reference groups requested via `group_contrasts`), and
+#' - the estimated treatment effect(s). For the default (`group_contrasts = NULL`) these
+#'   are `trt_<visit>` for the `alt` vs `ref` comparison and `trt_alt2_<visit>`,
+#'   `trt_alt3_<visit>`, ... for further non-reference groups versus the reference group.
+#'   When `group_contrasts` is supplied each contrast is named `<name>_<visit>` using the
+#'   list name given for that contrast. Also
 #' - the least square means for each group (`lsm_ref_<visit>`, `lsm_alt_<visit>`,
 #'   `lsm_alt2_<visit>`, ...).
 #'
@@ -412,7 +413,11 @@ ancova_single <- function(
             cmat
         )
     })
-    names(trt) <- vapply(contrasts, function(ct) ct[["parameter"]], character(1))
+    names(trt) <- vapply(
+        contrasts,
+        function(ct) ct[["parameter"]],
+        character(1)
+    )
 
     res <- append(trt, lsm)
 
@@ -420,9 +425,21 @@ ancova_single <- function(
     meta_trt <- data.frame(
         parameter = names(trt),
         estimate_type = "contrast",
-        contrast_label = vapply(contrasts, function(ct) ct[["label"]], character(1)),
-        group_level_1 = vapply(contrasts, function(ct) ct[["level_1"]], character(1)),
-        group_level_2 = vapply(contrasts, function(ct) ct[["level_2"]], character(1)),
+        contrast_label = vapply(
+            contrasts,
+            function(ct) ct[["label"]],
+            character(1)
+        ),
+        group_level_1 = vapply(
+            contrasts,
+            function(ct) ct[["level_1"]],
+            character(1)
+        ),
+        group_level_2 = vapply(
+            contrasts,
+            function(ct) ct[["level_2"]],
+            character(1)
+        ),
         stringsAsFactors = FALSE
     )
     meta_lsm <- data.frame(
@@ -464,27 +481,22 @@ ancova_group_labels <- function(n) {
 }
 
 
-#' Name an ANCOVA treatment-effect contrast
+#' Name a default ANCOVA treatment-effect contrast
 #'
-#' Determines the parameter name for a contrast between two group levels (given by
-#' their 1-based factor level indices). Contrasts against the reference level use the
-#' backwards-compatible `trt` / `trt_alt2` / ... naming; contrasts between two
-#' non-reference levels are named `trt_<minuend>_<subtrahend>`.
+#' Determines the `parameter` name for a default contrast of a non-reference level against
+#' the reference level: the second factor level is `trt`, the third `trt_alt2`, the fourth
+#' `trt_alt3`, and so on. Only used for the default (`group_contrasts = NULL`) set;
+#' user-supplied contrasts are named explicitly by the caller.
 #'
-#' @param i Integer, 1-based index of the minuend (active) group level.
-#' @param j Integer, 1-based index of the subtrahend (comparator) group level.
+#' @param i Integer, 1-based index of the (non-reference) group level.
 #' @param labels Character vector of level labels as returned by [ancova_group_labels()].
 #' @return A length 1 character vector with the parameter name.
 #' @keywords internal
-ancova_contrast_name <- function(i, j, labels) {
-    if (j == 1) {
-        if (i == 2) {
-            "trt"
-        } else {
-            paste0("trt_", labels[i])
-        }
+ancova_contrast_name <- function(i, labels) {
+    if (i == 2) {
+        "trt"
     } else {
-        paste0("trt_", labels[i], "_", labels[j])
+        paste0("trt_", labels[i])
     }
 }
 
@@ -533,7 +545,7 @@ ancova_resolve_contrasts <- function(group_contrasts, orig_levels, labels) {
         return(lapply(seq_len(n_lvl)[-1], function(i) {
             record(
                 pairwise_weights(i, 1L),
-                ancova_contrast_name(i, 1L, labels),
+                ancova_contrast_name(i, labels),
                 NA_character_,
                 orig_levels[i],
                 orig_levels[1]
