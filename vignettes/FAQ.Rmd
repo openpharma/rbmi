@@ -141,7 +141,27 @@ anaObj <- rbmi::analyse(
 For more than two groups the `ref` / `alt` naming scheme is extended with `alt2`, `alt3`,
 etc. (based on the factor levels of `vars$group`). By default a treatment effect is
 estimated for every non-reference group versus the reference group; the set of contrasts
-can be customised via the `group_contrasts` argument of `set_vars()`. Please see the
-documentation for `ancova()` and `set_vars()` for more details.
+can be customised via the `group_contrasts` argument of `set_vars()`. For example, with
+three arms `"Placebo"`, `"Low"` and `"High"` (in that factor-level order) you can request
+a bespoke set of pairwise contrasts:
+
+```r
+vars <- set_vars(
+    subjid = "PATIENT",
+    visit = "VISIT",
+    outcome = "CHANGE",
+    group = "THERAPY",
+    covariates = c("BASVAL*VISIT", "THERAPY*VISIT"),
+    group_contrasts = list(
+        c("Low", "Placebo"),   # -> trt          (alt  vs ref)
+        c("High", "Placebo"),  # -> trt_alt2     (alt2 vs ref)
+        c("High", "Low")       # -> trt_alt2_alt (alt2 vs alt)
+    )
+)
+
+anaObj <- rbmi::analyse(imputeObj, vars = vars)
+```
+
+Please see the documentation for `ancova()` and `set_vars()` for more details.
 
 <br>

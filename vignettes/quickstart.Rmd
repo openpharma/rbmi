@@ -237,8 +237,25 @@ the third, fourth, ... factor levels; e.g. the resulting list will contain entri
 and, for treatment effects, `trt_alt2_day40` (the third factor level compared to the
 reference level at the `"day40"` visit). By default a treatment effect is estimated for
 every non-reference group versus the reference group; a bespoke set of contrasts can be
-requested via the `group_contrasts` argument of `set_vars()`. See the documentation for
-`ancova()` and `set_vars()` for more details.
+requested via the `group_contrasts` argument of `set_vars()`. For example, with three
+arms `"Placebo"`, `"Low"` and `"High"` (in that factor-level order):
+
+```r
+vars <- set_vars(
+    outcome = "outcome",
+    group = "group",
+    visit = "visit",
+    covariates = c("BASVAL"),
+    group_contrasts = list(
+        c("Low", "Placebo"),   # -> trt          (alt  vs ref)
+        c("High", "Placebo"),  # -> trt_alt2     (alt2 vs ref)
+        c("High", "Low")       # -> trt_alt2_alt (alt2 vs alt)
+    )
+)
+anaObj <- analyse(imputeObj, ancova, vars = vars)
+```
+
+See the documentation for `ancova()` and `set_vars()` for more details.
 
 Additionally, we can use the `delta` argument of `analyse()` to perform a delta adjustments of the imputed datasets prior to the analysis. 
 In brief, this is implemented by specifying a data.frame that contains the amount
