@@ -28,4 +28,15 @@ model coefficients. For a contrast versus the reference level this reduces exact
 the corresponding group coefficient (preserving backwards compatibility with the
 two-group implementation).
 }
+\details{
+The contrast vector is built by looking up each group's coefficient by name rather
+than assuming the reference level has no explicit coefficient. In the usual
+intercept model the reference level (\code{rbmiGroupL1}) is absorbed by the intercept and
+has no coefficient, so its contribution is correctly omitted. If the model has no
+intercept every level receives its own coefficient (including \code{rbmiGroupL1}); looking
+the coefficient up by name ensures the reference level is still subtracted rather than
+silently returning the minuend group's absolute mean. Any \emph{other} missing or aliased
+(\code{NA}) coefficient indicates a rank-deficient design and triggers an error rather than
+a silently dropped term.
+}
 \keyword{internal}
