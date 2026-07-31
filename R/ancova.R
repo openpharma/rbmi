@@ -63,17 +63,33 @@
 #' by providing them to the `covariates` argument of [set_vars()]
 #' e.g. `set_vars(covariates = c("sex*age"))`.
 #'
+#' Note that the treatment effects (`trt`, `trt_alt2`, ...) are the relevant linear
+#' combinations of the model coefficients, i.e. the group main-effect contrasts evaluated
+#' at the reference level of any covariates. The least square means (`lsm_*`) are instead
+#' computed according to the requested `weights`. When `group` interacts with a covariate
+#' these two quantities differ, so `trt` is not in general equal to `lsm_alt - lsm_ref`.
+#' This matches the behaviour of the original two-group implementation, where `trt` has
+#' always been the model coefficient.
+#'
 #' @inheritSection lsmeans Weighting
 #'
 #' @seealso [analyse()]
 #' @seealso [stats::lm()]
 #' @seealso [set_vars()]
 #' @return
-#' A named list with one set of entries per visit. For each visit the list
-#' contains the estimated treatment effect (`trt_<visit>`) and the least square
-#' means for the reference and alternative groups (`lsm_ref_<visit>` and
-#' `lsm_alt_<visit>`). Each of these elements is itself a list holding the
-#' estimate (`est`), standard error (`se`) and degrees of freedom (`df`).
+#' A named list with one set of entries per visit, each suffixed by the visit name.
+#' For each visit the list contains:
+#'
+#' - the estimated treatment effect(s) (`trt_<visit>` for the `alt` vs `ref` comparison,
+#'   `trt_alt2_<visit>`, `trt_alt3_<visit>`, ... for further non-reference groups vs the
+#'   reference group, and `trt_<minuend>_<subtrahend>_<visit>` for custom contrasts
+#'   between two non-reference groups requested via `group_contrasts`), and
+#' - the least square means for each group (`lsm_ref_<visit>`, `lsm_alt_<visit>`,
+#'   `lsm_alt2_<visit>`, ...).
+#'
+#' For the common case of two groups this reduces to `trt_<visit>`, `lsm_ref_<visit>`
+#' and `lsm_alt_<visit>`. Each of these elements is itself a list holding the estimate
+#' (`est`), standard error (`se`) and degrees of freedom (`df`).
 #'
 #' @examples
 #' # Simulate a small dataset with a single visit, a treatment group and a
@@ -97,6 +113,40 @@
 #' # In a full `rbmi` analysis, `ancova()` is passed to `analyse()` rather than
 #' # called directly; see [analyse()].
 #' ancova(dat, vars)
+#'
+#' # Multi-arm ANCOVA with a bespoke set of contrasts. With three groups the
+#' # default would compare each active arm against the reference ("Placebo");
+#' # here we additionally request the "High" vs "Low" contrast.
+#' set.seed(102)
+#' dat3 <- data.frame(
+#'     visit = factor("visit_1"),
+#'     group = factor(
+#'         rep(c("Placebo", "Low", "High"), each = 50),
+#'         levels = c("Placebo", "Low", "High")
+#'     ),
+#'     basval = rnorm(150)
+#' )
+#' dat3$outcome <- 5 +
+#'     2 * (dat3$group == "Low") +
+#'     4 * (dat3$group == "High") +
+#'     dat3$basval +
+#'     rnorm(150)
+#'
+#' vars3 <- set_vars(
+#'     outcome = "outcome",
+#'     group = "group",
+#'     visit = "visit",
+#'     covariates = "basval",
+#'     group_contrasts = list(
+#'         c("Low", "Placebo"),
+#'         c("High", "Placebo"),
+#'         c("High", "Low")
+#'     )
+#' )
+#'
+#' # Output names: `trt` (Low - Placebo), `trt_alt2` (High - Placebo),
+#' # `trt_alt2_alt` (High - Low), plus `lsm_ref` / `lsm_alt` / `lsm_alt2`.
+#' names(ancova(dat3, vars3))
 #'
 #' @export
 ancova <- function(
@@ -494,15 +544,48 @@ ancova_resolve_contrasts <- function(group_contrasts, orig_levels) {
 #' @param df_res Residual degrees of freedom.
 #' @param intcode Character vector of standardised level codes (e.g. `"L1"`, `"L2"`).
 #' @return A list with elements `est`, `se` and `df`.
+#'
+#' @details
+#' The contrast vector is built by looking up each group's coefficient by name rather
+#' than assuming the reference level has no explicit coefficient. In the usual
+#' intercept model the reference level (`rbmiGroupL1`) is absorbed by the intercept and
+#' has no coefficient, so its contribution is correctly omitted. If the model has no
+#' intercept every level receives its own coefficient (including `rbmiGroupL1`); looking
+#' the coefficient up by name ensures the reference level is still subtracted rather than
+#' silently returning the minuend group's absolute mean. Any *other* missing or aliased
+#' (`NA`) coefficient indicates a rank-deficient design and triggers an error rather than
+#' a silently dropped term.
 #' @keywords internal
 ancova_linear_contrast <- function(i, j, beta, vcov_mod, df_res, intcode) {
+    assert_that(
+        i %in% seq_along(intcode),
+        j %in% seq_along(intcode),
+        msg = "contrast indices are out of range of `intcode`"
+    )
+    assert_that(
+        is.numeric(beta),
+        !is.null(names(beta)),
+        identical(names(beta), colnames(vcov_mod)),
+        length(beta) == nrow(vcov_mod),
+        msg = "`beta` and `vcov_mod` must be aligned by name and dimension"
+    )
+    has_intercept <- "(Intercept)" %in% names(beta)
     lvec <- numeric(length(beta))
     names(lvec) <- names(beta)
-    if (i >= 2) {
-        lvec[[paste0("rbmiGroup", intcode[i])]] <- 1
-    }
-    if (j >= 2) {
-        lvec[[paste0("rbmiGroup", intcode[j])]] <- -1
+    for (k in c(i, j)) {
+        name_k <- paste0("rbmiGroup", intcode[k])
+        # The reference level (k == 1) legitimately has no coefficient when the
+        # model has an intercept (it is the baseline); any other missing or
+        # aliased coefficient means a rank-deficient design and must error.
+        if (has_intercept && k == 1) next
+        assert_that(
+            name_k %in% names(beta) && !is.na(beta[[name_k]]),
+            msg = sprintf(
+                "ANCOVA contrast requires coefficient `%s`, which is missing or aliased; the design matrix is rank-deficient",
+                name_k
+            )
+        )
+        lvec[[name_k]] <- if (k == i) 1 else -1
     }
     list(
         est = sum(lvec * beta),
