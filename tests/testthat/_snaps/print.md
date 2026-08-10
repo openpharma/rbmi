@@ -226,12 +226,15 @@
       Analysis Function: ancova
       Delta Applied: FALSE
       Analysis Estimates:
+          var_visit_1
           trt_visit_1
           lsm_ref_visit_1
           lsm_alt_visit_1
+          var_visit_2
           trt_visit_2
           lsm_ref_visit_2
           lsm_alt_visit_2
+          var_visit_3
           trt_visit_3
           lsm_ref_visit_3
           lsm_alt_visit_3
@@ -297,9 +300,11 @@
       Analysis Function: rbmi::ancova
       Delta Applied: TRUE
       Analysis Estimates:
+          var_visit_1
           trt_visit_1
           lsm_ref_visit_1
           lsm_alt_visit_1
+          var_visit_3
           trt_visit_3
           lsm_ref_visit_3
           lsm_alt_visit_3
@@ -357,12 +362,15 @@
       Analysis Function: ancova
       Delta Applied: FALSE
       Analysis Estimates:
+          var_visit_1
           trt_visit_1
           lsm_ref_visit_1
           lsm_alt_visit_1
+          var_visit_2
           trt_visit_2
           lsm_ref_visit_2
           lsm_alt_visit_2
+          var_visit_3
           trt_visit_3
           lsm_ref_visit_3
           lsm_alt_visit_3
@@ -419,12 +427,15 @@
       Analysis Function: ancova
       Delta Applied: FALSE
       Analysis Estimates:
+          var_visit_1
           trt_visit_1
           lsm_ref_visit_1
           lsm_alt_visit_1
+          var_visit_2
           trt_visit_2
           lsm_ref_visit_2
           lsm_alt_visit_2
+          var_visit_3
           trt_visit_3
           lsm_ref_visit_3
           lsm_alt_visit_3

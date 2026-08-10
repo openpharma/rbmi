@@ -5,6 +5,7 @@
 ## New Features
 * rbmi now uses the `lifecycle` package 
 * Added en-GB spell-check and a corresponding test to the package
+* `ancova_single()` now return residual variance.
 
 ## Documentation
 * Documented the return value (`@return`) of all exported functions and marked
