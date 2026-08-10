@@ -54,7 +54,7 @@
 #' Von Hippel, Paul T and Bartlett, Jonathan W.
 #' Maximum likelihood multiple imputation: Faster imputations and consistent standard
 #' errors without posterior draws. 2021.
-
+#'
 #' @return
 #' A `pool` object; a list of class `"pool"` containing the pooled analysis
 #' results with the following elements:
