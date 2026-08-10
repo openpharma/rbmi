@@ -1,35 +1,30 @@
-## Summary of Submission
+## Summary of Submission (v1.6.1)
 
-This version of the package fixes the error of the Stan code failing to compile on machines using the C23 standard. The issue was the inclusion of a `#` character within in a comment in the Stan code which the compiler then interpreted as a preprocessor directive. Removing the `#` character resolved this issue. 
+rbmi 1.6.0 currently has a NOTE on CRAN / R-devel regarding calls to `structure()` using deprecated 
+special names in file `rbmi/tests/testthat/test-impute.R`, where '.Dim' should be changed to 'dim'.
 
-Also within this release we have changed the maintainer.
+Release 1.6.1 is a bug-fix release that fixes this NOTE and
+* adds a missing vignette on retrieved-dropout models
+* improves documentation (return values and example code)
+* improves accuracy of several error messages
+* implements comprehensive spell-checking against en-GB
+* fixes many spelling issues
+* updates the e-mail address of one of the authors (Marcel Wolbers) to the current one
 
 ## R CMD check results
 
-```
-Status: 1 NOTE
+Status: OK
 
-❯ checking CRAN incoming feasibility ... [7s/39s] NOTE
-  Maintainer: ‘Isaac Gravestock <isaac.gravestock@roche.com>’
-  
-  New maintainer:
-    Isaac Gravestock <isaac.gravestock@roche.com>
-  Old maintainer(s):
-    Craig Gower-Page <craig.gower-page@roche.com>
-```
+## Reverse dependency check results
+
+✔ junco 0.1.6                            ── E: 0     | W: 0     | N: 0 
+✔ rbmiUtils 0.3.0                        ── E: 0     | W: 0     | N: 0 
+OK: 2    
 
 ## Test environments
 
 The package was tested in the following environments:
 
-- MacOS, R release (Local Machine)
-- Windows, R release (Win-Builder)
-- MacOS, devel (macOS builder)
-- Ubuntu 22.04 LTS, devel (Rhub / GitHub Actions)
-
-
-## Downstream dependencies
-
-The following reverse dependencies were checked:
-
-- term.rbmi - no issues detected
+- macOS, R oldrel (Local Machine)
+- Ubuntu 24.04.4 LTS, R devel (rhub)
+- Windows, R devel (Windows Builder)

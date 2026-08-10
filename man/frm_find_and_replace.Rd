@@ -20,6 +20,11 @@ The modified language object with all instances of \code{find_sym} replaced by \
 This function traverses a language object (such as an expression or call)
 and recursively replaces all occurrences of a specified symbol with another symbol.
 }
+\details{
+Replacement happens for symbols found within calls (recursively). A \code{frm} that is
+itself a bare symbol equal to \code{find_sym} is returned unchanged; this is not reachable
+from the \code{ancova()} call site because the input is always a formula (a call).
+}
 \examples{
 \dontrun{
 expr <- quote(a + b * c)

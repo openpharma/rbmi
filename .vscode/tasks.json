@@ -4,52 +4,55 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build Vignettes",
-            "type": "shell",
-            "command": "Rscript vignettes/build.R",
-            "problemMatcher": [],
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": true,
-                "panel": "dedicated",
-                "showReuseMessage": true,
-                "clear": true
-            }
-        },
-        {
-            "label": "rbmi - testthat (local cache)",
+            "label": "rbmi - Vignettes",
+            "command": "${workspaceFolder}/tests/scripts/vignettes.sh",
+            "group": "test",
+            "presentation": { "clear": true, "panel": "dedicated" },
             "problemMatcher": "$testthat",
-            "command": "Rscript",
-            "args" : [
-                "-e",
-                "devtools::test()"
-            ],
-            "options": {
-                "env": {
-                    "RBMI_CACHE_DIR" : "${workspaceFolder}/local"
-                }
-            },
+            "options": { "cwd": "${workspaceFolder}" }
         },
         {
-            "label": "rbmi - testthat (FULL)",
-            "command": "Rscript",
-            "options": {
-                "env": {
-                    "RBMI_CACHE_DIR" : "${workspaceFolder}/local",
-                    "R_TEST_FULL" : "TRUE"
-                }
-            },
-            "args": [
-                "-e",
-                "devtools::test()"
+            "label": "rbmi - Documentation",
+            "command": "${workspaceFolder}/tests/scripts/documentation.sh",
+            "group": "test",
+            "presentation": { "clear": true, "panel": "dedicated" },
+            "problemMatcher": "$testthat",
+            "options": { "cwd": "${workspaceFolder}" }
+        },
+        {
+            "label": "rbmi - CRAN",
+            "command": "${workspaceFolder}/tests/scripts/cran.sh",
+            "group": "test",
+            "presentation": { "clear": true, "panel": "dedicated" },
+            "problemMatcher": "$testthat",
+            "options": { "cwd": "${workspaceFolder}" }
+        },
+        {
+            "label": "rbmi - Core tests",
+            "command": "${workspaceFolder}/tests/scripts/core.sh",
+            "group": "test",
+            "presentation": { "clear": true, "panel": "dedicated" },
+            "problemMatcher": "$testthat",
+            "options": { "cwd": "${workspaceFolder}" }
+        },
+        {
+            "label": "rbmi - Extended tests",
+            "command": "${workspaceFolder}/tests/scripts/extended.sh",
+            "group": "test",
+            "presentation": { "clear": true, "panel": "dedicated" },
+            "problemMatcher": "$testthat",
+            "options": { "cwd": "${workspaceFolder}" }
+        },
+        {
+            "label": "rbmi - All tests",
+            "dependsOn": [
+                "rbmi - Vignettes",
+                "rbmi - Documentation",
+                "rbmi - CRAN",
+                "rbmi - Core tests"
             ],
             "group": "test",
-            "presentation": {
-                "clear": true,
-                "panel": "dedicated"
-            },
-            "problemMatcher": "$testthat"
+            "problemMatcher": []
         }
     ]
 }

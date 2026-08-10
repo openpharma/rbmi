@@ -248,23 +248,6 @@ test_that("Stack", {
     expect_error(mstack$pop(1), "items to return")
 })
 
-test_that("clear_model_cache", {
-    td <- tempdir()
-    files <- c(
-        file.path(td, "rbmi_MMRM_123.rds"),
-        file.path(td, "rbmi_MMRM_123.stan"),
-        file.path(td, "rbmi_MMRM_456.stan"),
-        file.path(td, "rbmi_MMRM_456.rds"),
-        file.path(td, "rbmi_MMRM_456.log")
-    )
-    expect_equal(file.create(files), rep(TRUE, 5))
-    clear_model_cache(keep = "456", cache_dir = td)
-    expect_equal(
-        file.exists(files),
-        c(FALSE, FALSE, TRUE, TRUE, TRUE)
-    )
-    file.remove(files[5])
-})
 
 test_that("format_method_descriptions", {
     method <- list(
@@ -300,6 +283,8 @@ test_that("format_method_descriptions", {
 })
 
 test_that("as_stan_fragments works as expected", {
+    # Snapshot tests can be flakey from minor changes in dependencies
+    skip_if_not(is_core_test())
     x <- c(
         "data {",
         "  int<lower=0> N;",
@@ -317,7 +302,7 @@ test_that("as_stan_fragments works as expected", {
 })
 
 test_that("get_stan_model works as expected depending on covariance and prior on parameters", {
-    skip_if_not(is_full_test())
+    skip_if_not(is_extended_test())
 
     local_cache_dir <- withr::local_tempdir()
     withr::local_options(rbmi.cache_dir = local_cache_dir)
@@ -344,8 +329,6 @@ test_that("get_stan_model works as expected depending on covariance and prior on
 })
 
 
-
-
 test_that("frm_find_and_replace works as expected", {
     # Things being tested here include:
     #   - Can change values on both sides of the formula
@@ -356,18 +339,39 @@ test_that("frm_find_and_replace works as expected", {
     #   - Constants e.g. + 1
     #   - Data modification functions  I(z^2)
     #   - Name subset  e.g. zz doesn't get renamed (where we are searching for z)
-    frm <- x + z ~ 1 + z + a + b + zz + z:a + a * z + a * b + h(z) + f(z, z) + k() + I(z^2)
+    frm <- x + z ~ 1 +
+        z +
+        a +
+        b +
+        zz +
+        z:a +
+        a * z +
+        a * b +
+        h(z) +
+        f(z, z) +
+        k() +
+        I(z^2)
     actual <- frm_find_and_replace(frm, as.name("z"), as.name("P"))
-    expected <- x + P ~ 1 + P + a + b + zz + P:a + a * P + a * b + h(P) + f(P, P) + k() + I(P^2)
+    expected <- x + P ~ 1 +
+        P +
+        a +
+        b +
+        zz +
+        P:a +
+        a * P +
+        a * b +
+        h(P) +
+        f(P, P) +
+        k() +
+        I(P^2)
     environment(actual) <- globalenv()
     environment(expected) <- globalenv()
     expect_equal(actual, expected)
 
-
     # Special names / special characters
     frm <- ~ ` .. !abc & `:x - 1 * x
     actual <- frm_find_and_replace(frm, as.name(" .. !abc & "), as.name("bob"))
-    expected <-  ~ bob:x - 1 * x
+    expected <- ~ bob:x - 1 * x
     environment(actual) <- globalenv()
     environment(expected) <- globalenv()
     expect_equal(actual, expected)

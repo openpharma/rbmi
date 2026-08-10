@@ -4,6 +4,8 @@
 #'
 #' @param x object to set the class of.
 #' @param cls the class to be set.
+#' @return `x` with its class attribute set to `cls`.
+#' @keywords internal
 #' @export
 as_class <- function(x, cls) {
     class(x) <- cls
@@ -18,6 +20,8 @@ as_class <- function(x, cls) {
 #'
 #' @param x object to add a class to.
 #' @param cls the class to be added.
+#' @return `x` with `cls` appended after its existing class attribute.
+#' @keywords internal
 #' @export
 add_class <- function(x, cls) {
     class(x) <- c(class(x), cls)
@@ -37,6 +41,7 @@ add_class <- function(x, cls) {
 #'
 #' @param x the object we want to check the class of.
 #' @param cls the class we want to know if it has or not.
+#' @keywords internal
 #' @export
 has_class <- function(x, cls) {
     cls %in% class(x)
@@ -70,7 +75,7 @@ as_simple_formula <- function(outcome, covars) {
 #' Key details are that it will always place the outcome variable into
 #' the first column of the return object.
 #'
-#' The outcome column may contain NA's but none of the other variables
+#' The outcome column may contain NA, but none of the other variables
 #' listed in the formula should contain missing values
 #'
 #' @param dat a data.frame
@@ -147,10 +152,10 @@ ife <- function(x, a, b) {
 #' @param sigma covariance matrix
 #'
 #' Samples multivariate normal variables by multiplying
-#' univariate random normal variables by the cholesky
+#' univariate random normal variables by the Cholesky
 #' decomposition of the covariance matrix.
 #'
-#' If mu is length 1 then just uses rnorm instead.
+#' If mu is length 1 then just uses `rnorm` instead.
 sample_mvnorm <- function(mu, sigma) {
     if (length(sigma) == 1 && length(mu) == 1) {
         return(rnorm(1, mu, sqrt(sigma)))
@@ -347,13 +352,25 @@ sort_by <- function(df, vars = NULL, decreasing = FALSE) {
 #'
 #' @param group The name of the "Group" variable. A length 1 character vector.
 #'
-#' @param covariates The name of any covariates to be used in the context of modeling.
+#' @param covariates The name of any covariates to be used in the context of modelling.
 #' See details.
 #'
 #' @param strata The name of the any stratification variable to be used in the context of bootstrap
 #' sampling. See details.
 #'
 #' @param strategy The name of the "strategy" variable. A length 1 character vector.
+#'
+#' @param group_contrasts Optional specification of the treatment-group contrasts to be
+#' estimated by [ancova()]. Either `NULL` (the default) or a fully named list whose
+#' elements are one of:
+#' * a length-2 character vector `c(minuend, subtrahend)` giving a pairwise contrast
+#'   `minuend - subtrahend` between two levels of `group`; or
+#' * a numeric weight vector over the group levels (summing to zero), either named by
+#'   the levels of `group` (unlisted levels default to `0`) or of the same length as the
+#'   number of levels (in factor order).
+#'
+#' Each element must be named; the name is used as the output `parameter` name (and must
+#' not start with `lsm_`, which is reserved for the least-squares means). See details.
 #'
 #' @details
 #'
@@ -362,6 +379,18 @@ sort_by <- function(df, vars = NULL, decreasing = FALSE) {
 #' to include interaction terms these need to be manually specified i.e.
 #' `covariates = c("group*visit", "age*sex")`. Please note that the use of the [I()] function to
 #' inhibit the interpretation/conversion of objects is not supported.
+#'
+#' The `group_contrasts` argument is only used by [ancova()]. If `NULL` (default) a
+#' treatment effect is estimated for every non-reference group versus the reference group
+#' (the first factor level of `group`). Alternatively a bespoke set of contrasts can be
+#' requested. Pairwise contrasts are given as length-2 character vectors, e.g.
+#' `group_contrasts = list(c("A", "Placebo"), c("B", "Placebo"))` requests the contrasts
+#' `A - Placebo` and `B - Placebo`. More general linear contrasts are given as named
+#' numeric weight vectors over the group levels, e.g.
+#' `group_contrasts = list(pooled_vs_pbo = c(Placebo = -1, A = 0.5, B = 0.5))` contrasts
+#' the average of `A` and `B` against `Placebo`. List names are carried through to the
+#' `contrast_label` column of the [pool()] output; weight-vector contrasts must be named.
+#' See [ancova()] for the resulting `parameter` naming scheme.
 #'
 #' Currently `strata` is only used by [draws()] in combination with `method_condmean(type = "bootstrap")`
 #' and `method_approxbayes()` in order to allow for the specification of stratified bootstrap sampling.
@@ -389,6 +418,11 @@ sort_by <- function(df, vars = NULL, decreasing = FALSE) {
 #'
 #' }
 #'
+#' @return
+#' A `vars` object; a named list of class `ivars` recording the names of the key
+#' variables (`subjid`, `visit`, `outcome`, `group`, `covariates`, `strata` and
+#' `strategy`) used throughout `rbmi` by functions such as [draws()], [ancova()]
+#' and [analyse()].
 #' @export
 set_vars <- function(
     subjid = "subjid",
@@ -397,7 +431,8 @@ set_vars <- function(
     group = "group",
     covariates = character(0),
     strata = group,
-    strategy = "strategy"
+    strategy = "strategy",
+    group_contrasts = NULL
 ) {
     x <- list(
         subjid = subjid,
@@ -406,7 +441,8 @@ set_vars <- function(
         group = group,
         covariates = covariates,
         strata = strata,
-        strategy = strategy
+        strategy = strategy,
+        group_contrasts = group_contrasts
     )
     class(x) <- c("ivars", "list")
     validate(x)
@@ -417,7 +453,7 @@ set_vars <- function(
 #' Validate inputs for `vars`
 #'
 #' Checks that the required variable names are defined within `vars` and
-#' are of appropriate datatypes
+#' are of appropriate data types
 #'
 #' @param x named list indicating the names of key variables in the source dataset
 #' @param ... not used
@@ -458,6 +494,35 @@ validate.ivars <- function(x, ...) {
         is.character(x$strata) | is.null(x$strata),
         msg = "`vars$strata` should be a character vector or NULL"
     )
+
+    assert_that(
+        is.null(x$group_contrasts) || is.list(x$group_contrasts),
+        msg = "`vars$group_contrasts` should be NULL or a list"
+    )
+    if (is.list(x$group_contrasts)) {
+        gc <- x$group_contrasts
+        nms <- names(gc)
+        assert_that(
+            length(gc) >= 1,
+            !is.null(nms) && all(nzchar(nms)),
+            msg = "`vars$group_contrasts` should be a non-empty, fully named list"
+        )
+        ok <- vapply(
+            gc,
+            function(el) {
+                (is.character(el) && length(el) == 2) ||
+                    (is.numeric(el) && length(el) >= 2)
+            },
+            logical(1)
+        )
+        assert_that(
+            all(ok),
+            msg = paste(
+                "each `vars$group_contrasts` element should be a length-2 character",
+                "vector or a numeric weight vector of length >= 2"
+            )
+        )
+    }
     return(invisible(TRUE))
 }
 
@@ -532,7 +597,7 @@ format_method_descriptions <- function(method) {
 #' @param x a data.frame like object
 #'
 #' Utility function to convert a "data.frame-like" object to an actual `data.frame`
-#' to avoid issues with inconsistency on methods (such as  `[`() and dplyr's grouped dataframes)
+#' to avoid issues with inconsistency on methods (such as  `[`() and `dplyr`'s grouped dataframes)
 as_dataframe <- function(x) {
     x2 <- as.data.frame(x)
     row.names(x2) <- NULL
@@ -542,7 +607,7 @@ as_dataframe <- function(x) {
 
 #' Ensure `rstan` exists
 #'
-#' Checks to see if rstan exists and if not throws a helpful error message
+#' Checks to see if `rstan` exists and if not throws a helpful error message
 #' @keywords internal
 ensure_rstan <- function() {
     if (!requireNamespace("rstan", quietly = TRUE)) {
@@ -557,48 +622,6 @@ ensure_rstan <- function() {
     }
 }
 
-#' Get session hash
-#'
-#' Gets a unique string based on the current R version and relevant packages.
-#' @importFrom utils sessionInfo
-#' @keywords internal
-get_session_hash <- function() {
-    pkg_versions <- vapply(
-        sessionInfo(c("rbmi", "rstan", "Rcpp", "RcppEigen"))[["otherPkgs"]],
-        function(x) x[["Version"]],
-        character(1L)
-    )
-    version_string <- paste0(
-        R.version.string,
-        paste0(names(pkg_versions), pkg_versions, collapse = ":")
-    )
-    temp_file <- tempfile()
-    writeLines(version_string, temp_file)
-    hash <- tools::md5sum(temp_file)
-    unlist(temp_file)
-    return(hash)
-}
-
-#' Clear Model Cache
-#'
-#' Clears the compiled Stan model cache, keeping only the models that match the `keep` argument.
-#'
-#' @param keep A character string that specifies which models to keep in the cache.
-#' @param cache_dir The directory where the compiled Stan models are cached. Defaults to the option `rbmi.cache_dir`.
-#' @return See [unlink()] for details on the return value regarding the deletion of the old model files.
-#'
-#' @keywords internal
-clear_model_cache <- function(keep, cache_dir = getOption("rbmi.cache_dir")) {
-    assert_that(assertthat::is.string(keep))
-    all_model_files <- list.files(
-        cache_dir,
-        pattern = "(rbmi_MMRM_).*(\\.stan|\\.rds)",
-        full.names = TRUE
-    )
-    should_keep <- grepl(pattern = keep, x = all_model_files, fixed = TRUE)
-    old_model_files <- all_model_files[!should_keep]
-    unlink(old_model_files)
-}
 
 #' List of Stan Blocks
 #'
@@ -618,7 +641,7 @@ STAN_BLOCKS <- list(
 #' Conversion of Character Vector into Stan Code Block List
 #'
 #' @param x the single Stan code vector.
-#' @param stan_blocks reference list of stan blocks.
+#' @param stan_blocks reference list of Stan blocks.
 #'
 #' @return A list with the Stan code blocks.
 #'
@@ -752,6 +775,38 @@ find_stan_file <- function(file, subdir = "") {
     }
 }
 
+#' Get unique hash
+#'
+#' Gets a unique string on the string content but also including the current session
+#' packages + R version
+#'
+#' @importFrom utils packageVersion installed.packages
+#' @keywords internal
+get_unique_hash <- function(content) {
+    installed_packages <- installed.packages()
+    pkg_versions <- vapply(
+        c("rbmi", "rstan", "Rcpp", "RcppEigen"),
+        function(pkg) {
+            if (pkg %in% rownames(installed_packages)) {
+                return(sprintf("%s_%s", pkg, packageVersion(pkg)))
+            }
+            return(sprintf("%s_UNKNOWN", pkg))
+        },
+        character(1),
+        USE.NAMES = FALSE
+    )
+    version_string <- paste0(
+        R.version.string,
+        paste0(pkg_versions, collapse = " - ")
+    )
+    temp_file <- tempfile()
+    writeLines(paste0(version_string, content, sep = "\n"), temp_file)
+    hash <- tools::md5sum(temp_file)
+    unlink(temp_file)
+    hash
+}
+
+
 #' Get Compiled Stan Object
 #'
 #' Gets a compiled Stan object that can be used with `rstan::sampling()`,
@@ -768,7 +823,7 @@ get_stan_model <- function(covariance, prior_cov) {
     # model available or not. Thus we save the current seed state and restore it
     # at the end of this function so that it is in the same state regardless of
     # whether the model was compiled or not.
-    # See https://github.com/insightsengineering/rbmi/issues/469
+    # See https://github.com/openpharma/rbmi/issues/469
     # Note that .Random.seed is only set if the seed has been set or if a random number
     # has been generated.
     current_seed_state <- globalenv()$.Random.seed
@@ -791,10 +846,8 @@ get_stan_model <- function(covariance, prior_cov) {
     ensure_rstan()
 
     # Find the correct MMRM and covariance prior model Stan files.
-    file_loc_mmrm <- find_stan_file("MMRM.stan")
-    cov_prior_file <- paste0(covariance, "_", prior_cov, ".stan")
     file_loc_cov_prior <- find_stan_file(
-        cov_prior_file,
+        paste0(covariance, "_", prior_cov, ".stan"),
         subdir = "covariance_priors"
     )
 
@@ -810,45 +863,65 @@ get_stan_model <- function(covariance, prior_cov) {
     cov_prior_blocks <- as_stan_fragments(cov_prior_string)
     cov_prior_blocks <- lapply(cov_prior_blocks, paste, collapse = "\n")
 
-    # Decide file location for the final Stan model file.
-    cache_dir <- getOption("rbmi.cache_dir")
-    dir.create(cache_dir, showWarnings = FALSE, recursive = TRUE)
-    session_hash <- get_session_hash()
-    model_name <- paste0("rbmi_MMRM_", covariance, "_", prior_cov)
-    file_name <- paste0(model_name, "_", session_hash, ".stan")
-    model_file <- file.path(cache_dir, file_name)
-
-    # If it does not exist yet, create the model file from the template
-    # and save it to the cache directory.
-    if (!file.exists(model_file)) {
-        model_template <- jinjar::parse_template(
-            fs::path(file_loc_mmrm),
-            .config = jinjar::jinjar_config(
-                trim_blocks = TRUE,
-                lstrip_blocks = TRUE
-            )
+    model_template <- jinjar::parse_template(
+        fs::path(find_stan_file("MMRM.stan")),
+        .config = jinjar::jinjar_config(
+            trim_blocks = TRUE,
+            lstrip_blocks = TRUE
         )
-        model_data <- c(
-            cov_prior_blocks,
-            machine_double_eps = .Machine$double.eps
-        )
-        model_string <- do.call(
-            jinjar::render,
-            c(
-                list(.x = model_template),
-                model_data
-            )
-        )
-        clear_model_cache(keep = session_hash)
-        writeLines(model_string, model_file)
-    }
-
-    rstan::stan_model(
-        file = model_file,
-        auto_write = getOption("rbmi.enable_cache"),
-        model_name = model_name
     )
+    model_data <- c(
+        cov_prior_blocks,
+        machine_double_eps = .Machine$double.eps
+    )
+    model_string <- do.call(
+        jinjar::render,
+        c(
+            list(.x = model_template),
+            model_data
+        )
+    )
+
+    model_name <- paste0("rbmi_MMRM_", covariance, "_", prior_cov)
+    if (getOption("rbmi.enable_cache")) {
+        cache_dir <- getOption("rbmi.cache_dir")
+        if (
+            is.null(cache_dir) ||
+                is.na(cache_dir) ||
+                length(cache_dir) != 1 ||
+                !is.character(cache_dir) ||
+                cache_dir == "" ||
+                nchar(cache_dir) == 0
+        ) {
+            stop("option(rbmi.cache_dir) is not a valid directory path")
+        }
+        dir.create(cache_dir, showWarnings = FALSE, recursive = TRUE)
+        file_name <- paste0(
+            model_name,
+            "_",
+            get_unique_hash(model_string),
+            ".stan"
+        )
+        file_path <- file.path(cache_dir, file_name)
+        if (!file.exists(file_path)) {
+            writeLines(model_string, file_path)
+        }
+        model <- rstan::stan_model(
+            file = file_path,
+            model_name = model_name,
+            auto_write = TRUE
+        )
+    } else {
+        model <- rstan::stan_model(
+            model_code = model_string,
+            model_name = model_name,
+            auto_write = FALSE,
+            save_dso = FALSE
+        )
+    }
+    model
 }
+
 
 #' rbmi settings
 #'
@@ -862,7 +935,7 @@ get_stan_model <- function(covariance, prior_cov) {
 #'
 #' ## `rbmi.cache_dir`
 #'
-#' Default = `tools::R_user_dir("rbmi", which = "cache")`
+#' Default = `tempfile()`
 #'
 #' Directory to store compiled Stan models in to avoid having to re-compile.
 #' If the environment variable `RBMI_CACHE_DIR` has been set this will be used
@@ -871,11 +944,8 @@ get_stan_model <- function(covariance, prior_cov) {
 #' (that is say multiple calls to `Rscript` at once) then there is a theoretical
 #' risk of the processes breaking each other as they attempt to read/write to the
 #' same cache folder at the same time. To avoid this potential issue it is recommended
-#' to set the cache directory to a unique folder for each R session e.g.
-#'
-#' ```
-#' options("rbmi.cache_dir" = tempdir(check = TRUE))
-#' ```
+#' to leave this value at the default which will result in a unique cache for each
+#' process
 #'
 #' ## `rbmi.enable_cache`
 #'
@@ -889,18 +959,16 @@ get_stan_model <- function(covariance, prior_cov) {
 #' @examples
 #' \dontrun{
 #' options(rbmi.cache_dir = "some/directory/path")
+#' options(rbmi.enable_cache = FALSE)
 #' }
 #' @name rbmi-settings
 set_options <- function() {
     cache_dir <- Sys.getenv(
         "RBMI_CACHE_DIR",
-        unset = tools::R_user_dir("rbmi", which = "cache")
+        unset = tempfile(tmpdir = tempdir(check = TRUE))
     )
-    enable_cache <- isTRUE(as.logical(Sys.getenv(
-        "RBMI_ENABLE_CACHE",
-        unset = "TRUE"
-    )))
-
+    enable_cache_str <- Sys.getenv("RBMI_ENABLE_CACHE", unset = "TRUE")
+    enable_cache <- toupper(enable_cache_str) %in% c("Y", "YES", "T", "TRUE")
     current_opts <- names(options())
     rbmi_opts <- list(
         rbmi.cache_dir = cache_dir,
@@ -925,6 +993,11 @@ set_options <- function() {
 #'
 #' @return The modified language object with all instances of \code{find_sym} replaced by \code{replace_sym}.
 #'
+#' @details
+#' Replacement happens for symbols found within calls (recursively). A `frm` that is
+#' itself a bare symbol equal to `find_sym` is returned unchanged; this is not reachable
+#' from the `ancova()` call site because the input is always a formula (a call).
+#'
 #' @examples
 #' \dontrun{
 #' expr <- quote(a + b * c)
@@ -937,7 +1010,9 @@ frm_find_and_replace <- function(frm, find_sym, replace_sym) {
         if (is.call(frm[[i]])) {
             frm[[i]] <- frm_find_and_replace(frm[[i]], find_sym, replace_sym)
         } else if (is.name(frm[[i]])) {
-            frm[[i]] <- ifelse(frm[[i]] == find_sym, replace_sym, frm[[i]])
+            if (frm[[i]] == find_sym) {
+                frm[[i]] <- replace_sym
+            }
         }
     }
     frm

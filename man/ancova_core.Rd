@@ -8,8 +8,7 @@ ancova_core(
   data,
   vars,
   visits = NULL,
-  weights = c("counterfactual", "equal", "proportional_em", "proportional"),
-  ancova_fun
+  weights = c("counterfactual", "equal", "proportional_em", "proportional")
 )
 }
 \arguments{
@@ -19,7 +18,7 @@ ancova_core(
 \code{visit}, \code{outcome} and \code{covariates} elements are required. See details.}
 
 \item{visits}{An optional character vector specifying which visits to
-fit the ancova model at. If \code{NULL}, a separate ancova model will be fit to the
+fit the ANCOVA model at. If \code{NULL}, a separate ANCOVA model will be fit to the
 outcomes for each visit (as determined by \code{unique(data[[vars$visit]])}).
 See details.}
 
@@ -27,14 +26,11 @@ See details.}
 \code{"proportional_em"} or \code{"proportional"}.
 Specifies the weighting strategy to be used when calculating the lsmeans.
 See the weighting section for more details.}
-
-\item{ancova_fun}{Function to perform the single-visit ANCOVA analysis.
-Should be either \code{\link[=ancova_single]{ancova_single()}} for two-group analysis or
-\code{\link[=ancova_single_m_group]{ancova_single_m_group()}} for multi-group analysis.}
 }
 \description{
-Internal function that provides common functionality for both two-group and
-multi-group ANCOVA analyses. This function handles input validation, visit
-processing, and delegates the actual analysis to the specified ancova function.
+Internal function that provides the common functionality for the (multi-arm) ANCOVA
+analysis. This function handles input validation, visit processing, delegates the
+actual single-visit analysis to \code{\link[=ancova_single]{ancova_single()}}, and assembles the per-parameter
+metadata.
 }
 \keyword{internal}

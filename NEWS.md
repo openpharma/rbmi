@@ -1,11 +1,92 @@
-# rbmi 1.4.9000
+# rbmi (development version)
+
+## New Features
+* `ancova()` now supports the analysis of two or more treatment groups. For more than two
+  groups the `ref` / `alt` naming scheme is extended with `alt2`, `alt3`, etc. based on the
+  factor levels of `vars$group`; the two-group output is unchanged (`trt`, `lsm_ref`,
+  `lsm_alt`) for backwards compatibility. (#520)
+* `set_vars()` gained a `group_contrasts` argument allowing users to specify a bespoke set
+  of treatment-group contrasts for `ancova()`. By default a contrast of each non-reference
+  group versus the reference group is estimated. Custom contrasts must be named (the name
+  becomes the output `parameter` name) and may be given as pairwise
+  `c(minuend, subtrahend)` character vectors or as general named numeric weight vectors
+  over the group levels (e.g. `c(Placebo = -1, A = 0.5, B = 0.5)` for a pooled comparison);
+  contrasts are evaluated in a contrast-coding-agnostic way. (#520)
+* The `data.frame` produced by `as.data.frame()` / `pool()` now includes explicit
+  `estimate_type`, `group`, `group_level_1`, `group_level_2`, `contrast_label` and `visit`
+  columns when the analysis was performed with `ancova()`. The existing `parameter` column
+  is retained for backwards compatibility. (#520)
+
+
+# rbmi 1.6.1
+
+## New Features
+* rbmi now uses the `lifecycle` package 
+* Added en-GB spell-check and a corresponding test to the package
+
+## Documentation
+* Documented the return value (`@return`) of all exported functions and marked
+  internal helpers with `@keywords internal` (#567).
+* Added executable `@examples` to the exported user-facing functions that were
+  missing them, and marked the internal-only `has_class()`, `validate()` and
+  `longDataConstructor` with `@keywords internal` (#570).
+
+## Bug Fixes
+* The vignette on retrieved dropout methods is now correctly embedded.
+* Fixed numerous spelling errors and standardised nomenclature for missing not
+  at random to `MNAR` (rather than a mix of `NMAR` and `MNAR`)
+* Deprecated `nmar.rm` argument of `longdata$get_data` in favour of `mnar.rm` 
+  for nomenclature consistency.
+* Fixed a misleading error message in `imputation_list_single()` where a failure of
+  the imputation-count-divisible-by-`D` check incorrectly reported that "multiple
+  `ids` were detected" (#574)
+* Improved CI/CD scripts to reliably fail GitHub CI/CD in case of failing tests.
+* Fixed error message for `mu$visit` in `simulate_test_data()` to refer to 
+  `visit` instead of `trt` (#578)
+* Fixed a bug where each non-ignorable Stan warning from the Bayesian sampler
+  was reported multiple times instead of once. (#572)
+* Fixed the error message in `apply_delta()` to correctly refer to `data`
+  instead of `dat` (#576)
+* Fixed the broken GitHub badge in `README.md` (#548)
+
+
+## Miscellaneous
+* Replaced deprecated `structure()` special name `.Dim` with `dim` in unit tests
+  to resolve an `R CMD check` NOTE (#581)
+* Updated Marcel Wolbers' e-mail address (#583)
+
+# rbmi 1.6.0
+
+* Stan programs are constructed in memory and respect the cache setting
+* Cache default directory location updated to be the local session (e.g. default cache won't persist across R sessions)
+* Bug fixes to caching hash to better detect when cache is stale
+* Rework of unit tests to have multiple tiers of tests which run under different scenarios
+* Illustrate how to set Stan seed in `control_bayes()` in the quickstart vignette
+
+# rbmi 1.5.2
+
+## Bug Fixes
+
+* Disable caching in tests on CRAN and reduce tests run on CRAN to conform to 10-minute limit
+
+# rbmi 1.5.1
+
+## Bug Fixes
+
+* Modify caching in tests to speed up testing on CRAN.
+
+# rbmi 1.5.0
 
 ## New Features
 
 * All covariance structures are now also supported for Bayesian multiple imputation: `method_bayes()` gained additional `covariance` and `prior_cov` arguments to allow users to specify the covariance structure and prior for the Bayesian imputation model. Please see the updated statistical specifications vignette for details. (#501, #518)
 * New function `mcse()` to calculate the Monte Carlo standard error for pooled estimates from (approximate) Bayesian imputation. (#493)
-* Added support for multi-group ANCOVA analysis with `ancova_m_groups()` function. This enables analysis of covariance with more than two treatment groups, where each non-reference group is compared against the reference group. (#520)
 
+
+## Bug Fixes
+
+* Fixed cluster used in parallel test and make sure tests clean up Stan files properly. (#523)
+* Small updates and fixes to documentation. (#504, #506, #498)
 
 # rbmi 1.4.1
 
@@ -49,20 +130,20 @@
     * Renamed `lsmeans(..., weights = "proportional")` to `lsmeans(..., weights = "counterfactual")`to more accurately reflect the weights used in the calculation.
     * Added `lsmeans(..., weights = "proportional_em")` which provides consistent results with `emmeans(..., weights = "proportional")`
     * `lsmeans(..., weights = "proportional")` has been left in the package for backwards compatibility and is an alias for `lsmeans(..., weights = "counterfactual")` but now gives
-    a message prompting users to use either "proptional_em" or "counterfactual" instead.
+    a message prompting users to use either "proportional_em" or "counterfactual" instead.
 * Added support for parallel processing in the `analyse()` function (#370)
-* Added documentation clarifying potential false-positive warnings from rstan (#288)
+* Added documentation clarifying potential false-positive warnings from `rstan` (#288)
 * Added support for all covariance structures supported by the `mmrm` package (#437)
 * Updated `rbmi` citation detail (#423 #425)
 
 ## Miscellaneous Bug Fixes
 
-* Stopped warning messages being accidentally supressed when changing the ICE type in `impute()` (#408)
+* Stopped warning messages being accidentally suppressed when changing the ICE type in `impute()` (#408)
 * Fixed equations not rendering properly in the `pkgdown` website (#433) 
 
 # rbmi 1.2.6
 
-* Updated unit tests to fix false-positive error on CRAN's testing servers
+* Updated unit tests to fix false-positive error on CRAN testing servers
 
 # rbmi 1.2.5
 
@@ -81,7 +162,7 @@
 
 # rbmi 1.1.4
 
-* Updated urls for references in vignettes
+* Updated URLs for references in vignettes
 * Fixed a bug where visit factor levels were re-constructed incorrectly in `delta_template()`
 * Fixed a bug where the wrong visit was displayed in the error message for when a specific visit doesn't have any data in `draws()`
 * Fixed a bug where the wrong input parameter was displayed in an error message in `simulate_data()`

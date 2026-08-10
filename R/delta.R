@@ -101,11 +101,11 @@
 #'
 #'
 #' The design and implementation of this function is largely based upon the same functionality
-#' as implemented in the so called "five marcos" by James Roger. See Roger (2021).
+#' as implemented in the so called "five macros" by James Roger. See Roger (2021).
 #'
 #' @references
-#' Roger, James. Reference-based mi via multivariate normal rm (the “five macros” and miwithd), 2021. URL
-#' https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data.
+#' Roger, James. Reference-based MI via Multivariate Normal RM (the “five macros” and MIWithD), 2021. URL
+#' <https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data>.
 #'
 #'
 #' @param imputations an `imputation` object as created by [impute()].
@@ -130,6 +130,12 @@
 #' delta_template(imputeObj, delta = c(5,6,7,8), dlag = c(1,2,3,4))
 #' }
 #' @seealso [analyse()]
+#' @return
+#' A `data.frame` with one row per subject per visit containing the variables
+#' `vars$subjid`, `vars$visit` and `delta` (the delta offset to apply), together
+#' with the utility variables `is_mar`, `is_missing`, `is_post_ice` and
+#' `strategy` which can be used to define custom delta logic. If `delta` is
+#' `NULL` the `delta` column is 0 for all observations.
 #' @export
 delta_template <- function(
     imputations,
@@ -298,7 +304,7 @@ apply_delta <- function(data, delta = NULL, group = NULL, outcome = NULL) {
     assert_that(
         is.data.frame(data),
         is.data.frame(delta) | is.null(delta),
-        msg = "`dat` and `delta` must be data.frames"
+        msg = "`data` and `delta` must be data.frames (`delta` may be NULL)"
     )
 
     assert_that(

@@ -168,7 +168,7 @@ print.imputation_df <- function(x, ...) {
 }
 
 
-#' A collection of `imputation_singles()` grouped by a single subjid ID
+#' A collection of `imputation_singles()` grouped by a single `subjid` ID
 #'
 #' @param imputations a list of [imputation_single()] objects ordered so that repetitions
 #' are grouped sequentially
@@ -177,7 +177,7 @@ print.imputation_df <- function(x, ...) {
 #'
 #' This is a constructor function to create a `imputation_list_single` object
 #' which contains a matrix of [imputation_single()] objects grouped by a single `id`. The matrix
-#' is split so that it has D columns (i.e. for non-bmlmi methods this will always be 1)
+#' is split so that it has D columns (i.e. for non-BMLMI methods this will always be 1)
 #'
 #' The `id` attribute is determined by extracting the `id` attribute from the contributing
 #' [imputation_single()] objects. An error is throw if multiple `id` are detected
@@ -187,6 +187,9 @@ imputation_list_single <- function(imputations, D = 1) {
 
     assert_that(
         length(imputations) %% D == 0,
+        msg = "Number of imputations must be a multiple of `D`"
+    )
+    assert_that(
         length(id) == 1,
         msg = "multiple `ids` were detected"
     )
@@ -227,7 +230,7 @@ print.imputation_list_single <- function(x, ...) {
 }
 
 
-#' List of imputations_df
+#' List of `imputation_df`s
 #'
 #' A container for multiple [imputation_df]'s
 #'

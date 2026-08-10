@@ -55,6 +55,85 @@
 #' Maximum likelihood multiple imputation: Faster imputations and consistent standard
 #' errors without posterior draws. 2021.
 
+#' @return
+#' A `pool` object; a list of class `"pool"` containing the pooled analysis
+#' results with the following elements:
+#' - `pars`: a named list with one entry per parameter, each itself a list
+#'   containing the pooled point estimate (`est`), confidence interval (`ci`),
+#'   standard error (`se`) and p-value (`pvalue`).
+#' - `conf.level`: the confidence level used for the confidence intervals.
+#' - `alternative`: the alternative hypothesis used to derive the p-values.
+#' - `N`: the number of analysis results that were combined.
+#' - `method`: the pooling method that was used.
+#'
+#' The `as.data.frame()` method returns a `data.frame` with one row per
+#' parameter (columns `parameter`, `est`, `se`, `lci`, `uci`, `pval`) and the
+#' `print()` method returns its input invisibly. When the analysis function
+#' attached per-parameter metadata (as [ancova()] does), `as.data.frame()`
+#' additionally appends the metadata columns (`estimate_type`, `group`,
+#' `group_level_1`, `group_level_2`, `visit`); the `print()` method still shows
+#' only the six classic columns for a compact display.
+#'
+#' @examples
+#' # Prepare the data: expand to one row per subject and visit
+#' dat <- expand_locf(
+#'     antidepressant_data,
+#'     PATIENT = levels(antidepressant_data$PATIENT),
+#'     VISIT = levels(antidepressant_data$VISIT),
+#'     vars = c("BASVAL", "THERAPY"),
+#'     group = c("PATIENT"),
+#'     order = c("PATIENT", "VISIT")
+#' )
+#'
+#' # Derive data_ice: first missing-outcome visit per patient, imputed under JR.
+#' # Subject 3618 has only an intermittent missing value and is removed.
+#' is_missing <- is.na(dat$CHANGE)
+#' dat_ice <- dat[is_missing, c("PATIENT", "VISIT")]
+#' dat_ice <- dat_ice[!duplicated(dat_ice$PATIENT), ]
+#' dat_ice$strategy <- "JR"
+#' dat_ice <- dat_ice[dat_ice$PATIENT != 3618, ]
+#'
+#' vars <- set_vars(
+#'     outcome = "CHANGE",
+#'     visit = "VISIT",
+#'     subjid = "PATIENT",
+#'     group = "THERAPY",
+#'     covariates = c("BASVAL*VISIT", "THERAPY*VISIT")
+#' )
+#'
+#' \donttest{
+#' # Approximate Bayesian imputation, so that pooling uses Rubin's rules
+#' set.seed(987)
+#' drawObj <- draws(
+#'     data = dat,
+#'     data_ice = dat_ice,
+#'     vars = vars,
+#'     method = method_approxbayes(n_samples = 20),
+#'     quiet = TRUE
+#' )
+#' imputeObj <- impute(
+#'     drawObj,
+#'     references = c("DRUG" = "PLACEBO", "PLACEBO" = "PLACEBO")
+#' )
+#' anaObj <- analyse(
+#'     imputeObj,
+#'     ancova,
+#'     vars = set_vars(
+#'         subjid = "PATIENT",
+#'         outcome = "CHANGE",
+#'         visit = "VISIT",
+#'         group = "THERAPY",
+#'         covariates = "BASVAL"
+#'     )
+#' )
+#'
+#' # Pool the analysis results across the imputed datasets
+#' poolObj <- pool(anaObj)
+#' poolObj
+#'
+#' # Monte Carlo standard errors of the pooled estimates
+#' mcse(poolObj, anaObj)
+#' }
 #' @export
 pool <- function(
     results,
@@ -104,7 +183,8 @@ pool <- function(
         conf.level = conf.level,
         alternative = alternative,
         N = length(results$results),
-        method = method
+        method = method,
+        par_meta = results$par_meta
     )
     class(ret) <- "pool"
     return(ret)
@@ -139,7 +219,14 @@ get_pool_components <- function(x) {
 #' `analyse` object created by [analyse()]).
 #' @param D numeric representing the number of imputations between each bootstrap sample in the BMLMI method.
 #'
+#' @return
+#' A list containing the pooled results for a single parameter with elements
+#' `est` (point estimate), `ci` (confidence interval), `se` (standard error)
+#' and `pvalue` (p-value). The specific computation is determined by the class
+#' of `results` via S3 dispatch.
+#'
 #' @name pool_internal
+#' @keywords internal
 #' @export
 pool_internal <- function(results, conf.level, alternative, type, D) {
     UseMethod("pool_internal")
@@ -676,7 +763,7 @@ as_data_frame_internal <- function(x) {
         msg = "`x` must be a pool or mcse object"
     )
 
-    data.frame(
+    df <- data.frame(
         parameter = names(x$pars),
         est = vapply(x$pars, function(x) x$est, numeric(1)),
         se = vapply(x$pars, function(x) x$se, numeric(1)),
@@ -686,6 +773,35 @@ as_data_frame_internal <- function(x) {
         stringsAsFactors = FALSE,
         row.names = NULL
     )
+
+    # If the analysis function supplied per-parameter metadata (e.g. `ancova()`)
+    # append it as explicit columns, keeping `parameter` for backwards compatibility.
+    par_meta <- x[["par_meta"]]
+    if (!is.null(par_meta)) {
+        idx <- match(df[["parameter"]], par_meta[["parameter"]])
+        assert_that(
+            !any(is.na(idx)),
+            msg = sprintf(
+                paste0(
+                    "Internal error: pooled parameter(s) without matching metadata: %s. ",
+                    "The metadata and pooled parameter names have drifted."
+                ),
+                paste(df[["parameter"]][is.na(idx)], collapse = ", ")
+            )
+        )
+        for (col in c(
+            "estimate_type",
+            "group",
+            "group_level_1",
+            "group_level_2",
+            "contrast_label",
+            "visit"
+        )) {
+            df[[col]] <- par_meta[[col]][idx]
+        }
+    }
+
+    df
 }
 
 
@@ -715,7 +831,17 @@ print.pool <- function(x, ...) {
         sprintf("Alternative: %s", x$alternative),
         "",
         "Results:",
-        as_ascii_table(as.data.frame(x), pcol = "pval"),
+        as_ascii_table(
+            as.data.frame(x)[, c(
+                "parameter",
+                "est",
+                "se",
+                "lci",
+                "uci",
+                "pval"
+            )],
+            pcol = "pval"
+        ),
         ""
     )
 
@@ -728,9 +854,14 @@ print.pool <- function(x, ...) {
 #' These functions are used by [mcse()] to compute the Monte Carlo standard error using the Jackknife approach.
 #'
 #' @name mcse_internal
+#' @keywords internal
 
 #' @inheritParams pool
 #' @param omit_index the index of the result to omit.
+#' @return
+#' `mcse_jackknife()` returns the pooled parameter estimates (in the same
+#' structure as the `pars` element of a [pool()] object) recomputed with the
+#' `omit_index`-th result left out.
 #' @rdname mcse_internal
 #' @export
 mcse_jackknife <- function(results, omit_index, conf.level, alternative) {
@@ -758,6 +889,9 @@ mcse_jackknife <- function(results, omit_index, conf.level, alternative) {
 }
 
 #' @param pars_jackknife the numeric vector of the jackknife results.
+#' @return
+#' `jackknife_se()` returns the numeric scalar jackknife standard error
+#' computed from `pars_jackknife`.
 #' @rdname mcse_internal
 #' @export
 jackknife_se <- function(pars_jackknife) {
@@ -775,6 +909,10 @@ jackknife_se <- function(pars_jackknife) {
 #' @rdname mcse_internal
 #' @param jackknife_results the list of jackknife results of all parameters, in the same format as
 #'   the pooled parameter estimates.
+#' @return
+#' `mcse_combine_all_pars()` returns a list mirroring the structure of the
+#' pooled parameters in which each statistic is replaced by its jackknife
+#' Monte Carlo standard error.
 #' @export
 mcse_combine_all_pars <- function(jackknife_results) {
     assert_that(
@@ -797,6 +935,11 @@ mcse_combine_all_pars <- function(jackknife_results) {
     mcse_results
 }
 
+#' @return
+#' `mcse()` returns an `mcse` object; a list of class `"mcse"` containing `pars`
+#' (the Monte Carlo standard errors of the pooled estimates, in the same
+#' structure as the `pars` element of a `pool` object) and `N` (the number of
+#' results combined).
 #' @rdname pool
 #' @export
 mcse <- function(x, results) {

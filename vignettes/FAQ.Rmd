@@ -61,7 +61,7 @@ R system, in alignment with the system's broader validation process.
 
 **Strengths** of `rbmi` compared to the standard MMRM model are:
 
-- `rbmi` was designed to allow for analyses which are fully aligned with the the estimand definition. To facilitate this, it implements methods under a range of different missing data assumptions including standard missing-at-random (MAR), extended MAR (via inclusion of time-varying covariates), reference-based missingness, and not missing-at-random at random (NMAR; via $\delta$-adjustments). In contrast, the standard MMRM model is only valid under a standard MAR assumption which is not always plausible. For example, the standard MAR assumption is rather implausible for implementing a treatment policy strategy for the intercurrent event "treatment discontinuation" if a substantial proportion of subjects are lost-to-follow-up after discontinuation.
+- `rbmi` was designed to allow for analyses which are fully aligned with the the estimand definition. To facilitate this, it implements methods under a range of different missing data assumptions including standard missing-at-random (MAR), extended MAR (via inclusion of time-varying covariates), reference-based missingness, and not missing-not-at-random (MNAR; via $\delta$-adjustments). In contrast, the standard MMRM model is only valid under a standard MAR assumption which is not always plausible. For example, the standard MAR assumption is rather implausible for implementing a treatment policy strategy for the intercurrent event "treatment discontinuation" if a substantial proportion of subjects are lost-to-follow-up after discontinuation.
 - The $\delta$-adjustment methods implemented in `rbmi` can be used for sensitivity analyses of a primary MMRM- or rbmi-type analysis.
 
 **Weaknesses** of `rbmi` compared to the standard MMRM model are:
@@ -96,7 +96,7 @@ The best approach for handling missing baseline covariates needs to be made on a
 
 The theoretical justification for the conditional mean imputation method requires that the analysis model leads to a point estimator which is a linear function of the outcome vector (@Wolbers2021). This is the case for ANCOVA but not for general MMRM models. For the other imputation methods, both ANCOVA and MMRM are valid analysis methods. An MMRM analysis model could be implemented by providing a custom analysis function to the `analyse()` function. 
 
-For further expalanations, we also cite the end of section 2.4 of the conditional mean imputation paper (@Wolbers2021):
+For further explanations, we also cite the end of section 2.4 of the conditional mean imputation paper (@Wolbers2021):
 
 >  The proof relies on the fact that the ANCOVA estimator is a linear function of the outcome vector.
 > **For complete data, the ANCOVA estimator leads to identical parameter estimates as an MMRM model** of all longitudinal outcomes with an arbitrary common covariance structure across treatment groups **if treatment-by-visit interactions as well as covariate-by-visit-interactions** are included in the analysis model for all covariates,17 (p. 197).
@@ -128,19 +128,60 @@ anaObj <- rbmi::analyse(
 
 ## Is ANCOVA on more than 2 treatment groups supported?
 
-This can be implemented by using the `ancova_m_groups()` function instead of the default `ancova()` function e.g.
+Yes. The default `ancova()` function supports two or more treatment groups directly, so no
+special handling is required:
 
 ```r
 anaObj <- rbmi::analyse(
     imputeObj,
-    ancova_m_groups,
     vars = vars
  )
 ```
 
-Please note that the object created by this function uses a different naming convention to
-that of the `ancova()` function which means any manual extraction code looking for specific
-names such as `"lsm_alt"` will need to be updated. Please see the documentation for `ancova_m_groups()`
-for more details.
+For more than two groups the `ref` / `alt` naming scheme is extended with `alt2`, `alt3`,
+etc. (based on the factor levels of `vars$group`). By default a treatment effect is
+estimated for every non-reference group versus the reference group; the set of contrasts
+can be customised via the `group_contrasts` argument of `set_vars()`. Custom contrasts
+must be named, and the names become the output parameter names. For example, with three
+arms `"Placebo"`, `"Low"` and `"High"` you can request a bespoke set of pairwise
+contrasts:
+
+```r
+vars <- set_vars(
+    subjid = "PATIENT",
+    visit = "VISIT",
+    outcome = "CHANGE",
+    group = "THERAPY",
+    covariates = c("BASVAL*VISIT", "THERAPY*VISIT"),
+    group_contrasts = list(
+        low_vs_pbo  = c("Low", "Placebo"),
+        high_vs_pbo = c("High", "Placebo"),
+        high_vs_low = c("High", "Low")
+    )
+)
+
+anaObj <- rbmi::analyse(imputeObj, vars = vars)
+```
+
+Contrasts are not restricted to pairwise comparisons. A contrast can also be given as a
+named numeric weight vector over the group levels (which must sum to zero), for example to
+compare the average of the two active arms against `"Placebo"`. The list name is used as
+the parameter name and is carried through to the `contrast_label` column of the `pool()`
+output:
+
+```r
+vars <- set_vars(
+    subjid = "PATIENT",
+    visit = "VISIT",
+    outcome = "CHANGE",
+    group = "THERAPY",
+    covariates = c("BASVAL*VISIT", "THERAPY*VISIT"),
+    group_contrasts = list(
+        pooled_vs_pbo = c(Placebo = -1, Low = 0.5, High = 0.5)
+    )
+)
+```
+
+Please see the documentation for `ancova()` and `set_vars()` for more details.
 
 <br>

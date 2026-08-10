@@ -39,7 +39,7 @@ ICE1 are set to missing.}
 visit is affected by study drop-out. Outcome data at the subject's first simulated visit
 affected by study drop-out and all subsequent visits are set to missing. This generates
 a second intercurrent event ICE2, which may be thought as treatment discontinuation due to
-NSDRC reasons with subsequent drop-out.
+NSDCR reasons with subsequent drop-out.
 If for a subject, both ICE1 and ICE2 are simulated to occur,
 then it is assumed that only the earlier of them counts.
 In case both ICEs are simulated to occur at the same time, it is assumed that ICE1 counts.
@@ -59,10 +59,36 @@ clinical trial with longitudinal continuous outcomes and two intercurrent events
 ICE1 may be thought of as a discontinuation from study treatment due to study drug or
 condition related (SDCR) reasons. ICE2 may be thought of as discontinuation from study
 treatment due to uninformative study drop-out, i.e. due to not study drug or
-condition related (NSDRC) reasons and outcome data after ICE2 is always missing.
+condition related (NSDCR) reasons and outcome data after ICE2 is always missing.
 }
 \details{
 For the details, please see \code{\link[=simulate_data]{simulate_data()}}.
+}
+\examples{
+# Simulation parameters for a group with 5 visits (including baseline)
+time <- c(0, 3, 6, 9, 12)
+
+# Mean outcome trajectory
+mu <- c(50.0, 52.5, 55.0, 57.5, 60.0)
+
+# Covariance matrix implied by a random intercept and slope model
+sd_error <- 2.5
+covRE <- rbind(
+    c(25.0, 6.25),
+    c(6.25, 25.0)
+)
+sigma <- cbind(1, time / 12) \%*\% covRE \%*\% rbind(1, time / 12) +
+    diag(sd_error^2, nrow = length(time))
+
+set_simul_pars(
+    mu = mu,
+    sigma = sigma,
+    n = 100,
+    prob_ice1 = 0.03,
+    or_outcome_ice1 = 1.10,
+    prob_post_ice1_dropout = 0.5
+)
+
 }
 \seealso{
 \code{\link[=simulate_data]{simulate_data()}}

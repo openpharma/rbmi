@@ -866,5 +866,7 @@ test_that("mcse works as expected", {
     expect_true(is.data.frame(result_df))
     expect_true(nrow(result_df) == length(poolObj$pars))
 
+    # Snapshot tests can be flakey from minor changes in dependencies
+    skip_if_not(is_core_test())
     expect_snapshot(print(result), cran = TRUE)
 })

@@ -51,7 +51,7 @@ ICE1 may be thought of as a discontinuation from study treatment due to study dr
 condition related (SDCR) reasons.
 ICE2 may be thought of as discontinuation from study treatment due to uninformative
 study drop-out, i.e. due to not study drug or
-condition related (NSDRC) reasons and outcome data after ICE2 is always missing.
+condition related (NSDCR) reasons and outcome data after ICE2 is always missing.
 }
 \details{
 The data generation works as follows:
@@ -71,7 +71,7 @@ treatment arm, respectively.
 \code{pars_t$prob_post_ice1_dropout}.
 \item Simulate an additional uninformative study drop-out with probabilities \code{pars_c$prob_ice2}
 and \code{pars_t$prob_ice2} at each visit. This generates a second intercurrent event ICE2, which
-may be thought as treatment discontinuation due to NSDRC reasons with subsequent drop-out.
+may be thought as treatment discontinuation due to NSDCR reasons with subsequent drop-out.
 The simulated time of drop-out is the subject's first visit which is affected by
 drop-out and data from this visit and all subsequent visits are consequently set to missing.
 If for a subject, both ICE1 and ICE2 are simulated to occur,
@@ -85,7 +85,7 @@ adjusted. Post-ICE1 outcomes from the control arm  are not adjusted.
 and \code{pars_t$prob_miss}.
 }
 
-The probability of the ICE after each visit is modeled according to the following
+The probability of the ICE after each visit is modelled according to the following
 logistic regression model:
 \code{~ 1 + I(visit == 0) + ... + I(visit == n_visits-1) + I((x-alpha))} where:
 \itemize{
@@ -102,4 +102,46 @@ to \code{log(pars_c$or_outcome_ice1)} (\code{log(pars_t$or_outcome_ice1)}).
 }
 
 Please note that the baseline outcome cannot be missing nor be affected by any ICEs.
+}
+\examples{
+set.seed(1392)
+
+time <- c(0, 3, 6, 9, 12)
+
+# Mean outcome trajectory in the control and intervention groups
+muC <- c(50.0, 52.5, 55.0, 57.5, 60.0)
+muT <- c(50.0, 52.5, 55.0, 56.25, 57.50)
+
+# Covariance matrix implied by a random intercept and slope model
+sd_error <- 2.5
+covRE <- rbind(
+    c(25.0, 6.25),
+    c(6.25, 25.0)
+)
+Sigma <- cbind(1, time / 12) \%*\% covRE \%*\% rbind(1, time / 12) +
+    diag(sd_error^2, nrow = length(time))
+
+# Simulation parameters of the control group
+parsC <- set_simul_pars(
+    mu = muC,
+    sigma = Sigma,
+    n = 100,
+    prob_ice1 = 0.03,
+    or_outcome_ice1 = 1.10,
+    prob_post_ice1_dropout = 0.5
+)
+
+# Simulation parameters of the intervention group
+parsT <- parsC
+parsT$mu <- muT
+parsT$prob_ice1 <- 0.04
+
+# Simulate a dataset with a copy-increments-in-reference post-ICE1 trajectory
+data <- simulate_data(
+    pars_c = parsC,
+    pars_t = parsT,
+    post_ice1_traj = "CIR"
+)
+head(data)
+
 }

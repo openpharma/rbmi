@@ -17,3 +17,8 @@
 #' @keywords internal
 #' @importFrom assertthat  assert_that
 "_PACKAGE"
+
+## usethis namespace: start
+#' @importFrom lifecycle deprecated
+## usethis namespace: end
+NULL

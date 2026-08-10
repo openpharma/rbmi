@@ -29,6 +29,11 @@
 #' cl <- parallel::makeCluster(5)
 #' make_rbmi_cluster(cl)
 #' }
+#' @return
+#' A parallel socket cluster object (as created by
+#' `parallel::makePSOCKcluster()`) configured for use with `rbmi`, or `NULL` if
+#' `ncores = 1`. When `ncores` is an existing cluster it is returned with the
+#' required `rbmi` objects and libraries loaded into it.
 #' @export
 make_rbmi_cluster <- function(ncores = 1, objects = NULL, packages = NULL) {
     if (is.numeric(ncores) && ncores == 1) {
@@ -126,14 +131,14 @@ is_in_rbmi_development <- function() {
 }
 
 
-#' Parallelise Lapply
+#' Parallelise `lapply`
 #'
 #' Simple wrapper around `lapply` and [`parallel::clusterApplyLB`] to abstract away
 #' the logic of deciding which one to use
 #' @param cl Cluster created by [`parallel::makeCluster()`] or `NULL`
 #' @param fun Function to be run
 #' @param x object to be looped over
-#' @param ... extra arguements passed to `fun`
+#' @param ... extra arguments passed to `fun`
 par_lapply <- function(cl, fun, x, ...) {
     result <- if (is.null(cl)) {
         lapply(x, fun, ...)

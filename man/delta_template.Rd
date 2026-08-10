@@ -23,6 +23,13 @@ of 0 assigned. Note that the calculation (as described in the details section) i
 first and then overwritten with 0's at the end (i.e. the delta values for missing
 post-ICE visits will stay the same regardless of this option).}
 }
+\value{
+A \code{data.frame} with one row per subject per visit containing the variables
+\code{vars$subjid}, \code{vars$visit} and \code{delta} (the delta offset to apply), together
+with the utility variables \code{is_mar}, \code{is_missing}, \code{is_post_ice} and
+\code{strategy} which can be used to define custom delta logic. If \code{delta} is
+\code{NULL} the \code{delta} column is 0 for all observations.
+}
 \description{
 Creates a \code{data.frame} in the format required by \code{\link[=analyse]{analyse()}} for the use
 of applying a delta adjustment.
@@ -119,7 +126,7 @@ is set to \code{FALSE} for observations that occurred after a non-MAR ICE, other
 }
 
 The design and implementation of this function is largely based upon the same functionality
-as implemented in the so called "five marcos" by James Roger. See Roger (2021).
+as implemented in the so called "five macros" by James Roger. See Roger (2021).
 }
 \examples{
 \dontrun{
@@ -128,8 +135,8 @@ delta_template(imputeObj, delta = c(5,6,7,8), dlag = c(1,2,3,4))
 }
 }
 \references{
-Roger, James. Reference-based mi via multivariate normal rm (the “five macros” and miwithd), 2021. URL
-https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data.
+Roger, James. Reference-based MI via Multivariate Normal RM (the “five macros” and MIWithD), 2021. URL
+\url{https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data}.
 }
 \seealso{
 \code{\link[=analyse]{analyse()}}
