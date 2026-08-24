@@ -5,6 +5,8 @@
 ## New Features
 * rbmi now uses the `lifecycle` package 
 * Added en-GB spell-check and a corresponding test to the package
+* `pool()` now returns `df` and in the `data.frame` returned by `as.data.frame.pool()`.
+
 
 ## Documentation
 * Documented the return value (`@return`) of all exported functions and marked

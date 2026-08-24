@@ -240,6 +240,7 @@ pool_internal.jackknife <- function(results, conf.level, alternative, type, D) {
     N_jack <- length(ests_jack)
     se_jack <- sqrt(((N_jack - 1) / N_jack) * sum((ests_jack - mean_jack)^2))
     ret <- parametric_ci(est_point, se_jack, alpha, alternative, qnorm, pnorm)
+    ret$df <- NA_real_
     return(ret)
 }
 
@@ -261,6 +262,7 @@ pool_internal.bootstrap <- function(
     )
 
     ret <- bootfun(results$est, conf.level, alternative)
+    ret$df <- NA_real_
     return(ret)
 }
 
@@ -289,6 +291,7 @@ pool_internal.bmlmi <- function(
         pfun = pt,
         df = pooled_est$df
     )
+    ret$df <- pooled_est$df
 
     return(ret)
 }
@@ -384,6 +387,7 @@ pool_internal.rubin <- function(results, conf.level, alternative, type, D) {
         pfun = pt,
         df = res_rubin$df
     )
+    ret$df <- res_rubin$df
 
     return(ret)
 }
@@ -473,8 +477,8 @@ rubin_rules <- function(ests, ses, v_com) {
         return(
             list(
                 est_point = est_point,
-                var_t = NA,
-                df = NA
+                var_t = NA_real_,
+                df = NA_real_
             )
         )
     }
@@ -758,10 +762,15 @@ as_data_frame_internal <- function(x) {
         msg = "`x` must be a pool or mcse object"
     )
 
+    df_col <- vapply(x$pars, function(p) {
+        if (is.null(p$df)) NA_real_ else p$df
+    }, numeric(1))
+
     data.frame(
         parameter = names(x$pars),
         est = vapply(x$pars, function(x) x$est, numeric(1)),
         se = vapply(x$pars, function(x) x$se, numeric(1)),
+        df = df_col,
         lci = vapply(x$pars, function(x) x$ci[[1]], numeric(1)),
         uci = vapply(x$pars, function(x) x$ci[[2]], numeric(1)),
         pval = vapply(x$pars, function(x) x$pvalue, numeric(1)),
