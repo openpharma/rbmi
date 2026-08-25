@@ -155,6 +155,7 @@ drawObj <- draws(
 drawObj
 ```
 
+TODO: Better print method
 
 ## Impute
 
@@ -172,5 +173,30 @@ imputeObj <- impute(
 imputeObj
 ```
 
+TODO: better print method
+
+## Analyse
+
+Then the next step is the analysis of the imputed data. We can use a similar negative binomial regression model
+as above, however here we don't have anymore the `OnOff` variable, because we have imputed the post-withdrawal
+periods. So we just use baseline count as additional covariate, next to the treatment group.
+The outcome variable is now the imputed count variable, which is called `Imputed_Count` in the imputed data.
+
+```{r}
+ana_vars <- set_vars(
+    outcome = "Imputed_Count",
+    subjid = "patient",
+    period = "period",
+    duration = "Length",
+    group = "TreatLab",
+    covariates = c("BaseCount")
+)
+
+anaObj <- analyse(
+    imputeObj,
+    neg_bin_regression,
+    vars = ana_vars
+)
+```
 
 ## References 
