@@ -214,4 +214,11 @@ Treatment-group coefficients and their confidence limits can be exponentiated
 to obtain rate ratios. Other coefficients should only be exponentiated when
 that interpretation is appropriate for the corresponding model term.
 
+## Additional modeling options
+
+### Separate draw model sampling for each treatment group
+
+
+
+
 ## References 
