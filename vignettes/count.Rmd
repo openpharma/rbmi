@@ -91,9 +91,9 @@ Note that for count data we do not need to provide the time points of the interc
 
 ### Imputation strategies
 
-Here we just use the same imputation strategy for all patients, but we would also be able to provide different strategies for each patient. 
+Here we just use the same imputation strategy for all patients, but we would also be able to provide different strategies for each patient.
 
-Let's use the "Jump to Reference" (JR) strategy for all patients with positive post-withdrawal exposure in period 3:
+Let's use the Missing At Random (MAR) strategy for all patients with positive post-withdrawal exposure in period 3. This matches the first model in the "Another case with three periods" analysis, where the period-3 design matrix retains each patient's randomized treatment arm:
 
 ```{r}
 dat_ice <- dat_count_filled |> 
@@ -101,7 +101,7 @@ dat_ice <- dat_count_filled |>
     dplyr::select(patient) |>
     distinct() |> 
     mutate(
-        strategy = "JR"
+        strategy = "MAR"
     )
 ```
 
@@ -129,7 +129,7 @@ We just use the standard Bayesian method options:
 
 ```{r}
 method <- method_bayes(
-    n_samples = 150,
+    n_samples = 1000,
     control = control_bayes(
         warmup = 200,
         thin = 5,
@@ -162,14 +162,7 @@ TODO: Better print method
 Now we basically just run the imputation:
 
 ```{r}
-imputeObj <- impute(
-    drawObj,
-    references = c(
-        "100mg" = "Placebo", 
-        "300mg" = "Placebo", 
-        "Placebo" = "Placebo"
-    )
-)
+imputeObj <- impute(drawObj)
 imputeObj
 ```
 

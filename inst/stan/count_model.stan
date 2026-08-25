@@ -26,7 +26,10 @@ data {
 
 parameters {
   vector[P] beta;                       // Regression coefficients
-  real<lower=0> phi;                    // Dispersion parameter (as in SAS GENMOD)
+  // Values below 1e-6 are effectively the Poisson limit for these models. The
+  // floor avoids the extreme near-zero geometry of the Gamma(.0001, .0001)
+  // prior while retaining the SAS GENMOD dispersion parameterization.
+  real<lower=1e-6> phi;
 }
 
 transformed parameters {
