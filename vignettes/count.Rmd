@@ -37,7 +37,7 @@ We use the simulated example data set from Roger et al. The data contain three t
 ```{r, message = FALSE}
 library(dplyr)
 
-dat_count <- read.csv("../data/sim_rogeretal.csv") |>
+dat_count <- read.csv(system.file("data", "sim_rogeretal.csv", package = "rbmi")) |>
     dplyr::select(
         patient,
         period,
@@ -82,7 +82,7 @@ dat_count_filled <- dat_count |>
 The inputs to the `draws()` function are now:
 
 - `data`: The data frame as prepared above.
-- `data_ice`: The data with follow-up intercurrent events (ICE)imputation strategies for each patient
+- `data_ice`: The data with follow-up intercurrent event (ICE) imputation strategies for each patient
 - `vars`: The variables to be used in the model
 - `method`: Here we can only use `method_bayes()` for fully Bayesian multiple imputation for our count data
 - `outcome` (new): The outcome type, which defaults to "continuous", but here we will choose "count"
@@ -119,6 +119,9 @@ vars <- set_vars(
     covariates = c("TreatLab * OnOff", "BaseCount")
 )
 ```
+
+Note that here we can also specify interaction terms in the `covariates` argument,
+which will then be included in the draws step model.
 
 ### Method
 
