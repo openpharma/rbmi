@@ -25,7 +25,7 @@ Time to recurrent events can also be analyzed with Andersen-Gill models, but we 
   - The reference-based method assumes that the hazard after discontinuation is in between control and experimental patients (factor $1 - \phi$ is multiplied with $\beta$ to obtain new log hazard ratio). It basically corresponds to "copy reference" approach in longitudinal data, not clear how "jump to reference" would work in survival.
   - The draw model fit uses `SAS PHREG` with the `bayes` statement. An option is to use piecewise constant hazards. Therefore they use either interpolated Breslow estimate or piecewise exponential model to get the baseline hazard.
   - For the imputation, they propose both a Bayesian as well as a frequentist MLE approach, and then just draw from the conditional distribution given the censoring time. Interestingly they still censor the observations at the next planned visit.
-  - In the analysis step they just use stanard Cox proportional hazards models, and then combine them with Rubin's rules.
+  - In the analysis step they just use standard Cox proportional hazards models, and then combine them with Rubin's rules.
 - @atkinson2019 propose reference based multiple imputation:
   - They argue that Rubin's rules lead to "information-anchored" inference, which gives a "level playing field" and should be ok to use
   - For the draw model they propose a simple Weibull proportional hazards model, fit with maximum likelihood and then draw from the asymptotic normal distribution of the parameters
@@ -69,6 +69,7 @@ For our purposes, for survival outcomes we are going to:
   - The second uses joint modeling too, but with a latent multivariate normal model, that corresponds to a multivariate probit model for the binary outcomes. The computation is a bit more involved, the authors mention specialized MCMC samplers which are e.g. implemented in the [`jomo`](https://cran.r-project.org/web/packages/jomo/index.html) R package. Fortunately multivariate probit models can also be fitted with Stan, see [here](https://mc-stan.org/docs/stan-users-guide/regression.html#multivariate-probit-regression) for details. This could be a better starting point for inclusion in the `rbmi` package.
   - The paper makes the assumption that all post-ICE binary outcomes are missing.
   - They use a logistic regression model at a certain time point/visit as the analysis model, and then combine the results with Rubin's rules.
+  - We will also want to include Firth regression as an option for the analysis model, to mitigate the perfect prediction / linear separation issue that can occur with logistic regression. (One good option in R seems to be the [`brglm2`](https://github.com/ikosmidis/brglm2) package.)
 - @rehal2026 treat the more general case where a part of the patients is still observed after treatment discontinuation (similar as in the negative binomial and survival papers).
   - A good point they make is that if the underlying outcome is truly continuous then this should be used for imputation instead - however this may be difficult if that outcome is complex! (think about response in oncology studies, where e.g. the RECIST definition is quite complex although it mainly looks at a continuous outcome, the sum of longest diameters of the target lesions)
   - They use sequential, iterative imputation at each timepoint, separately within each treatment arm - i.e. at each sequence k step it can use both observed and previously imputed data from time points before k (by treating them as covariates)
@@ -80,7 +81,7 @@ For our purposes, for survival outcomes we are going to:
     - FULL - as reference also fitted full model on all observed data
   - OICS seems most promising based on simulation study results - distinction needs to be made between the pre-and post-IE data and this should be reflected appropriately in MI models to impute the missing data 
   - They propose to use a pragmatic step-down process when the rate of intercurrent events and missing data are is not clear before the study, i.e. start with the most complex imputation model and only if that fails use the next less complex one etc.
-  - They mention perfect prediction / linear separation issue with logistic regression - I wonder if it would be relatively easy to mitigate this with regularization / prior on the regression coefficients.
+  - They mention perfect prediction / linear separation issue with logistic regression. In order to tackle this we will support Firth regression as an option for the analysis model.
 
 
 ### Outcome structure {#sec-outcome-structure}
