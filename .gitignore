@@ -62,4 +62,6 @@ docs
 
 local/
 *.rds
+
+cspell.json
 revdep/
