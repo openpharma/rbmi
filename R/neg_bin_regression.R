@@ -5,9 +5,11 @@
 #' each subject. The model is then fitted to the total count with the logarithm
 #' of total duration as an offset.
 #'
-#' Treatment effects are returned on the log rate ratio scale so that they can
-#' be pooled with Rubin's rules by [pool()]. The first level of `vars$group` is
-#' used as the reference group.
+#' All regression coefficients are returned on the model's log-rate scale so
+#' that they can be pooled with Rubin's rules by [pool()]. This includes the
+#' intercept, the treatment-group coefficients, and coefficients for any other
+#' terms in `vars$covariates`. The first level of `vars$group` is used as the
+#' reference group.
 #'
 #' @param data A completed count-outcome `data.frame`, normally supplied by
 #'   [analyse()]. It must contain one row per subject and period.
@@ -15,10 +17,11 @@
 #'   `group`, `period`, and `duration` elements are required. Any variables in
 #'   `covariates` must be constant within subject.
 #'
-#' @return A named list with one element for every non-reference treatment
-#'   group. Each element contains the estimated log rate ratio (`est`), its
-#'   standard error (`se`), and infinite degrees of freedom (`df`) for
-#'   asymptotic normal inference.
+#' @return A named list with one element for every fitted regression
+#'   coefficient. Each element contains the coefficient estimate (`est`) on
+#'   the log-rate scale, its standard error (`se`), and infinite degrees of
+#'   freedom (`df`) for asymptotic normal inference. The offset and negative
+#'   binomial dispersion parameter are not included.
 #'
 #' @details
 #' The model is
@@ -127,7 +130,7 @@ neg_bin_regression <- function(data, vars) {
     # always compare each non-reference level with the first factor level,
     # independently of the user's global contrasts option.
     stats::contrasts(subject_data[[group]]) <- stats::contr.treatment(
-        nlevels(subject_data[[group]]),
+        levels(subject_data[[group]]),
         base = 1
     )
 
@@ -151,20 +154,7 @@ neg_bin_regression <- function(data, vars) {
     )
     covariance <- glm_nb_covariance(model)
 
-    design <- stats::model.matrix(model)
-    term_labels <- attr(stats::terms(model), "term.labels")
-    group_term <- match(group, term_labels)
-    group_columns <- which(attr(design, "assign") == group_term)
-    assert_that(
-        !is.na(group_term),
-        length(group_columns) == nlevels(subject_data[[group]]) - 1,
-        msg = "Unable to identify the treatment-group coefficients in the fitted model"
-    )
-
-    coefficient_names <- colnames(design)[group_columns]
-    reference <- levels(subject_data[[group]])[[1]]
-    alternatives <- levels(subject_data[[group]])[-1]
-    result_names <- paste0("trt_", alternatives, "_vs_", reference)
+    coefficient_names <- names(stats::coef(model))
     result <- lapply(
         coefficient_names,
         function(coefficient) {
@@ -175,7 +165,7 @@ neg_bin_regression <- function(data, vars) {
             )
         }
     )
-    names(result) <- result_names
+    names(result) <- coefficient_names
     result
 }
 

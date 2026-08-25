@@ -25,8 +25,10 @@
 #' call to [draws()]; In particular:
 #'
 #' - `method_approxbayes()` & `method_bayes()` both use Rubin's rules to pool estimates
-#'  and variances across multiple imputed datasets, and the Barnard-Rubin rule to pool
-#'  degree's of freedom; see Little & Rubin (2002).
+#'  and variances across multiple imputed datasets. Analyses with finite complete-data
+#'  degrees of freedom use the Barnard-Rubin rule and a t distribution; analyses with
+#'  infinite complete-data degrees of freedom use the standard normal distribution.
+#'  See Little & Rubin (2002).
 #'  Here, the `mcse()` function can compute the Monte Carlo standard error (MCSE) of the
 #'  pooled estimates, via a Jackknife variance estimator for all parameters; see
 #'  Efron & Gong (1983) and Royston, Carlin & White (2009).
@@ -353,7 +355,7 @@ get_ests_bmlmi <- function(ests, D) {
     return(ret_obj)
 }
 
-#' @importFrom stats qt pt
+#' @importFrom stats qnorm pnorm qt pt
 #' @rdname pool_internal
 #' @export
 pool_internal.rubin <- function(results, conf.level, alternative, type, D) {
@@ -375,15 +377,26 @@ pool_internal.rubin <- function(results, conf.level, alternative, type, D) {
         v_com = v_com
     )
 
-    ret <- parametric_ci(
-        point = res_rubin$est_point,
-        se = sqrt(res_rubin$var_t),
-        alpha = alpha,
-        alternative = alternative,
-        qfun = qt,
-        pfun = pt,
-        df = res_rubin$df
-    )
+    if (is.infinite(v_com)) {
+        ret <- parametric_ci(
+            point = res_rubin$est_point,
+            se = sqrt(res_rubin$var_t),
+            alpha = alpha,
+            alternative = alternative,
+            qfun = qnorm,
+            pfun = pnorm
+        )
+    } else {
+        ret <- parametric_ci(
+            point = res_rubin$est_point,
+            se = sqrt(res_rubin$var_t),
+            alpha = alpha,
+            alternative = alternative,
+            qfun = qt,
+            pfun = pt,
+            df = res_rubin$df
+        )
+    }
 
     return(ret)
 }

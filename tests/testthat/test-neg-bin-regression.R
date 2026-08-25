@@ -30,7 +30,7 @@ make_count_analysis_data <- function() {
 }
 
 
-test_that("negative binomial regression aggregates periods and returns log rate ratios", {
+test_that("negative binomial regression aggregates periods and returns coefficients", {
     withr::local_options(contrasts = c("contr.sum", "contr.poly"))
     data <- make_count_analysis_data()
     data_before <- data
@@ -52,7 +52,7 @@ test_that("negative binomial regression aggregates periods and returns log rate 
         baseline = data$baseline[!duplicated(data$subject)]
     )
     stats::contrasts(aggregate_data$group) <- stats::contr.treatment(
-        nlevels(aggregate_data$group),
+        levels(aggregate_data$group),
         base = 1
     )
     expected_model <- MASS::glm.nb(
@@ -62,12 +62,9 @@ test_that("negative binomial regression aggregates periods and returns log rate 
         x = TRUE
     )
     expected_covariance <- glm_nb_covariance(expected_model)
-    expected_design <- stats::model.matrix(expected_model)
-    expected_coefficients <- colnames(expected_design)[
-        attr(expected_design, "assign") == 1
-    ]
+    expected_coefficients <- names(stats::coef(expected_model))
 
-    expect_named(result, c("trt_Low_vs_Placebo", "trt_High_vs_Placebo"))
+    expect_named(result, c("(Intercept)", "groupLow", "groupHigh", "baseline"))
     expect_equal(
         unname(vapply(result, `[[`, numeric(1), "est")),
         unname(stats::coef(expected_model)[expected_coefficients])
@@ -93,8 +90,62 @@ test_that("negative binomial regression accepts more than two treatment groups",
 
     result <- neg_bin_regression(data, vars)
 
-    expect_length(result, 2)
-    expect_named(result, c("trt_Low_vs_Placebo", "trt_High_vs_Placebo"))
+    expect_length(result, 3)
+    expect_named(result, c("(Intercept)", "groupLow", "groupHigh"))
+})
+
+
+test_that("negative binomial regression coefficients pool with normal inference", {
+    data <- make_count_analysis_data()
+    vars <- set_vars(
+        subjid = "subject",
+        period = "period",
+        duration = "duration",
+        outcome = "count",
+        group = "group",
+        covariates = "baseline"
+    )
+    analysis_results <- lapply(0:3, function(increment) {
+        completed_data <- data
+        completed_data$count[[1]] <- completed_data$count[[1]] + increment
+        neg_bin_regression(completed_data, vars)
+    })
+    analysis <- as_analysis(
+        results = analysis_results,
+        method = method_bayes(n_samples = length(analysis_results))
+    )
+
+    observed <- pool(analysis)
+
+    expect_named(
+        observed$pars,
+        c("(Intercept)", "groupLow", "groupHigh", "baseline")
+    )
+    for (coefficient in names(observed$pars)) {
+        estimates <- vapply(
+            analysis_results,
+            function(result) result[[coefficient]]$est,
+            numeric(1)
+        )
+        standard_errors <- vapply(
+            analysis_results,
+            function(result) result[[coefficient]]$se,
+            numeric(1)
+        )
+        rubin <- rubin_rules(estimates, standard_errors, Inf)
+        expected_se <- sqrt(rubin$var_t)
+
+        expect_equal(observed$pars[[coefficient]]$est, rubin$est_point)
+        expect_equal(observed$pars[[coefficient]]$se, expected_se)
+        expect_equal(
+            observed$pars[[coefficient]]$ci,
+            rubin$est_point + c(-1, 1) * qnorm(0.975) * expected_se
+        )
+        expect_equal(
+            observed$pars[[coefficient]]$pvalue,
+            2 * pnorm(-abs(rubin$est_point / expected_se))
+        )
+    }
 })
 
 

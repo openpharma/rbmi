@@ -15,10 +15,11 @@ neg_bin_regression(data, vars)
 \code{covariates} must be constant within subject.}
 }
 \value{
-A named list with one element for every non-reference treatment
-group. Each element contains the estimated log rate ratio (\code{est}), its
-standard error (\code{se}), and infinite degrees of freedom (\code{df}) for
-asymptotic normal inference.
+A named list with one element for every fitted regression
+coefficient. Each element contains the coefficient estimate (\code{est}) on
+the log-rate scale, its standard error (\code{se}), and infinite degrees of
+freedom (\code{df}) for asymptotic normal inference. The offset and negative
+binomial dispersion parameter are not included.
 }
 \description{
 Fits a negative binomial regression model to a completed count-outcome
@@ -27,9 +28,11 @@ each subject. The model is then fitted to the total count with the logarithm
 of total duration as an offset.
 }
 \details{
-Treatment effects are returned on the log rate ratio scale so that they can
-be pooled with Rubin's rules by \code{\link[=pool]{pool()}}. The first level of \code{vars$group} is
-used as the reference group.
+All regression coefficients are returned on the model's log-rate scale so
+that they can be pooled with Rubin's rules by \code{\link[=pool]{pool()}}. This includes the
+intercept, the treatment-group coefficients, and coefficients for any other
+terms in \code{vars$covariates}. The first level of \code{vars$group} is used as the
+reference group.
 
 The model is
 \verb{total count ~ treatment group + covariates + offset(log(total duration))}.

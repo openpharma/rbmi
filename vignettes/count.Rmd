@@ -201,4 +201,24 @@ anaObj <- analyse(
 )
 ```
 
+## Pool
+
+Finally we can pool all regression coefficients across the multiple
+imputations. Pooling is performed on the log-rate scale using Rubin's rules,
+with confidence intervals and p-values based on the standard normal
+distribution.
+
+```{r}
+poolObj <- pool(
+    anaObj,
+    conf.level = 0.95,
+    alternative = "two.sided"
+)
+poolObj
+```
+
+Treatment-group coefficients and their confidence limits can be exponentiated
+to obtain rate ratios. Other coefficients should only be exponentiated when
+that interpretation is appropriate for the corresponding model term.
+
 ## References 

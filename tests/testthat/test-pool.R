@@ -52,6 +52,70 @@ test_that("Rubin's rules", {
 })
 
 
+test_that("Rubin pooling uses normal inference for infinite complete-data df", {
+    results <- structure(
+        list(
+            est = c(0.2, 0.7, 1.1, 0.5),
+            se = c(0.20, 0.25, 0.22, 0.24),
+            df = rep(Inf, 4)
+        ),
+        class = "rubin"
+    )
+    rubin <- rubin_rules(results$est, results$se, Inf)
+    expected_se <- sqrt(rubin$var_t)
+    expected <- list(
+        est = rubin$est_point,
+        ci = rubin$est_point + c(-1, 1) * qnorm(0.975) * expected_se,
+        se = expected_se,
+        pvalue = 2 * pnorm(-abs(rubin$est_point / expected_se))
+    )
+
+    observed <- pool_internal(
+        results,
+        conf.level = 0.95,
+        alternative = "two.sided",
+        type = "percentile",
+        D = NULL
+    )
+
+    expect_equal(observed, expected)
+    expect_false(is.infinite(rubin$df))
+})
+
+
+test_that("Rubin pooling retains t inference for finite complete-data df", {
+    results <- structure(
+        list(
+            est = c(0.2, 0.7, 1.1, 0.5),
+            se = c(0.20, 0.25, 0.22, 0.24),
+            df = rep(80, 4)
+        ),
+        class = "rubin"
+    )
+    rubin <- rubin_rules(results$est, results$se, 80)
+    expected_se <- sqrt(rubin$var_t)
+    expected <- list(
+        est = rubin$est_point,
+        ci = rubin$est_point + c(-1, 1) * qt(0.975, rubin$df) * expected_se,
+        se = expected_se,
+        pvalue = 2 * pt(
+            -abs(rubin$est_point / expected_se),
+            df = rubin$df
+        )
+    )
+
+    observed <- pool_internal(
+        results,
+        conf.level = 0.95,
+        alternative = "two.sided",
+        type = "percentile",
+        D = NULL
+    )
+
+    expect_equal(observed, expected)
+})
+
+
 test_that("pval_percentile", {
     est <- c(0, rep(1, 3))
     pvals <- pval_percentile(est)
