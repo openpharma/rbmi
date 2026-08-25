@@ -634,6 +634,7 @@ draws.bayes <- function(
         subjid = data2[[vars$subjid]],
         method = method,
         scaler = scaler,
+        sample_ids = longdata$ids,
         quiet = quiet
     )
 

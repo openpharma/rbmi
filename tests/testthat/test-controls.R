@@ -105,3 +105,16 @@ test_that("complete_control_bayes works as expected", {
         setequal(names(result$init), c("theta", "sigma", "tau"))
     )
 })
+
+
+test_that("count control uses random initialization for the default MMRM option", {
+    result <- complete_control_bayes_count(
+        control = control_bayes(init = "mmrm"),
+        n_samples = 4,
+        quiet = TRUE,
+        stan_data = list()
+    )
+
+    expect_identical(result$init, "random")
+    expect_equal(result$iter, result$warmup + result$thin * 4)
+})

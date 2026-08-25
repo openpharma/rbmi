@@ -248,6 +248,11 @@ test_that("validate_datalong_types", {
     dat2$visit <- factor("A")
     expect_true(validate_datalong_types(dat2, vars))
 
+    # Also the period can be character or factor.
+    dat2 <- dat_period
+    dat2$period <- factor(dat2$period)
+    expect_true(validate_datalong_types(dat2, vars_period))
+
     # Test that if group or visit variables have unobserved levels return error
     dat2 <- dat[dat$visit != "Visit 1", ]
     expect_error(
@@ -259,10 +264,6 @@ test_that("validate_datalong_types", {
         validate_datalong_types(dat2, vars),
         "`group`"
     )
-
-    dat2 <- dat_period
-    dat2$period <- factor(dat2$period)
-    expect_error(validate_datalong_types(dat2, vars_period), "`period`")
 
     dat2 <- dat_period
     dat2$period[1] <- "4"

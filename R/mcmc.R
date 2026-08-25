@@ -92,6 +92,8 @@ prepare_prior_params <- function(
 #' @param outcome_unscaled The unscaled response variable. Must be numeric.
 #' @param group Character vector containing the group variable.
 #' @param subjid Character vector containing the subjects IDs.
+#' @param sample_ids Character vector containing the original subject IDs to
+#'   attach to each posterior sample. Defaults to the unique values of `subjid`.
 #' @param visit Character vector containing the visit variable. `NULL` if
 #'   `period` is used instead.
 #' @param period Character vector containing the period variable. `NULL` if
@@ -143,6 +145,7 @@ fit_mcmc <- function(
     duration,
     method,
     scaler,
+    sample_ids = as.character(unique(subjid)),
     quiet = FALSE
 ) {
     outcome_type <- match.arg(outcome_type)
@@ -294,7 +297,7 @@ fit_mcmc <- function(
             draws,
             function(x) {
                 sample_single(
-                    ids = longdata$ids,
+                    ids = sample_ids,
                     beta = x$beta,
                     sigma = x$sigma,
                     failed = FALSE
@@ -305,8 +308,10 @@ fit_mcmc <- function(
         draws <- extract_draws_count(fit, method$n_samples)
 
         draws <- mapply(
-            function(x) list("beta" = x),
-            lapply(draws$beta, scaler$unscale_beta),
+            sample_single_count,
+            beta = lapply(draws$beta, scaler$unscale_beta_log_link),
+            phi = draws$phi,
+            MoreArgs = list(ids = sample_ids),
             SIMPLIFY = FALSE
         )
     }

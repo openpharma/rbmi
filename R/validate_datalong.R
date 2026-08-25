@@ -197,6 +197,7 @@ validate_datalong_notMissing <- function(data, vars) {
     non_missing_variables <- c(
         vars$group,
         vars$visit,
+        vars$period,
         vars$subjid,
         vars$strata,
         extract_covariates(vars$covariates)

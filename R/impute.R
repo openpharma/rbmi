@@ -894,15 +894,20 @@ print.imputation <- function(x, ...) {
     ref_strings <- sprintf(sstring, ref_from, ref_to)
 
     ### % of missing data strings
+    timepoints <- ife(
+        uses_period(x$data$vars),
+        x$data$periods,
+        x$data$visits
+    )
     is_miss <- matrix(
         unlist(x$data$is_missing),
-        ncol = length(x$data$visits),
+        ncol = length(timepoints),
         byrow = TRUE
     )
     is_miss_perc <- round((apply(is_miss, 2, sum) / nrow(is_miss)) * 100)
-    width <- max(nchar(x$data$visits))
+    width <- max(nchar(timepoints))
     sstring <- paste0("%-", width, "s: %3s%%")
-    miss_strings <- sprintf(sstring, x$data$visits, is_miss_perc)
+    miss_strings <- sprintf(sstring, timepoints, is_miss_perc)
 
     n_imp <- length(x$imputations)
     n_imp_string <- ife(

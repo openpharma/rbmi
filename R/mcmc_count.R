@@ -154,7 +154,12 @@ complete_control_bayes_count <- function(
         ceiling(control$iter / 10)
     )
 
-    # TODO: Do we need a prepare_init_vals_count() function?
+    # MMRM initial values are only defined for continuous outcomes. Preserve the
+    # user-facing default of control_bayes() by falling back to Stan's random
+    # initialisation for the count model.
+    if (identical(control$init, "mmrm")) {
+        control$init <- "random"
+    }
 
     if (any(c("object", "data", "pars") %in% control_pars)) {
         stop(

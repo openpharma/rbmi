@@ -156,6 +156,32 @@ scalerConstructor <- R6::R6Class(
                 b_i * sig_y / sig_i
             )
             return(unscaled_beta)
+        },
+
+        #' @description
+        #' Unscales regression coefficients for a model with a log link. Unlike
+        #' `unscale_beta()`, this transformation does not use the location or
+        #' scale of the outcome because the response itself is not transformed.
+        #' @param beta A numeric vector whose first element is the intercept.
+        #' @return A numeric vector of coefficients for the original predictors.
+        unscale_beta_log_link = function(beta) {
+            len <- length(self$centre) - 1
+            assert_that(
+                is.numeric(beta),
+                length(beta) == len,
+                msg = sprintf(
+                    "`beta` must be a numeric vector of length %s",
+                    len
+                )
+            )
+
+            predictor_centre <- self$centre[-1]
+            predictor_scale <- self$scales[-1]
+            unscaled_beta <- beta / predictor_scale
+            unscaled_beta[1] <- beta[1] - sum(
+                beta[-1] * predictor_centre[-1] / predictor_scale[-1]
+            )
+            unscaled_beta
         }
     )
 )

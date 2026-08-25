@@ -79,3 +79,22 @@ test_that("scaler", {
             trunctate(2)
     )
 })
+
+
+test_that("log-link coefficients are unscaled without transforming the outcome", {
+    dat <- data.frame(
+        outcome = c(1, 2, 3, 4),
+        intercept = 1,
+        continuous = c(10, 20, 30, 40),
+        indicator = c(0, 1, 0, 1)
+    )
+    scaler <- scalerConstructor$new(dat)
+    beta_scaled <- c(0.7, -0.4, 0.2)
+    beta <- scaler$unscale_beta_log_link(beta_scaled)
+    scaled <- scaler$scale(dat)
+
+    expect_equal(
+        as.vector(as.matrix(scaled[, -1]) %*% beta_scaled),
+        as.vector(as.matrix(dat[, -1]) %*% beta)
+    )
+})

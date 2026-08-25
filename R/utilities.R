@@ -454,6 +454,11 @@ set_vars <- function(
 #' @export
 validate.ivars <- function(x, ...) {
     assert_that(
+        !is.null(x$visit) || !is.null(x$period),
+        msg = "One of `vars$visit` and `vars$period` must be specified"
+    )
+
+    assert_that(
         is_char_one(x$outcome),
         msg = "`vars$outcome` should be a length 1 character"
     )
