@@ -3,7 +3,7 @@ suppressPackageStartupMessages({
 })
 
 
-make_count_draws <- function(strategy = "JR") {
+make_count_draws <- function(strategy = "JR", phi = 0.5) {
     dat <- data.frame(
         id = factor(
             rep(c("control", "active"), each = 3),
@@ -33,7 +33,7 @@ make_count_draws <- function(strategy = "JR") {
     sample <- sample_single_count(
         ids = longdata$ids,
         beta = c(log(2), log(2)),
-        phi = 0.5
+        phi = phi
     )
     result <- as_draws(
         method = method_bayes(n_samples = 1),
@@ -94,6 +94,71 @@ test_that("CR uses reference means for the conditioning periods", {
     actual <- sample_count_outcomes(prepared, draws$samples[[1]])
 
     expect_equal(actual[prepared$period == "3"], expected)
+})
+
+
+test_that("MAR uses the subject arm dispersion parameter", {
+    draws <- make_count_draws(
+        strategy = "MAR",
+        phi = c("Control" = 0.5, "Active" = 0.1)
+    )
+
+    set.seed(903)
+    expected <- stats::rnbinom(
+        n = 2,
+        size = c(2 + 5, 10 + 3),
+        prob = c(
+            (2 + 4) / (2 + 4 + 2),
+            (10 + 8) / (10 + 8 + 4)
+        )
+    )
+    set.seed(903)
+    actual <- impute(draws)
+    completed <- extract_imputed_dfs(actual)[[1]]
+
+    expect_equal(completed$outcome[completed$period == "3"], expected)
+})
+
+
+test_that("JR and CR use the mapped reference arm dispersion parameter", {
+    references <- c("Control" = "Control", "Active" = "Control")
+    group_phi <- c("Control" = 0.5, "Active" = 0.1)
+
+    for (strategy in c("JR", "CR")) {
+        draws <- make_count_draws(strategy = strategy, phi = group_phi)
+        prepared <- prepare_count_imputation_data(
+            data = draws$data,
+            references = add_class(references, "references"),
+            strategy_by_id = unlist(draws$data$strategies)
+        )
+
+        observed_mu_active <- ife(strategy == "CR", 4, 8)
+        set.seed(5)
+        expected <- stats::rnbinom(
+            n = 2,
+            size = c(2 + 5, 2 + 3),
+            prob = c(
+                (2 + 4) / (2 + 4 + 2),
+                (2 + observed_mu_active) /
+                    (2 + observed_mu_active + 2)
+            )
+        )
+        set.seed(5)
+        actual <- sample_count_outcomes(prepared, draws$samples[[1]])
+
+        expect_equal(actual[prepared$period == "3"], expected)
+    }
+})
+
+
+test_that("group-specific dispersion draws must be named", {
+    expect_error(
+        sample_single_count(
+            ids = c("control", "active"),
+            beta = c(0, 0),
+            phi = c(0.5, 0.1)
+        )
+    )
 })
 
 

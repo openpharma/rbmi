@@ -46,8 +46,9 @@ sample_single <- function(
 #'
 #' @param ids Vector of subject identifiers.
 #' @param beta Numeric vector of regression coefficients.
-#' @param phi Positive numeric dispersion parameter in the parameterisation
-#'   `Var(Y) = mu + phi * mu^2`.
+#' @param phi Positive numeric dispersion parameter(s) in the parameterisation
+#'   `Var(Y) = mu + phi * mu^2`. A vector is named by treatment group when
+#'   group-specific dispersion parameters are used.
 #'
 #' @keywords internal
 sample_single_count <- function(ids, beta, phi) {
@@ -76,9 +77,15 @@ validate.sample_single_count <- function(x, ...) {
         length(x$beta) > 0,
         all(is.finite(x$beta)),
         is.numeric(x$phi),
-        length(x$phi) == 1,
-        is.finite(x$phi),
-        x$phi > 0
+        length(x$phi) >= 1,
+        all(is.finite(x$phi)),
+        all(x$phi > 0),
+        length(x$phi) == 1 ||
+            (
+                !is.null(names(x$phi)) &&
+                    all(nzchar(names(x$phi))) &&
+                    !anyDuplicated(names(x$phi))
+            )
     )
     invisible(TRUE)
 }

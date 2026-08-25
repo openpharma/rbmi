@@ -107,6 +107,7 @@ prepare_count_imputation_data <- function(data, references, strategy_by_id) {
     design_own <- as.matrix(as_model_df(dat, data$formula)[, -1, drop = FALSE])
     dat_reference <- dat
     reference_group <- unname(references[as.character(dat[[vars$group]])])
+    own_group <- as.character(dat[[vars$group]])
     dat_reference[[vars$group]] <- factor(
         reference_group,
         levels = levels(dat[[vars$group]])
@@ -132,6 +133,9 @@ prepare_count_imputation_data <- function(data, references, strategy_by_id) {
         duration = duration,
         outcome = outcome,
         is_missing = is_missing,
+        own_group = own_group,
+        reference_group = reference_group,
+        strategy = strategy,
         design_observed = design_observed,
         design_missing = design_missing
     )
@@ -180,7 +184,20 @@ sample_count_outcomes <- function(prepared, sample) {
         match(prepared$subject_ids, prepared$id[needs_random_draw])
     ]
     subjects_to_impute <- !is.na(missing_rows)
-    inv_phi <- 1 / sample$phi
+    phi_group <- ifelse(
+        prepared$strategy[missing_rows[subjects_to_impute]] %in% c("JR", "CR"),
+        prepared$reference_group[missing_rows[subjects_to_impute]],
+        prepared$own_group[missing_rows[subjects_to_impute]]
+    )
+    if (length(sample$phi) == 1) {
+        inv_phi <- rep(1 / sample$phi, sum(subjects_to_impute))
+    } else {
+        assert_that(
+            all(phi_group %in% names(sample$phi)),
+            msg = "The count-model dispersion draws do not cover all required treatment groups"
+        )
+        inv_phi <- 1 / unname(sample$phi[phi_group])
+    }
     size <- inv_phi + observed_count_total[subjects_to_impute]
     missing_mu <- mu_missing[missing_rows[subjects_to_impute]]
     conditioning_mass <- inv_phi + observed_mu_total[subjects_to_impute]

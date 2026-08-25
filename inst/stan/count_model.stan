@@ -18,6 +18,8 @@ data {
   int<lower=1> N;                       // Number of patients
   int<lower=1> K;                       // Number of periods (2 or 3)
   int<lower=1> P;                       // Number of regression coefficients
+  int<lower=1> G;                       // Number of dispersion parameter groups
+  int<lower=1, upper=G> group[N];       // Dispersion parameter group by patient
   int<lower=0> y[N, K];                 // Event counts by patient and period
   array[K] matrix[N, P] X;              // Period-specific design matrices
   matrix[N, K] log_offset;              // log(T_ij)
@@ -29,14 +31,14 @@ parameters {
   // Values below 1e-6 are effectively the Poisson limit for these models. The
   // floor avoids the extreme near-zero geometry of the Gamma(.0001, .0001)
   // prior while retaining the SAS GENMOD dispersion parameterization.
-  real<lower=1e-6> phi;
+  vector<lower=1e-6>[G] phi;
 }
 
 transformed parameters {
   matrix<lower=0>[N, K] mu = rep_matrix(0.0, N, K);
   matrix<lower=0, upper=1>[N, K] p = rep_matrix(0.0, N, K);
   vector<lower=0, upper=1>[N] p0;
-  real<lower=0> inv_phi;
+  vector<lower=0>[G] inv_phi;
 
   inv_phi = inv(phi);
   // Keep phi as GENMOD dispersion: E[Y_ij] = mu_ij and Var(Y_ij) = mu_ij + phi * mu_ij^2.
@@ -53,7 +55,7 @@ transformed parameters {
   }
 
   for (n in 1:N) {
-    real denom = inv_phi + sum(to_vector(mu[n, ]));
+    real denom = inv_phi[group[n]] + sum(to_vector(mu[n, ]));
     for (j in 1:K) {
       if (is_avail[n, j] == 1) {
         p[n, j] = mu[n, j] / denom;
@@ -87,7 +89,9 @@ model {
     }
 
     if (n_avail > 0) {
-      target += neg_multinomial_lpmf(y_avail[1:n_avail] | inv_phi, p_avail[1:n_avail]);
+      target += neg_multinomial_lpmf(
+        y_avail[1:n_avail] | inv_phi[group[n]], p_avail[1:n_avail]
+      );
     }
   }
 }

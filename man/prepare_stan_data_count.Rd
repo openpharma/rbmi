@@ -4,7 +4,15 @@
 \alias{prepare_stan_data_count}
 \title{Prepare input data to run the Stan model for count outcome}
 \usage{
-prepare_stan_data_count(ddat, subjid, period, duration, outcome)
+prepare_stan_data_count(
+  ddat,
+  subjid,
+  period,
+  duration,
+  outcome,
+  group,
+  same_cov
+)
 }
 \arguments{
 \item{ddat}{A design matrix}
@@ -16,6 +24,11 @@ prepare_stan_data_count(ddat, subjid, period, duration, outcome)
 \item{duration}{A vector of duration values}
 
 \item{outcome}{A vector of integer outcome values (unscaled, i.e. raw counts)}
+
+\item{group}{A factor containing the treatment group for each row.}
+
+\item{same_cov}{Logical. If \code{TRUE}, use one shared dispersion parameter. If
+\code{FALSE}, estimate a separate dispersion parameter for each treatment group.}
 }
 \value{
 A \code{stan_data_count} object. A named list containing all the
@@ -24,6 +37,8 @@ required inputs as required by the \verb{data\{\}} block of the Count Stan progr
 \item \code{N}: The number of patients
 \item \code{K}: The number of periods to analyze
 \item \code{P}: The number of design matrix columns in each period
+\item \code{G}: The number of dispersion parameter groups
+\item \code{group}: The dispersion parameter group index for each patient
 \item \code{y}: N x K matrix of outcome values for each period
 \item \code{X}: K x N x P array of design matrices for each period
 \item \code{log_offset}: N x K matrix of log offsets for each period

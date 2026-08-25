@@ -1,5 +1,9 @@
 # rbmi (development version)
 
+## New Features
+
+* Count outcomes are now supported. TODO add details
+
 # rbmi 1.6.1
 
 ## New Features

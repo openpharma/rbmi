@@ -8,6 +8,9 @@
 #' @param period A vector of period values
 #' @param duration A vector of duration values
 #' @param outcome A vector of integer outcome values (unscaled, i.e. raw counts)
+#' @param group A factor containing the treatment group for each row.
+#' @param same_cov Logical. If `TRUE`, use one shared dispersion parameter. If
+#'   `FALSE`, estimate a separate dispersion parameter for each treatment group.
 #'
 #' @return A `stan_data_count` object. A named list containing all the
 #' required inputs as required by the `data{}` block of the Count Stan program:group
@@ -15,6 +18,8 @@
 #' - `N`: The number of patients
 #' - `K`: The number of periods to analyze
 #' - `P`: The number of design matrix columns in each period
+#' - `G`: The number of dispersion parameter groups
+#' - `group`: The dispersion parameter group index for each patient
 #' - `y`: N x K matrix of outcome values for each period
 #' - `X`: K x N x P array of design matrices for each period
 #' - `log_offset`: N x K matrix of log offsets for each period
@@ -25,7 +30,9 @@ prepare_stan_data_count <- function(
     subjid,
     period,
     duration,
-    outcome
+    outcome,
+    group,
+    same_cov
 ) {
     assert_that(
         is.factor(period) | is.character(period),
@@ -37,6 +44,9 @@ prepare_stan_data_count <- function(
         length(period) == length(duration),
         length(duration) == length(outcome),
         length(outcome) == length(subjid),
+        length(group) == length(subjid),
+        is.factor(group),
+        is.logical(same_cov) & length(same_cov) == 1 & !is.na(same_cov),
         nrow(ddat) == length(subjid),
         length(unique(subjid)) * length(unique(period)) == nrow(ddat)
     )
@@ -53,6 +63,7 @@ prepare_stan_data_count <- function(
     period <- period[!is_period_3]
     outcome <- outcome[!is_period_3]
     duration <- duration[!is_period_3]
+    group <- group[!is_period_3]
 
     # Now we know that outcome is only missing if duration
     # is 0 for periods 1 and 2:
@@ -61,6 +72,21 @@ prepare_stan_data_count <- function(
     N <- length(unique(subjid))
     K <- 2 # on-treatment and off-treatment periods
     P <- ncol(ddat)
+    G <- ife(same_cov, 1L, nlevels(group))
+    group_by_subject <- ife(
+        same_cov,
+        rep(1L, N),
+        as.integer(group[period == "1"])
+    )
+    assert_that(
+        length(group_by_subject) == N,
+        all(vapply(
+            split(as.integer(group), subjid),
+            function(x) length(unique(x)) == 1,
+            logical(1)
+        )),
+        msg = "Treatment group must be constant within subject"
+    )
     y <- matrix(NA, nrow = N, ncol = K)
     y[, 1] <- outcome[period == "1"]
     y[, 2] <- outcome[period == "2"]
@@ -82,6 +108,8 @@ prepare_stan_data_count <- function(
         N = N,
         K = K,
         P = P,
+        G = G,
+        group = group_by_subject,
         y = y,
         X = X,
         log_offset = log_offset,
@@ -105,11 +133,17 @@ validate.stan_data_count <- function(x, ...) {
         x$N == nrow(x$log_offset),
         x$N == nrow(x$is_avail),
         x$N == dim(x$X)[2],
+        length(x$group) == x$N,
         x$K == ncol(x$y),
         x$K == ncol(x$log_offset),
         x$K == ncol(x$is_avail),
         x$K == dim(x$X)[1],
         x$P == dim(x$X)[3],
+        is.numeric(x$G),
+        length(x$G) == 1,
+        x$G >= 1,
+        all(x$group == trunc(x$group)),
+        all(x$group >= 1 & x$group <= x$G),
         !anyNA(x$y),
         all(is.finite(x$log_offset)),
         all(x$is_avail == 0 | x$is_avail == 1),
@@ -244,7 +278,11 @@ extract_draws_count <- function(stan_fit, n_samples) {
     assertthat::assert_that(length(pars$beta) >= n_samples)
     pars$beta <- pars$beta[seq_len(n_samples)]
 
-    pars$phi <- as.list(pars$phi)
+    pars$phi <- if (is.null(dim(pars$phi))) {
+        lapply(pars$phi, function(x) x)
+    } else {
+        lapply(split_dim(pars$phi, 1), as.vector)
+    }
     assertthat::assert_that(length(pars$phi) >= n_samples)
     pars$phi <- pars$phi[seq_len(n_samples)]
 

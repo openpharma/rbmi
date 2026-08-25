@@ -11,8 +11,9 @@ sample_single_count(ids, beta, phi)
 
 \item{beta}{Numeric vector of regression coefficients.}
 
-\item{phi}{Positive numeric dispersion parameter in the parameterisation
-\code{Var(Y) = mu + phi * mu^2}.}
+\item{phi}{Positive numeric dispersion parameter(s) in the parameterisation
+\code{Var(Y) = mu + phi * mu^2}. A vector is named by treatment group when
+group-specific dispersion parameters are used.}
 }
 \description{
 Create a sample for a count-outcome imputation model

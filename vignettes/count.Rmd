@@ -218,6 +218,57 @@ that interpretation is appropriate for the corresponding model term.
 
 ### Separate draw model sampling for each treatment group
 
+The default count model uses one dispersion/frailty parameter across all
+treatment groups. To estimate a separate parameter for each group, set
+`same_cov = FALSE` in `method_bayes()`. The name is retained for consistency
+with continuous-outcome models; for count outcomes it controls whether `phi`
+is shared between groups.
+
+To make the complete imputation model separate by treatment arm, all fixed
+effects must also be interacted with treatment. For the example data this is:
+
+```{r, eval = FALSE}
+vars_by_arm <- set_vars(
+    outcome = "Observed_Count",
+    subjid = "patient",
+    period = "period",
+    duration = "Length",
+    group = "TreatLab",
+    covariates = c(
+        "TreatLab:OnOff",
+        "TreatLab:BaseCount"
+    )
+)
+
+method_by_arm <- method_bayes(
+    same_cov = FALSE,
+    n_samples = 1000,
+    control = control_bayes(
+        warmup = 200,
+        thin = 5,
+        seed = 1821
+    )
+)
+
+drawObj_by_arm <- draws(
+    outcome = "count",
+    data = dat_count_filled,
+    data_ice = dat_ice,
+    vars = vars_by_arm,
+    method = method_by_arm,
+    quiet = TRUE
+)
+```
+
+This is fitted in one Stan call, but with treatment-specific fixed effects and
+independent treatment-specific `phi` parameters the posterior factorizes by
+arm. It therefore represents the same statistical model as fitting each arm
+separately, while retaining a single rbmi draws object and the usual downstream
+workflow.
+
+For MAR imputation, each subject uses the `phi` for their randomized treatment
+arm. For JR and CR, the mapped reference arm's `phi` is used, consistently with
+the reference-arm model used for imputation.
 
 
 

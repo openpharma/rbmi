@@ -221,7 +221,9 @@ fit_mcmc <- function(
             subjid = subjid,
             period = period,
             duration = duration,
-            outcome = outcome_unscaled
+            outcome = outcome_unscaled,
+            group = group,
+            same_cov = method$same_cov
         )
 
         control <- complete_control_bayes_count(
@@ -306,6 +308,20 @@ fit_mcmc <- function(
         )
     } else {
         draws <- extract_draws_count(fit, method$n_samples)
+
+        if (!method$same_cov) {
+            group_levels <- levels(group)
+            assert_that(all(vapply(
+                draws$phi,
+                length,
+                integer(1)
+            ) == length(group_levels)))
+            draws$phi <- lapply(
+                draws$phi,
+                stats::setNames,
+                nm = group_levels
+            )
+        }
 
         draws <- mapply(
             sample_single_count,

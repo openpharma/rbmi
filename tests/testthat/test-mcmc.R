@@ -153,6 +153,45 @@ test_that("split_dim creates a list from an array as expected", {
 })
 
 
+test_that("count Stan data supports shared and group-specific dispersion", {
+    subjid <- factor(rep(c("1", "2"), each = 3))
+    period <- rep(as.character(1:3), 2)
+    group <- factor(
+        rep(c("Control", "Active"), each = 3),
+        levels = c("Control", "Active")
+    )
+    duration <- rep(1, 6)
+    outcome <- c(1, 2, NA, 3, 4, NA)
+    design <- cbind(intercept = 1, active = as.integer(group == "Active"))
+
+    shared <- prepare_stan_data_count(
+        ddat = design,
+        subjid = subjid,
+        period = period,
+        duration = duration,
+        outcome = outcome,
+        group = group,
+        same_cov = TRUE
+    )
+    separate <- prepare_stan_data_count(
+        ddat = design,
+        subjid = subjid,
+        period = period,
+        duration = duration,
+        outcome = outcome,
+        group = group,
+        same_cov = FALSE
+    )
+
+    expect_equal(shared$G, 1L)
+    expect_equal(shared$group, c(1L, 1L))
+    expect_equal(separate$G, 2L)
+    expect_equal(separate$group, c(1L, 2L))
+    expect_true(validate(shared))
+    expect_true(validate(separate))
+})
+
+
 test_that("Verbose suppression works", {
     skip_if_not(is_core_test())
     set.seed(301)
