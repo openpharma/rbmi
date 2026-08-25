@@ -168,7 +168,7 @@ head(dat_binary)
 
 #### Count example
 
-The count data just three "period" rows for each patient, with the count outcome (here `COUNT`)and the duration of each period:
+The count data just three "period" rows for each patient, with the count outcome (here `COUNT`) and the duration of each period:
 
 ```{r}
 dat_count <- data.frame(
