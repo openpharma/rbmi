@@ -94,6 +94,15 @@ After discontinuing the trial, we cannot observe the outcome any longer, and the
 
 For survival outcomes, the structure is similar as for count outcomes: Ideally we have a single survival time at the end of the trial (either the patient had an event before, or the patient is censored at the end of the trial). If we have treatment discontinuation and trial drop-out, we can again have a maximum of three time periods as for count outcomes. At the time of trial discontinuation the patient becomes immediately censored.
 
+### More than 3 periods for count and survival outcomes
+
+In most cases, the three periods mentioned above will be sufficient for the modelling. However, there are cases when we need more periods:
+
+- When we want to account for periodic or time effects, e.g. seasonal effects on the number of asthma exacerbations due to flu and cold seasons. In this case we would have 4 seasons and 3 observation periods, which would give us 12 periods in total. The imputation model would then need to account for the seasonal effects, e.g. by including a categorical variable for the season in the model. The negative multinomial likelihood naturally extends to more than 3 periods. For the draw step, we can incrementally sample counts for the missing periods, conditional on the observed counts and the previously sampled counts.
+
+- Another example is when we want to use a piecewise exponential model for survival outcomes. In this case the time intervals with the constant hazard rates would be crossed with the 3 observation periods.
+With such a model we can use time varying covariates in the imputation model. 
+
 ### Available imputation methods
 
 For all new outcomes, we initially focus on Bayesian multiple imputation methods.
