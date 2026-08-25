@@ -134,9 +134,8 @@ The inputs to the `draws()` function are now:
 - `vars`: The variables to be used in the model
 - `method`: Here we can only use `method_bayes()` for fully Bayesian multiple imputation for our count data
 - `outcome` (new): The outcome type, which defaults to "continuous", but here we will choose "count"
-- `data_treatment_ice` (new): The off-treatment imputation strategies for each patient
 
-Note that for count data we do not need to provide the time points of the intercurrent events in `data_ice` (or `data_treatment_ice`), because these are calculated automatically from the `duration` variable in the data.
+Note that for count data we do not need to provide the time points of the intercurrent events in `data_ice`, because these are calculated automatically from the `duration` variable in the data.
 
 ### Imputation strategies
 
@@ -153,20 +152,6 @@ dat_ice <- dat_count_filled |>
         strategy = "JR"
     )
 ```
-
-For the off-treatment imputation strategy, we choose here the "On/Off Intercepts Common Slope" (OICS) strategy [@Rehal2026] for all patients who discontinued treatment, i.e. those with pattern 1 to 3:
-
-```{r}
-dat_treatment_ice <- dat_count_filled |> 
-    filter(pattern %in% c(1, 2, 3)) |> 
-    dplyr::select(subject) |> 
-    distinct() |> 
-    mutate(
-        strategy = "OICS"
-    )
-```
-
-This means that in the imputation model we use treatment arm specific intercepts for the on- and off-treatment periods, but common coefficients for the other covariates. (We could also say we thus use an interaction term between treatment and the on/off-treatment indicator in the model.)
 
 ### Variables
 
@@ -208,7 +193,6 @@ drawObj <- draws(
     outcome = "count",
     data = dat_count_filled,
     data_ice = dat_ice,
-    data_treatment_ice = dat_treatment_ice,
     vars = vars,
     method = method,
     quiet = TRUE
