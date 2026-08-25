@@ -39,11 +39,57 @@ make_count_draws <- function(strategy = "JR", phi = 0.5) {
         method = method_bayes(n_samples = 1),
         samples = sample_list(sample),
         data = longdata,
-        formula = longdata$formula
+        formula = longdata$formula,
+        n_failures = 0
     )
     class(result) <- c("draws_count", class(result))
     result
 }
+
+
+test_that("count draws print endpoint-specific settings", {
+    result <- make_count_draws()
+
+    output <- capture.output(returned <- print(result))
+
+    expect_identical(returned, result)
+    expect_true(any(output == "Endpoint Type: count"))
+    expect_true(any(output == "Imputation Type: random"))
+    expect_true(any(output == "    same_cov: TRUE"))
+    expect_false(any(grepl("covariance:", output, fixed = TRUE)))
+    expect_false(any(grepl("prior_cov:", output, fixed = TRUE)))
+    expect_false(any(grepl("init:", output, fixed = TRUE)))
+})
+
+
+test_that("count imputations print patients with positive duration by period", {
+    draws <- make_count_draws()
+    period_two_active <-
+        draws$data$data$id == "active" & draws$data$data$period == "2"
+    period_three_active <-
+        draws$data$data$id == "active" & draws$data$data$period == "3"
+    draws$data$data$duration[period_two_active] <- 0
+    draws$data$data$outcome[period_two_active] <- NA
+    draws$data$data$duration[period_three_active] <- 0
+    draws$data$values$active[2] <- NA
+    draws$data$is_missing$active[2] <- TRUE
+
+    result <- impute(
+        draws,
+        c("Control" = "Control", "Active" = "Control")
+    )
+    output <- capture.output(returned <- print(result))
+
+    expect_identical(returned, result)
+    expect_true(any(output == "Endpoint Type: count"))
+    expect_true(any(
+        output == "Number of Patients with Positive Duration by Period:"
+    ))
+    expect_true(any(output == "    1: 2"))
+    expect_true(any(output == "    2: 1"))
+    expect_true(any(output == "    3: 1"))
+    expect_false(any(grepl("Fraction of Missing Data", output, fixed = TRUE)))
+})
 
 
 test_that("count imputation samples the conditional negative binomial", {

@@ -82,6 +82,67 @@ impute.draws_count <- function(
 }
 
 
+#' @describeIn print.imputation Print the number of patients with positive
+#'   duration in each period for count endpoints. Zero-duration rows are
+#'   structural placeholders and are not counted.
+#' @export
+print.imputation_count <- function(x, ...) {
+    data <- x$data$data
+    vars <- x$data$vars
+    periods <- x$data$periods
+    period <- as.character(data[[vars$period]])
+    duration <- data[[vars$duration]]
+    subjid <- data[[vars$subjid]]
+
+    n_patients <- vapply(
+        periods,
+        function(current_period) {
+            rows <- period == current_period & duration > 0
+            length(unique(subjid[rows]))
+        },
+        integer(1)
+    )
+    width <- max(nchar(periods))
+    period_strings <- sprintf(
+        paste0("%-", width, "s: %s"),
+        periods,
+        n_patients
+    )
+
+    ref_from <- names(x$references)
+    ref_to <- x$references
+    width <- max(nchar(ref_from))
+    ref_strings <- sprintf(
+        paste0("%-", width, "s -> %s"),
+        ref_from,
+        ref_to
+    )
+
+    n_imp <- length(x$imputations)
+    n_imp_string <- ife(
+        has_class(x$method, "condmean"),
+        sprintf("1 + %s", n_imp - 1),
+        as.character(n_imp)
+    )
+
+    string <- c(
+        "",
+        "Imputation Object",
+        "-----------------",
+        sprintf("Number of Imputed Datasets: %s", n_imp_string),
+        "Endpoint Type: count",
+        "Number of Patients with Positive Duration by Period:",
+        sprintf("    %s", period_strings),
+        "References:",
+        sprintf("    %s", ref_strings),
+        ""
+    )
+
+    cat(string, sep = "\n")
+    return(invisible(x))
+}
+
+
 #' Prepare fixed inputs for conditional count imputation
 #'
 #' @keywords internal

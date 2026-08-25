@@ -658,6 +658,29 @@ draws.bayes <- function(
 #' @param ... not used.
 #' @export
 print.draws <- function(x, ...) {
+    print_draws(x)
+}
+
+
+#' @describeIn print.draws Print count endpoint draws, omitting settings that
+#'   only apply to the continuous-outcome covariance model.
+#' @export
+print.draws_count <- function(x, ...) {
+    print_draws(
+        x,
+        endpoint_type = "count",
+        exclude_method = c("covariance", "prior_cov"),
+        exclude_control = "init"
+    )
+}
+
+
+print_draws <- function(
+    x,
+    endpoint_type = NULL,
+    exclude_method = character(),
+    exclude_control = character()
+) {
     frm <- as.character(x$formula)
     frm_str <- sprintf("%s ~ %s", frm[[2]], frm[[3]])
 
@@ -672,11 +695,13 @@ print.draws <- function(x, ...) {
 
     control_args <- if ("control" %in% names(method)) {
         control <- method$control
+        control <- control[!names(control) %in% exclude_control]
         method <- method[!(names(method) == "control")]
         format_method_descriptions(control)
     } else {
         character()
     }
+    method <- method[!names(method) %in% exclude_method]
     meth_args <- format_method_descriptions(method)
 
     n_samp <- length(x$samples)
@@ -693,7 +718,15 @@ print.draws <- function(x, ...) {
         sprintf("Number of Samples: %s", n_samp_string),
         sprintf("Number of Failed Samples: %s", x$n_failures),
         sprintf("Model Formula: %s", frm_str),
-        sprintf("Imputation Type: %s", class(x)[[2]]),
+        ife(
+            is.null(endpoint_type),
+            NULL,
+            sprintf("Endpoint Type: %s", endpoint_type)
+        ),
+        sprintf(
+            "Imputation Type: %s",
+            class(x)[match("draws", class(x)) + 1]
+        ),
         "Method:",
         sprintf("    name: %s", meth),
         meth_args,

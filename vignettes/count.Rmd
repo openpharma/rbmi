@@ -26,8 +26,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-TODO: Write a nice introduction here, leveraging the design doc contents.
-
 Now we'll walk through how count data can be modeled using the `rbmi` package. The following sections will cover the necessary steps to prepare your data, draw parameter samples, impute missing values, and pool estimates across multiple imputations.
 
 ## The Data
@@ -155,8 +153,6 @@ drawObj <- draws(
 drawObj
 ```
 
-TODO: Better print method
-
 ## Impute
 
 Now we basically just run the imputation:
@@ -165,8 +161,6 @@ Now we basically just run the imputation:
 imputeObj <- impute(drawObj)
 imputeObj
 ```
-
-TODO: better print method
 
 ## Analyse
 
