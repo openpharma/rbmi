@@ -37,7 +37,7 @@ Time to recurrent events can also be analyzed with Andersen-Gill models, but we 
   - The analysis model is again the same Weibull PH model as for the draw step, but now fit to the imputed data sets, and then combined with Rubin's rules.
 - @hartley2022 extend the idea from the neg bin/count imputation using on/off treatment periods from @roger2019 to survival outcomes:
   - Note that they describe this as different from reference based multiple imputation
-  - Similar as for counts, also here allow different off treatment imputation models:
+  - Similar as for counts, also here allow different off treatment imputation models, for example:
     - either all have the same hazard after discontinuing treatment
     - or the step change is the same for all
     - or the arms have individual off treatment hazards (this will need the most observed off treatment data to be able to fit the model)
@@ -219,8 +219,6 @@ The `draws()` function needs to take the following inputs:
   - Copy Reference: "CR"
   - Copy Increments from Reference: "CIR"
   - Last Mean Carried Forward: "LMCF"
-- `data_treatment_ice`: Only needed for count and survival outcomes, can be used to specify off-treatment imputation strategies.
-  - TODO: What are the different strategies here?
 - `vars`: In addition to the existing variables, where we use `outcome` to capture counts, binary outcomes and event indicators, we need `duration` for count and survival outcomes, which captures the duration of each period (which is captured in a `period` variable).
 - `method`: For now we will only support `method_bayes()`, but could later support additional methods via corresponding `method_*()` constructors.
   - Here we need to be able to specify the survival model when used together with survival outcomes (in the similar way as now we specify the covariance model for continuous outcomes).
@@ -268,7 +266,10 @@ Also the post-processing is slightly different depending on outcome. Finally, th
 
 For the `impute()` function, we primarily need to change the `impute.random()` method, which needs to dispatch on the outcome type for the correct code path. This means changing `impute_internal()` and the workhorse `impute_data_individual()`, which currently calls `impute_outcome()` which in turn generates multivariate normal samples. In contrast, for the count outcome type e.g., we would need to generate negative binomial samples at the end.
 
-For both the `draws()` and `impute()` steps, we will need to make sure we use the two data sets for intercurrent events and treatment discontinuation correctly for count and survival outcomes. It might also involve having a time-varying covariate to account for the on/off treatment status in the imputation model.
+For the off-treatment imputation aspect, we can just use different models involving the binary on/off treatment indicator variable as a covariate in the imputation model.
+For example, if we want to assume separate on- and off-treatment rates for the treatment arms, then we use `~ treatment * on_off` as the model formula part in the imputation model. 
+
+Another variant that we should support is the option to fit the imputation model for each treatment arm separately. Combining the draw $m$ from each of the independent fits then gives the draw $m$ from their joint posterior.
 
 ### Analyse
 
