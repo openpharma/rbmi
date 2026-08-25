@@ -155,4 +155,22 @@ drawObj <- draws(
 drawObj
 ```
 
+
+## Impute
+
+Now we basically just run the imputation:
+
+```{r}
+imputeObj <- impute(
+    drawObj,
+    references = c(
+        "100mg" = "Placebo", 
+        "300mg" = "Placebo", 
+        "Placebo" = "Placebo"
+    )
+)
+imputeObj
+```
+
+
 ## References 
