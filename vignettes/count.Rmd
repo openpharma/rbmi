@@ -180,11 +180,13 @@ TODO: better print method
 Then the next step is the analysis of the imputed data. We can use a similar negative binomial regression model
 as above, however here we don't have anymore the `OnOff` variable, because we have imputed the post-withdrawal
 periods. So we just use baseline count as additional covariate, next to the treatment group.
-The outcome variable is now the imputed count variable, which is called `Imputed_Count` in the imputed data.
+The imputed values replace the missing values in the original outcome column. We therefore keep
+`Observed_Count` as the outcome name. The analysis function sums this outcome and `Length` over periods for
+each patient before fitting the model; it does not require a separate `Imputed_Count` column.
 
 ```{r}
 ana_vars <- set_vars(
-    outcome = "Imputed_Count",
+    outcome = "Observed_Count",
     subjid = "patient",
     period = "period",
     duration = "Length",

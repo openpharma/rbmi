@@ -41,6 +41,7 @@ Suggests:
     spelling
 Config/testthat/edition: 3
 Imports:
+    MASS,
     mmrm,
     pkgload,
     Matrix,
