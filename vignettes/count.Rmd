@@ -36,6 +36,7 @@ We use the simulated example data set from Roger et al. The data contain three t
 
 ```{r, message = FALSE}
 library(dplyr)
+pkgload::load_all()
 
 dat_count <- read.csv(system.file("data", "sim_rogeretal.csv", package = "rbmi")) |>
     dplyr::select(
@@ -59,7 +60,6 @@ head(dat_count)
 The source data omit periods with zero length. We use `expand_locf()` to add these rows so that every patient has all three periods. The treatment arm and baseline count are carried forward, while `OnOff` is derived from the period. Added rows have zero length and a missing observed count.
 
 ```{r}
-devtools::load_all()
 dat_count_filled <- dat_count |>
     expand_locf(
         patient = levels(dat_count$patient),
@@ -227,7 +227,7 @@ is shared between groups.
 To make the complete imputation model separate by treatment arm, all fixed
 effects must also be interacted with treatment. For the example data this is:
 
-```{r, eval = FALSE}
+```{r}
 vars_by_arm <- set_vars(
     outcome = "Observed_Count",
     subjid = "patient",
@@ -270,6 +270,54 @@ For MAR imputation, each subject uses the `phi` for their randomized treatment
 arm. For JR and CR, the mapped reference arm's `phi` is used, consistently with
 the reference-arm model used for imputation.
 
+#### Impute
 
+The downstream workflow is unchanged. Setting the seed immediately before
+`impute()` makes the conditional negative-binomial draws reproducible.
+
+```{r}
+set.seed(123)
+imputeObj_by_arm <- impute(drawObj_by_arm)
+```
+
+#### Analyse and pool
+
+The treatment-policy analysis still combines all randomized treatment arms and
+uses the same analysis model as above. Only the imputation model has changed.
+
+```{r}
+anaObj_by_arm <- analyse(
+    imputeObj_by_arm,
+    neg_bin_regression,
+    vars = ana_vars
+)
+
+poolObj_by_arm <- pool(
+    anaObj_by_arm,
+    conf.level = 0.95,
+    alternative = "two.sided"
+)
+poolObj_by_arm
+```
+
+For comparison with implementations that report treatment effects as rate
+ratios, exponentiate the treatment coefficients and their confidence limits:
+
+```{r}
+rate_ratios_by_arm <- as.data.frame(poolObj_by_arm) |>
+    filter(parameter %in% c("TreatLab100mg", "TreatLab300mg")) |>
+    transmute(
+        comparison = recode(
+            parameter,
+            TreatLab100mg = "100mg vs Placebo",
+            TreatLab300mg = "300mg vs Placebo"
+        ),
+        rate_ratio = exp(est),
+        lower_95 = exp(lci),
+        upper_95 = exp(uci),
+        p_value = pval
+    )
+rate_ratios_by_arm
+```
 
 ## References 
