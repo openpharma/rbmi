@@ -183,13 +183,13 @@ We implicitly assume here that there are no time-varying covariates, because the
 
 #### Survival example
 
-We use the same columns as for count outcomes for survival outcomes, but now the outcome variable is binary (1 = event, 0 = censored):
+We use the same columns as for count outcomes for survival outcomes, but now the outcome variable `CENSORED` is binary (1 = censored, 0 = death/ event of interest):
 
 ```{r}
 dat_survival <- data.frame(
     PATIENT = c(1, 1, 1, 2, 2, 2, 3, 3, 3),
     PERIOD = c(1, 2, 3, 1, 2, 3, 1, 2, 3),
-    EVENT = c(0, NA, NA, 0, 1, NA, 0, 0, 1),
+    CENSORED = c(1, NA, NA, 1, 0, NA, 1, 1, 0),
     DURATION = c(1.1, 0, 0, 0.25, 0.8, 0, 0.3, 0.3, 0.7),
     THERAPY = c("A", "A", "A", "B", "B", "B", "C", "C", "C"),
     BASVAL = c(10, 10, 10, 20, 20, 20, 15, 15, 15)
@@ -200,9 +200,11 @@ We see the different patterns here:
 
 - Patient 1: Never stopped treatment, completed the trial after 1.1 years without an event (censored).
 - Patient 2: Stopped treatment after 0.25 years, had an event after another 0.8 years (i.e. at 1.05 years).
-- Patient 3: Stopped treatment after 0.3 years, and stopped the trial after another 0.3 years (i.e. at 0.6 years). After another 0.7 years (i.e. at 1.3 years) the patient had an event.
+- Patient 3: Stopped treatment after 0.3 years, and stopped the trial after another 0.3 years (i.e. at 0.6 years). After another 0.7 years (i.e. at 1.3 years) the patient had the event of interest.
 
-So it basically works similarly as for count outcomes, but the outcome variable (here `EVENT`) is binary and informs what happened at the end of each period (patient with or without event). Summing up the duration variable (here `DURATION`) gives the total follow up time for each patient, and the last period is either censored or has an event.
+So it basically works similarly as for count outcomes, but the outcome variable (here `CENSORED`) is binary and informs what happened at the end of each period (patient censored or had the event of interest). Summing up the duration variable (here `DURATION`) gives the total follow up time for each patient, and the last period is either censored or has an event.
+
+Note that we deliberately use the "censored" variable name, because "event" could too easily be confused with the intercurrent event (ICE) that leads to treatment discontinuation and/or trial drop-out.
 
 ### Draws
 
