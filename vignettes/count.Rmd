@@ -383,6 +383,8 @@ dplyr::left_join(
     dplyr::select(-model)
 ```
 
+### Treatment interaction terms on all model covariates
+
 
 
 ## References 
