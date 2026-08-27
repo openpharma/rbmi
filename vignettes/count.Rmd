@@ -75,7 +75,7 @@ dat_count_filled <- dat_count |>
     )
 ```
 
-The SAS reference results for the two models illustrated below are included as
+The SAS reference results for the three models illustrated below are included as
 a CSV file with the package. We retain the two active-treatment versus placebo
 contrasts, so they can be compared directly with the pooled `rbmi` estimates.
 
@@ -384,6 +384,99 @@ dplyr::left_join(
 ```
 
 ### Treatment interaction terms on all model covariates
+
+This model also gives each treatment arm its own on- and off-treatment rates
+and baseline-count slope. Unlike the preceding model, all arms are fitted in
+one model, so they share a single dispersion/frailty parameter. This matches
+the `Separate each Treat. Shared frai` model in the SAS reference analysis.
+
+#### Draw and impute
+
+The model formula is `~ 0 + TreatLab:OnOff + TreatLab:BaseCount`. The
+interactions with `TreatLab` give each randomized treatment arm a separate
+coefficient for every covariate; `same_cov = TRUE` (the default) retains the
+shared count-model dispersion parameter.
+
+```{r}
+vars_all_treatment_interactions <- set_vars(
+    outcome = "Observed_Count",
+    subjid = "patient",
+    period = "period",
+    duration = "Length",
+    group = "TreatLab",
+    covariates = c(
+        "TreatLab:OnOff",
+        "TreatLab:BaseCount"
+    )
+)
+
+drawObj_all_treatment_interactions <- draws(
+    outcome = "count",
+    data = dat_count_filled,
+    data_ice = dat_ice,
+    vars = vars_all_treatment_interactions,
+    method = method,
+    quiet = TRUE
+)
+
+set.seed(123)
+imputeObj_all_treatment_interactions <- impute(
+    drawObj_all_treatment_interactions
+)
+```
+
+#### Analyse and pool
+
+The treatment-policy analysis model is unchanged: it uses randomized
+treatment and baseline count, without distinguishing on- and off-treatment
+periods.
+
+```{r}
+anaObj_all_treatment_interactions <- analyse(
+    imputeObj_all_treatment_interactions,
+    neg_bin_regression,
+    vars = ana_vars
+)
+
+poolObj_all_treatment_interactions <- pool(
+    anaObj_all_treatment_interactions,
+    conf.level = 0.95,
+    alternative = "two.sided"
+)
+poolObj_all_treatment_interactions
+```
+
+#### Comparison with SAS results
+
+The corresponding SAS results are labelled `Separate each Treat. Shared frai`.
+
+```{r}
+rate_ratios_all_treatment_interactions <- as.data.frame(
+    poolObj_all_treatment_interactions
+) |>
+    dplyr::filter(parameter %in% c("TreatLab100mg", "TreatLab300mg")) |>
+    dplyr::transmute(
+        comparison = dplyr::recode(
+            parameter,
+            TreatLab100mg = "100mg vs Placebo",
+            TreatLab300mg = "300mg vs Placebo"
+        ),
+        rbmi_rate_ratio = exp(est),
+        rbmi_lower_95 = exp(lci),
+        rbmi_upper_95 = exp(uci),
+        rbmi_p_value = pval
+    )
+
+dplyr::left_join(
+    rate_ratios_all_treatment_interactions,
+    dplyr::filter(
+        sas_results,
+        model == "Separate each Treat. Shared frai"
+    ),
+    by = "comparison"
+) |>
+    dplyr::select(-model)
+```
 
 
 
