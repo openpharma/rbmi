@@ -258,7 +258,8 @@ dplyr::left_join(
     dplyr::filter(sas_results, model == "NM_Reg: Treat*OnOff BaseCount"),
     by = "comparison"
 ) |>
-    dplyr::select(-model)
+    dplyr::select(-model) |> 
+    dplyr::mutate_all(~ ifelse(is.numeric(.), round(., 4), .))
 ```
 
 ## Additional modeling options
@@ -383,7 +384,8 @@ dplyr::left_join(
     dplyr::filter(sas_results, model == "NM_Reg: Separate for each Treat."),
     by = "comparison"
 ) |>
-    dplyr::select(-model)
+    dplyr::select(-model) |> 
+    dplyr::mutate_all(~ ifelse(is.numeric(.), round(., 4), .))
 ```
 
 ### Treatment interaction terms on all model covariates
@@ -478,7 +480,8 @@ dplyr::left_join(
     ),
     by = "comparison"
 ) |>
-    dplyr::select(-model)
+    dplyr::select(-model) |> 
+    dplyr::mutate_all(~ ifelse(is.numeric(.), round(., 4), .))
 ```
 
 ### More complex model which also splits time by season
@@ -659,7 +662,8 @@ left_join(
     filter(sas_results, model == "4 Seasons: Treat*OnOff BaseCount"),
     by = "comparison"
 ) |>
-    select(-model)
+    select(-model) |> 
+    dplyr::mutate_all(~ ifelse(is.numeric(.), round(., 4), .))
 ```
 
 
