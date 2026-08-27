@@ -347,7 +347,7 @@ longDataConstructor <- R6::R6Class(
             self$strategy_lock[[id]] <- FALSE
             self$indexes[[id]] <- indexes
             self$is_missing[[id]] <- is_missing
-            self$ice_visit_index[[id]] <- length(self$visits) + 1
+            self$ice_visit_index[[id]] <- length(indexes) + 1
         },
 
         #' @description
@@ -461,7 +461,15 @@ longDataConstructor <- R6::R6Class(
 
                 index <- self$ice_visit_index[[subject]]
 
-                if (new_strategy != "MAR") {
+                if (uses_period(self$vars)) {
+                    # Count strategies alter the design matrices used for
+                    # conditional imputation. All observed count cells remain
+                    # available to the posterior draw model.
+                    self$is_mar[[subject]] <- rep(
+                        TRUE,
+                        length(self$indexes[[subject]])
+                    )
+                } else if (new_strategy != "MAR") {
                     self$is_mar[[subject]] <- seq_along(self$visits) < index
                 } else {
                     self$is_mar[[subject]] <- rep(TRUE, length(self$visits))
@@ -471,7 +479,11 @@ longDataConstructor <- R6::R6Class(
                     next()
                 }
 
-                is_post_ice <- seq_along(self$visits) >= index
+                is_post_ice <- if (uses_period(self$vars)) {
+                    self$is_missing[[subject]]
+                } else {
+                    seq_along(self$visits) >= index
+                }
                 self$is_post_ice[[subject]] <- is_post_ice
 
                 # Lock strategy if patient has non-missing data post their ICE
@@ -490,33 +502,17 @@ longDataConstructor <- R6::R6Class(
                 ))
             }
 
-            if (uses_period(self$vars)) {
-                self$check_has_all_periods()
-            } else {
+            if (!uses_period(self$vars)) {
                 self$check_has_data_at_each_visit()
             }
         },
 
         #' @description
-        #' Ensures that all subjects have data for all periods. Throws an error if this criteria is not met.
+        #' Legacy period-data validation method. Count data may be ragged, so
+        #' this now checks that subject-period cells are unique.
         check_has_all_periods = function() {
-            periods <- self$data[[self$vars$period]]
-            period_levels <- levels(periods)
-            for (id in self$ids) {
-                periods_id <- unique(periods[self$indexes[[id]]])
-                missing_periods <- setdiff(period_levels, periods_id)
-                assert_that(
-                    length(missing_periods) == 0,
-                    msg = paste(
-                        sprintf(
-                            "Subject %s is missing the following period(s): %s",
-                            id,
-                            paste0("`", missing_periods, "`", collapse = ", ")
-                        ),
-                        "Please ensure that all subjects have data for all periods."
-                    )
-                )
-            }
+            validate_datalong_complete(self$data, self$vars)
+            invisible(self)
         },
 
         #' @description
@@ -587,9 +583,10 @@ longDataConstructor <- R6::R6Class(
                 unique(c(vars$visit, extract_covariates(vars$covariates)))
             )
             if (uses_period(vars)) {
+                periods <- period_levels(data_nochar, vars)
                 data_nochar[[vars$period]] <- factor(
                     data_nochar[[vars$period]],
-                    levels = valid_periods()
+                    levels = periods
                 )
                 # rerun as_dataframe to reset the rownames
                 self$data <- as_dataframe(sort_by(
@@ -597,7 +594,7 @@ longDataConstructor <- R6::R6Class(
                     c(vars$subjid, vars$period)
                 ))
                 self$vars <- vars
-                self$periods <- valid_periods()
+                self$periods <- periods
                 frmvars <- c(
                     ife(
                         nlevels(self$data[[vars$group]]) >= 2,
@@ -632,9 +629,7 @@ longDataConstructor <- R6::R6Class(
             }
             self$ids <- subjects
             self$set_strata()
-            if (uses_period(vars)) {
-                self$check_has_all_periods()
-            } else {
+            if (!uses_period(vars)) {
                 self$check_has_data_at_each_visit()
             }
         }

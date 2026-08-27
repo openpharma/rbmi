@@ -6,6 +6,18 @@
 \usage{
 sample_count_outcomes(prepared, sample)
 }
+\arguments{
+\item{prepared}{The fixed imputation inputs returned by
+\code{\link[=prepare_count_imputation_data]{prepare_count_imputation_data()}}.}
+
+\item{sample}{A \code{sample_single_count} posterior draw containing regression
+coefficients and dispersion parameters.}
+}
+\value{
+A numeric vector aligned with the rows of \code{prepared}. Observed rows
+contain zero, zero-duration missing rows contain zero, and
+positive-duration missing rows contain the sampled counts.
+}
 \description{
 Sample missing counts for one posterior parameter draw
 }

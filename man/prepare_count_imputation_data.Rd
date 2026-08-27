@@ -6,6 +6,20 @@
 \usage{
 prepare_count_imputation_data(data, references, strategy_by_id)
 }
+\arguments{
+\item{data}{A \code{longdata} object containing the original count data and model
+formula.}
+
+\item{references}{A validated named reference-group mapping.}
+
+\item{strategy_by_id}{A named character vector containing one imputation
+strategy per subject.}
+}
+\value{
+A list of row-aligned observed and missing design matrices, outcome
+and duration values, subject indices, treatment groups, references, and
+imputation strategies used by \code{\link[=sample_count_outcomes]{sample_count_outcomes()}}.
+}
 \description{
 Prepare fixed inputs for conditional count imputation
 }

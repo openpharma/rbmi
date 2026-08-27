@@ -2,12 +2,25 @@
 % Please edit documentation in R/mcmc_count.R
 \name{complete_control_bayes_count}
 \alias{complete_control_bayes_count}
-\title{Completion of the Control Options for Count Outcome
-TODO: complete docs}
+\title{Complete Stan control options for count outcomes}
 \usage{
 complete_control_bayes_count(control, n_samples, quiet, stan_data)
 }
-\description{
-Completion of the Control Options for Count Outcome
-TODO: complete docs
+\arguments{
+\item{control}{A named list of arguments passed to \code{\link[rstan:sampling]{rstan::sampling()}}.}
+
+\item{n_samples}{Number of retained posterior draws requested by the user.}
+
+\item{quiet}{Logical indicating whether Stan progress output is suppressed.}
+
+\item{stan_data}{A \code{stan_data_count} object. Currently unused, but retained
+for a common control-completion interface across outcome types.}
 }
+\value{
+The completed \code{control} list, including calculated \code{iter} and
+\code{refresh} values and a count-compatible initialization setting.
+}
+\description{
+Complete Stan control options for count outcomes
+}
+\keyword{internal}

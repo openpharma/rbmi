@@ -1,9 +1,10 @@
 #' Impute missing count outcomes
 #'
-#' For count outcomes, missing period-3 counts are sampled from their conditional
-#' negative binomial distribution given the observed period-1 and period-2
-#' counts. The model uses the dispersion parameterisation
-#' `Var(Y) = mu + phi * mu^2`.
+#' For count outcomes, missing positive-duration cells are sampled sequentially
+#' from their conditional negative binomial distributions given the observed
+#' cells and any previously imputed cells for the same subject. Missing cells
+#' are visited in period-factor level order. The model uses the dispersion
+#' parameterisation `Var(Y) = mu + phi * mu^2`.
 #'
 #' @rdname impute
 #' @export
@@ -145,6 +146,16 @@ print.imputation_count <- function(x, ...) {
 
 #' Prepare fixed inputs for conditional count imputation
 #'
+#' @param data A `longdata` object containing the original count data and model
+#'   formula.
+#' @param references A validated named reference-group mapping.
+#' @param strategy_by_id A named character vector containing one imputation
+#'   strategy per subject.
+#'
+#' @return A list of row-aligned observed and missing design matrices, outcome
+#'   and duration values, subject indices, treatment groups, references, and
+#'   imputation strategies used by [sample_count_outcomes()].
+#'
 #' @keywords internal
 prepare_count_imputation_data <- function(data, references, strategy_by_id) {
     vars <- data$vars
@@ -155,15 +166,8 @@ prepare_count_imputation_data <- function(data, references, strategy_by_id) {
     outcome <- dat[[vars$outcome]]
     is_missing <- is.na(outcome)
 
-    assert_that(
-        identical(data$periods, valid_periods()),
-        all(duration[period %in% c("1", "2") & is_missing] == 0),
-        all(period[duration > 0 & is_missing] == "3"),
-        msg = paste(
-            "For count outcomes, positive-duration missing values are only",
-            "supported in period 3"
-        )
-    )
+    subject_index <- match(id, data$ids)
+    assert_that(!anyNA(subject_index))
 
     design_own <- as.matrix(as_model_df(dat, data$formula)[, -1, drop = FALSE])
     dat_reference <- dat
@@ -178,8 +182,8 @@ prepare_count_imputation_data <- function(data, references, strategy_by_id) {
     )
 
     strategy <- unname(strategy_by_id[id])
-    use_reference_observed <- strategy == "CR" & period %in% c("1", "2")
-    use_reference_missing <- strategy %in% c("JR", "CR") & period == "3"
+    use_reference_observed <- strategy == "CR" & !is_missing
+    use_reference_missing <- strategy %in% c("JR", "CR") & is_missing
     design_observed <- design_own
     design_missing <- design_own
     design_observed[use_reference_observed, ] <-
@@ -190,6 +194,7 @@ prepare_count_imputation_data <- function(data, references, strategy_by_id) {
     list(
         id = id,
         subject_ids = data$ids,
+        subject_index = subject_index,
         period = period,
         duration = duration,
         outcome = outcome,
@@ -205,6 +210,15 @@ prepare_count_imputation_data <- function(data, references, strategy_by_id) {
 
 #' Sample missing counts for one posterior parameter draw
 #'
+#' @param prepared The fixed imputation inputs returned by
+#'   [prepare_count_imputation_data()].
+#' @param sample A `sample_single_count` posterior draw containing regression
+#'   coefficients and dispersion parameters.
+#'
+#' @return A numeric vector aligned with the rows of `prepared`. Observed rows
+#'   contain zero, zero-duration missing rows contain zero, and
+#'   positive-duration missing rows contain the sampled counts.
+#'
 #' @keywords internal
 sample_count_outcomes <- function(prepared, sample) {
     validate(sample)
@@ -213,10 +227,8 @@ sample_count_outcomes <- function(prepared, sample) {
         msg = "The count-model coefficient draw is incompatible with the design matrix"
     )
 
-    observed_period <- prepared$period %in% c("1", "2")
-    observed_available <- observed_period & !prepared$is_missing
-    missing_period <- prepared$period == "3" & prepared$is_missing
-    needs_random_draw <- missing_period & prepared$duration > 0
+    observed_available <- !prepared$is_missing & prepared$duration > 0
+    needs_random_draw <- prepared$is_missing & prepared$duration > 0
 
     mu_observed <- numeric(length(prepared$id))
     mu_observed[observed_available] <- prepared$duration[observed_available] * exp(
@@ -230,53 +242,62 @@ sample_count_outcomes <- function(prepared, sample) {
     )
 
     observed_count <- ifelse(observed_available, prepared$outcome, 0)
-    observed_count_total <- rowsum(
-        observed_count,
-        group = prepared$id,
-        reorder = FALSE
-    )[, 1]
-    observed_mu_total <- rowsum(
-        mu_observed,
-        group = prepared$id,
-        reorder = FALSE
-    )[, 1]
-
-    missing_rows <- which(needs_random_draw)[
-        match(prepared$subject_ids, prepared$id[needs_random_draw])
-    ]
-    subjects_to_impute <- !is.na(missing_rows)
-    phi_group <- ifelse(
-        prepared$strategy[missing_rows[subjects_to_impute]] %in% c("JR", "CR"),
-        prepared$reference_group[missing_rows[subjects_to_impute]],
-        prepared$own_group[missing_rows[subjects_to_impute]]
-    )
-    if (length(sample$phi) == 1) {
-        inv_phi <- rep(1 / sample$phi, sum(subjects_to_impute))
-    } else {
-        assert_that(
-            all(phi_group %in% names(sample$phi)),
-            msg = "The count-model dispersion draws do not cover all required treatment groups"
-        )
-        inv_phi <- 1 / unname(sample$phi[phi_group])
+    sum_by_subject <- function(x) {
+        totals <- numeric(length(prepared$subject_ids))
+        grouped <- rowsum(x, prepared$subject_index, reorder = FALSE)
+        totals[as.integer(rownames(grouped))] <- grouped[, 1]
+        totals
     }
-    size <- inv_phi + observed_count_total[subjects_to_impute]
-    missing_mu <- mu_missing[missing_rows[subjects_to_impute]]
-    conditioning_mass <- inv_phi + observed_mu_total[subjects_to_impute]
-    prob <- conditioning_mass / (conditioning_mass + missing_mu)
-
-    assert_that(
-        all(is.finite(size)),
-        all(size > 0),
-        all(is.finite(prob)),
-        all(prob > 0 & prob <= 1),
-        msg = "Invalid conditional negative binomial parameters"
-    )
+    observed_count_total <- sum_by_subject(observed_count)
+    observed_mu_total <- sum_by_subject(mu_observed)
 
     result <- numeric(length(prepared$id))
-    result[needs_random_draw] <- stats::rnbinom(
-        n = sum(subjects_to_impute),
-        size = size,
-        prob = prob
+    missing_rows_by_subject <- split(
+        which(needs_random_draw),
+        factor(
+            prepared$subject_index[needs_random_draw],
+            levels = seq_along(prepared$subject_ids)
+        ),
+        drop = TRUE
     )
+
+    for (missing_rows in missing_rows_by_subject) {
+        subject <- prepared$subject_index[missing_rows[1]]
+        phi_group <- ife(
+            prepared$strategy[missing_rows[1]] %in% c("JR", "CR"),
+            prepared$reference_group[missing_rows[1]],
+            prepared$own_group[missing_rows[1]]
+        )
+        if (length(sample$phi) == 1) {
+            inv_phi <- 1 / sample$phi
+        } else {
+            assert_that(
+                phi_group %in% names(sample$phi),
+                msg = paste(
+                    "The count-model dispersion draws do not cover all",
+                    "required treatment groups"
+                )
+            )
+            inv_phi <- 1 / unname(sample$phi[phi_group])
+        }
+
+        size <- inv_phi + observed_count_total[subject]
+        conditioning_mass <- inv_phi + observed_mu_total[subject]
+        for (missing_row in missing_rows) {
+            prob <- conditioning_mass /
+                (conditioning_mass + mu_missing[missing_row])
+            assert_that(
+                is.finite(size),
+                size > 0,
+                is.finite(prob),
+                prob > 0 & prob <= 1,
+                msg = "Invalid conditional negative binomial parameters"
+            )
+            draw <- stats::rnbinom(1, size = size, prob = prob)
+            result[missing_row] <- draw
+            size <- size + draw
+            conditioning_mass <- conditioning_mass + mu_missing[missing_row]
+        }
+    }
     result
 }

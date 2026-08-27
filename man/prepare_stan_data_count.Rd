@@ -32,20 +32,20 @@ prepare_stan_data_count(
 }
 \value{
 A \code{stan_data_count} object. A named list containing all the
-required inputs as required by the \verb{data\{\}} block of the Count Stan program:group
+required inputs as required by the \verb{data\{\}} block of the count Stan program:
 \itemize{
 \item \code{N}: The number of patients
-\item \code{K}: The number of periods to analyze
+\item \code{R}: The number of observed positive-duration cells
 \item \code{P}: The number of design matrix columns in each period
 \item \code{G}: The number of dispersion parameter groups
 \item \code{group}: The dispersion parameter group index for each patient
-\item \code{y}: N x K matrix of outcome values for each period
-\item \code{X}: K x N x P array of design matrices for each period
-\item \code{log_offset}: N x K matrix of log offsets for each period
-\item \code{is_avail}: N x K matrix of 0/1 indicator whether
-the outcome is available for each patient for each period
+\item \code{subject}: The patient index for each observed cell
+\item \code{y}: The observed cell counts
+\item \code{X}: The cell-level design matrix
+\item \code{log_offset}: The log exposure for each observed cell
 }
 }
 \description{
 Prepare input data to run the Stan model for count outcome.
 }
+\keyword{internal}

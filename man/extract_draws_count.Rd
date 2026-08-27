@@ -6,6 +6,16 @@
 \usage{
 extract_draws_count(stan_fit, n_samples)
 }
-\description{
-TODO complete docs
+\arguments{
+\item{stan_fit}{An \code{rstan::stanfit} object produced by the count model.}
+
+\item{n_samples}{Number of posterior draws to retain.}
 }
+\value{
+A named list with \code{beta} and \code{phi} components. Each component is a
+list with one element per retained posterior draw.
+}
+\description{
+Extract draws from a Stan fit object for count outcome
+}
+\keyword{internal}

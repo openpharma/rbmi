@@ -327,7 +327,8 @@ of post-ICE observations.
 \if{html}{\out{<a id="method-longdata-check_has_all_periods"></a>}}
 \if{latex}{\out{\hypertarget{method-longdata-check_has_all_periods}{}}}
 \subsection{\code{longdata$check_has_all_periods()}}{
-  Ensures that all subjects have data for all periods. Throws an error if this criteria is not met.
+  Legacy period-data validation method. Count data may be ragged, so
+this now checks that subject-period cells are unique.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{longdata$check_has_all_periods()}

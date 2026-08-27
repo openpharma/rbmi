@@ -20,8 +20,8 @@
 #' in the `data`
 #'
 #' - `validate_datalong_types` - Checks that the types of each key variable is as expected
-#' i.e. that visit is a factor variable, or period is a character variable with values
-#' `"1"`, `"2"` and `"3"` when `period` is specified via [set_vars()]
+#' i.e. that visit is a factor variable, or period is a character, factor, or
+#' numeric variable when `period` is specified via [set_vars()]
 #'
 #' - `validate_datalong_notMissing` - Checks that none of the key variables (except the outcome variable)
 #' contain any missing values
@@ -117,17 +117,16 @@ validate_datalong_types <- function(data, vars) {
     if (uses_period(vars)) {
         period_values <- data[[vars$period]]
         period_values <- period_values[!is.na(period_values)]
+        valid_type <- is.character(data[[vars$period]]) ||
+            is.factor(data[[vars$period]]) ||
+            is.numeric(data[[vars$period]])
+        finite_numeric <- !is.numeric(data[[vars$period]]) ||
+            all(is.finite(period_values))
         assert_that(
-            is.character(data[[vars$period]]) || is.factor(data[[vars$period]]),
+            valid_type,
+            finite_numeric,
             msg = sprintf(
-                "Variable `%s` should be of type character or factor",
-                vars$period
-            )
-        )
-        assert_that(
-            all(period_values %in% valid_periods()),
-            msg = sprintf(
-                "Variable `%s` should only contain values \"1\", \"2\" and \"3\"",
+                "Variable `%s` should be of type character, factor or numeric",
                 vars$period
             )
         )
@@ -227,14 +226,11 @@ validate_datalong_complete <- function(data, vars) {
     } else {
         assert_that(uses_period(vars))
 
-        unique_periods <- valid_periods()
-
         data_dedup <- unique(data[, c(vars$subjid, vars$period)])
 
         assert_that(
-            nrow(data) == length(unique_subjects) * length(unique_periods),
             nrow(data_dedup) == nrow(data),
-            msg = "At least one subject has either incomplete or duplicated data"
+            msg = "At least one subject has duplicated period data"
         )
     }
     return(invisible(TRUE))
@@ -316,21 +312,58 @@ validate_dataice <- function(data, data_ice, vars, update = FALSE) {
     return(TRUE)
 }
 
+#' Check whether a variable specification uses visits
+#'
+#' @param vars An `ivars` object created by [set_vars()].
+#'
+#' @return A single logical value.
+#'
+#' @keywords internal
 uses_visit <- function(vars) {
     !is.null(vars$visit)
 }
 
+#' Check whether a variable specification uses periods
+#'
+#' @param vars An `ivars` object created by [set_vars()].
+#'
+#' @return A single logical value.
+#'
+#' @keywords internal
 uses_period <- function(vars) {
     !is.null(vars$period)
 }
 
-valid_periods <- function() {
-    c("1", "2", "3")
+#' Get ordered period levels from longitudinal data
+#'
+#' @param data A longitudinal data frame.
+#' @param vars An `ivars` object created by [set_vars()].
+#'
+#' @return A character vector containing observed period levels. Factor level
+#'   order is retained; otherwise order of first appearance is used.
+#'
+#' @keywords internal
+period_levels <- function(data, vars) {
+    period <- data[[vars$period]]
+    observed <- unique(as.character(period))
+    if (is.factor(period)) {
+        levels(period)[levels(period) %in% observed]
+    } else {
+        observed
+    }
 }
 
+#' Get visit or period levels from longitudinal data
+#'
+#' @param data A longitudinal data frame.
+#' @param vars An `ivars` object created by [set_vars()].
+#'
+#' @return A character vector containing the applicable visit or period levels.
+#'
+#' @keywords internal
 visit_levels <- function(data, vars) {
     if (uses_period(vars)) {
-        valid_periods()
+        period_levels(data, vars)
     } else {
         levels(data[[vars$visit]])
     }

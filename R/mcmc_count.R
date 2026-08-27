@@ -13,18 +13,19 @@
 #'   `FALSE`, estimate a separate dispersion parameter for each treatment group.
 #'
 #' @return A `stan_data_count` object. A named list containing all the
-#' required inputs as required by the `data{}` block of the Count Stan program:group
+#' required inputs as required by the `data{}` block of the count Stan program:
 #'
 #' - `N`: The number of patients
-#' - `K`: The number of periods to analyze
+#' - `R`: The number of observed positive-duration cells
 #' - `P`: The number of design matrix columns in each period
 #' - `G`: The number of dispersion parameter groups
 #' - `group`: The dispersion parameter group index for each patient
-#' - `y`: N x K matrix of outcome values for each period
-#' - `X`: K x N x P array of design matrices for each period
-#' - `log_offset`: N x K matrix of log offsets for each period
-#' - `is_avail`: N x K matrix of 0/1 indicator whether
-#'    the outcome is available for each patient for each period
+#' - `subject`: The patient index for each observed cell
+#' - `y`: The observed cell counts
+#' - `X`: The cell-level design matrix
+#' - `log_offset`: The log exposure for each observed cell
+#'
+#' @keywords internal
 prepare_stan_data_count <- function(
     ddat,
     subjid,
@@ -35,7 +36,7 @@ prepare_stan_data_count <- function(
     same_cov
 ) {
     assert_that(
-        is.factor(period) | is.character(period),
+        is.factor(period) | is.character(period) | is.numeric(period),
         is.numeric(duration) & all(duration >= 0),
         is.character(subjid) | is.factor(subjid),
         is.numeric(outcome) &
@@ -48,72 +49,65 @@ prepare_stan_data_count <- function(
         is.factor(group),
         is.logical(same_cov) & length(same_cov) == 1 & !is.na(same_cov),
         nrow(ddat) == length(subjid),
-        length(unique(subjid)) * length(unique(period)) == nrow(ddat)
+        all(is.finite(as.matrix(ddat)))
     )
 
-    design_variables <- paste0("V", seq_len(ncol(ddat)))
-    ddat <- as.data.frame(ddat)
-    names(ddat) <- design_variables
+    subject_ids <- unique(as.character(subjid))
+    subject_all <- match(as.character(subjid), subject_ids)
+    observed <- !is.na(outcome) & duration > 0
+    assert_that(
+        all(outcome[duration == 0 & !is.na(outcome)] == 0),
+        all(tabulate(subject_all[observed], nbins = length(subject_ids)) > 0),
+        msg = paste(
+            "Each subject must have at least one observed positive-duration",
+            "count cell, and zero-duration cells cannot have positive counts"
+        )
+    )
 
-    # Omit period 3 because all data are missing there
-    # so we cannot use it.
-    is_period_3 <- period == "3"
-    ddat <- ddat[!is_period_3, ]
-    subjid <- subjid[!is_period_3]
-    period <- period[!is_period_3]
-    outcome <- outcome[!is_period_3]
-    duration <- duration[!is_period_3]
-    group <- group[!is_period_3]
+    ddat <- as.matrix(ddat[observed, , drop = FALSE])
+    subjid_observed <- subject_all[observed]
+    outcome <- outcome[observed]
+    duration <- duration[observed]
 
-    # Now we know that outcome is only missing if duration
-    # is 0 for periods 1 and 2:
-    assert_that(all(is.na(outcome) == (duration == 0)))
-
-    N <- length(unique(subjid))
-    K <- 2 # on-treatment and off-treatment periods
+    N <- length(subject_ids)
+    R <- length(outcome)
     P <- ncol(ddat)
     G <- ife(same_cov, 1L, nlevels(group))
+    group_integer <- as.integer(group)
+    group_is_constant <- vapply(
+        split(group_integer, subjid),
+        function(x) length(unique(x)) == 1,
+        logical(1)
+    )
+    assert_that(
+        all(group_is_constant),
+        msg = "Treatment group must be constant within subject"
+    )
     group_by_subject <- ife(
         same_cov,
         rep(1L, N),
-        as.integer(group[period == "1"])
+        vapply(
+            seq_len(N),
+            function(i) unique(group_integer[subject_all == i]),
+            integer(1)
+        )
     )
     assert_that(
         length(group_by_subject) == N,
-        all(vapply(
-            split(as.integer(group), subjid),
-            function(x) length(unique(x)) == 1,
-            logical(1)
-        )),
+        all(group_is_constant),
         msg = "Treatment group must be constant within subject"
     )
-    y <- matrix(NA, nrow = N, ncol = K)
-    y[, 1] <- outcome[period == "1"]
-    y[, 2] <- outcome[period == "2"]
-    X <- array(NA, dim = c(K, N, P))
-    X[1, , ] <- as.matrix(ddat[period == "1", ])
-    X[2, , ] <- as.matrix(ddat[period == "2", ])
-    log_offset <- matrix(NA, nrow = N, ncol = K)
-    log_offset[, 1] <- log(duration[period == "1"])
-    log_offset[, 2] <- log(duration[period == "2"])
-    is_avail <- matrix(NA, nrow = N, ncol = K)
-    is_avail[, 1] <- !is.na(outcome[period == "1"])
-    is_avail[, 2] <- !is.na(outcome[period == "2"])
-
-    # Stan does not allow NA.
-    y[!is_avail] <- 999
-    log_offset[!is_avail] <- 999
 
     stan_dat <- list(
         N = N,
-        K = K,
+        R = R,
         P = P,
         G = G,
         group = group_by_subject,
-        y = y,
-        X = X,
-        log_offset = log_offset,
-        is_avail = is_avail
+        subject = subjid_observed,
+        y = as.integer(outcome),
+        X = ddat,
+        log_offset = log(duration)
     )
 
     class(stan_dat) <- c("list", "stan_data", "stan_data_count")
@@ -129,31 +123,44 @@ prepare_stan_data_count <- function(
 #' @export
 validate.stan_data_count <- function(x, ...) {
     assert_that(
-        x$N == nrow(x$y),
-        x$N == nrow(x$log_offset),
-        x$N == nrow(x$is_avail),
-        x$N == dim(x$X)[2],
+        x$R == length(x$y),
+        x$R == length(x$log_offset),
+        x$R == nrow(x$X),
+        x$R == length(x$subject),
         length(x$group) == x$N,
-        x$K == ncol(x$y),
-        x$K == ncol(x$log_offset),
-        x$K == ncol(x$is_avail),
-        x$K == dim(x$X)[1],
-        x$P == dim(x$X)[3],
+        x$P == ncol(x$X),
+        x$N >= 1,
+        x$R >= 1,
+        x$P >= 1,
         is.numeric(x$G),
         length(x$G) == 1,
         x$G >= 1,
         all(x$group == trunc(x$group)),
         all(x$group >= 1 & x$group <= x$G),
+        all(x$subject == trunc(x$subject)),
+        all(x$subject >= 1 & x$subject <= x$N),
         !anyNA(x$y),
+        all(x$y == trunc(x$y)),
+        all(x$y >= 0),
+        all(is.finite(x$X)),
         all(is.finite(x$log_offset)),
-        all(x$is_avail == 0 | x$is_avail == 1),
         msg = "Invalid Stan Data Object for Count Outcome"
     )
 }
 
 
-#' Completion of the Control Options for Count Outcome
-#' TODO: complete docs
+#' Complete Stan control options for count outcomes
+#'
+#' @param control A named list of arguments passed to [rstan::sampling()].
+#' @param n_samples Number of retained posterior draws requested by the user.
+#' @param quiet Logical indicating whether Stan progress output is suppressed.
+#' @param stan_data A `stan_data_count` object. Currently unused, but retained
+#'   for a common control-completion interface across outcome types.
+#'
+#' @return The completed `control` list, including calculated `iter` and
+#'   `refresh` values and a count-compatible initialization setting.
+#'
+#' @keywords internal
 complete_control_bayes_count <- function(
     control,
     n_samples,
@@ -204,8 +211,12 @@ complete_control_bayes_count <- function(
     control
 }
 
-#' Get the Stan model for count outcome
-#' TODO complete docs
+#' Compile the Stan model for count outcomes
+#'
+#' @return An `rstan::stanmodel` for the ragged negative-multinomial count
+#'   likelihood.
+#'
+#' @keywords internal
 get_stan_model_count <- function() {
     # TODO: This should all go in general function
 
@@ -266,7 +277,13 @@ get_stan_model_count <- function() {
 
 #' Extract draws from a Stan fit object for count outcome
 #'
-#' TODO complete docs
+#' @param stan_fit An `rstan::stanfit` object produced by the count model.
+#' @param n_samples Number of posterior draws to retain.
+#'
+#' @return A named list with `beta` and `phi` components. Each component is a
+#'   list with one element per retained posterior draw.
+#'
+#' @keywords internal
 extract_draws_count <- function(stan_fit, n_samples) {
     assertthat::assert_that(assertthat::is.number(n_samples))
 

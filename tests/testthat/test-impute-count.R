@@ -112,9 +112,60 @@ test_that("count imputation samples the conditional negative binomial", {
     expect_s3_class(result, "imputation_count")
     expect_equal(
         completed$outcome[completed$period == "3"],
-        expected
+        expected,
+        tolerance = 0
     )
     expect_true(all(completed$outcome == trunc(completed$outcome)))
+})
+
+
+test_that("count imputation sequentially conditions multiple missing cells", {
+    prepared <- list(
+        id = rep(c("control", "active"), each = 4),
+        subject_ids = c("control", "active"),
+        subject_index = rep(1:2, each = 4),
+        period = rep(as.character(1:4), 2),
+        duration = rep(1, 8),
+        outcome = c(2, 3, NA, NA, 1, 2, NA, NA),
+        is_missing = rep(c(FALSE, FALSE, TRUE, TRUE), 2),
+        own_group = rep(c("Control", "Active"), each = 4),
+        reference_group = rep("Control", 8),
+        strategy = rep("JR", 8),
+        design_observed = cbind(
+            intercept = 1,
+            active = rep(c(0, 1), each = 4)
+        ),
+        design_missing = cbind(
+            intercept = rep(1, 8),
+            active = rep(0, 8)
+        )
+    )
+    sample <- sample_single_count(
+        ids = prepared$subject_ids,
+        beta = c(log(2), log(2)),
+        phi = 0.5
+    )
+
+    set.seed(840)
+    expected <- numeric(8)
+    for (subject in 1:2) {
+        rows <- (subject - 1) * 4 + 3:4
+        size <- 2 + c(5, 3)[subject]
+        mass <- 2 + c(4, 8)[subject]
+        for (row in rows) {
+            expected[row] <- stats::rnbinom(
+                1,
+                size = size,
+                prob = mass / (mass + 2)
+            )
+            size <- size + expected[row]
+            mass <- mass + 2
+        }
+    }
+    set.seed(840)
+    actual <- sample_count_outcomes(prepared, sample)
+
+    expect_identical(actual, expected)
 })
 
 
@@ -239,4 +290,13 @@ test_that("count imputation validates references and supported strategies", {
         ),
         "currently support"
     )
+})
+
+
+test_that("non-MAR count strategies retain all observed draw-model cells", {
+    draws <- make_count_draws("CR")
+    actual <- extract_data_mnar_as_na(draws$data)
+
+    expect_equal(nrow(actual), 6)
+    expect_false(anyNA(actual$outcome[actual$period %in% c("1", "2")]))
 })

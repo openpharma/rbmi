@@ -36,7 +36,10 @@ We use the simulated example data set from Roger et al. The data contain three t
 library(dplyr)
 pkgload::load_all()
 
-dat_count <- read.csv(system.file("data", "sim_rogeretal.csv", package = "rbmi")) |>
+dat_count_raw <- read.csv(
+    system.file("data", "sim_rogeretal.csv", package = "rbmi")
+)
+dat_count <- dat_count_raw |>
     dplyr::select(
         patient,
         period,
@@ -480,6 +483,184 @@ dplyr::left_join(
 
 ### More complex model which also splits time by season
 
+The preceding models use the original three periods. We can also split those
+periods into smaller calendar cells and include a recurring seasonal effect in
+the imputation model. This is a genuinely ragged representation: patients need
+not contribute the same interval identifiers, and a withdrawn patient can have
+several missing cells.
+
+The source data include `Times1`--`Times20`, one-based event times within each
+original period. `split_time()` uses these to allocate each observed aggregate
+count to 91-day cells. A fixed width of 91 days reproduces the quarter
+definition in the SAS example. For other applications, `interval` can instead
+be `"week"`, `"month"`, `"quarter"`, or `"year"`; calendar months, quarters,
+and years require a `Date` start variable.
+
+```{r}
+dat_count_season <- dat_count_raw |>
+    mutate(
+        patient = factor(patient),
+        TreatLab = factor(TreatLab, levels = c("Placebo", "100mg", "300mg")),
+        OnOff = factor(OnOff, levels = c("On", "Off")),
+        cell_start = StartDate + Lengthsofar
+    ) |>
+    split_time(
+        start = "cell_start",
+        duration = "Length",
+        outcome = "Observed_Count",
+        event_times = paste0("Times", 1:20),
+        interval = 91,
+        origin = 0,
+        period = "period"
+    ) |>
+    mutate(
+        Quarter = factor(1 + split_interval %% 4, levels = 1:4)
+    )
+
+nrow(dat_count_season)
+table(dat_count_season$Quarter)
+```
+
+The split data have 3,518 rows and 24 distinct crossed period/quarter cells.
+As checks on the restructuring, split durations sum to the original duration,
+observed cell counts sum to the original observed count, and the 83 withdrawn
+patients contribute 204 missing positive-duration cells.
+
+```{r}
+season_check <- dat_count_season |>
+    group_by(patient, period) |>
+    summarise(
+        split_length = sum(split_duration),
+        split_count = if (all(is.na(split_outcome))) {
+            NA_integer_
+        } else {
+            sum(split_outcome)
+        },
+        original_length = first(Length),
+        original_count = first(Observed_Count),
+        .groups = "drop"
+    )
+
+stopifnot(
+    nrow(dat_count_season) == 3518,
+    nlevels(dat_count_season$split_period) == 24,
+    sum(
+        is.na(dat_count_season$split_outcome) &
+            dat_count_season$split_duration > 0
+    ) == 204,
+    n_distinct(
+        dat_count_season$patient[is.na(dat_count_season$split_outcome)]
+    ) == 83,
+    all(season_check$split_length == season_check$original_length),
+    all(
+        season_check$split_count[season_check$period != 3] ==
+            season_check$original_count[season_check$period != 3]
+    ),
+    all(is.na(season_check$split_count[season_check$period == 3]))
+)
+```
+
+The count draw model uses a ragged negative-multinomial likelihood: it accepts
+one row per observed positive-duration cell and accumulates the cell means and
+counts by patient. There is no padding to a common set of periods and no fixed
+upper limit on the number of periods.
+
+We add `Quarter` to the imputation model. `split_period` uniquely identifies
+the original period crossed with the absolute 91-day interval and supplies the
+within-patient ordering used for sequential imputation.
+
+```{r}
+dat_ice_season <- dat_count_season |>
+    filter(is.na(split_outcome), split_duration > 0) |>
+    distinct(patient) |>
+    mutate(strategy = "MAR")
+
+vars_season <- set_vars(
+    outcome = "split_outcome",
+    subjid = "patient",
+    period = "split_period",
+    duration = "split_duration",
+    group = "TreatLab",
+    covariates = c(
+        "TreatLab:OnOff",
+        "BaseCount",
+        "Quarter"
+    )
+)
+
+drawObj_season <- draws(
+    outcome = "count",
+    data = dat_count_season,
+    data_ice = dat_ice_season,
+    vars = vars_season,
+    method = method,
+    quiet = TRUE
+)
+```
+
+During imputation, missing cells are visited in `split_period` order. For each
+patient, a draw conditions first on all observed cells. After each missing-cell
+draw, its sampled count and fitted mean are added to the conditioning totals
+before drawing the next cell. With only one missing cell, this reduces exactly
+to the conditional negative-binomial calculation used by the original
+three-period implementation.
+
+```{r}
+set.seed(123)
+imputeObj_season <- impute(drawObj_season)
+imputeObj_season
+```
+
+Season is used only in the imputation model. The treatment-policy analysis
+still aggregates all observed and imputed counts and exposure within patient.
+
+```{r}
+ana_vars_season <- set_vars(
+    outcome = "split_outcome",
+    subjid = "patient",
+    period = "split_period",
+    duration = "split_duration",
+    group = "TreatLab",
+    covariates = "BaseCount"
+)
+
+anaObj_season <- analyse(
+    imputeObj_season,
+    neg_bin_regression,
+    vars = ana_vars_season
+)
+poolObj_season <- pool(
+    anaObj_season,
+    conf.level = 0.95,
+    alternative = "two.sided"
+)
+poolObj_season
+```
+
+The corresponding SAS results are labelled `4 Seasons: Treat*OnOff BaseCount`.
+
+```{r}
+rate_ratios_season <- as.data.frame(poolObj_season) |>
+    filter(parameter %in% c("TreatLab100mg", "TreatLab300mg")) |>
+    transmute(
+        comparison = recode(
+            parameter,
+            TreatLab100mg = "100mg vs Placebo",
+            TreatLab300mg = "300mg vs Placebo"
+        ),
+        rbmi_rate_ratio = exp(est),
+        rbmi_lower_95 = exp(lci),
+        rbmi_upper_95 = exp(uci),
+        rbmi_p_value = pval
+    )
+
+left_join(
+    rate_ratios_season,
+    filter(sas_results, model == "4 Seasons: Treat*OnOff BaseCount"),
+    by = "comparison"
+) |>
+    select(-model)
+```
 
 
 ## References 

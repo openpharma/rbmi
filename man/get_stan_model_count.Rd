@@ -2,12 +2,15 @@
 % Please edit documentation in R/mcmc_count.R
 \name{get_stan_model_count}
 \alias{get_stan_model_count}
-\title{Get the Stan model for count outcome
-TODO complete docs}
+\title{Compile the Stan model for count outcomes}
 \usage{
 get_stan_model_count()
 }
-\description{
-Get the Stan model for count outcome
-TODO complete docs
+\value{
+An \code{rstan::stanmodel} for the ragged negative-multinomial count
+likelihood.
 }
+\description{
+Compile the Stan model for count outcomes
+}
+\keyword{internal}

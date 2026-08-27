@@ -248,9 +248,11 @@ test_that("validate_datalong_types", {
     dat2$visit <- factor("A")
     expect_true(validate_datalong_types(dat2, vars))
 
-    # Also the period can be character or factor.
+    # The period can be character, factor, or numeric, with arbitrary values.
     dat2 <- dat_period
     dat2$period <- factor(dat2$period)
+    expect_true(validate_datalong_types(dat2, vars_period))
+    dat2$period <- as.numeric(as.character(dat2$period))
     expect_true(validate_datalong_types(dat2, vars_period))
 
     # Test that if group or visit variables have unobserved levels return error
@@ -267,10 +269,7 @@ test_that("validate_datalong_types", {
 
     dat2 <- dat_period
     dat2$period[1] <- "4"
-    expect_error(
-        validate_datalong_types(dat2, vars_period),
-        "\"1\", \"2\" and \"3\""
-    )
+    expect_true(validate_datalong_types(dat2, vars_period))
 
     dat2 <- dat_period
     dat2$duration[1] <- -1
@@ -341,7 +340,14 @@ test_that("validate_datalong_complete", {
     expect_error(validate_datalong_complete(dat2, vars))
 
     dat2 <- dat_period %>% filter(period != "3")
-    expect_error(validate_datalong_complete(dat2, vars_period))
+    expect_true(validate_datalong_complete(dat2, vars_period))
+
+    dat2 <- dat_period[-1, ]
+    expect_true(validate_datalong_complete(dat2, vars_period))
+    expect_s3_class(longDataConstructor$new(dat2, vars_period), "longdata")
+
+    dat2 <- bind_rows(dat_period, dat_period[1, ])
+    expect_error(validate_datalong_complete(dat2, vars_period), "duplicated")
 })
 
 

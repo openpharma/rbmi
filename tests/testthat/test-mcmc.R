@@ -192,6 +192,55 @@ test_that("count Stan data supports shared and group-specific dispersion", {
 })
 
 
+test_that("count Stan data supports ragged observed cells", {
+    subjid <- factor(c("1", "1", "1", "2", "2"))
+    period <- c("1:1", "1:2", "3:2", "1:1", "3:1")
+    group <- factor(
+        c("Control", "Control", "Control", "Active", "Active"),
+        levels = c("Control", "Active")
+    )
+    duration <- c(2, 2, 1, 3, 2)
+    outcome <- c(1, 0, NA, 2, NA)
+    design <- cbind(intercept = 1, active = as.integer(group == "Active"))
+
+    actual <- prepare_stan_data_count(
+        ddat = design,
+        subjid = subjid,
+        period = period,
+        duration = duration,
+        outcome = outcome,
+        group = group,
+        same_cov = FALSE
+    )
+
+    expect_equal(actual$N, 2)
+    expect_equal(actual$R, 3)
+    expect_equal(actual$subject, c(1L, 1L, 2L))
+    expect_equal(actual$y, c(1L, 0L, 2L))
+    expect_equal(actual$group, c(1L, 2L))
+    expect_true(validate(actual))
+})
+
+
+test_that("ragged and fixed-period negative-multinomial likelihoods agree", {
+    count <- c(2, 3)
+    mu <- c(4, 5)
+    shape <- 2
+    probability <- mu / (shape + sum(mu))
+
+    fixed_period <- lgamma(shape + sum(count)) - lgamma(shape) -
+        sum(lgamma(count + 1)) +
+        sum(count * log(probability)) +
+        shape * log1p(-sum(probability))
+    ragged <- sum(count * log(mu) - lgamma(count + 1)) +
+        lgamma(shape + sum(count)) - lgamma(shape) +
+        shape * log(shape) -
+        (shape + sum(count)) * log(shape + sum(mu))
+
+    expect_equal(ragged, fixed_period, tolerance = 1e-14)
+})
+
+
 test_that("Verbose suppression works", {
     skip_if_not(is_core_test())
     set.seed(301)
