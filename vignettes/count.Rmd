@@ -478,6 +478,8 @@ dplyr::left_join(
     dplyr::select(-model)
 ```
 
+### More complex model which also splits time by season
+
 
 
 ## References 
