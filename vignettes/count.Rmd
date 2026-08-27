@@ -75,6 +75,29 @@ dat_count_filled <- dat_count |>
     )
 ```
 
+The SAS reference results for the two models illustrated below are included as
+a CSV file with the package. We retain the two active-treatment versus placebo
+contrasts, so they can be compared directly with the pooled `rbmi` estimates.
+
+```{r}
+sas_results <- read.csv(
+    system.file("extdata", "results.csv", package = "rbmi"),
+    check.names = FALSE
+) |>
+    dplyr::filter(
+        (TreatLab == "100mg" & `_TreatLab` == "Placebo") |
+            (TreatLab == "300mg" & `_TreatLab` == "Placebo")
+    ) |>
+    dplyr::transmute(
+        model = Label,
+        comparison = paste(TreatLab, "vs", `_TreatLab`),
+        sas_rate_ratio = EXP_Est,
+        sas_lower_95 = Low_95PCT,
+        sas_upper_95 = Upp_95PCT,
+        sas_p_value = Pvalue
+    )
+```
+
 ## Draws
 
 The inputs to the `draws()` function are now:
@@ -208,6 +231,33 @@ Treatment-group coefficients and their confidence limits can be exponentiated
 to obtain rate ratios. Other coefficients should only be exponentiated when
 that interpretation is appropriate for the corresponding model term.
 
+## Comparison with SAS results
+
+The corresponding SAS results are labelled `NM_Reg: Treat*OnOff BaseCount`.
+
+```{r}
+rate_ratios_shared <- as.data.frame(poolObj) |>
+    dplyr::filter(parameter %in% c("TreatLab100mg", "TreatLab300mg")) |>
+    dplyr::transmute(
+        comparison = dplyr::recode(
+            parameter,
+            TreatLab100mg = "100mg vs Placebo",
+            TreatLab300mg = "300mg vs Placebo"
+        ),
+        rbmi_rate_ratio = exp(est),
+        rbmi_lower_95 = exp(lci),
+        rbmi_upper_95 = exp(uci),
+        rbmi_p_value = pval
+    )
+
+dplyr::left_join(
+    rate_ratios_shared,
+    dplyr::filter(sas_results, model == "NM_Reg: Treat*OnOff BaseCount"),
+    by = "comparison"
+) |>
+    dplyr::select(-model)
+```
+
 ## Additional modeling options
 
 ### Separate draw model sampling for each treatment group
@@ -313,5 +363,26 @@ rate_ratios_by_arm <- as.data.frame(poolObj_by_arm) |>
     )
 rate_ratios_by_arm
 ```
+
+#### Comparison with SAS results
+
+The corresponding SAS results are labelled `NM_Reg: Separate for each Treat.`.
+
+```{r}
+dplyr::left_join(
+    rate_ratios_by_arm |>
+        dplyr::rename(
+            rbmi_rate_ratio = rate_ratio,
+            rbmi_lower_95 = lower_95,
+            rbmi_upper_95 = upper_95,
+            rbmi_p_value = p_value
+        ),
+    dplyr::filter(sas_results, model == "NM_Reg: Separate for each Treat."),
+    by = "comparison"
+) |>
+    dplyr::select(-model)
+```
+
+
 
 ## References 
