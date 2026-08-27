@@ -4,7 +4,12 @@
 \alias{prepare_count_imputation_data}
 \title{Prepare fixed inputs for conditional count imputation}
 \usage{
-prepare_count_imputation_data(data, references, strategy_by_id)
+prepare_count_imputation_data(
+  data,
+  references,
+  strategy_by_id,
+  strategy_specs_by_id = NULL
+)
 }
 \arguments{
 \item{data}{A \code{longdata} object containing the original count data and model
@@ -14,6 +19,9 @@ formula.}
 
 \item{strategy_by_id}{A named character vector containing one imputation
 strategy per subject.}
+
+\item{strategy_specs_by_id}{\code{NULL} or a named list of \code{count_strategy}
+objects containing the controlled-imputation settings for each subject.}
 }
 \value{
 A list of row-aligned observed and missing design matrices, outcome

@@ -32,7 +32,7 @@ impute(
   draws,
   references = NULL,
   update_strategy = NULL,
-  strategies = getStrategies()
+  strategies = get_count_strategies()
 )
 }
 \arguments{
@@ -48,9 +48,12 @@ an imputation strategy (as defined by \code{data_ice[[vars$strategy]]} in the ca
 originally set via the \code{data_ice} option in \code{\link[=draws]{draws()}}. See the details section for more
 information.}
 
-\item{strategies}{A named list of functions. Defines the imputation functions to be used.
-The names of the list should mirror the values specified in \code{strategy} column of \code{data_ice}.
-Default = \code{\link[=getStrategies]{getStrategies()}}. See \code{\link[=getStrategies]{getStrategies()}} for more details.}
+\item{strategies}{A named list defining the imputation strategies to be used.
+The names of the list should mirror the values specified in the \code{strategy}
+column of \code{data_ice} or \code{update_strategy}. For continuous outcomes the
+default is \code{\link[=getStrategies]{getStrategies()}}. For count outcomes, use
+\code{\link[=get_count_strategies]{get_count_strategies()}} to define controlled rate transformations in
+addition to the built-in MAR, JR and CR strategies.}
 }
 \value{
 An \code{imputation} object; a list of class \code{"imputation"} containing the
@@ -109,7 +112,9 @@ one for the subject ID and another for the imputation strategy, whose names are 
 those defined in the \code{vars} argument as specified in the call to \code{\link[=draws]{draws()}}. Please note that this
 argument only allows you to update the imputation strategy and not other arguments such as the
 time of the first visit affected by the ICE.
-A key limitation of this functionality is
+For count outcomes, it can also assign controlled count strategies created
+with \code{\link[=count_strategy]{count_strategy()}} after the posterior draws have been obtained.
+For visit-based continuous outcomes, a key limitation of this functionality is
 that one can only switch between a MAR and a non-MAR strategy (or vice versa) for subjects without
 observed post-ICE data. The reason for this is that such a change would affect whether the post-ICE data is included
 in the base imputation model or not (as explained in the help to \code{\link[=draws]{draws()}}).

@@ -1,3 +1,220 @@
+#' Define controlled imputation strategies for count outcomes
+#'
+#' `count_strategy()` defines how the model-based mean for a missing count is
+#' obtained and optionally adjusted during imputation. The `base` strategy is
+#' applied first. A `rate_multiplier` then multiplies its model-based mean, or
+#' `fixed_lambda_rate` replaces that mean using the negative-multinomial lambda
+#' parameterisation described below.
+#'
+#' `get_count_strategies()` returns the built-in MAR, JR and CR count strategies
+#' together with any named user-defined strategies supplied through `...`.
+#'
+#' @param base Character. The base count imputation strategy, one of `"MAR"`,
+#'   `"JR"`, or `"CR"`.
+#' @param rate_multiplier A non-negative numeric scalar multiplying the
+#'   model-based mean for affected missing cells.
+#' @param fixed_lambda_rate `NULL` or a non-negative numeric scalar. When set,
+#'   it replaces the model-based rate on the SAS negative-multinomial lambda
+#'   scale. For exposure `L` and dispersion `phi`, the marginal mean used for
+#'   imputation is `L * fixed_lambda_rate / phi`.
+#' @param period `NULL` or a vector of period values. If supplied, the rate
+#'   adjustment is restricted to missing cells in these periods. The base
+#'   strategy still applies to other missing periods.
+#' @param ... Named `count_strategy` objects to add to the built-in strategies.
+#'
+#' @return `count_strategy()` returns a `count_strategy` object.
+#'   `get_count_strategies()` returns a named list of these objects for use in
+#'   the `strategies` argument of [impute()].
+#'
+#' @examples
+#' fixed_lambda <- count_strategy(
+#'     base = "MAR",
+#'     fixed_lambda_rate = 0.0021,
+#'     period = "3"
+#' )
+#' double_rate <- count_strategy(
+#'     base = "MAR",
+#'     rate_multiplier = 2,
+#'     period = "3"
+#' )
+#' get_count_strategies(
+#'     FIXED_LAMBDA = fixed_lambda,
+#'     DOUBLE_RATE = double_rate
+#' )
+#'
+#' @export
+count_strategy <- function(
+    base = c("MAR", "JR", "CR"),
+    rate_multiplier = 1,
+    fixed_lambda_rate = NULL,
+    period = NULL
+) {
+    base <- match.arg(base)
+    fixed_lambda_rate <- ife(
+        is.null(fixed_lambda_rate),
+        NA_real_,
+        fixed_lambda_rate
+    )
+    if (!is.null(period)) {
+        period <- unique(as.character(period))
+    }
+
+    x <- list(
+        base = base,
+        rate_multiplier = rate_multiplier,
+        fixed_lambda_rate = fixed_lambda_rate,
+        period = period
+    )
+    class(x) <- c("count_strategy", "list")
+    validate_count_strategy(x)
+    x
+}
+
+
+#' @rdname count_strategy
+#' @export
+get_count_strategies <- function(...) {
+    user_strategies <- list(...)
+    user_names <- names(user_strategies)
+    assert_that(
+        length(user_strategies) == 0 ||
+            (!is.null(user_names) && all(nzchar(user_names))),
+        msg = "User-defined count strategies must be named"
+    )
+    assert_that(
+        !anyDuplicated(user_names),
+        msg = "Count strategies must be uniquely named"
+    )
+
+    strategies <- list(
+        MAR = count_strategy("MAR"),
+        JR = count_strategy("JR"),
+        CR = count_strategy("CR")
+    )
+    for (strategy_name in user_names) {
+        validate_count_strategy(user_strategies[[strategy_name]])
+        strategies[[strategy_name]] <- user_strategies[[strategy_name]]
+    }
+    strategies
+}
+
+
+#' Validate a controlled count imputation strategy
+#'
+#' @param x An object created by [count_strategy()].
+#'
+#' @return `TRUE` invisibly, or an error for an invalid strategy.
+#'
+#' @keywords internal
+validate_count_strategy <- function(x) {
+    assert_that(
+        has_class(x, "count_strategy"),
+        is.list(x),
+        identical(names(x), c(
+            "base",
+            "rate_multiplier",
+            "fixed_lambda_rate",
+            "period"
+        )),
+        x$base %in% c("MAR", "JR", "CR"),
+        length(x$base) == 1,
+        is.numeric(x$rate_multiplier),
+        length(x$rate_multiplier) == 1,
+        is.finite(x$rate_multiplier),
+        x$rate_multiplier >= 0,
+        is.numeric(x$fixed_lambda_rate),
+        length(x$fixed_lambda_rate) == 1,
+        is.na(x$fixed_lambda_rate) ||
+            (is.finite(x$fixed_lambda_rate) && x$fixed_lambda_rate >= 0),
+        is.null(x$period) ||
+            (is.character(x$period) && length(x$period) >= 1 &&
+                all(!is.na(x$period)) && all(nzchar(x$period))),
+        msg = "Invalid `count_strategy` object"
+    )
+    assert_that(
+        is.na(x$fixed_lambda_rate) || x$rate_multiplier == 1,
+        msg = paste(
+            "Only one of a non-default `rate_multiplier` and",
+            "`fixed_lambda_rate` can be specified"
+        )
+    )
+    invisible(TRUE)
+}
+
+
+#' Resolve count imputation strategy definitions
+#'
+#' @param strategies A named list containing count strategies.
+#' @param reference Character vector of strategy names required by the data.
+#'
+#' @return A named list containing the required validated count strategies.
+#'
+#' @keywords internal
+resolve_count_strategies <- function(strategies, reference) {
+    assert_that(
+        is.list(strategies),
+        !is.null(names(strategies)),
+        !anyDuplicated(names(strategies)),
+        msg = "`strategies` must be a uniquely named list"
+    )
+    required <- unique(unname(reference))
+    missing_strategies <- setdiff(required, names(strategies))
+    assert_that(
+        length(missing_strategies) == 0,
+        msg = sprintf(
+            paste(
+                "Count outcomes currently support strategies with a count",
+                "implementation; none is available for %s"
+            ),
+            paste0("`", missing_strategies, "`", collapse = ", ")
+        )
+    )
+
+    resolved <- lapply(required, function(strategy_name) {
+        strategy <- strategies[[strategy_name]]
+        # Retain compatibility with getStrategies() for the three count
+        # strategies that were supported before controlled count strategies.
+        if (is.function(strategy) && strategy_name %in% c("MAR", "JR", "CR")) {
+            strategy <- count_strategy(strategy_name)
+        }
+        validate_count_strategy(strategy)
+        strategy
+    })
+    names(resolved) <- required
+    resolved
+}
+
+
+#' Apply strategy updates locally to count imputation data
+#'
+#' @param data A cloned `longdata` object for a count endpoint.
+#' @param update_strategy A data frame accepted by the `update_strategy`
+#'   argument of [impute()].
+#'
+#' @return The modified `longdata` object.
+#'
+#' @keywords internal
+update_count_strategies <- function(data, update_strategy) {
+    if (is.null(update_strategy)) {
+        return(data)
+    }
+    update_strategy <- as_dataframe(update_strategy)
+    validate_dataice(
+        data = data$data,
+        data_ice = update_strategy,
+        vars = data$vars,
+        update = TRUE
+    )
+    id_var <- data$vars$subjid
+    strategy_var <- data$vars$strategy
+    for (row in seq_len(nrow(update_strategy))) {
+        id <- as.character(update_strategy[[id_var]][row])
+        data$strategies[[id]] <- update_strategy[[strategy_var]][row]
+    }
+    data
+}
+
+
 #' Impute missing count outcomes
 #'
 #' For count outcomes, missing positive-duration cells are sampled sequentially
@@ -12,30 +229,31 @@ impute.draws_count <- function(
     draws,
     references = NULL,
     update_strategy = NULL,
-    strategies = getStrategies()
+    strategies = get_count_strategies()
 ) {
     validate(draws)
-
-    assert_that(
-        is.null(update_strategy),
-        msg = "`update_strategy` is not currently supported for count outcomes"
-    )
-
     data <- draws$data$clone(deep = TRUE)
+    data <- update_count_strategies(data, update_strategy)
     strategy_by_id <- unlist(data$strategies, use.names = TRUE)
-    supported_strategies <- c("MAR", "JR", "CR")
-    unsupported <- setdiff(unique(strategy_by_id), supported_strategies)
-    assert_that(
-        length(unsupported) == 0,
-        msg = sprintf(
-            "Count outcomes currently support the following imputation strategies: %s",
-            paste0("`", supported_strategies, "`", collapse = ", ")
-        )
+    resolved_strategies <- resolve_count_strategies(
+        strategies = strategies,
+        reference = strategy_by_id
+    )
+    strategy_specs_by_id <- lapply(
+        strategy_by_id,
+        function(strategy_name) resolved_strategies[[strategy_name]]
+    )
+    names(strategy_specs_by_id) <- names(strategy_by_id)
+    base_strategy_by_id <- vapply(
+        strategy_specs_by_id,
+        `[[`,
+        character(1),
+        "base"
     )
 
     if (is.null(references)) {
         assert_that(
-            all(strategy_by_id == "MAR"),
+            all(base_strategy_by_id == "MAR"),
             msg = paste(
                 "You have set a non-MAR imputation strategy.",
                 "Please specify the references using the argument `references`"
@@ -56,7 +274,8 @@ impute.draws_count <- function(
     prepared <- prepare_count_imputation_data(
         data = data,
         references = references,
-        strategy_by_id = strategy_by_id
+        strategy_by_id = base_strategy_by_id,
+        strategy_specs_by_id = strategy_specs_by_id
     )
 
     imputations <- lapply(draws$samples, function(sample) {
@@ -77,6 +296,7 @@ impute.draws_count <- function(
         method = draws$method,
         references = references
     )
+    result$count_strategies <- resolved_strategies
     class(result) <- c("imputation_count", class(result))
     validate(result)
     result
@@ -151,13 +371,20 @@ print.imputation_count <- function(x, ...) {
 #' @param references A validated named reference-group mapping.
 #' @param strategy_by_id A named character vector containing one imputation
 #'   strategy per subject.
+#' @param strategy_specs_by_id `NULL` or a named list of `count_strategy`
+#'   objects containing the controlled-imputation settings for each subject.
 #'
 #' @return A list of row-aligned observed and missing design matrices, outcome
 #'   and duration values, subject indices, treatment groups, references, and
 #'   imputation strategies used by [sample_count_outcomes()].
 #'
 #' @keywords internal
-prepare_count_imputation_data <- function(data, references, strategy_by_id) {
+prepare_count_imputation_data <- function(
+    data,
+    references,
+    strategy_by_id,
+    strategy_specs_by_id = NULL
+) {
     vars <- data$vars
     dat <- data$data
     id <- as.character(dat[[vars$subjid]])
@@ -182,6 +409,31 @@ prepare_count_imputation_data <- function(data, references, strategy_by_id) {
     )
 
     strategy <- unname(strategy_by_id[id])
+    if (is.null(strategy_specs_by_id)) {
+        strategy_specs_by_id <- lapply(
+            strategy_by_id,
+            function(base) count_strategy(base = base)
+        )
+        names(strategy_specs_by_id) <- names(strategy_by_id)
+    }
+    assert_that(
+        all(data$ids %in% names(strategy_specs_by_id)),
+        msg = "Count strategy specifications must cover every subject"
+    )
+    rate_multiplier <- rep(1, length(id))
+    fixed_lambda_rate <- rep(NA_real_, length(id))
+    for (subject_id in data$ids) {
+        strategy_spec <- strategy_specs_by_id[[subject_id]]
+        validate_count_strategy(strategy_spec)
+        subject_rows <- id == subject_id
+        affected_rows <- subject_rows & (
+            is.null(strategy_spec$period) |
+                period %in% strategy_spec$period
+        )
+        rate_multiplier[affected_rows] <- strategy_spec$rate_multiplier
+        fixed_lambda_rate[affected_rows] <-
+            strategy_spec$fixed_lambda_rate
+    }
     use_reference_observed <- strategy == "CR" & !is_missing
     use_reference_missing <- strategy %in% c("JR", "CR") & is_missing
     design_observed <- design_own
@@ -202,6 +454,8 @@ prepare_count_imputation_data <- function(data, references, strategy_by_id) {
         own_group = own_group,
         reference_group = reference_group,
         strategy = strategy,
+        rate_multiplier = rate_multiplier,
+        fixed_lambda_rate = fixed_lambda_rate,
         design_observed = design_observed,
         design_missing = design_missing
     )
@@ -229,6 +483,12 @@ sample_count_outcomes <- function(prepared, sample) {
 
     observed_available <- !prepared$is_missing & prepared$duration > 0
     needs_random_draw <- prepared$is_missing & prepared$duration > 0
+    if (is.null(prepared$rate_multiplier)) {
+        prepared$rate_multiplier <- rep(1, length(prepared$id))
+    }
+    if (is.null(prepared$fixed_lambda_rate)) {
+        prepared$fixed_lambda_rate <- rep(NA_real_, length(prepared$id))
+    }
 
     mu_observed <- numeric(length(prepared$id))
     mu_observed[observed_available] <- prepared$duration[observed_available] * exp(
@@ -284,8 +544,15 @@ sample_count_outcomes <- function(prepared, sample) {
         size <- inv_phi + observed_count_total[subject]
         conditioning_mass <- inv_phi + observed_mu_total[subject]
         for (missing_row in missing_rows) {
+            imputation_mean <- ife(
+                is.na(prepared$fixed_lambda_rate[missing_row]),
+                mu_missing[missing_row] *
+                    prepared$rate_multiplier[missing_row],
+                prepared$duration[missing_row] *
+                    prepared$fixed_lambda_rate[missing_row] * inv_phi
+            )
             prob <- conditioning_mass /
-                (conditioning_mass + mu_missing[missing_row])
+                (conditioning_mass + imputation_mean)
             assert_that(
                 is.finite(size),
                 size > 0,
@@ -296,7 +563,7 @@ sample_count_outcomes <- function(prepared, sample) {
             draw <- stats::rnbinom(1, size = size, prob = prob)
             result[missing_row] <- draw
             size <- size + draw
-            conditioning_mass <- conditioning_mass + mu_missing[missing_row]
+            conditioning_mass <- conditioning_mass + imputation_mean
         }
     }
     result

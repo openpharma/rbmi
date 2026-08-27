@@ -248,6 +248,101 @@ test_that("JR and CR use the mapped reference arm dispersion parameter", {
 })
 
 
+test_that("count rate multiplier adjusts only selected subjects and periods", {
+    draws <- make_count_draws(strategy = "MAR", phi = 0.5)
+    updated_strategy <- data.frame(
+        id = "active",
+        strategy = "DOUBLE_RATE"
+    )
+    strategies <- get_count_strategies(
+        DOUBLE_RATE = count_strategy(
+            base = "MAR",
+            rate_multiplier = 2,
+            period = "3"
+        )
+    )
+
+    set.seed(904)
+    expected <- stats::rnbinom(
+        n = 2,
+        size = c(2 + 5, 2 + 3),
+        prob = c(
+            (2 + 4) / (2 + 4 + 2),
+            (2 + 8) / (2 + 8 + 2 * 4)
+        )
+    )
+    set.seed(904)
+    actual <- impute(
+        draws,
+        update_strategy = updated_strategy,
+        strategies = strategies
+    )
+    completed <- extract_imputed_dfs(actual)[[1]]
+
+    expect_equal(completed$outcome[completed$period == "3"], expected)
+    expect_identical(draws$data$strategies$active, "MAR")
+    expect_identical(actual$data$strategies$active, "DOUBLE_RATE")
+    expect_s3_class(
+        actual$count_strategies$DOUBLE_RATE,
+        "count_strategy"
+    )
+})
+
+
+test_that("fixed lambda rate uses the posterior dispersion draw", {
+    draws <- make_count_draws(strategy = "MAR", phi = 0.5)
+    updated_strategy <- data.frame(
+        id = "active",
+        strategy = "FIXED_LAMBDA"
+    )
+    strategies <- get_count_strategies(
+        FIXED_LAMBDA = count_strategy(
+            base = "MAR",
+            fixed_lambda_rate = 0.25,
+            period = "3"
+        )
+    )
+
+    set.seed(905)
+    expected <- stats::rnbinom(
+        n = 2,
+        size = c(2 + 5, 2 + 3),
+        prob = c(
+            (2 + 4) / (2 + 4 + 2),
+            (2 + 8) / (2 + 8 + 0.25 / 0.5)
+        )
+    )
+    set.seed(905)
+    actual <- impute(
+        draws,
+        update_strategy = updated_strategy,
+        strategies = strategies
+    )
+    completed <- extract_imputed_dfs(actual)[[1]]
+
+    expect_equal(completed$outcome[completed$period == "3"], expected)
+})
+
+
+test_that("controlled count strategy inputs are validated", {
+    expect_error(
+        count_strategy(rate_multiplier = -1),
+        "Invalid"
+    )
+    expect_error(
+        count_strategy(
+            rate_multiplier = 2,
+            fixed_lambda_rate = 0.1
+        ),
+        "Only one"
+    )
+    expect_error(
+        get_count_strategies(count_strategy()),
+        "must be named"
+    )
+})
+
+
 test_that("group-specific dispersion draws must be named", {
     expect_error(
         sample_single_count(

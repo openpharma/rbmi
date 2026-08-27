@@ -666,5 +666,167 @@ left_join(
     dplyr::mutate_all(~ ifelse(is.numeric(.), round(., 4), .))
 ```
 
+### Fixed rate model for the active arms
+
+The next controlled-imputation analysis retains the estimated off-treatment
+rate for placebo, but replaces the model-based period-3 rate for both active
+arms with a fixed value.
+
+There is an important parameterization detail. The executed SAS code fixes
+`0.0021` on its negative-multinomial lambda scale. If
+$r = \phi^{-1}$ is the negative-multinomial shape parameter, the mean used to
+impute period 3 is therefore
+
+$$
+\mu_{i3} = r L_{i3} \times 0.0021
+          = \frac{L_{i3} \times 0.0021}{\phi}.
+$$
+
+Consequently, `0.0021` is not a fixed marginal event rate. A genuinely fixed
+event rate would instead use $\mu_{i3} = L_{i3} \times 0.0021$.
+
+Controlled count strategies are applied in `impute()`, after the posterior
+parameters have been drawn. Each strategy has a base trajectory (`MAR`, `JR`,
+or `CR`) and an optional transformation of the missing-cell rate. Thus the
+original `drawObj` can be reused without refitting the observed-data model.
+
+First, we identify the period-3 withdrawals in the active arms and update only
+their imputation strategy. Placebo patients retain MAR imputation using the
+estimated placebo off-treatment rate.
+
+```{r}
+active_period3_strategy <- dat_count_filled |>
+    filter(
+        period == "3",
+        Length > 0,
+        TreatLab != "Placebo"
+    ) |>
+    distinct(patient) |>
+    mutate(strategy = "FIXED_LAMBDA")
+
+fixed_lambda_strategies <- get_count_strategies(
+    FIXED_LAMBDA = count_strategy(
+        base = "MAR",
+        fixed_lambda_rate = 0.0021,
+        period = "3"
+    )
+)
+
+set.seed(123)
+imputeObj_fixed_lambda <- impute(
+    drawObj,
+    update_strategy = active_period3_strategy,
+    strategies = fixed_lambda_strategies
+)
+```
+
+The treatment-policy analysis and pooling steps are unchanged.
+
+```{r}
+anaObj_fixed_lambda <- analyse(
+    imputeObj_fixed_lambda,
+    neg_bin_regression,
+    vars = ana_vars
+)
+
+poolObj_fixed_lambda <- pool(
+    anaObj_fixed_lambda,
+    conf.level = 0.95,
+    alternative = "two.sided"
+)
+
+rate_ratios_fixed_lambda <- as.data.frame(poolObj_fixed_lambda) |>
+    filter(parameter %in% c("TreatLab100mg", "TreatLab300mg")) |>
+    transmute(
+        comparison = recode(
+            parameter,
+            TreatLab100mg = "100mg vs Placebo",
+            TreatLab300mg = "300mg vs Placebo"
+        ),
+        rbmi_rate_ratio = exp(est),
+        rbmi_lower_95 = exp(lci),
+        rbmi_upper_95 = exp(uci),
+        rbmi_p_value = pval
+    )
+
+left_join(
+    rate_ratios_fixed_lambda,
+    filter(sas_results, model == "Fixed 0.01 active imputed"),
+    by = "comparison"
+) |>
+    select(-model) |>
+    mutate_all(~ ifelse(is.numeric(.), round(., 4), .))
+```
+
+### Off-treatment estimate is doubled for the active arms
+
+The same controlled-imputation mechanism can multiply rather than replace the
+model-based mean. Here the active-arm period-3 mean is twice the corresponding
+estimated off-treatment mean, while placebo is unchanged:
+
+$$
+\mu_{i3}^{\text{impute}} = 2\mu_{i3}^{\text{model}}.
+$$
+
+Only the strategy definition changes. Its base remains MAR, so each active-arm
+patient retains their randomized arm's modeled off-treatment trajectory and
+dispersion parameter before the multiplier is applied.
+
+```{r}
+active_period3_double_strategy <- active_period3_strategy |>
+    mutate(strategy = "DOUBLE_RATE")
+
+double_rate_strategies <- get_count_strategies(
+    DOUBLE_RATE = count_strategy(
+        base = "MAR",
+        rate_multiplier = 2,
+        period = "3"
+    )
+)
+
+set.seed(123)
+imputeObj_double_rate <- impute(
+    drawObj,
+    update_strategy = active_period3_double_strategy,
+    strategies = double_rate_strategies
+)
+```
+
+```{r}
+anaObj_double_rate <- analyse(
+    imputeObj_double_rate,
+    neg_bin_regression,
+    vars = ana_vars
+)
+
+poolObj_double_rate <- pool(
+    anaObj_double_rate,
+    conf.level = 0.95,
+    alternative = "two.sided"
+)
+
+rate_ratios_double_rate <- as.data.frame(poolObj_double_rate) |>
+    filter(parameter %in% c("TreatLab100mg", "TreatLab300mg")) |>
+    transmute(
+        comparison = recode(
+            parameter,
+            TreatLab100mg = "100mg vs Placebo",
+            TreatLab300mg = "300mg vs Placebo"
+        ),
+        rbmi_rate_ratio = exp(est),
+        rbmi_lower_95 = exp(lci),
+        rbmi_upper_95 = exp(uci),
+        rbmi_p_value = pval
+    )
+
+left_join(
+    rate_ratios_double_rate,
+    filter(sas_results, model == "Delta Active double rate off"),
+    by = "comparison"
+) |>
+    select(-model) |>
+    mutate_all(~ ifelse(is.numeric(.), round(., 4), .))
+```
+
 
 ## References 
