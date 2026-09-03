@@ -55,6 +55,10 @@ get_within <- function(x, real) {
         mutate(inside = real >= lci & real <= uci)
 }
 
+get_shared_sigma_draws <- function(samples) {
+    lapply(samples, function(sample_sigma) sample_sigma[[1]])
+}
+
 test_extract_draws <- function(draws_extracted, same_cov, n_groups, n_visits) {
     expect_type(draws_extracted, "list")
     expect_length(draws_extracted, 2)
@@ -659,7 +663,10 @@ test_that("fit_mcmc can recover known values with same_cov = TRUE", {
     beta_within <- get_within(fit$samples$beta, c(10, 6, 3, 7, 0, 0, 7, 14))
     assert_that(all(beta_within$inside))
 
-    sigma_within <- get_within(fit$samples$sigma, unlist(as.list(sigma)))
+    sigma_within <- get_within(
+        get_shared_sigma_draws(fit$samples$sigma),
+        unlist(as.list(sigma))
+    )
     assert_that(all(sigma_within$inside))
 
     # check extract_draws() worked properly
@@ -688,7 +695,10 @@ test_that("fit_mcmc can recover known values with same_cov = TRUE", {
     beta_within <- get_within(fit$samples$beta, c(10, 6, 3, 7, 0, 0, 7, 14))
     assert_that(all(beta_within$inside))
 
-    sigma_within <- get_within(fit$samples$sigma, unlist(as.list(sigma)))
+    sigma_within <- get_within(
+        get_shared_sigma_draws(fit$samples$sigma),
+        unlist(as.list(sigma))
+    )
     assert_that(all(sigma_within$inside))
 
     # check extract_draws() worked properly
@@ -726,7 +736,10 @@ test_that("fit_mcmc can recover known values with same_cov = TRUE", {
     beta_within <- get_within(fit$samples$beta, c(10, 6, 3, 7, 0, 0, 7, 14))
     assert_that(all(beta_within$inside))
 
-    sigma_within <- get_within(fit$samples$sigma, unlist(as.list(sigma)))
+    sigma_within <- get_within(
+        get_shared_sigma_draws(fit$samples$sigma),
+        unlist(as.list(sigma))
+    )
     assert_that(all(sigma_within$inside))
 
     # check extract_draws() worked properly
@@ -966,7 +979,10 @@ test_that("fit_mcmc works with multiple chains", {
     beta_within <- get_within(fit$samples$beta, c(10, 6, 3, 7, 0, 0, 7, 14))
     assert_that(all(beta_within$inside))
 
-    sigma_within <- get_within(fit$samples$sigma, unlist(as.list(sigma)))
+    sigma_within <- get_within(
+        get_shared_sigma_draws(fit$samples$sigma),
+        unlist(as.list(sigma))
+    )
     assert_that(all(sigma_within$inside))
 
     # check extract_draws() worked properly
@@ -1027,7 +1043,7 @@ test_fit_mcmc <- function(
     assert_that(all(beta_within$inside))
 
     sigma_within <- get_within(
-        fit$samples$sigma,
+        if (same_cov) get_shared_sigma_draws(fit$samples$sigma) else fit$samples$sigma,
         rep(unlist(as.list(sigma)), ifelse(same_cov, 1, 2))
     )
     assert_that(all(sigma_within$inside))
