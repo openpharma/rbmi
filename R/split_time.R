@@ -283,13 +283,13 @@ split_time_row <- function(
             (row_end - numeric_origin) / interval_info$width
         )
         interval_index <- seq.int(first_index, last_index)
-        cell_start <- c(
+        cell_start <- pmax(
             numeric_start,
-            numeric_origin + interval_index[-1] * interval_info$width + 1
+            numeric_origin + interval_index * interval_info$width
         )
         cell_end <- pmin(
             row_end,
-            numeric_origin + (interval_index + 1) * interval_info$width
+            numeric_origin + (interval_index + 1) * interval_info$width - 1
         )
         cell_duration <- cell_end - cell_start + 1
         if (is_date) {

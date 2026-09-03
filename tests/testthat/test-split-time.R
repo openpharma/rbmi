@@ -82,6 +82,33 @@ test_that("split_time supports calendar months and weeks", {
 })
 
 
+test_that("split_time assigns fixed-width boundary days to the next interval", {
+    data <- data.frame(
+        start = 0,
+        duration = 8,
+        count = 2,
+        event1 = 1,
+        event2 = 8
+    )
+
+    actual <- split_time(
+        data,
+        start = "start",
+        duration = "duration",
+        outcome = "count",
+        event_times = c("event1", "event2"),
+        interval = 7,
+        origin = 0
+    )
+
+    expect_equal(actual$split_interval, c(0L, 1L))
+    expect_equal(actual$split_start, c(0, 7))
+    expect_equal(actual$split_end, c(6, 7))
+    expect_equal(actual$split_duration, c(7, 1))
+    expect_equal(actual$split_outcome, c(1L, 1L))
+})
+
+
 test_that("split_time requires event times to allocate positive counts", {
     data <- data.frame(start = 1, duration = 10, count = 1)
     expect_error(
