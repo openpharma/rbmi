@@ -37,28 +37,37 @@ scalerConstructor <- R6::R6Class(
         #' to `0` and scale to `1`.
         initialize = function(dat) {
             assert_that(
-                is.data.frame(dat) | is.matrix(dat),
+                is.data.frame(dat) || is.matrix(dat),
                 all(vapply(dat, is.numeric, logical(1))),
                 msg = "Input must be a numeric data.frame or matrix"
             )
 
+            # Iterating over a matrix directly iterates over its elements, not
+            # its columns. Use explicit column indices so matrices and data
+            # frames have the same scaling behaviour.
+            cols <- seq_len(ncol(dat))
+            get_col <- if (is.matrix(dat)) {
+                function(i) dat[, i]
+            } else {
+                function(i) dat[[i]]
+            }
             cat_flag <- vapply(
-                X = dat,
-                FUN = function(x) all(x %in% c(0, 1)),
+                X = cols,
+                FUN = function(i) all(get_col(i) %in% c(0, 1)),
                 FUN.VALUE = logical(1),
                 USE.NAMES = FALSE
             )
 
             centre <- vapply(
-                X = dat,
-                FUN = function(x) mean(x, na.rm = TRUE),
+                X = cols,
+                FUN = function(i) mean(get_col(i), na.rm = TRUE),
                 FUN.VALUE = numeric(1),
                 USE.NAMES = FALSE
             )
 
             scales <- vapply(
-                X = dat,
-                FUN = function(x) sd(x, na.rm = TRUE),
+                X = cols,
+                FUN = function(i) sd(get_col(i), na.rm = TRUE),
                 FUN.VALUE = numeric(1),
                 USE.NAMES = FALSE
             )
@@ -178,9 +187,10 @@ scalerConstructor <- R6::R6Class(
             predictor_centre <- self$centre[-1]
             predictor_scale <- self$scales[-1]
             unscaled_beta <- beta / predictor_scale
-            unscaled_beta[1] <- beta[1] - sum(
-                beta[-1] * predictor_centre[-1] / predictor_scale[-1]
-            )
+            unscaled_beta[1] <- beta[1] -
+                sum(
+                    beta[-1] * predictor_centre[-1] / predictor_scale[-1]
+                )
             unscaled_beta
         }
     )

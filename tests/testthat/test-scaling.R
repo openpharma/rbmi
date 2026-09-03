@@ -98,3 +98,18 @@ test_that("log-link coefficients are unscaled without transforming the outcome",
         as.vector(as.matrix(dat[, -1]) %*% beta)
     )
 })
+
+test_that("scaler handles matrices column-wise", {
+    dat <- matrix(
+        c(1, 2, 3, 4, 1, 1, 1, 1, 10, 20, 30, 40),
+        ncol = 3
+    )
+    scaler <- scalerConstructor$new(dat)
+
+    expect_length(scaler$centre, ncol(dat))
+    expect_length(scaler$scales, ncol(dat))
+    expect_equal(
+        scaler$scale(dat)[, 3],
+        as.vector(scale(dat[, 3]))
+    )
+})
