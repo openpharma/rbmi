@@ -230,9 +230,13 @@ poolObj <- pool(
 poolObj
 ```
 
-Treatment-group coefficients and their confidence limits can be exponentiated
-to obtain rate ratios. Other coefficients should only be exponentiated when
-that interpretation is appropriate for the corresponding model term.
+Treatment-group coefficients and their confidence limits have been exponentiated to obtain rate ratios.
+
+We can also look at the Monte Carlo standard errors for the results:
+
+```{r}
+mcse(poolObj, anaObj)
+```
 
 ## Comparison with SAS results
 
