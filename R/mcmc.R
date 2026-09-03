@@ -671,7 +671,7 @@ prepare_stan_data <- function(ddat, subjid, visit, outcome, group) {
         R = qr$R
     )
 
-    class(stan_dat) <- c("list", "stan_data")
+    class(stan_dat) <- c("list", "stan_data", "stan_data_continuous")
     validate(stan_dat)
     return(stan_dat)
 }

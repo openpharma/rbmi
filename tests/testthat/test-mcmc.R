@@ -331,6 +331,18 @@ test_that("as_indices", {
     expect_error(as_indices(c("11", "111")), "same length")
 })
 
+test_that("prepare_stan_data creates valid continuous Stan data", {
+    stan_data <- prepare_stan_data(
+        ddat = matrix(c(1, 2, 3, 4), ncol = 1),
+        subjid = factor(c("1", "1", "2", "2")),
+        visit = factor(c("1", "2", "1", "2")),
+        outcome = c(1, 2, 3, 4),
+        group = factor(c("A", "A", "B", "B"))
+    )
+
+    expect_s3_class(stan_data, "stan_data_continuous")
+})
+
 
 test_that("get_pattern_groups", {
     dat <- tibble(
