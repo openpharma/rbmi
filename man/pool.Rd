@@ -16,9 +16,9 @@ pool(
   type = c("percentile", "normal")
 )
 
-\method{as.data.frame}{pool}(x, ...)
+\method{as.data.frame}{pool}(x, ..., scale = c("auto", "original", "transformed"))
 
-\method{print}{pool}(x, ...)
+\method{print}{pool}(x, ..., scale = c("auto", "original", "transformed"))
 
 mcse(x, results)
 
@@ -45,6 +45,11 @@ in the original call to \code{\link[=draws]{draws()}}.}
 
 \item{...}{not used.}
 
+\item{scale}{The scale of results returned by \code{as.data.frame.pool()} or
+displayed by \code{print.pool()}. Must be \code{"auto"} (the default), \code{"original"},
+or \code{"transformed"}. \code{"auto"} uses transformed results when available and
+original results otherwise.}
+
 \item{pval_digits}{number of significant digits to print for p-values' MCSE.}
 
 \item{pval_eps}{the minimum p-values' MCSE to print.}
@@ -58,6 +63,10 @@ results with the following elements:
 \item \code{pars}: a named list with one entry per parameter, each itself a list
 containing the pooled point estimate (\code{est}), confidence interval (\code{ci}),
 standard error (\code{se}) and p-value (\code{pvalue}).
+\item \code{transformed_pars}: when \code{analyse(..., transform = ...)} was used, a named
+list of the corresponding transformed results. Point estimates and
+confidence limits are transformed directly and standard errors use the
+delta method. P-values are unchanged.
 \item \code{conf.level}: the confidence level used for the confidence intervals.
 \item \code{alternative}: the alternative hypothesis used to derive the p-values.
 \item \code{N}: the number of analysis results that were combined.
@@ -82,8 +91,10 @@ confidence interval depends upon the method specified in the original
 call to \code{\link[=draws]{draws()}}; In particular:
 \itemize{
 \item \code{method_approxbayes()} & \code{method_bayes()} both use Rubin's rules to pool estimates
-and variances across multiple imputed datasets, and the Barnard-Rubin rule to pool
-degree's of freedom; see Little & Rubin (2002).
+and variances across multiple imputed datasets. Analyses with finite complete-data
+degrees of freedom use the Barnard-Rubin rule and a t distribution; analyses with
+infinite complete-data degrees of freedom use the standard normal distribution.
+See Little & Rubin (2002).
 Here, the \code{mcse()} function can compute the Monte Carlo standard error (MCSE) of the
 pooled estimates, via a Jackknife variance estimator for all parameters; see
 Efron & Gong (1983) and Royston, Carlin & White (2009).

@@ -230,6 +230,38 @@ test_that("sort_by", {
 })
 
 
+test_that("set_vars", {
+    vars <- set_vars(
+        outcome = "outcome",
+        group = "group",
+        visit = "visit",
+        subjid = "subjid"
+    )
+
+    expect_equal(vars$outcome, "outcome")
+    expect_equal(vars$group, "group")
+    expect_equal(vars$visit, "visit")
+    expect_equal(vars$subjid, "subjid")
+    expect_null(vars$period)
+    expect_null(vars$duration)
+
+    vars_count <- set_vars(
+        outcome = "outcome",
+        group = "group",
+        subjid = "subjid",
+        period = "period",
+        duration = "duration"
+    )
+
+    expect_equal(vars_count$outcome, "outcome")
+    expect_equal(vars_count$group, "group")
+    expect_equal(vars_count$subjid, "subjid")
+    expect_equal(vars_count$period, "period")
+    expect_equal(vars_count$duration, "duration")
+    expect_null(vars_count$visit)
+})
+
+
 test_that("Stack", {
     mstack <- Stack$new()
     mstack$add(list(1, 2, 3, 4, 5, 6, 7))

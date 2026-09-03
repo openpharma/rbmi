@@ -4,7 +4,14 @@
 \alias{as_analysis}
 \title{Construct an \code{analysis} object}
 \usage{
-as_analysis(results, method, delta = NULL, fun = NULL, fun_name = NULL)
+as_analysis(
+  results,
+  method,
+  delta = NULL,
+  transform = NULL,
+  fun = NULL,
+  fun_name = NULL
+)
 }
 \arguments{
 \item{results}{A list of lists contain the analysis results for each imputation
@@ -14,6 +21,9 @@ See \code{\link[=analyse]{analyse()}} for details on what this object should loo
 
 \item{delta}{The delta dataset used. See \code{\link[=analyse]{analyse()}} for details on how this
 should be specified.}
+
+\item{transform}{The reporting-scale transformation specification used. See
+\code{\link[=analyse]{analyse()}} for details.}
 
 \item{fun}{The analysis function that was used.}
 

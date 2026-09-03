@@ -123,6 +123,9 @@ is_core_test <- function() {
 is_extended_test <- function() {
     is_envvar_true("RBMI_TEST_EXTENDED")
 }
+activate_extended_test <- function() {
+    Sys.setenv(RBMI_TEST_EXTENDED = "TRUE")
+}
 
 # Simple function to enable 1 function mocks
 with_mocking <- function(expr, ..., where) {
