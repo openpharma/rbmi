@@ -7,7 +7,7 @@ test_that("count MCMC returns named group-specific dispersion draws", {
     skip_if_not(is_core_test())
 
     dat <- utils::read.csv(system.file(
-        "data",
+        "extdata",
         "sim_rogeretal.csv",
         package = "rbmi"
     ))

@@ -4,7 +4,13 @@ suppressPackageStartupMessages({
 
 
 test_that("split_time reproduces the 91-day seasonal prototype", {
-    data <- utils::read.csv(test_path("../../data/sim_rogeretal.csv"))
+    data <- utils::read.csv(
+        system.file(
+            "extdata",
+            "sim_rogeretal.csv",
+            package = "rbmi"
+        )
+    )
     data$MyStart <- data$StartDate + data$Lengthsofar
 
     actual <- split_time(

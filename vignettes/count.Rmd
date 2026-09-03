@@ -37,7 +37,7 @@ library(dplyr)
 pkgload::load_all()
 
 dat_count_raw <- read.csv(
-    system.file("data", "sim_rogeretal.csv", package = "rbmi")
+    system.file("extdata", "sim_rogeretal.csv", package = "rbmi")
 )
 dat_count <- dat_count_raw |>
     dplyr::select(
