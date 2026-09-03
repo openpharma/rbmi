@@ -459,10 +459,10 @@ extract_draws <- function(stan_fit, n_samples) {
 #' A named vector containing the ESS for each parameter of the model.
 #'
 get_ESS <- function(stan_fit) {
-    # TODO: Have a better way to select correct parameters
-    return(rstan::summary(stan_fit, pars = stan_fit@model_pars[1:2])$summary[,
-        "n_eff"
-    ])
+    # `sampling()` retains only the parameters requested in `pars`.  These are
+    # stored in `sim$pars_oi`, whereas `model_pars` contains every parameter
+    # declared in the Stan program (including parameters that were not saved).
+    return(rstan::summary(stan_fit)$summary[, "n_eff"])
 }
 
 
