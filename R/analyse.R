@@ -603,7 +603,7 @@ use_transform <- function(expression) {
         all(all.vars(transform_expression) %in% "x"),
         msg = "`expression` must be an expression in `x`"
     )
-    derivative_expression <- D(transform_expression, "x")
+    derivative_expression <- stats::D(transform_expression, "x")
 
     list(
         transform = function(x) {
