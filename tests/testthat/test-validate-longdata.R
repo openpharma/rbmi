@@ -54,7 +54,7 @@ vars <- set_vars(
 dat_period <- dat %>%
     mutate(
         period = as.character(as.integer(visit)),
-        duration = rep(c(2, 0, NA_real_), times = n)
+        duration = rep(c(2, 0, 1), times = n)
     )
 
 vars_period <- set_vars(
@@ -315,7 +315,10 @@ test_that("validate_datalong_notMissing", {
 
     dat2 <- dat_period
     dat2$duration[c(1, 2, 3)] <- NA
-    expect_true(validate_datalong_notMissing(dat2, vars_period))
+    expect_error(
+        validate_datalong_notMissing(dat2, vars_period),
+        "Variable duration contains missing data"
+    )
 
     dat2 <- dat_period
     dat2$period[c(1, 2, 3)] <- NA
@@ -367,6 +370,13 @@ test_that("validate_datalong_uniformStrata", {
 test_that("validate_data_long", {
     expect_true(validate_datalong(dat, vars))
     expect_true(validate_datalong(dat_period, vars_period))
+
+    dat2 <- dat_period
+    dat2$duration[1] <- NA_real_
+    expect_error(
+        validate_datalong(dat2, vars_period),
+        "Variable duration contains missing data"
+    )
 })
 
 

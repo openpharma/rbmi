@@ -201,6 +201,9 @@ validate_datalong_notMissing <- function(data, vars) {
         vars$strata,
         extract_covariates(vars$covariates)
     )
+    if (uses_period(vars)) {
+        non_missing_variables <- c(non_missing_variables, vars$duration)
+    }
     for (var in non_missing_variables) {
         if (any(is.na(data[[var]]))) {
             stop(paste0("Variable ", var, " contains missing data"))
