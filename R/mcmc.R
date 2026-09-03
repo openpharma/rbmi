@@ -93,8 +93,6 @@ prepare_prior_params <- function(
 #'   omitted, `outcome` is treated as unscaled.
 #' @param group Character vector containing the group variable.
 #' @param subjid Character vector containing the subjects IDs.
-#' @param sample_ids Character vector containing the original subject IDs to
-#'   attach to each posterior sample. Defaults to the unique values of `subjid`.
 #' @param visit Character vector containing the visit variable. `NULL` if
 #'   `period` is used instead.
 #' @param period Character vector containing the period variable. `NULL` if
@@ -147,7 +145,6 @@ fit_mcmc <- function(
     duration,
     method,
     scaler = NULL,
-    sample_ids = as.character(unique(subjid)),
     quiet = FALSE
 ) {
     outcome_type <- match.arg(outcome_type)
@@ -304,28 +301,12 @@ fit_mcmc <- function(
             }
         )
 
-        # unscale samples
-        draws <- mapply(
-            function(x, y) list("beta" = x, "sigma" = y),
-            lapply(draws$beta, scaler$unscale_beta),
-            lapply(draws$sigma, function(covs) {
-                lapply(covs, scaler$unscale_sigma)
-            }),
-            SIMPLIFY = FALSE
-        )
-
-        # set ids associated to each sample
-        draws <- lapply(
-            draws,
-            function(x) {
-                sample_single(
-                    ids = sample_ids,
-                    beta = x$beta,
-                    sigma = x$sigma,
-                    failed = FALSE
-                )
-            }
-        )
+        # unscale samples while preserving the parameter-major structure
+        # returned by extract_draws().
+        draws$beta <- lapply(draws$beta, scaler$unscale_beta)
+        draws$sigma <- lapply(draws$sigma, function(covs) {
+            lapply(covs, scaler$unscale_sigma)
+        })
     } else {
         draws <- extract_draws_count(fit, method$n_samples)
 
@@ -343,13 +324,7 @@ fit_mcmc <- function(
             )
         }
 
-        draws <- mapply(
-            sample_single_count,
-            beta = lapply(draws$beta, scaler$unscale_beta_log_link),
-            phi = draws$phi,
-            MoreArgs = list(ids = sample_ids),
-            SIMPLIFY = FALSE
-        )
+        draws$beta <- lapply(draws$beta, scaler$unscale_beta_log_link)
     }
 
     ret_obj <- list(

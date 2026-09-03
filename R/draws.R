@@ -634,13 +634,30 @@ draws.bayes <- function(
         subjid = data2[[vars$subjid]],
         method = method,
         scaler = scaler,
-        sample_ids = longdata$ids,
         quiet = quiet
     )
 
+    samples <- if (outcome == "continuous") {
+        mapply(
+            sample_single,
+            beta = fit$samples$beta,
+            sigma = fit$samples$sigma,
+            MoreArgs = list(ids = longdata$ids, failed = FALSE),
+            SIMPLIFY = FALSE
+        )
+    } else {
+        mapply(
+            sample_single_count,
+            beta = fit$samples$beta,
+            phi = fit$samples$phi,
+            MoreArgs = list(ids = longdata$ids),
+            SIMPLIFY = FALSE
+        )
+    }
+
     result <- as_draws(
         method = method,
-        samples = sample_list(fit$samples),
+        samples = sample_list(samples),
         data = longdata,
         fit = fit$fit,
         formula = longdata$formula,
