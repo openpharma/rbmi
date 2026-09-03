@@ -116,6 +116,80 @@ test_that("Rubin pooling retains t inference for finite complete-data df", {
 })
 
 
+test_that("pool retains and reports transformed parameters separately", {
+    analysis_results <- list(
+        list(p1 = list(est = log(2), se = 0.20, df = Inf)),
+        list(p1 = list(est = log(3), se = 0.25, df = Inf))
+    )
+    original_analysis <- as_analysis(
+        results = analysis_results,
+        method = method_bayes(n_samples = 2)
+    )
+    transformed_analysis <- as_analysis(
+        results = analysis_results,
+        method = method_bayes(n_samples = 2),
+        transform = use_transform(exp(x))
+    )
+
+    original <- pool(original_analysis)
+    transformed <- pool(transformed_analysis)
+    expected <- original$pars$p1
+    observed <- transformed$transformed_pars$p1
+
+    expect_equal(transformed$pars, original$pars)
+    expect_equal(observed$est, exp(expected$est))
+    expect_equal(observed$ci, exp(expected$ci))
+    expect_equal(observed$se, exp(expected$est) * expected$se)
+    expect_equal(observed$pvalue, expected$pvalue)
+    expect_equal(
+        as.data.frame(transformed, scale = "original"),
+        as.data.frame(original)
+    )
+    expect_equal(
+        as.data.frame(transformed)$est,
+        exp(as.data.frame(original)$est)
+    )
+    expect_output(print(transformed), "transformation applied")
+    expect_error(
+        as.data.frame(original, scale = "transformed"),
+        "Transformed results are unavailable"
+    )
+})
+
+
+test_that("transformation supports estimate-only results and retains df", {
+    analysis <- as_analysis(
+        results = list(
+            list(p1 = list(est = log(2))),
+            list(p1 = list(est = log(3))),
+            list(p1 = list(est = log(4)))
+        ),
+        method = method_condmean(n_samples = 2),
+        transform = use_transform(exp(x))
+    )
+    observed <- pool(analysis, type = "normal")
+
+    expect_true(is.finite(observed$transformed_pars$p1$est))
+    expect_equal(
+        observed$transformed_pars$p1$se,
+        observed$transformed_pars$p1$est * observed$pars$p1$se
+    )
+    expect_equal(
+        transform_pooled_par(
+            list(
+                est = log(2),
+                ci = log(c(1.5, 2.5)),
+                se = 0.1,
+                pvalue = 0.05,
+                df = 12
+            ),
+            use_transform(exp(x))
+        )$df,
+        12
+    )
+})
+
+
 test_that("pval_percentile", {
     est <- c(0, rep(1, 3))
     pvals <- pval_percentile(est)

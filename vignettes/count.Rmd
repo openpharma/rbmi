@@ -230,7 +230,8 @@ poolObj <- pool(
 poolObj
 ```
 
-Treatment-group coefficients and their confidence limits have been exponentiated to obtain rate ratios.
+The displayed results have been exponentiated to obtain rate ratios. The
+original log-rate-scale results remain available in `poolObj$pars`.
 
 We can also look at the Monte Carlo standard errors for the results:
 
@@ -251,9 +252,9 @@ rate_ratios_shared <- as.data.frame(poolObj) |>
             TreatLab100mg = "100mg vs Placebo",
             TreatLab300mg = "300mg vs Placebo"
         ),
-        rbmi_rate_ratio = exp(est),
-        rbmi_lower_95 = exp(lci),
-        rbmi_upper_95 = exp(uci),
+        rbmi_rate_ratio = est,
+        rbmi_lower_95 = lci,
+        rbmi_upper_95 = uci,
         rbmi_p_value = pval
     )
 
@@ -353,7 +354,7 @@ poolObj_by_arm
 ```
 
 For comparison with implementations that report treatment effects as rate
-ratios, exponentiate the treatment coefficients and their confidence limits:
+ratios, extract the transformed pooled results:
 
 ```{r}
 rate_ratios_by_arm <- as.data.frame(poolObj_by_arm) |>
@@ -364,9 +365,9 @@ rate_ratios_by_arm <- as.data.frame(poolObj_by_arm) |>
             TreatLab100mg = "100mg vs Placebo",
             TreatLab300mg = "300mg vs Placebo"
         ),
-        rate_ratio = exp(est),
-        lower_95 = exp(lci),
-        upper_95 = exp(uci),
+        rate_ratio = est,
+        lower_95 = lci,
+        upper_95 = uci,
         p_value = pval
     )
 rate_ratios_by_arm
@@ -470,9 +471,9 @@ rate_ratios_all_treatment_interactions <- as.data.frame(
             TreatLab100mg = "100mg vs Placebo",
             TreatLab300mg = "300mg vs Placebo"
         ),
-        rbmi_rate_ratio = exp(est),
-        rbmi_lower_95 = exp(lci),
-        rbmi_upper_95 = exp(uci),
+        rbmi_rate_ratio = est,
+        rbmi_lower_95 = lci,
+        rbmi_upper_95 = uci,
         rbmi_p_value = pval
     )
 
@@ -655,9 +656,9 @@ rate_ratios_season <- as.data.frame(poolObj_season) |>
             TreatLab100mg = "100mg vs Placebo",
             TreatLab300mg = "300mg vs Placebo"
         ),
-        rbmi_rate_ratio = exp(est),
-        rbmi_lower_95 = exp(lci),
-        rbmi_upper_95 = exp(uci),
+        rbmi_rate_ratio = est,
+        rbmi_lower_95 = lci,
+        rbmi_upper_95 = uci,
         rbmi_p_value = pval
     )
 
@@ -747,9 +748,9 @@ rate_ratios_fixed_lambda <- as.data.frame(poolObj_fixed_lambda) |>
             TreatLab100mg = "100mg vs Placebo",
             TreatLab300mg = "300mg vs Placebo"
         ),
-        rbmi_rate_ratio = exp(est),
-        rbmi_lower_95 = exp(lci),
-        rbmi_upper_95 = exp(uci),
+        rbmi_rate_ratio = est,
+        rbmi_lower_95 = lci,
+        rbmi_upper_95 = uci,
         rbmi_p_value = pval
     )
 
@@ -817,9 +818,9 @@ rate_ratios_double_rate <- as.data.frame(poolObj_double_rate) |>
             TreatLab100mg = "100mg vs Placebo",
             TreatLab300mg = "300mg vs Placebo"
         ),
-        rbmi_rate_ratio = exp(est),
-        rbmi_lower_95 = exp(lci),
-        rbmi_upper_95 = exp(uci),
+        rbmi_rate_ratio = est,
+        rbmi_lower_95 = lci,
+        rbmi_upper_95 = uci,
         rbmi_p_value = pval
     )
 

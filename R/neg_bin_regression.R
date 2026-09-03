@@ -6,7 +6,10 @@
 #' of total duration as an offset.
 #'
 #' All regression coefficients are returned on the model's log-rate scale so
-#' that they can be pooled with Rubin's rules by [pool()]. This includes the
+#' that they can be pooled with Rubin's rules by [pool()]. For reporting,
+#' `neg_bin_regression()` has an exponential transformation attached, so
+#' [analyse()] and [pool()] report its pooled parameters on the rate-ratio
+#' scale by default. This includes the
 #' intercept, the treatment-group coefficients, and coefficients for any other
 #' terms in `vars$covariates`. The first level of `vars$group` is used as the
 #' reference group.
@@ -110,7 +113,11 @@ neg_bin_regression <- function(data, vars) {
     )
 
     first_rows <- vapply(rows_by_subject, `[[`, integer(1), 1)
-    subject_data <- data[first_rows, unique(c(subjid, subject_vars)), drop = FALSE]
+    subject_data <- data[
+        first_rows,
+        unique(c(subjid, subject_vars)),
+        drop = FALSE
+    ]
     subject_data[[outcome]] <- vapply(
         rows_by_subject,
         function(rows) sum(data[[outcome]][rows]),
@@ -137,7 +144,10 @@ neg_bin_regression <- function(data, vars) {
     log_duration <- "..rbmi..count..log_duration"
     assert_that(
         !log_duration %in% names(subject_data),
-        msg = sprintf("Variable name `%s` is reserved for internal use", log_duration)
+        msg = sprintf(
+            "Variable name `%s` is reserved for internal use",
+            log_duration
+        )
     )
     subject_data[[log_duration]] <- log(subject_data[[duration]])
     frm <- as_simple_formula(
@@ -169,6 +179,10 @@ neg_bin_regression <- function(data, vars) {
     result
 }
 
+attr(neg_bin_regression, "transform") <- list(
+    transform = exp,
+    derivative = exp
+)
 
 #' Covariance matrix for a negative binomial regression model
 #'

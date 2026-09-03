@@ -16,7 +16,7 @@ pool(
   type = c("percentile", "normal")
 )
 
-\method{as.data.frame}{pool}(x, ...)
+\method{as.data.frame}{pool}(x, ..., scale = c("auto", "original", "transformed"))
 
 \method{print}{pool}(x, ...)
 
@@ -45,6 +45,10 @@ in the original call to \code{\link[=draws]{draws()}}.}
 
 \item{...}{not used.}
 
+\item{scale}{The scale of results returned by \code{as.data.frame.pool()}. Must
+be \code{"auto"} (the default), \code{"original"}, or \code{"transformed"}. \code{"auto"} uses
+transformed results when available and original results otherwise.}
+
 \item{pval_digits}{number of significant digits to print for p-values' MCSE.}
 
 \item{pval_eps}{the minimum p-values' MCSE to print.}
@@ -58,6 +62,10 @@ results with the following elements:
 \item \code{pars}: a named list with one entry per parameter, each itself a list
 containing the pooled point estimate (\code{est}), confidence interval (\code{ci}),
 standard error (\code{se}) and p-value (\code{pvalue}).
+\item \code{transformed_pars}: when \code{analyse(..., transform = ...)} was used, a named
+list of the corresponding transformed results. Point estimates and
+confidence limits are transformed directly and standard errors use the
+delta method. P-values are unchanged.
 \item \code{conf.level}: the confidence level used for the confidence intervals.
 \item \code{alternative}: the alternative hypothesis used to derive the p-values.
 \item \code{N}: the number of analysis results that were combined.
