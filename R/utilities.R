@@ -412,13 +412,13 @@ sort_by <- function(df, vars = NULL, decreasing = FALSE) {
 set_vars <- function(
     subjid = "subjid",
     visit = "visit",
-    period = NULL,
-    duration = NULL,
     outcome = "outcome",
     group = "group",
     covariates = character(0),
     strata = group,
-    strategy = "strategy"
+    strategy = "strategy",
+    period = NULL,
+    duration = NULL
 ) {
     if (!is.null(period)) {
         assert_that(
