@@ -163,6 +163,25 @@ test_that("pool retains and reports transformed parameters separately", {
 })
 
 
+test_that("pool orders confidence limits after a decreasing transformation", {
+    analysis <- as_analysis(
+        results = list(
+            list(p1 = list(est = 2, se = 0.20, df = Inf)),
+            list(p1 = list(est = 3, se = 0.25, df = Inf))
+        ),
+        method = method_bayes(n_samples = 2),
+        transform = use_transform(-x)
+    )
+
+    pooled <- pool(analysis)
+    original_ci <- pooled$pars$p1$ci
+    transformed_ci <- pooled$transformed_pars$p1$ci
+
+    expect_equal(transformed_ci, sort(-original_ci))
+    expect_lte(transformed_ci[1], transformed_ci[2])
+})
+
+
 test_that("transformation supports estimate-only results and retains df", {
     analysis <- as_analysis(
         results = list(

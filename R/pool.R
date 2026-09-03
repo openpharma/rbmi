@@ -238,7 +238,7 @@ transform_pooled_par <- function(par, transform) {
     )
 
     par$est <- transformed_est
-    par$ci <- transformed_ci
+    par$ci <- sort(transformed_ci)
     par$se <- abs(derivative) * par$se
     par
 }
