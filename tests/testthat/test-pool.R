@@ -150,8 +150,14 @@ test_that("pool retains and reports transformed parameters separately", {
         exp(as.data.frame(original)$est)
     )
     expect_output(print(transformed), "transformation applied")
+    original_print <- capture.output(print(transformed, scale = "original"))
+    expect_false(any(grepl("transformation applied", original_print, fixed = TRUE)))
     expect_error(
         as.data.frame(original, scale = "transformed"),
+        "Transformed results are unavailable"
+    )
+    expect_error(
+        print(original, scale = "transformed"),
         "Transformed results are unavailable"
     )
 })

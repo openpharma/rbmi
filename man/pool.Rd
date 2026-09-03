@@ -18,7 +18,7 @@ pool(
 
 \method{as.data.frame}{pool}(x, ..., scale = c("auto", "original", "transformed"))
 
-\method{print}{pool}(x, ...)
+\method{print}{pool}(x, ..., scale = c("auto", "original", "transformed"))
 
 mcse(x, results)
 
@@ -45,9 +45,10 @@ in the original call to \code{\link[=draws]{draws()}}.}
 
 \item{...}{not used.}
 
-\item{scale}{The scale of results returned by \code{as.data.frame.pool()}. Must
-be \code{"auto"} (the default), \code{"original"}, or \code{"transformed"}. \code{"auto"} uses
-transformed results when available and original results otherwise.}
+\item{scale}{The scale of results returned by \code{as.data.frame.pool()} or
+displayed by \code{print.pool()}. Must be \code{"auto"} (the default), \code{"original"},
+or \code{"transformed"}. \code{"auto"} uses transformed results when available and
+original results otherwise.}
 
 \item{pval_digits}{number of significant digits to print for p-values' MCSE.}
 
