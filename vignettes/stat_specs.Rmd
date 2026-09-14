@@ -400,7 +400,7 @@ where $V_W(\hat{\theta}) = \frac{1}{M}\sum_{m = 1}^M SE^2_m$ is the within-varia
 Confidence intervals and tests of the null hypothesis $H_0: \theta=\theta_0$ are based on the $t$-statistics $T$:
 
 $$ T= (\hat{\theta}-\theta_0)/\sqrt{V(\hat{\theta})}. $$
-Under the null hypothesis, $T$ has an approximate $t$-distribution with $\nu$ degrees of freedom. $\nu$ is calculated according to the Barnard and Rubin approximation, see @Barnard1999 (formula 3) or @LittleRubin1992 (formula (5.24), page 87): 
+Under the null hypothesis, $T$ has an approximate $t$-distribution with $\nu$ degrees of freedom. By default, `pool(rubin_method = "modern")` calculates $\nu$ according to the Barnard and Rubin approximation, see @Barnard1999 (formula 3) or @LittleRubin1992 (formula (5.24), page 87):
 
 $$
 \nu = \frac{\nu_{old}* \nu_{obs}}{\nu_{old} + \nu_{obs}}
@@ -410,6 +410,16 @@ $$
 \nu_{old} = \frac{M-1}{\lambda^2} \quad\mbox{and}\quad \nu_{obs} = \frac{\nu_{com} + 1}{\nu_{com} + 3} \nu_{com} (1 - \lambda)
 $$
 where $\lambda = \frac{(1 + \frac{1}{M})V_B(\hat{\theta})}{V(\hat{\theta})}$ is the fraction of missing information.
+
+Alternatively, `pool(rubin_method = "original")` uses the original degrees-of-freedom approximation from @Rubin1987 (equation 3.1.6):
+$$
+\nu = (M - 1)\left(1 + \frac{1}{r}\right)^2,
+$$
+where
+$$
+r = \frac{(1 + \frac{1}{M})V_B(\hat{\theta})}{V_W(\hat{\theta})}
+$$
+is the relative increase in variance due to nonresponse. Unlike the Barnard and Rubin approximation, the original approximation does not account for the complete-data degrees of freedom $\nu_{com}$ and can therefore give overly large degrees of freedom in small samples. Both approximations give $\nu=\infty$ when $V_B(\hat{\theta})=0$.
 
 ### Monte Carlo standard error
 
@@ -568,5 +578,4 @@ An established software implementation of reference-based imputation in SAS are 
 In contrast, the more general causal model introduced by @White2020causal is available in the other implementations but is currently not supported by ours. 
 
 # References 
-
 

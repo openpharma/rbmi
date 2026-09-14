@@ -1,5 +1,10 @@
 # rbmi (development version)
 
+## New Features
+* `pool()` gains a `rubin_method` argument. The default `"modern"` uses the
+  Barnard-Rubin small-sample degrees-of-freedom adjustment, while `"original"`
+  uses the original approximation from Rubin (1987).
+
 # rbmi 1.6.1
 
 ## New Features

@@ -4,7 +4,7 @@
 \alias{rubin_rules}
 \title{Combine estimates using Rubin's rules}
 \usage{
-rubin_rules(ests, ses, v_com)
+rubin_rules(ests, ses, v_com, method)
 }
 \arguments{
 \item{ests}{Numeric vector containing the point estimates from the complete-data analyses.}
@@ -12,13 +12,17 @@ rubin_rules(ests, ses, v_com)
 \item{ses}{Numeric vector containing the standard errors from the complete-data analyses.}
 
 \item{v_com}{Positive number representing the degrees of freedom in the complete-data analysis.}
+
+\item{method}{Degrees-of-freedom approximation to use: \code{"modern"} applies
+the Barnard-Rubin (1999) small-sample adjustment and \code{"original"} applies
+Rubin's (1987) original approximation.}
 }
 \value{
 A list containing:
 \itemize{
 \item \code{est_point}: the pooled point estimate according to Little-Rubin (2002).
 \item \code{var_t}: total variance according to Little-Rubin (2002).
-\item \code{df}: degrees of freedom according to Barnard-Rubin (1999).
+\item \code{df}: degrees of freedom according to the selected \code{method}.
 }
 }
 \description{
@@ -30,8 +34,8 @@ the results from a multiple imputation procedure. The pooled point estimate \cod
 is the average across the point estimates from the complete-data analyses (given by the input argument \code{ests}).
 The total variance \code{var_t} is the sum of two terms representing the within-variance
 and the between-variance (see Little-Rubin (2002)). The function
-also returns \code{df}, the estimated pooled degrees of freedom according to Barnard-Rubin (1999)
-that can be used for inference based on the t-distribution.
+also returns \code{df}, the estimated pooled degrees of freedom according to the
+selected \code{method}, which can be used for inference based on the t-distribution.
 }
 \references{
 Barnard, J. and Rubin, D.B. (1999).
@@ -39,6 +43,9 @@ Small sample degrees of freedom with multiple imputation. Biometrika, 86, 948-95
 
 Roderick J. A. Little and Donald B. Rubin. Statistical Analysis with Missing
 Data, Second Edition. John Wiley & Sons, Hoboken, New Jersey, 2002. [Section 5.4]
+
+Rubin, D.B. (1987). Multiple Imputation for Nonresponse in Surveys.
+John Wiley & Sons, New York. [Section 3.3]
 }
 \seealso{
 \code{\link[=rubin_df]{rubin_df()}} for the degrees of freedom estimation.
