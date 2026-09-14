@@ -226,14 +226,7 @@ get_pool_components <- function(x) {
 #' @name pool_internal
 #' @keywords internal
 #' @export
-pool_internal <- function(
-    results,
-    conf.level,
-    alternative,
-    type,
-    D,
-    rubin_method = c("modern", "original")
-) {
+pool_internal <- function(results, conf.level, alternative, type, D, ...) {
     UseMethod("pool_internal")
 }
 
@@ -247,7 +240,7 @@ pool_internal.jackknife <- function(
     alternative,
     type,
     D,
-    rubin_method = c("modern", "original")
+    ...
 ) {
     alpha <- 1 - conf.level
     ests <- results$est
@@ -269,7 +262,7 @@ pool_internal.bootstrap <- function(
     alternative,
     type = c("percentile", "normal"),
     D,
-    rubin_method = c("modern", "original")
+    ...
 ) {
     type <- match.arg(type)
     bootfun <- switch(
@@ -292,7 +285,7 @@ pool_internal.bmlmi <- function(
     alternative,
     type,
     D,
-    rubin_method = c("modern", "original")
+    ...
 ) {
     ests <- results$est
     alpha <- 1 - conf.level
@@ -381,7 +374,8 @@ pool_internal.rubin <- function(
     alternative,
     type,
     D,
-    rubin_method = c("modern", "original")
+    rubin_method,
+    ...
 ) {
     ests <- results$est
     ses <- results$se
@@ -508,9 +502,13 @@ rubin_rules <- function(
     ests,
     ses,
     v_com,
-    method = c("modern", "original")
+    method
 ) {
-    method <- match.arg(method)
+    assert_that(
+        length(method) == 1,
+        method %in% c("modern", "original"),
+        msg = "`method` must be either 'modern' or 'original'"
+    )
     M <- length(ests)
     est_point <- mean(ests)
 
