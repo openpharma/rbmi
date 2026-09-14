@@ -135,7 +135,8 @@ pool <- function(
     results,
     conf.level = 0.95,
     alternative = c("two.sided", "less", "greater"),
-    type = c("percentile", "normal")
+    type = c("percentile", "normal"),
+    rubin_method = c("modern", "original")
 ) {
     assert_that(
         has_class(results, "analysis")
@@ -144,6 +145,7 @@ pool <- function(
 
     alternative <- match.arg(alternative)
     type <- match.arg(type)
+    rubin_method <- match.arg(rubin_method)
 
     assert_that(
         is.numeric(conf.level),
@@ -165,7 +167,8 @@ pool <- function(
         conf.level = conf.level,
         alternative = alternative,
         type = type,
-        D = results$method$D
+        D = results$method$D,
+        rubin_method = rubin_method
     )
 
     if (pool_type == "bootstrap") {
@@ -223,7 +226,14 @@ get_pool_components <- function(x) {
 #' @name pool_internal
 #' @keywords internal
 #' @export
-pool_internal <- function(results, conf.level, alternative, type, D) {
+pool_internal <- function(
+    results,
+    conf.level,
+    alternative,
+    type,
+    D,
+    rubin_method = c("modern", "original")
+) {
     UseMethod("pool_internal")
 }
 
@@ -231,7 +241,14 @@ pool_internal <- function(results, conf.level, alternative, type, D) {
 #' @importFrom stats qnorm pnorm
 #' @rdname pool_internal
 #' @export
-pool_internal.jackknife <- function(results, conf.level, alternative, type, D) {
+pool_internal.jackknife <- function(
+    results,
+    conf.level,
+    alternative,
+    type,
+    D,
+    rubin_method = c("modern", "original")
+) {
     alpha <- 1 - conf.level
     ests <- results$est
     est_point <- ests[1]
@@ -251,7 +268,8 @@ pool_internal.bootstrap <- function(
     conf.level,
     alternative,
     type = c("percentile", "normal"),
-    D
+    D,
+    rubin_method = c("modern", "original")
 ) {
     type <- match.arg(type)
     bootfun <- switch(
@@ -273,7 +291,8 @@ pool_internal.bmlmi <- function(
     conf.level,
     alternative,
     type,
-    D
+    D,
+    rubin_method = c("modern", "original")
 ) {
     ests <- results$est
     alpha <- 1 - conf.level
@@ -356,7 +375,14 @@ get_ests_bmlmi <- function(ests, D) {
 #' @importFrom stats qt pt
 #' @rdname pool_internal
 #' @export
-pool_internal.rubin <- function(results, conf.level, alternative, type, D) {
+pool_internal.rubin <- function(
+    results,
+    conf.level,
+    alternative,
+    type,
+    D,
+    rubin_method = c("modern", "original")
+) {
     ests <- results$est
     ses <- results$se
     dfs <- results$df
@@ -372,7 +398,8 @@ pool_internal.rubin <- function(results, conf.level, alternative, type, D) {
     res_rubin <- rubin_rules(
         ests = ests,
         ses = ses,
-        v_com = v_com
+        v_com = v_com,
+        method = rubin_method
     )
 
     ret <- parametric_ci(
@@ -433,6 +460,18 @@ rubin_df <- function(v_com, var_b, var_t, M) {
 }
 
 
+rubin_orig_df <- function(v_com, var_b, var_t, M) {
+    var_w <- var_t - (1 + 1 / M) * var_b
+    r <- (1 + 1 / M) * var_b / var_w
+
+    if (r == 0) {
+        return(Inf)
+    }
+
+    return((M - 1) * (1 + 1 / r^2))
+}
+
+
 #' @title Combine estimates using Rubin's rules
 #'
 #' @description Pool together the results from `M` complete-data analyses according to Rubin's rules. See details.
@@ -465,7 +504,13 @@ rubin_df <- function(v_com, var_b, var_t, M) {
 #' Roderick J. A. Little and Donald B. Rubin. Statistical Analysis with Missing
 #' Data, Second Edition. John Wiley & Sons, Hoboken, New Jersey, 2002. \[Section 5.4\]
 #' @importFrom stats var
-rubin_rules <- function(ests, ses, v_com) {
+rubin_rules <- function(
+    ests,
+    ses,
+    v_com,
+    method = c("modern", "original")
+) {
+    method <- match.arg(method)
     M <- length(ests)
     est_point <- mean(ests)
 
@@ -483,7 +528,12 @@ rubin_rules <- function(ests, ses, v_com) {
     var_b <- var(ests)
     var_t <- var_w + var_b + var_b / M
 
-    df <- rubin_df(
+    df_fun <- switch(
+        method,
+        modern = rubin_df,
+        original = rubin_orig_df
+    )
+    df <- df_fun(
         v_com = v_com,
         var_b = var_b,
         var_t = var_t,
