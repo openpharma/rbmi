@@ -192,7 +192,7 @@ ancova_core <- function(
     group_contrasts <- vars[["group_contrasts"]]
     weights <- match.arg(weights)
 
-    expected_vars <- c(extract_covariates(covariates), outcome, group)
+    expected_vars <- all.vars(as_simple_formula(outcome, c(covariates, group)))
 
     assert_that(
         !any(visit %in% expected_vars),
@@ -270,6 +270,14 @@ ancova_core <- function(
             attr(fit, "rbmi_par_meta") <- meta
             fit
         }
+    )
+    parameter_names <- unlist(lapply(res, names), use.names = FALSE)
+    assert_that(
+        !any(duplicated(parameter_names)),
+        msg = paste(
+            "Contrast names and visit names must produce unique parameter names;",
+            "please rename the conflicting contrasts or visits"
+        )
     )
     par_meta <- do.call(rbind, lapply(res, attr, "rbmi_par_meta"))
     par_meta[["group"]] <- group
@@ -363,7 +371,8 @@ ancova_single <- function(
 
     # Standardise the group levels + variable name so that coefficient / term
     # extraction is robust to whitespace or special characters in the user levels.
-    data2 <- data[, c(extract_covariates(covariates), outcome, group)]
+    model_vars <- all.vars(as_simple_formula(outcome, c(covariates, group)))
+    data2 <- data[, model_vars, drop = FALSE]
     data2[["rbmiGroup"]] <- factor(
         intcode[as.integer(data2[[group]])],
         levels = intcode
@@ -378,19 +387,7 @@ ancova_single <- function(
     vcov_mod <- vcov(mod)
     df_res <- df.residual(mod)
 
-    # Identify the model coefficients belonging to the `rbmiGroup` main effect and
-    # the factor's own contrast matrix. This lets contrasts be formed in a
-    # coding-agnostic way (independent of the active `contrasts` option) rather
-    # than by parsing coefficient names.
-    mm_assign <- attr(stats::model.matrix(mod), "assign")
-    term_labels <- attr(stats::terms(mod), "term.labels")
-    grp_term <- which(term_labels == "rbmiGroup")
-    assert_that(
-        length(grp_term) == 1,
-        msg = "internal error: `rbmiGroup` main effect not found in the model"
-    )
-    grp_names <- names(beta)[mm_assign == grp_term]
-    cmat <- stats::contrasts(data2[["rbmiGroup"]])
+    contrast_design <- ancova_contrast_design(mod, data2, outcome)
 
     # Least square means for every group level
     lsm <- lapply(intcode, function(code) {
@@ -409,8 +406,7 @@ ancova_single <- function(
             beta,
             vcov_mod,
             df_res,
-            grp_names,
-            cmat
+            contrast_design
         )
     })
     names(trt) <- vapply(
@@ -672,34 +668,82 @@ resolve_contrast_weights <- function(x, orig_levels) {
 }
 
 
+#' Build the ANCOVA contrast design matrix
+#'
+#' Creates one complete model-matrix row per treatment-group level. Numeric
+#' covariates are set to zero, logical covariates to `FALSE`, and factor covariates
+#' to their first level. The fitted model's contrast coding is retained so that
+#' differences between rows include all required interaction coefficients.
+#'
+#' @param model A fitted `lm` model containing the internal `rbmiGroup` factor.
+#' @param data The raw model data used to fit `model`, including the untransformed
+#'   predictor columns required to evaluate transformed terms.
+#' @param outcome Character, the outcome variable name.
+#' @return A numeric model matrix with one row per `rbmiGroup` level.
+#' @keywords internal
+ancova_contrast_design <- function(model, data, outcome) {
+    group_levels <- model$xlevels[["rbmiGroup"]]
+    assert_that(
+        !is.null(group_levels),
+        length(group_levels) >= 2,
+        msg = "`model` must contain an `rbmiGroup` factor with at least two levels"
+    )
+
+    reference_data <- data[
+        rep(1, length(group_levels)),
+        setdiff(names(data), outcome),
+        drop = FALSE
+    ]
+    rownames(reference_data) <- NULL
+    for (var in setdiff(names(reference_data), "rbmiGroup")) {
+        if (var %in% names(model$xlevels)) {
+            reference_data[[var]] <- factor(
+                model$xlevels[[var]][[1]],
+                levels = model$xlevels[[var]],
+                ordered = is.ordered(reference_data[[var]])
+            )
+        } else if (is.logical(reference_data[[var]])) {
+            reference_data[[var]] <- FALSE
+        } else if (is.numeric(reference_data[[var]])) {
+            reference_data[[var]] <- 0
+        }
+    }
+    reference_data[["rbmiGroup"]] <- factor(
+        group_levels,
+        levels = group_levels
+    )
+
+    stats::model.matrix(
+        stats::delete.response(stats::terms(model)),
+        data = reference_data,
+        contrasts.arg = model$contrasts,
+        xlev = model$xlevels
+    )
+}
+
+
 #' Compute a single ANCOVA linear contrast
 #'
 #' Evaluates a linear contrast over the group levels as a linear combination of the
-#' model coefficients. The group-level weights are mapped onto the model's group
-#' coefficients using the factor's own contrast matrix, so the result is independent
-#' of the active `contrasts` coding and reduces exactly to the group coefficient for a
-#' pairwise contrast versus the reference level (preserving backwards compatibility
-#' with the two-group implementation).
+#' model coefficients. The group-level weights are applied to complete model design
+#' rows evaluated at the covariate reference point, so interactions are included and
+#' the result is independent of the active `contrasts` coding.
 #'
 #' @param weights Numeric weight vector over the group levels (factor order), summing
 #'   to zero.
 #' @param beta Numeric vector of model coefficients.
 #' @param vcov_mod Variance-covariance matrix of the model coefficients.
 #' @param df_res Residual degrees of freedom.
-#' @param grp_names Character vector of the coefficient names for the `rbmiGroup` main
-#'   effect (columns of `cmat`, in order).
-#' @param cmat Contrast matrix of the `rbmiGroup` factor (`n_levels` rows, one column
-#'   per group coefficient).
+#' @param contrast_design Numeric model matrix with one row per group level, evaluated
+#'   at the covariate reference point, and one column per model coefficient.
 #' @return A list with elements `est`, `se` and `df`.
 #'
 #' @details
 #' The contrast is evaluated at the covariate reference (covariate = 0): covariate
 #' main-effect and interaction columns receive zero weight and cancel for a
-#' sum-to-zero contrast, so `trt` remains the group main-effect contrast (matching the
-#' original two-group behaviour and independent of the `weights` argument). Building
-#' the contrast from the factor's contrast matrix rather than by parsing coefficient
-#' names keeps it correct under non-default contrast codings (e.g. `contr.sum`). A
-#' group coefficient that is missing, aliased (`NA`) or absent from the
+#' sum-to-zero contrast. Group-by-covariate interaction columns are included when they
+#' are non-zero at that reference point. A required coefficient that is missing,
+#' aliased (`NA`) or absent from the
 #' variance-covariance matrix indicates a rank-deficient design and triggers an error
 #' rather than a silently dropped term.
 #' @keywords internal
@@ -708,8 +752,7 @@ ancova_linear_contrast <- function(
     beta,
     vcov_mod,
     df_res,
-    grp_names,
-    cmat
+    contrast_design
 ) {
     assert_that(
         is.numeric(beta),
@@ -717,25 +760,28 @@ ancova_linear_contrast <- function(
         msg = "`beta` must be a named numeric vector"
     )
     assert_that(
-        length(weights) == nrow(cmat),
+        is.matrix(contrast_design),
+        length(weights) == nrow(contrast_design),
         isTRUE(abs(sum(weights)) < sqrt(.Machine$double.eps)),
         msg = "contrast weights must have one entry per group level and sum to zero"
     )
+    lvec <- as.vector(crossprod(weights, contrast_design))
+    names(lvec) <- colnames(contrast_design)
+    required <- names(lvec)[abs(lvec) > sqrt(.Machine$double.eps)]
     assert_that(
-        length(grp_names) == ncol(cmat),
-        all(grp_names %in% colnames(vcov_mod)),
-        !anyNA(beta[grp_names]),
+        all(required %in% names(beta)),
+        all(required %in% colnames(vcov_mod)),
+        !anyNA(beta[required]),
         msg = paste(
-            "group coefficients are missing, aliased, or not aligned with the",
+            "required coefficients are missing, aliased, or not aligned with the",
             "variance-covariance matrix; the design matrix is rank-deficient"
         )
     )
-    # Map the group-level weights onto the model's group coefficients.
-    lvec <- as.vector(crossprod(cmat, weights))
-    vcov_grp <- vcov_mod[grp_names, grp_names, drop = FALSE]
+    lvec <- lvec[required]
+    vcov_required <- vcov_mod[required, required, drop = FALSE]
     list(
-        est = sum(lvec * beta[grp_names]),
-        se = sqrt(drop(t(lvec) %*% vcov_grp %*% lvec)),
+        est = sum(lvec * beta[required]),
+        se = sqrt(drop(t(lvec) %*% vcov_required %*% lvec)),
         df = df_res
     )
 }

@@ -865,17 +865,18 @@ test_that("ancova_linear_contrast reproduces coefficient contrasts (treatment co
     beta <- c(`(Intercept)` = 50, age = 2, rbmiGroupL2 = 3, rbmiGroupL3 = 6)
     vc <- diag(length(beta))
     dimnames(vc) <- list(names(beta), names(beta))
-    grp_names <- c("rbmiGroupL2", "rbmiGroupL3")
     cmat <- stats::contr.treatment(3) # rows L1..L3, cols L2, L3
     rownames(cmat) <- c("L1", "L2", "L3")
+    contrast_design <- cbind(`(Intercept)` = 1, age = 0, cmat)
+    colnames(contrast_design)[3:4] <- c("rbmiGroupL2", "rbmiGroupL3")
 
     # alt vs ref: weights c(-1, 1, 0) -> coef(rbmiGroupL2)
-    r1 <- ancova_linear_contrast(c(-1, 1, 0), beta, vc, 100, grp_names, cmat)
+    r1 <- ancova_linear_contrast(c(-1, 1, 0), beta, vc, 100, contrast_design)
     expect_equal(r1$est, 3)
     expect_equal(r1$se, 1) # sqrt(v_L2) with unit diagonal
 
     # alt2 vs alt: weights c(0, -1, 1) -> coef(rbmiGroupL3) - coef(rbmiGroupL2)
-    r2 <- ancova_linear_contrast(c(0, -1, 1), beta, vc, 100, grp_names, cmat)
+    r2 <- ancova_linear_contrast(c(0, -1, 1), beta, vc, 100, contrast_design)
     expect_equal(r2$est, 3)
     expect_equal(r2$se, sqrt(2)) # v_L3 + v_L2 - 2 v_23 = 1 + 1 - 0
 
@@ -885,8 +886,7 @@ test_that("ancova_linear_contrast reproduces coefficient contrasts (treatment co
         beta,
         vc,
         100,
-        grp_names,
-        cmat
+        contrast_design
     )
     expect_equal(r3$est, 0.5 * 3 + 0.5 * 6)
 })
@@ -896,19 +896,20 @@ test_that("ancova_linear_contrast fails loudly on invalid arguments", {
     beta <- c(`(Intercept)` = 50, rbmiGroupL2 = 3, rbmiGroupL3 = 6)
     vc <- diag(length(beta))
     dimnames(vc) <- list(names(beta), names(beta))
-    grp_names <- c("rbmiGroupL2", "rbmiGroupL3")
     cmat <- stats::contr.treatment(3)
     rownames(cmat) <- c("L1", "L2", "L3")
+    contrast_design <- cbind(`(Intercept)` = 1, cmat)
+    colnames(contrast_design)[2:3] <- c("rbmiGroupL2", "rbmiGroupL3")
 
     # Weights that do not sum to zero
     expect_error(
-        ancova_linear_contrast(c(1, 0, 0), beta, vc, 100, grp_names, cmat),
+        ancova_linear_contrast(c(1, 0, 0), beta, vc, 100, contrast_design),
         regexp = "sum to zero"
     )
 
     # Wrong number of weights
     expect_error(
-        ancova_linear_contrast(c(-1, 1), beta, vc, 100, grp_names, cmat),
+        ancova_linear_contrast(c(-1, 1), beta, vc, 100, contrast_design),
         regexp = "one entry per group level"
     )
 
@@ -916,7 +917,7 @@ test_that("ancova_linear_contrast fails loudly on invalid arguments", {
     beta_na <- beta
     beta_na[["rbmiGroupL3"]] <- NA_real_
     expect_error(
-        ancova_linear_contrast(c(-1, 0, 1), beta_na, vc, 100, grp_names, cmat),
+        ancova_linear_contrast(c(-1, 0, 1), beta_na, vc, 100, contrast_design),
         regexp = "rank-deficient"
     )
 
@@ -926,9 +927,55 @@ test_that("ancova_linear_contrast fails loudly on invalid arguments", {
         c("(Intercept)", "rbmiGroupL2")
     ]
     expect_error(
-        ancova_linear_contrast(c(-1, 0, 1), beta, vc_bad, 100, grp_names, cmat),
+        ancova_linear_contrast(c(-1, 0, 1), beta, vc_bad, 100, contrast_design),
         regexp = "rank-deficient"
     )
+})
+
+
+test_that("ancova_contrast_design builds complete reference rows", {
+    dat <- data.frame(
+        out = seq_len(8),
+        rbmiGroup = factor(rep(c("L1", "L2"), each = 4)),
+        sex = factor(rep(c("Female", "Male"), 4)),
+        age = rep(c(-2, -1, 1, 2), 2)
+    )
+    expected_data <- data.frame(
+        rbmiGroup = factor(c("L1", "L2"), levels = c("L1", "L2")),
+        sex = factor(c("Female", "Female"), levels = c("Female", "Male")),
+        age = c(0, 0)
+    )
+
+    mod_treatment <- lm(out ~ rbmiGroup * sex + I(age^2), data = dat)
+    design_treatment <- ancova_contrast_design(mod_treatment, dat, "out")
+    expected_treatment <- model.matrix(
+        delete.response(terms(mod_treatment)),
+        expected_data,
+        contrasts.arg = mod_treatment$contrasts,
+        xlev = mod_treatment$xlevels
+    )
+
+    expect_equal(design_treatment, expected_treatment)
+    expect_equal(unname(design_treatment[, "I(age^2)"]), c(0, 0))
+    expect_equal(
+        unname(design_treatment[, "rbmiGroupL2:sexMale"]),
+        c(0, 0)
+    )
+
+    contrasts(dat$rbmiGroup) <- contr.sum(2)
+    contrasts(dat$sex) <- contr.sum(2)
+    mod_sum <- lm(out ~ rbmiGroup * sex + I(age^2), data = dat)
+    design_sum <- ancova_contrast_design(mod_sum, dat, "out")
+    expected_sum <- model.matrix(
+        delete.response(terms(mod_sum)),
+        expected_data,
+        contrasts.arg = mod_sum$contrasts,
+        xlev = mod_sum$xlevels
+    )
+
+    expect_equal(design_sum, expected_sum)
+    expect_equal(unname(design_sum[, "I(age^2)"]), c(0, 0))
+    expect_equal(unname(design_sum[, "rbmiGroup1:sex1"]), c(1, -1))
 })
 
 
@@ -1105,6 +1152,88 @@ test_that("ancova - contrasts are invariant to the active contrasts coding", {
     expect_equal(res_sum$a_vs_pbo_v1$se, res_default$a_vs_pbo_v1$se)
     expect_equal(res_sum$pooled_v1$est, res_default$pooled_v1$est)
     expect_equal(res_sum$pooled_v1$se, res_default$pooled_v1$se)
+})
+
+
+test_that("ancova - factor interactions are invariant to contrast coding", {
+    set.seed(454)
+    n <- 800
+    dat <- tibble(
+        visit = "v1",
+        sex = factor(rep(c("Female", "Male"), each = n / 2)),
+        grp = factor(rep(rep(c("Placebo", "Active"), each = n / 4), 2)),
+        out = 20 +
+            2 * (grp == "Active") +
+            4 * (sex == "Male") +
+            10 * (grp == "Active") * (sex == "Male") +
+            rnorm(n)
+    )
+    vars <- set_vars(
+        outcome = "out",
+        group = "grp",
+        covariates = "grp * sex",
+        visit = "visit"
+    )
+
+    old <- options(contrasts = c("contr.treatment", "contr.poly"))
+    on.exit(options(old), add = TRUE)
+    res_treatment <- ancova(dat, vars)
+
+    options(contrasts = c("contr.sum", "contr.poly"))
+    res_sum <- ancova(dat, vars)
+
+    expect_equal(res_sum$trt_v1$est, res_treatment$trt_v1$est)
+    expect_equal(res_sum$trt_v1$se, res_treatment$trt_v1$se)
+})
+
+
+test_that("ancova - treatment contrasts support transformed covariates", {
+    set.seed(455)
+    n <- 400
+    dat <- tibble(
+        visit = "v1",
+        age = rnorm(n),
+        grp = factor(
+            rep(c("Placebo", "Active"), each = n / 2),
+            levels = c("Placebo", "Active")
+        ),
+        out = 20 + 3 * (grp == "Active") + 2 * age^2 + rnorm(n)
+    )
+    vars <- set_vars(
+        outcome = "out",
+        group = "grp",
+        covariates = "I(age^2)",
+        visit = "visit"
+    )
+    mod <- lm(out ~ grp + I(age^2), data = dat)
+
+    res <- ancova(dat, vars)
+
+    expect_equal(res$trt_v1$est, coef(mod)[["grpActive"]])
+    expect_equal(res$trt_v1$se, sqrt(vcov(mod)["grpActive", "grpActive"]))
+})
+
+
+test_that("ancova - final parameter names are unique across visits", {
+    dat <- tibble(
+        visit = rep(c("a_b", "b"), each = 8),
+        grp = factor(rep(rep(c("Placebo", "Active"), each = 4), 2)),
+        out = c(seq_len(8), seq_len(8) * 2)
+    )
+    vars <- set_vars(
+        outcome = "out",
+        group = "grp",
+        visit = "visit",
+        group_contrasts = list(
+            foo = c("Active", "Placebo"),
+            foo_a = c("Active", "Placebo")
+        )
+    )
+
+    expect_error(
+        ancova(dat, vars),
+        regexp = "Contrast names and visit names must produce unique parameter names"
+    )
 })
 
 
