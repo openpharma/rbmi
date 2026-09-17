@@ -362,14 +362,14 @@ test_that("pool selects the requested Rubin degrees-of-freedom method", {
         results = lapply(c(1, 2, 4), runanalysis)
     )
 
-    modern <- pool(results, rubin_method = "barnard-rubin")
-    original <- pool(results, rubin_method = "rubin")
+    modern <- pool(results, rubin_df_method = "barnard-rubin")
+    original <- pool(results, rubin_df_method = "rubin")
 
     expect_equal(modern$pars$p1$est, original$pars$p1$est)
     expect_equal(modern$pars$p1$se, original$pars$p1$se)
     expect_false(isTRUE(all.equal(modern$pars$p1$ci, original$pars$p1$ci)))
     expect_error(
-        pool(results, rubin_method = "unknown"),
+        pool(results, rubin_df_method = "unknown"),
         "'arg' should be one of"
     )
 })
@@ -389,9 +389,9 @@ test_that("pool_internal.rubin passes on the Rubin method", {
 
     modern <- do.call(
         pool_internal.rubin,
-        c(args, rubin_method = "barnard-rubin")
+        c(args, rubin_df_method = "barnard-rubin")
     )
-    original <- do.call(pool_internal.rubin, c(args, rubin_method = "rubin"))
+    original <- do.call(pool_internal.rubin, c(args, rubin_df_method = "rubin"))
     modern_rules <- rubin_rules(
         results$est,
         results$se,

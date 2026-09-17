@@ -7,12 +7,11 @@
 rubin_orig_df(v_com, var_b, var_t, M)
 }
 \arguments{
-\item{v_com}{Degrees of freedom in the complete-data analysis. Included for
-interface compatibility with \code{\link[=rubin_df]{rubin_df()}} but not used by this approximation.}
+\item{v_com}{Ignored in this function.}
 
-\item{var_b}{Between-imputation variance of the point estimates.}
+\item{var_b}{Between-imputation sample variance of the point estimates across multiply imputed datasets.}
 
-\item{var_t}{Total variance of the point estimate according to Rubin's rules.}
+\item{var_t}{Estimate (according to Rubin's rules) of the variance of the point estimates.}
 
 \item{M}{Number of imputations.}
 }

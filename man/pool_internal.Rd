@@ -23,7 +23,7 @@ pool_internal(results, conf.level, alternative, type, D, ...)
 
 \method{pool_internal}{bmlmi}(results, conf.level, alternative, type, D, ...)
 
-\method{pool_internal}{rubin}(results, conf.level, alternative, type, D, rubin_method, ...)
+\method{pool_internal}{rubin}(results, conf.level, alternative, type, D, rubin_df_method, ...)
 }
 \arguments{
 \item{results}{a list of results i.e. the \code{x$results} element of an
@@ -45,7 +45,7 @@ in the original call to \code{\link[=draws]{draws()}}.}
 
 \item{...}{not used.}
 
-\item{rubin_method}{a character string specifying the degrees-of-freedom
+\item{rubin_df_method}{a character string specifying the degrees-of-freedom
 approximation used when pooling with Rubin's rules. \code{"barnard-rubin"} (default)
 uses the Barnard-Rubin (1999) small-sample adjustment, while \code{"rubin"}
 uses the approximation from Rubin (1987). Ignored for other pooling methods.}

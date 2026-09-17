@@ -14,7 +14,7 @@ pool(
   conf.level = 0.95,
   alternative = c("two.sided", "less", "greater"),
   type = c("percentile", "normal"),
-  rubin_method = c("barnard-rubin", "rubin")
+  rubin_df_method = c("barnard-rubin", "rubin")
 )
 
 \method{as.data.frame}{pool}(x, ...)
@@ -42,7 +42,7 @@ intervals. See details.
 Only used if \code{method_condmean(type = "bootstrap")} was specified
 in the original call to \code{\link[=draws]{draws()}}.}
 
-\item{rubin_method}{a character string specifying the degrees-of-freedom
+\item{rubin_df_method}{a character string specifying the degrees-of-freedom
 approximation used when pooling with Rubin's rules. \code{"barnard-rubin"} (default)
 uses the Barnard-Rubin (1999) small-sample adjustment, while \code{"rubin"}
 uses the approximation from Rubin (1987). Ignored for other pooling methods.}
@@ -88,8 +88,8 @@ confidence interval depends upon the method specified in the original
 call to \code{\link[=draws]{draws()}}; In particular:
 \itemize{
 \item \code{method_approxbayes()} & \code{method_bayes()} both use Rubin's rules to pool estimates
-and variances across multiple imputed datasets. By default, the Barnard-Rubin
-rule is used to pool degrees of freedom; set \code{rubin_method = "rubin"} to
+and variances across multiple imputed datasets. By default, the Barnard-Rubin (1999)
+rule is used to pool degrees of freedom; set \code{rubin_df_method = "rubin"} to
 use the original approximation from Rubin (1987).
 Here, the \code{mcse()} function can compute the Monte Carlo standard error (MCSE) of the
 pooled estimates, via a Jackknife variance estimator for all parameters; see
@@ -165,6 +165,9 @@ mcse(poolObj, anaObj)
 }
 }
 \references{
+John Barnard and Donald B. Rubin. Small-Sample Degrees of Freedom with Multiple Imputation.
+Biometrika, 86(4):948-955, 1999.
+
 Bradley Efron and Robert J Tibshirani. An introduction to the bootstrap. CRC
 press, 1994. [Section 11]
 

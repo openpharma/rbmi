@@ -400,7 +400,7 @@ where $V_W(\hat{\theta}) = \frac{1}{M}\sum_{m = 1}^M SE^2_m$ is the within-varia
 Confidence intervals and tests of the null hypothesis $H_0: \theta=\theta_0$ are based on the $t$-statistics $T$:
 
 $$ T= (\hat{\theta}-\theta_0)/\sqrt{V(\hat{\theta})}. $$
-Under the null hypothesis, $T$ has an approximate $t$-distribution with $\nu$ degrees of freedom. By default, `pool(rubin_method = "barnard-rubin")` calculates $\nu$ according to the Barnard and Rubin approximation, see @Barnard1999 (formula 3) or @LittleRubin1992 (formula (5.24), page 87):
+Under the null hypothesis, $T$ has an approximate $t$-distribution with $\nu$ degrees of freedom. By default, `pool(rubin_df_method = "barnard-rubin")` calculates $\nu$ according to the Barnard and Rubin approximation, see @Barnard1999 (formula 3) or @LittleRubin1992 (formula (5.24), page 87):
 
 $$
 \nu = \frac{\nu_{old}* \nu_{obs}}{\nu_{old} + \nu_{obs}}
@@ -411,7 +411,7 @@ $$
 $$
 where $\lambda = \frac{(1 + \frac{1}{M})V_B(\hat{\theta})}{V(\hat{\theta})}$ is the fraction of missing information.
 
-Alternatively, `pool(rubin_method = "rubin")` uses the original degrees-of-freedom approximation from @Rubin1987 (equation 3.1.6):
+Alternatively, `pool(rubin_df_method = "rubin")` uses the original degrees-of-freedom approximation from @Rubin1987 (equation 3.1.6):
 $$
 \nu = (M - 1)\left(1 + \frac{1}{r}\right)^2,
 $$

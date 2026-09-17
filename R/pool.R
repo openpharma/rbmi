@@ -14,7 +14,7 @@
 #' Only used if `method_condmean(type = "bootstrap")` was specified
 #' in the original call to [draws()].
 #'
-#' @param rubin_method a character string specifying the degrees-of-freedom
+#' @param rubin_df_method a character string specifying the degrees-of-freedom
 #' approximation used when pooling with Rubin's rules. `"barnard-rubin"` (default)
 #' uses the Barnard-Rubin (1999) small-sample adjustment, while `"rubin"`
 #' uses the approximation from Rubin (1987). Ignored for other pooling methods.
@@ -30,8 +30,8 @@
 #' call to [draws()]; In particular:
 #'
 #' - `method_approxbayes()` & `method_bayes()` both use Rubin's rules to pool estimates
-#'  and variances across multiple imputed datasets. By default, the Barnard-Rubin
-#'  rule is used to pool degrees of freedom; set `rubin_method = "rubin"` to
+#'  and variances across multiple imputed datasets. By default, the Barnard-Rubin (1999)
+#'  rule is used to pool degrees of freedom; set `rubin_df_method = "rubin"` to
 #'  use the original approximation from Rubin (1987).
 #'  Here, the `mcse()` function can compute the Monte Carlo standard error (MCSE) of the
 #'  pooled estimates, via a Jackknife variance estimator for all parameters; see
@@ -45,6 +45,9 @@
 #' See Von Hippel & Bartlett (2021).
 #'
 #' @references
+#' John Barnard and Donald B. Rubin. Small-Sample Degrees of Freedom with Multiple Imputation.
+#' Biometrika, 86(4):948-955, 1999.
+#'
 #' Bradley Efron and Robert J Tibshirani. An introduction to the bootstrap. CRC
 #' press, 1994. \[Section 11\]
 #'
@@ -145,7 +148,7 @@ pool <- function(
     conf.level = 0.95,
     alternative = c("two.sided", "less", "greater"),
     type = c("percentile", "normal"),
-    rubin_method = c("barnard-rubin", "rubin")
+    rubin_df_method = c("barnard-rubin", "rubin")
 ) {
     assert_that(
         has_class(results, "analysis")
@@ -154,7 +157,7 @@ pool <- function(
 
     alternative <- match.arg(alternative)
     type <- match.arg(type)
-    rubin_method <- match.arg(rubin_method)
+    rubin_df_method <- match.arg(rubin_df_method)
 
     assert_that(
         is.numeric(conf.level),
@@ -177,7 +180,7 @@ pool <- function(
         alternative = alternative,
         type = type,
         D = results$method$D,
-        rubin_method = rubin_method
+        rubin_df_method = rubin_df_method
     )
 
     if (pool_type == "bootstrap") {
@@ -383,7 +386,7 @@ pool_internal.rubin <- function(
     alternative,
     type,
     D,
-    rubin_method,
+    rubin_df_method,
     ...
 ) {
     ests <- results$est
@@ -402,7 +405,7 @@ pool_internal.rubin <- function(
         ests = ests,
         ses = ses,
         v_com = v_com,
-        method = rubin_method
+        method = rubin_df_method
     )
 
     ret <- parametric_ci(
@@ -424,8 +427,8 @@ pool_internal.rubin <- function(
 #' @description Compute degrees of freedom according to the Barnard-Rubin formula.
 #'
 #' @param v_com Positive number representing the degrees of freedom in the complete-data analysis.
-#' @param var_b Between-variance of point estimate across multiply imputed datasets.
-#' @param var_t Total-variance of point estimate according to Rubin's rules.
+#' @param var_b Between-imputation sample variance of the point estimates across multiply imputed datasets.
+#' @param var_t Estimate (according to Rubin's rules) of the variance of the point estimates.
 #' @param M Number of imputations.
 #'
 #' @return Degrees of freedom according to Barnard-Rubin formula. See Barnard-Rubin (1999).
@@ -438,28 +441,36 @@ pool_internal.rubin <- function(
 #'   Barnard, J. and Rubin, D.B. (1999).
 #'   Small sample degrees of freedom with multiple imputation. Biometrika, 86, 948-955.
 rubin_df <- function(v_com, var_b, var_t, M) {
-    if (is.na(v_com) || (is.infinite(v_com) && var_b == 0)) {
-        df <- Inf
+    assert_number(v_com, na.ok = TRUE)
+    assert_number(var_b)
+    assert_true(var_b >= 0)
+    assert_number(var_t)
+    assert_true(var_t > 0)
+    assert_count(M)
+
+    df <- if (is.na(v_com) || (is.infinite(v_com) && var_b == 0)) {
+        Inf
     } else {
         lambda <- (1 + 1 / M) * var_b / var_t
 
         if (!is.infinite(v_com)) {
+            assert_true(v_com > 0)
             v_obs <- ((v_com + 1) / (v_com + 3)) * v_com * (1 - lambda)
         }
 
         if (lambda != 0) {
             v_old <- (M - 1) / lambda^2
-            df <- if (is.infinite(v_com)) {
+            if (is.infinite(v_com)) {
                 v_old
             } else {
                 (v_old * v_obs) / (v_old + v_obs)
             }
         } else {
-            df <- v_obs
+            v_obs
         }
     }
 
-    return(df)
+    df
 }
 
 
@@ -468,11 +479,8 @@ rubin_df <- function(v_com, var_b, var_t, M) {
 #' @description Compute the degrees of freedom according to the original
 #' Rubin (1987) approximation.
 #'
-#' @param v_com Degrees of freedom in the complete-data analysis. Included for
-#' interface compatibility with [rubin_df()] but not used by this approximation.
-#' @param var_b Between-imputation variance of the point estimates.
-#' @param var_t Total variance of the point estimate according to Rubin's rules.
-#' @param M Number of imputations.
+#' @inheritParams rubin_df
+#' @param v_com Ignored in this function.
 #'
 #' @return Degrees of freedom according to the original Rubin approximation.
 #' If the between-imputation variance is zero, returns `Inf`.
@@ -486,14 +494,28 @@ rubin_df <- function(v_com, var_b, var_t, M) {
 #' Rubin, D.B. (1987). Multiple Imputation for Nonresponse in Surveys.
 #' John Wiley & Sons, New York. \[Section 3.3\]
 rubin_orig_df <- function(v_com, var_b, var_t, M) {
-    var_w <- var_t - (1 + 1 / M) * var_b
-    r <- (1 + 1 / M) * var_b / var_w
+    assert_number(var_b)
+    assert_true(var_b >= 0)
+    assert_number(var_t)
+    assert_true(var_t > 0)
+    assert_count(M)
 
-    if (r == 0) {
-        return(Inf)
+    df <- if (var_b == 0) {
+        Inf
+    } else {
+        var_w <- var_t - (1 + 1 / M) * var_b
+
+        if (var_w <= 0) {
+            stop(
+                "Within-imputation variance estimate `var_w` must be positive."
+            )
+        }
+
+        r <- (1 + 1 / M) * var_b / var_w
+        (M - 1) * (1 + 1 / r)^2
     }
 
-    return((M - 1) * (1 + 1 / r)^2)
+    df
 }
 
 
