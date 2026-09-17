@@ -1005,15 +1005,21 @@ set_options <- function() {
 #' # Returns: a + x * c
 #' }
 #' @keywords internal
-frm_find_and_replace <- function(frm, find_sym, replace_sym) {
-    for (i in seq_along(frm)) {
-        if (is.call(frm[[i]])) {
-            frm[[i]] <- frm_find_and_replace(frm[[i]], find_sym, replace_sym)
-        } else if (is.name(frm[[i]])) {
-            if (frm[[i]] == find_sym) {
-                frm[[i]] <- replace_sym
+frm_find_and_replace <- function(expr, find_sym, replace_sym) {
+    if (is.call(expr)) {
+        # expr[[1]] is the function or operator name, so leave it unchanged.
+        if (length(expr) > 1L) {
+            for (i in 2:length(expr)) {
+                expr[[i]] <- frm_find_and_replace(
+                    expr[[i]],
+                    find_sym,
+                    replace_sym
+                )
             }
         }
+    } else if (is.name(expr) && identical(expr, find_sym)) {
+        expr <- replace_sym
     }
-    frm
+
+    expr
 }

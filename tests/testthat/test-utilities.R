@@ -375,4 +375,20 @@ test_that("frm_find_and_replace works as expected", {
     environment(actual) <- globalenv()
     environment(expected) <- globalenv()
     expect_equal(actual, expected)
+
+
+    # Doesn't alter core functions that happen to have the same name as variables
+    frm <- x ~ a + log(b) + log(log) + log * log
+    actual <- frm_find_and_replace(frm, as.name("log"), as.name("bob"))
+    expected <- x ~ a + log(b) + log(bob) + bob * bob
+    environment(actual) <- globalenv()
+    environment(expected) <- globalenv()
+    expect_equal(actual, expected)
+
+    frm <- x ~ a + I(a^2) + I
+    actual <- frm_find_and_replace(frm, as.name("I"), as.name("bob"))
+    expected <- x ~ a + I(a^2) + bob
+    environment(actual) <- globalenv()
+    environment(expected) <- globalenv()
+    expect_equal(actual, expected)
 })
