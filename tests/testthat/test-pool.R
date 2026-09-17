@@ -8,7 +8,7 @@ test_that("Rubin's rules", {
 
     actual_res <- sapply(
         v_com,
-        function(i) rubin_rules(ests, ses, i, method = "modern"),
+        function(i) rubin_rules(ests, ses, i, method = "barnard-rubin"),
         simplify = FALSE
     )
 
@@ -19,21 +19,25 @@ test_that("Rubin's rules", {
 
     actual_res <- sapply(
         v_com,
-        function(i) rubin_rules(ests_allequal, ses, i, method = "modern"),
+        function(i) {
+            rubin_rules(ests_allequal, ses, i, method = "barnard-rubin")
+        },
         simplify = FALSE
     )
     expect_equal(actual_res, mice_res2, tolerance = 10e-4)
 
     # check when v_com <- Inf
     v_com <- Inf
-    actual_res <- rubin_rules(ests, ses, v_com, method = "modern")
+    actual_res <- rubin_rules(ests, ses, v_com, method = "barnard-rubin")
     expect_equal(actual_res, mice_res3)
 
     # when v_com = NA or v_com = Inf and there are no missing values, df = Inf
     v_com <- c(Inf, NA)
     actual_res <- sapply(
         v_com,
-        function(i) rubin_rules(ests_allequal, ses, i, method = "modern")$df
+        function(i) {
+            rubin_rules(ests_allequal, ses, i, method = "barnard-rubin")$df
+        }
     )
 
     expect_true(all(actual_res == Inf))
@@ -42,7 +46,7 @@ test_that("Rubin's rules", {
     ses <- rep(NA, 100)
     v_com <- Inf
     expect_equal(
-        rubin_rules(ests, ses, v_com, method = "modern"),
+        rubin_rules(ests, ses, v_com, method = "barnard-rubin"),
         list(
             est_point = mean(ests),
             var_t = NA,
@@ -358,13 +362,16 @@ test_that("pool selects the requested Rubin degrees-of-freedom method", {
         results = lapply(c(1, 2, 4), runanalysis)
     )
 
-    modern <- pool(results, rubin_method = "modern")
-    original <- pool(results, rubin_method = "original")
+    modern <- pool(results, rubin_method = "barnard-rubin")
+    original <- pool(results, rubin_method = "rubin")
 
     expect_equal(modern$pars$p1$est, original$pars$p1$est)
     expect_equal(modern$pars$p1$se, original$pars$p1$se)
     expect_false(isTRUE(all.equal(modern$pars$p1$ci, original$pars$p1$ci)))
-    expect_error(pool(results, rubin_method = "unknown"), "'arg' should be one of")
+    expect_error(
+        pool(results, rubin_method = "unknown"),
+        "'arg' should be one of"
+    )
 })
 
 test_that("pool_internal.rubin passes on the Rubin method", {
@@ -380,10 +387,23 @@ test_that("pool_internal.rubin passes on the Rubin method", {
         D = NULL
     )
 
-    modern <- do.call(pool_internal.rubin, c(args, rubin_method = "modern"))
-    original <- do.call(pool_internal.rubin, c(args, rubin_method = "original"))
-    modern_rules <- rubin_rules(results$est, results$se, 10, method = "modern")
-    original_rules <- rubin_rules(results$est, results$se, 10, method = "original")
+    modern <- do.call(
+        pool_internal.rubin,
+        c(args, rubin_method = "barnard-rubin")
+    )
+    original <- do.call(pool_internal.rubin, c(args, rubin_method = "rubin"))
+    modern_rules <- rubin_rules(
+        results$est,
+        results$se,
+        10,
+        method = "barnard-rubin"
+    )
+    original_rules <- rubin_rules(
+        results$est,
+        results$se,
+        10,
+        method = "rubin"
+    )
 
     expect_equal(modern$se, sqrt(modern_rules$var_t))
     expect_equal(original$se, sqrt(original_rules$var_t))

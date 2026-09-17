@@ -46,8 +46,8 @@ in the original call to \code{\link[=draws]{draws()}}.}
 \item{...}{not used.}
 
 \item{rubin_method}{a character string specifying the degrees-of-freedom
-approximation used when pooling with Rubin's rules. \code{"modern"} (default)
-uses the Barnard-Rubin (1999) small-sample adjustment, while \code{"original"}
+approximation used when pooling with Rubin's rules. \code{"barnard-rubin"} (default)
+uses the Barnard-Rubin (1999) small-sample adjustment, while \code{"rubin"}
 uses the approximation from Rubin (1987). Ignored for other pooling methods.}
 }
 \value{

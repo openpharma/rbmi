@@ -13,8 +13,8 @@ rubin_rules(ests, ses, v_com, method)
 
 \item{v_com}{Positive number representing the degrees of freedom in the complete-data analysis.}
 
-\item{method}{Degrees-of-freedom approximation to use: \code{"modern"} applies
-the Barnard-Rubin (1999) small-sample adjustment and \code{"original"} applies
+\item{method}{Degrees-of-freedom approximation to use: \code{"barnard-rubin"} applies
+the Barnard-Rubin (1999) small-sample adjustment and \code{"rubin"} applies
 Rubin's (1987) original approximation.}
 }
 \value{
