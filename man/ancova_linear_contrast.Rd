@@ -4,7 +4,7 @@
 \alias{ancova_linear_contrast}
 \title{Compute a single ANCOVA linear contrast}
 \usage{
-ancova_linear_contrast(weights, beta, vcov_mod, df_res, grp_names, cmat)
+ancova_linear_contrast(weights, beta, vcov_mod, df_res, contrast_design)
 }
 \arguments{
 \item{weights}{Numeric weight vector over the group levels (factor order), summing
@@ -16,31 +16,24 @@ to zero.}
 
 \item{df_res}{Residual degrees of freedom.}
 
-\item{grp_names}{Character vector of the coefficient names for the \code{rbmiGroup} main
-effect (columns of \code{cmat}, in order).}
-
-\item{cmat}{Contrast matrix of the \code{rbmiGroup} factor (\code{n_levels} rows, one column
-per group coefficient).}
+\item{contrast_design}{Numeric model matrix with one row per group level, evaluated
+at the covariate reference point, and one column per model coefficient.}
 }
 \value{
 A list with elements \code{est}, \code{se} and \code{df}.
 }
 \description{
 Evaluates a linear contrast over the group levels as a linear combination of the
-model coefficients. The group-level weights are mapped onto the model's group
-coefficients using the factor's own contrast matrix, so the result is independent
-of the active \code{contrasts} coding and reduces exactly to the group coefficient for a
-pairwise contrast versus the reference level (preserving backwards compatibility
-with the two-group implementation).
+model coefficients. The group-level weights are applied to complete model design
+rows evaluated at the covariate reference point, so interactions are included and
+the result is independent of the active \code{contrasts} coding.
 }
 \details{
 The contrast is evaluated at the covariate reference (covariate = 0): covariate
 main-effect and interaction columns receive zero weight and cancel for a
-sum-to-zero contrast, so \code{trt} remains the group main-effect contrast (matching the
-original two-group behaviour and independent of the \code{weights} argument). Building
-the contrast from the factor's contrast matrix rather than by parsing coefficient
-names keeps it correct under non-default contrast codings (e.g. \code{contr.sum}). A
-group coefficient that is missing, aliased (\code{NA}) or absent from the
+sum-to-zero contrast. Group-by-covariate interaction columns are included when they
+are non-zero at that reference point. A required coefficient that is missing,
+aliased (\code{NA}) or absent from the
 variance-covariance matrix indicates a rank-deficient design and triggers an error
 rather than a silently dropped term.
 }
