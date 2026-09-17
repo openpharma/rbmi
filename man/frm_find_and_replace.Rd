@@ -4,14 +4,14 @@
 \alias{frm_find_and_replace}
 \title{Recursively find and replace symbols in a language object}
 \usage{
-frm_find_and_replace(frm, find_sym, replace_sym)
+frm_find_and_replace(expr, find_sym, replace_sym)
 }
 \arguments{
-\item{frm}{A language object (e.g., call, expression, or list of calls) to search and modify.}
-
 \item{find_sym}{A symbol (as a name) to find within \code{frm}.}
 
 \item{replace_sym}{A symbol (as a name) to replace \code{find_sym} with.}
+
+\item{frm}{A language object (e.g., call, expression, or list of calls) to search and modify.}
 }
 \value{
 The modified language object with all instances of \code{find_sym} replaced by \code{replace_sym}.
