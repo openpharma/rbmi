@@ -440,6 +440,8 @@ pool_internal.rubin <- function(
 #' @references
 #'   Barnard, J. and Rubin, D.B. (1999).
 #'   Small sample degrees of freedom with multiple imputation. Biometrika, 86, 948-955.
+#'
+#' @importFrom assertthat is.number noNA is.count
 rubin_df <- function(v_com, var_b, var_t, M) {
     assert_that(is.number(v_com))
     assert_that(is.number(var_b) && noNA(var_b) && var_b >= 0)
@@ -452,7 +454,7 @@ rubin_df <- function(v_com, var_b, var_t, M) {
         lambda <- (1 + 1 / M) * var_b / var_t
 
         if (!is.infinite(v_com)) {
-            assert_true(v_com > 0)
+            assert_that(v_com > 0)
             v_obs <- ((v_com + 1) / (v_com + 3)) * v_com * (1 - lambda)
         }
 

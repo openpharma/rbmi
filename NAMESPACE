@@ -84,7 +84,12 @@ export(validate)
 export(validate_analyse_pars)
 import(R6)
 import(methods)
-importFrom(assertthat,assert_that)
+importFrom(assertthat,
+  assert_that,
+  is.count,
+  is.number,
+  noNA
+)
 importFrom(lifecycle,deprecated)
 importFrom(mmrm,VarCorr)
 importFrom(stats,
