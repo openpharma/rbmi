@@ -441,12 +441,10 @@ pool_internal.rubin <- function(
 #'   Barnard, J. and Rubin, D.B. (1999).
 #'   Small sample degrees of freedom with multiple imputation. Biometrika, 86, 948-955.
 rubin_df <- function(v_com, var_b, var_t, M) {
-    assert_number(v_com, na.ok = TRUE)
-    assert_number(var_b)
-    assert_true(var_b >= 0)
-    assert_number(var_t)
-    assert_true(var_t > 0)
-    assert_count(M)
+    assert_that(is.number(v_com))
+    assert_that(is.number(var_b) && noNA(var_b) && var_b >= 0)
+    assert_that(is.number(var_t) && noNA(var_t) && var_t > 0)
+    assert_that(is.count(M))
 
     df <- if (is.na(v_com) || (is.infinite(v_com) && var_b == 0)) {
         Inf
@@ -494,11 +492,9 @@ rubin_df <- function(v_com, var_b, var_t, M) {
 #' Rubin, D.B. (1987). Multiple Imputation for Nonresponse in Surveys.
 #' John Wiley & Sons, New York. \[Section 3.3\]
 rubin_orig_df <- function(v_com, var_b, var_t, M) {
-    assert_number(var_b)
-    assert_true(var_b >= 0)
-    assert_number(var_t)
-    assert_true(var_t > 0)
-    assert_count(M)
+    assert_that(is.number(var_b) && noNA(var_b) && var_b >= 0)
+    assert_that(is.number(var_t) && noNA(var_t) && var_t > 0)
+    assert_that(is.count(M))
 
     df <- if (var_b == 0) {
         Inf
