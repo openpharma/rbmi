@@ -1,7 +1,7 @@
 # Analysis of Covariance
 
-Performs an analysis of covariance between two groups returning the
-estimated "treatment effect" (i.e. the contrast between the two
+Performs an analysis of covariance between two or more treatment groups
+returning the estimated "treatment effect" (i.e. the contrast between
 treatment groups) and the least square means estimates in each group.
 
 ## Usage
@@ -44,12 +44,23 @@ ancova(
 
 ## Value
 
-A named list with one set of entries per visit. For each visit the list
-contains the estimated treatment effect (`trt_<visit>`) and the least
-square means for the reference and alternative groups (`lsm_ref_<visit>`
-and `lsm_alt_<visit>`). Each of these elements is itself a list holding
-the estimate (`est`), standard error (`se`) and degrees of freedom
-(`df`).
+A named list with one set of entries per visit, each suffixed by the
+visit name. For each visit the list contains:
+
+- the estimated treatment effect(s). For the default
+  (`group_contrasts = NULL`) these are `trt_<visit>` for the `alt` vs
+  `ref` comparison and `trt_alt2_<visit>`, `trt_alt3_<visit>`, ... for
+  further non-reference groups versus the reference group. When
+  `group_contrasts` is supplied each contrast is named `<name>_<visit>`
+  using the list name given for that contrast. Also
+
+- the least square means for each group (`lsm_ref_<visit>`,
+  `lsm_alt_<visit>`, `lsm_alt2_<visit>`, ...).
+
+For the common case of two groups this reduces to `trt_<visit>`,
+`lsm_ref_<visit>` and `lsm_alt_<visit>`. Each of these elements is
+itself a list holding the estimate (`est`), standard error (`se`) and
+degrees of freedom (`df`).
 
 ## Details
 
@@ -85,16 +96,47 @@ name, e.g.:
        ...
     )
 
-Please note that `ref` refers to the first factor level of `vars$group`
-which does not necessarily coincide with the control arm. Analogously,
-`alt` refers to the second factor level of `vars$group`. `trt` refers to
-the model contrast translating the mean difference between the second
-level and first level.
+`ancova()` supports two or more treatment groups. The group levels are
+referred to via a fixed naming scheme derived from the factor levels of
+`vars$group`: `ref` is the first factor level, `alt` the second, `alt2`
+the third, `alt3` the fourth, and so on. Note that `ref` does not
+necessarily coincide with the control arm; it is simply the first factor
+level.
+
+The least square means for each group are returned as `lsm_ref`,
+`lsm_alt`, `lsm_alt2`, etc. Treatment effects (model contrasts) are
+returned as `trt` for the `alt` vs `ref` comparison, `trt_alt2` for
+`alt2` vs `ref`, and so on. For the common case of two groups this
+reduces to the original `trt`, `lsm_ref` and `lsm_alt` naming, ensuring
+backwards compatibility.
+
+By default a treatment effect is calculated for every non-reference
+group versus the reference group, using the `trt` / `trt_alt2` / ...
+names described above. Alternatively a bespoke set of contrasts can be
+requested via the `group_contrasts` argument of
+[`set_vars()`](https://openpharma.github.io/rbmi/reference/set_vars.md);
+see its documentation for details. Such contrasts must be named, and the
+supplied name is used as the `parameter` name and carried through to the
+`contrast_label` column of the
+[`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) output.
+Contrasts may be pairwise (a length-2 `c(minuend, subtrahend)` character
+vector) or general linear contrasts (a named numeric weight vector over
+the group levels).
 
 If you want to include interaction terms in your model this can be done
 by providing them to the `covariates` argument of
 [`set_vars()`](https://openpharma.github.io/rbmi/reference/set_vars.md)
 e.g. `set_vars(covariates = c("sex*age"))`.
+
+Note that the treatment effects (`trt`, `trt_alt2`, ...) are the
+relevant linear combinations of the model coefficients, i.e. the group
+main-effect contrasts evaluated at the reference level of any
+covariates. The least square means (`lsm_*`) are instead computed
+according to the requested `weights`. When `group` interacts with a
+covariate these two quantities differ, so `trt` is not in general equal
+to `lsm_alt - lsm_ref`. This matches the behaviour of the original
+two-group implementation, where `trt` has always been the model
+coefficient.
 
 ## Weighting
 
@@ -212,4 +254,50 @@ ancova(dat, vars)
 #> [1] 97
 #> 
 #> 
+#> attr(,"rbmi_par_meta")
+#>         parameter estimate_type group group_level_1 group_level_2
+#> 1     trt_visit_1      contrast group  Intervention       Control
+#> 2 lsm_ref_visit_1           lsm group       Control          <NA>
+#> 3 lsm_alt_visit_1           lsm group  Intervention          <NA>
+#>   contrast_label   visit
+#> 1           <NA> visit_1
+#> 2           <NA> visit_1
+#> 3           <NA> visit_1
+
+# Multi-arm ANCOVA with a bespoke, named set of contrasts. With three groups
+# the default would compare each active arm against the reference ("Placebo");
+# here we additionally request the "High" vs "Low" contrast. Explicit contrasts
+# must be named, and the names become the output parameter names.
+set.seed(102)
+dat3 <- data.frame(
+    visit = factor("visit_1"),
+    group = factor(
+        rep(c("Placebo", "Low", "High"), each = 50),
+        levels = c("Placebo", "Low", "High")
+    ),
+    basval = rnorm(150)
+)
+dat3$outcome <- 5 +
+    2 * (dat3$group == "Low") +
+    4 * (dat3$group == "High") +
+    dat3$basval +
+    rnorm(150)
+
+vars3 <- set_vars(
+    outcome = "outcome",
+    group = "group",
+    visit = "visit",
+    covariates = "basval",
+    group_contrasts = list(
+        low_vs_pbo  = c("Low", "Placebo"),
+        high_vs_pbo = c("High", "Placebo"),
+        high_vs_low = c("High", "Low")
+    )
+)
+
+# Output names: `low_vs_pbo`, `high_vs_pbo`, `high_vs_low`, plus
+# `lsm_ref` / `lsm_alt` / `lsm_alt2`.
+names(ancova(dat3, vars3))
+#> [1] "low_vs_pbo_visit_1"  "high_vs_pbo_visit_1" "high_vs_low_visit_1"
+#> [4] "lsm_ref_visit_1"     "lsm_alt_visit_1"     "lsm_alt2_visit_1"   
 ```

@@ -15,7 +15,8 @@ set_vars(
   group = "group",
   covariates = character(0),
   strata = group,
-  strategy = "strategy"
+  strategy = "strategy",
+  group_contrasts = NULL
 )
 ```
 
@@ -51,6 +52,27 @@ set_vars(
 
   The name of the "strategy" variable. A length 1 character vector.
 
+- group_contrasts:
+
+  Optional specification of the treatment-group contrasts to be
+  estimated by
+  [`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md).
+  Either `NULL` (the default) or a fully named list whose elements are
+  one of:
+
+  - a length-2 character vector `c(minuend, subtrahend)` giving a
+    pairwise contrast `minuend - subtrahend` between two levels of
+    `group`; or
+
+  - a numeric weight vector over the group levels (summing to zero),
+    either named by the levels of `group` (unlisted levels default to
+    `0`) or of the same length as the number of levels (in factor
+    order).
+
+  Each element must be named; the name is used as the output `parameter`
+  name (and must not start with `lsm_`, which is reserved for the
+  least-squares means). See details.
+
 ## Value
 
 A `vars` object; a named list of class `ivars` recording the names of
@@ -71,6 +93,24 @@ If you wish to include interaction terms these need to be manually
 specified i.e. `covariates = c("group*visit", "age*sex")`. Please note
 that the use of the [`I()`](https://rdrr.io/r/base/AsIs.html) function
 to inhibit the interpretation/conversion of objects is not supported.
+
+The `group_contrasts` argument is only used by
+[`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md). If
+`NULL` (default) a treatment effect is estimated for every non-reference
+group versus the reference group (the first factor level of `group`).
+Alternatively a bespoke set of contrasts can be requested. Pairwise
+contrasts are given as length-2 character vectors, e.g.
+`group_contrasts = list(c("A", "Placebo"), c("B", "Placebo"))` requests
+the contrasts `A - Placebo` and `B - Placebo`. More general linear
+contrasts are given as named numeric weight vectors over the group
+levels, e.g.
+`group_contrasts = list(pooled_vs_pbo = c(Placebo = -1, A = 0.5, B = 0.5))`
+contrasts the average of `A` and `B` against `Placebo`. List names are
+carried through to the `contrast_label` column of the
+[`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) output;
+weight-vector contrasts must be named. See
+[`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md) for
+the resulting `parameter` naming scheme.
 
 Currently `strata` is only used by
 [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md) in

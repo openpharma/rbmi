@@ -74,100 +74,7 @@ Below, we report how data according to the specifications above can be
 simulated with function
 [`simulate_data()`](https://openpharma.github.io/rbmi/reference/simulate_data.md):
 
-``` r
-
-library(rbmi)
-library(dplyr)
-library(ggplot2)
-library(purrr)
-
-set.seed(122)
-
-n <- 100
-time <- c(0, 2, 4, 6, 8, 10, 12)
-
-# Mean trajectory control
-muC <- c(50.0, 51.66667, 53.33333, 55.0, 56.66667, 58.33333, 60.0)
-
-# Mean trajectory intervention
-muT <- c(50.0, 51.66667, 53.33333, 54.16667, 55.0, 55.83333, 56.66667)
-
-# Create Sigma
-sd_error <- 2.5
-covRE <- rbind(
-  c(25.0, 6.25),
-  c(6.25, 25.0)
-)
-
-Sigma <- cbind(1, time / 12) %*% covRE %*% rbind(1, time / 12) + diag(sd_error^2, nrow = length(time))
-
-# Set probability of discontinuation
-probDisc_C <- 0.02
-probDisc_T <- 0.03
-or_outcome <- 1.10 # +1 point increase => +10% odds of discontinuation
-
-# Set drop-out rate following discontinuation
-prob_dropout <- 0.5
-
-# Set simulation parameters of the control group
-parsC <- set_simul_pars(
-    mu = muC,
-    sigma = Sigma,
-    n = n,
-    prob_ice1 = probDisc_C,
-    or_outcome_ice1 = or_outcome,
-    prob_post_ice1_dropout = prob_dropout
-)
-
-# Set simulation parameters of the intervention group
-parsT <- parsC
-parsT$mu <- muT
-parsT$prob_ice1 <- probDisc_T
-
-# Set assumption about post-ice trajectory
-post_ice_traj <- "CIR"
-
-# Simulate data
-data <- simulate_data(
-    pars_c = parsC,
-    pars_t = parsT,
-    post_ice1_traj = post_ice_traj
-)
-
-head(data)
-#>     id visit   group outcome_bl outcome_noICE ind_ice1 ind_ice2 dropout_ice1
-#> 1 id_1     0 Control   57.32704      57.32704        0        0            0
-#> 2 id_1     1 Control   57.32704      54.69751        1        0            1
-#> 3 id_1     2 Control   57.32704      58.60702        1        0            1
-#> 4 id_1     3 Control   57.32704      61.50119        1        0            1
-#> 5 id_1     4 Control   57.32704      56.68363        1        0            1
-#> 6 id_1     5 Control   57.32704      66.14799        1        0            1
-#>    outcome
-#> 1 57.32704
-#> 2       NA
-#> 3       NA
-#> 4       NA
-#> 5       NA
-#> 6       NA
-
-# As a simple descriptive of the simulated data, summarize the number of subjects with ICEs and missing data 
-data %>%
-  group_by(id) %>%
-  summarise(
-    group = group[1],
-    any_ICE = (any(ind_ice1 == 1)),
-    any_NA = any(is.na(outcome))) %>%
-  group_by(group) %>%
-  summarise(
-      subjects_with_ICE = sum(any_ICE),
-      subjects_with_missings = sum(any_NA)
-  )
-#> # A tibble: 2 × 3
-#>   group        subjects_with_ICE subjects_with_missings
-#>   <fct>                    <int>                  <int>
-#> 1 Control                     18                      8
-#> 2 Intervention                25                     14
-```
+[`library`](https://rdrr.io/r/base/library.html)`(`[`rbmi`](https://openpharma.github.io/rbmi/)`)`` `[`library`](https://rdrr.io/r/base/library.html)`(`[`dplyr`](https://dplyr.tidyverse.org)`)`` `[`library`](https://rdrr.io/r/base/library.html)`(`[`ggplot2`](https://ggplot2.tidyverse.org)`)`` `[`library`](https://rdrr.io/r/base/library.html)`(`[`purrr`](https://purrr.tidyverse.org/)`)`` `` `[`set.seed`](https://rdrr.io/r/base/Random.html)`(``122``)`` `` ``n`` ``<-`` ``100`` ``time`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``2``, ``4``, ``6``, ``8``, ``10``, ``12``)`` `` ``# Mean trajectory control`` ``muC`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``50.0``, ``51.66667``, ``53.33333``, ``55.0``, ``56.66667``, ``58.33333``, ``60.0``)`` `` ``# Mean trajectory intervention`` ``muT`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``50.0``, ``51.66667``, ``53.33333``, ``54.16667``, ``55.0``, ``55.83333``, ``56.66667``)`` `` ``# Create Sigma`` ``sd_error`` ``<-`` ``2.5`` ``covRE`` ``<-`` `[`rbind`](https://rdrr.io/r/base/cbind.html)`(`` `` `[`c`](https://rdrr.io/r/base/c.html)`(``25.0``, ``6.25``)``,`` `` `[`c`](https://rdrr.io/r/base/c.html)`(``6.25``, ``25.0``)`` ``)`` `` ``Sigma`` ``<-`` `[`cbind`](https://rdrr.io/r/base/cbind.html)`(``1``, ``time`` ``/`` ``12``)`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``covRE`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` `[`rbind`](https://rdrr.io/r/base/cbind.html)`(``1``, ``time`` ``/`` ``12``)`` ``+`` `[`diag`](https://rdrr.io/r/base/diag.html)`(``sd_error``^``2``, nrow ``=`` `[`length`](https://rdrr.io/r/base/length.html)`(``time``)``)`` `` ``# Set probability of discontinuation`` ``probDisc_C`` ``<-`` ``0.02`` ``probDisc_T`` ``<-`` ``0.03`` ``or_outcome`` ``<-`` ``1.10`` ``# +1 point increase => +10% odds of discontinuation`` `` ``# Set drop-out rate following discontinuation`` ``prob_dropout`` ``<-`` ``0.5`` `` ``# Set simulation parameters of the control group`` ``parsC`` ``<-`` `[`set_simul_pars`](https://openpharma.github.io/rbmi/reference/set_simul_pars.md)`(`` `` mu ``=`` ``muC``,`` `` sigma ``=`` ``Sigma``,`` `` n ``=`` ``n``,`` `` prob_ice1 ``=`` ``probDisc_C``,`` `` or_outcome_ice1 ``=`` ``or_outcome``,`` `` prob_post_ice1_dropout ``=`` ``prob_dropout`` ``)`` `` ``# Set simulation parameters of the intervention group`` ``parsT`` ``<-`` ``parsC`` ``parsT``$``mu`` ``<-`` ``muT`` ``parsT``$``prob_ice1`` ``<-`` ``probDisc_T`` `` ``# Set assumption about post-ice trajectory`` ``post_ice_traj`` ``<-`` ``"CIR"`` `` ``# Simulate data`` ``data`` ``<-`` `[`simulate_data`](https://openpharma.github.io/rbmi/reference/simulate_data.md)`(`` `` pars_c ``=`` ``parsC``,`` `` pars_t ``=`` ``parsT``,`` `` post_ice1_traj ``=`` ``post_ice_traj`` ``)`` `` `[`head`](https://rdrr.io/r/utils/head.html)`(``data``)`` ``#> id visit group outcome_bl outcome_noICE ind_ice1 ind_ice2 dropout_ice1`` ``#> 1 id_1 0 Control 57.32704 57.32704 0 0 0`` ``#> 2 id_1 1 Control 57.32704 54.69751 1 0 1`` ``#> 3 id_1 2 Control 57.32704 58.60702 1 0 1`` ``#> 4 id_1 3 Control 57.32704 61.50119 1 0 1`` ``#> 5 id_1 4 Control 57.32704 56.68363 1 0 1`` ``#> 6 id_1 5 Control 57.32704 66.14799 1 0 1`` ``#> outcome`` ``#> 1 57.32704`` ``#> 2 NA`` ``#> 3 NA`` ``#> 4 NA`` ``#> 5 NA`` ``#> 6 NA`` `` ``# As a simple descriptive of the simulated data, summarize the number of subjects with ICEs and missing data `` ``data`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `[`group_by`](https://dplyr.tidyverse.org/reference/group_by.html)`(``id``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `[`summarise`](https://dplyr.tidyverse.org/reference/summarise.html)`(`` `` group ``=`` ``group``[``1``]``,`` `` any_ICE ``=`` ``(`[`any`](https://rdrr.io/r/base/any.html)`(``ind_ice1`` ``==`` ``1``)``)``,`` `` any_NA ``=`` `[`any`](https://rdrr.io/r/base/any.html)`(`[`is.na`](https://rdrr.io/r/base/NA.html)`(``outcome``)``)``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `[`group_by`](https://dplyr.tidyverse.org/reference/group_by.html)`(``group``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `[`summarise`](https://dplyr.tidyverse.org/reference/summarise.html)`(`` `` subjects_with_ICE ``=`` `[`sum`](https://rdrr.io/r/base/sum.html)`(``any_ICE``)``,`` `` subjects_with_missings ``=`` `[`sum`](https://rdrr.io/r/base/sum.html)`(``any_NA``)`` `` ``)`` ``#> ``# A tibble: 2 × 3`` ``#> group subjects_with_ICE subjects_with_missings`` ``#> ``<fct>`` ``<int>`` ``<int>`` ``#> ``1`` Control 18 8`` ``#> ``2`` Intervention 25 14`
 
 ## 3 Handling of observed post-ICE data in `rbmi` under reference-based imputation
 
@@ -242,52 +149,13 @@ analysis models. If you are not yet familiar with the syntax, we
 recommend that you first check the “quickstart” vignette
 ([`vignette("quickstart", package = "rbmi")`](https://openpharma.github.io/rbmi/articles/quickstart.md)).
 
-``` r
-
-# Create data_ice including the subject's first visit affected by the ICE and the imputation strategy
-# Imputation strategy for post-ICE data is CIR in the intervention group and MAR for the control group 
-# (note that ICEs which are handled using MAR are optional and do not impact the analysis
-#  because imputation of missing data under MAR is the default)
-data_ice_CIR <- data %>%
-    group_by(id) %>%
-    filter(ind_ice1 == 1) %>% # select visits with ICEs
-    mutate(strategy = ifelse(group == "Intervention", "CIR", "MAR")) %>%
-    summarise(
-        visit = visit[1], # Select first visit affected by the ICE
-        strategy = strategy[1]
-    )
-
-# Compute endpoint of interest: change from baseline and
-# remove rows corresponding to baseline visits
-data <- data %>% 
-    filter(visit != 0) %>% 
-    mutate(
-        change = outcome - outcome_bl,
-        visit = factor(visit, levels = unique(visit))
-    )
-
-# Define key variables for the imputation and analysis models
-vars <- set_vars(
-    subjid = "id",
-    visit = "visit",
-    outcome = "change",
-    group = "group",
-    covariates = c("visit*outcome_bl", "visit*group"),
-    strategy = "strategy"
-)
-
-vars_an <- vars
-vars_an$covariates <- "outcome_bl"
-```
+`# Create data_ice including the subject's first visit affected by the ICE and the imputation strategy`` ``# Imputation strategy for post-ICE data is CIR in the intervention group and MAR for the control group `` ``# (note that ICEs which are handled using MAR are optional and do not impact the analysis`` ``# because imputation of missing data under MAR is the default)`` ``data_ice_CIR`` ``<-`` ``data`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `[`group_by`](https://dplyr.tidyverse.org/reference/group_by.html)`(``id``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `[`filter`](https://dplyr.tidyverse.org/reference/filter.html)`(``ind_ice1`` ``==`` ``1``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` ``# select visits with ICEs`` `` `[`mutate`](https://dplyr.tidyverse.org/reference/mutate.html)`(``strategy ``=`` `[`ifelse`](https://rdrr.io/r/base/ifelse.html)`(``group`` ``==`` ``"Intervention"``, ``"CIR"``, ``"MAR"``)``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `[`summarise`](https://dplyr.tidyverse.org/reference/summarise.html)`(`` `` visit ``=`` ``visit``[``1``]``, ``# Select first visit affected by the ICE`` `` strategy ``=`` ``strategy``[``1``]`` `` ``)`` `` ``# Compute endpoint of interest: change from baseline and`` ``# remove rows corresponding to baseline visits`` ``data`` ``<-`` ``data`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`filter`](https://dplyr.tidyverse.org/reference/filter.html)`(``visit`` ``!=`` ``0``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`mutate`](https://dplyr.tidyverse.org/reference/mutate.html)`(`` `` change ``=`` ``outcome`` ``-`` ``outcome_bl``,`` `` visit ``=`` `[`factor`](https://rdrr.io/r/base/factor.html)`(``visit``, levels ``=`` `[`unique`](https://rdrr.io/r/base/unique.html)`(``visit``)``)`` `` ``)`` `` ``# Define key variables for the imputation and analysis models`` ``vars`` ``<-`` `[`set_vars`](https://openpharma.github.io/rbmi/reference/set_vars.md)`(`` `` subjid ``=`` ``"id"``,`` `` visit ``=`` ``"visit"``,`` `` outcome ``=`` ``"change"``,`` `` group ``=`` ``"group"``,`` `` covariates ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"visit*outcome_bl"``, ``"visit*group"``)``,`` `` strategy ``=`` ``"strategy"`` ``)`` `` ``vars_an`` ``<-`` ``vars`` ``vars_an``$``covariates`` ``<-`` ``"outcome_bl"`
 
 The chosen imputation method can be set with the function
 [`method_approxbayes()`](https://openpharma.github.io/rbmi/reference/method.md)
 as follows:
 
-``` r
-
-method <- method_approxbayes(n_sample = 20)
-```
+`method`` ``<-`` `[`method_approxbayes`](https://openpharma.github.io/rbmi/reference/method.md)`(``n_sample ``=`` ``20``)`
 
 We can now sequentially call the 4 key functions of `rbmi` to perform
 the multiple imputation. Please note that the management of observed
@@ -299,62 +167,7 @@ provided by the argument `data_ice`.
 [`impute()`](https://openpharma.github.io/rbmi/reference/impute.md) will
 impute only truly missing data in `data[[vars$outcome]]`.
 
-``` r
-
-draw_obj <- draws(
-    data = data,
-    data_ice = data_ice_CIR,
-    vars = vars,
-    method = method,
-    quiet = TRUE,
-    ncores = 2
-)
-
-impute_obj_CIR <- impute(
-    draw_obj,
-    references = c("Control" = "Control", "Intervention" = "Control")
-)
-
-ana_obj_CIR <- analyse(
-    impute_obj_CIR,
-    vars = vars_an
-)
-
-pool_obj_CIR <- pool(ana_obj_CIR)
-pool_obj_CIR
-#> 
-#> Pool Object
-#> -----------
-#> Number of Results Combined: 20
-#> Method: rubin
-#> Confidence Level: 0.95
-#> Alternative: two.sided
-#> 
-#> Results:
-#> 
-#>   ==================================================
-#>    parameter   est     se     lci     uci     pval  
-#>   --------------------------------------------------
-#>      trt_1    -0.486  0.512  -1.496  0.524   0.343  
-#>    lsm_ref_1   2.62   0.362  1.907   3.333   <0.001 
-#>    lsm_alt_1  2.133   0.362   1.42   2.847   <0.001 
-#>      trt_2    -0.066  0.542  -1.135  1.004   0.904  
-#>    lsm_ref_2  3.707   0.384   2.95   4.464   <0.001 
-#>    lsm_alt_2  3.641   0.383  2.885   4.397   <0.001 
-#>      trt_3    -1.782  0.607  -2.979  -0.585  0.004  
-#>    lsm_ref_3  5.841   0.428  4.997   6.685   <0.001 
-#>    lsm_alt_3  4.059   0.428  3.214   4.904   <0.001 
-#>      trt_4    -2.518  0.692  -3.884  -1.152  <0.001 
-#>    lsm_ref_4  7.656   0.492  6.685   8.627   <0.001 
-#>    lsm_alt_4  5.138   0.488  4.176    6.1    <0.001 
-#>      trt_5    -3.658  0.856  -5.346  -1.97   <0.001 
-#>    lsm_ref_5  9.558   0.598  8.379   10.737  <0.001 
-#>    lsm_alt_5   5.9    0.608  4.699   7.101   <0.001 
-#>      trt_6    -4.537  0.954  -6.42   -2.655  <0.001 
-#>    lsm_ref_6  11.048  0.666  9.735   12.362  <0.001 
-#>    lsm_alt_6  6.511   0.674  5.181   7.841   <0.001 
-#>   --------------------------------------------------
-```
+`draw_obj`` ``<-`` `[`draws`](https://openpharma.github.io/rbmi/reference/draws.md)`(`` `` data ``=`` ``data``,`` `` data_ice ``=`` ``data_ice_CIR``,`` `` vars ``=`` ``vars``,`` `` method ``=`` ``method``,`` `` quiet ``=`` ``TRUE``,`` `` ncores ``=`` ``2`` ``)`` `` ``impute_obj_CIR`` ``<-`` `[`impute`](https://openpharma.github.io/rbmi/reference/impute.md)`(`` `` ``draw_obj``,`` `` references ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"Control"`` ``=`` ``"Control"``, ``"Intervention"`` ``=`` ``"Control"``)`` ``)`` `` ``ana_obj_CIR`` ``<-`` `[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(`` `` ``impute_obj_CIR``,`` `` vars ``=`` ``vars_an`` ``)`` `` ``pool_obj_CIR`` ``<-`` `[`pool`](https://openpharma.github.io/rbmi/reference/pool.md)`(``ana_obj_CIR``)`` ``pool_obj_CIR`` ``#> `` ``#> Pool Object`` ``#> -----------`` ``#> Number of Results Combined: 20`` ``#> Method: rubin`` ``#> Confidence Level: 0.95`` ``#> Alternative: two.sided`` ``#> `` ``#> Results:`` ``#> `` ``#> ==================================================`` ``#> parameter est se lci uci pval `` ``#> --------------------------------------------------`` ``#> trt_1 -0.486 0.512 -1.496 0.524 0.343 `` ``#> lsm_ref_1 2.62 0.362 1.907 3.333 <0.001 `` ``#> lsm_alt_1 2.133 0.362 1.42 2.847 <0.001 `` ``#> trt_2 -0.066 0.542 -1.135 1.004 0.904 `` ``#> lsm_ref_2 3.707 0.384 2.95 4.464 <0.001 `` ``#> lsm_alt_2 3.641 0.383 2.885 4.397 <0.001 `` ``#> trt_3 -1.782 0.607 -2.979 -0.585 0.004 `` ``#> lsm_ref_3 5.841 0.428 4.997 6.685 <0.001 `` ``#> lsm_alt_3 4.059 0.428 3.214 4.904 <0.001 `` ``#> trt_4 -2.518 0.692 -3.884 -1.152 <0.001 `` ``#> lsm_ref_4 7.656 0.492 6.685 8.627 <0.001 `` ``#> lsm_alt_4 5.138 0.488 4.176 6.1 <0.001 `` ``#> trt_5 -3.658 0.856 -5.346 -1.97 <0.001 `` ``#> lsm_ref_5 9.558 0.598 8.379 10.737 <0.001 `` ``#> lsm_alt_5 5.9 0.608 4.699 7.101 <0.001 `` ``#> trt_6 -4.537 0.954 -6.42 -2.655 <0.001 `` ``#> lsm_ref_6 11.048 0.666 9.735 12.362 <0.001 `` ``#> lsm_alt_6 6.511 0.674 5.181 7.841 <0.001 `` ``#> --------------------------------------------------`
 
 This last output gives an estimated difference of -4.537 (95% CI -6.420
 to -2.655) between the two groups at the last visit with an associated
@@ -394,58 +207,7 @@ to change this strategy to a jump to reference imputation strategy for a
 sensitivity analysis. This can be efficiently implemented using
 `update_strategies` as follows:
 
-``` r
-
-# Change ICE strategy from CIR to JR
-data_ice_JR <- data_ice_CIR %>% 
-    mutate(strategy = ifelse(strategy == "CIR", "JR", strategy))
-
-impute_obj_JR <- impute(
-    draw_obj,
-    references = c("Control" = "Control", "Intervention" = "Control"),
-    update_strategy = data_ice_JR
-)
-
-ana_obj_JR <- analyse(
-    impute_obj_JR,
-    vars = vars_an
-)
-
-pool_obj_JR <- pool(ana_obj_JR)
-pool_obj_JR
-#> 
-#> Pool Object
-#> -----------
-#> Number of Results Combined: 20
-#> Method: rubin
-#> Confidence Level: 0.95
-#> Alternative: two.sided
-#> 
-#> Results:
-#> 
-#>   ==================================================
-#>    parameter   est     se     lci     uci     pval  
-#>   --------------------------------------------------
-#>      trt_1    -0.485  0.513  -1.496  0.526   0.346  
-#>    lsm_ref_1  2.609   0.363  1.892   3.325   <0.001 
-#>    lsm_alt_1  2.124   0.361  1.412   2.836   <0.001 
-#>      trt_2    -0.06   0.535  -1.115  0.995   0.911  
-#>    lsm_ref_2  3.694   0.378  2.948   4.441   <0.001 
-#>    lsm_alt_2  3.634   0.381  2.882   4.387   <0.001 
-#>      trt_3    -1.767  0.598  -2.948  -0.587  0.004  
-#>    lsm_ref_3  5.845   0.422  5.012   6.677   <0.001 
-#>    lsm_alt_3  4.077   0.432  3.225    4.93   <0.001 
-#>      trt_4    -2.529  0.686  -3.883  -1.175  <0.001 
-#>    lsm_ref_4  7.637   0.495  6.659   8.614   <0.001 
-#>    lsm_alt_4  5.108   0.492  4.138   6.078   <0.001 
-#>      trt_5    -3.523  0.856  -5.212  -1.833  <0.001 
-#>    lsm_ref_5  9.554   0.61   8.351   10.758  <0.001 
-#>    lsm_alt_5  6.032   0.611  4.827   7.237   <0.001 
-#>      trt_6    -4.36   0.952  -6.238  -2.482  <0.001 
-#>    lsm_ref_6  11.003  0.676  9.669   12.337  <0.001 
-#>    lsm_alt_6  6.643   0.687  5.287     8     <0.001 
-#>   --------------------------------------------------
-```
+`# Change ICE strategy from CIR to JR`` ``data_ice_JR`` ``<-`` ``data_ice_CIR`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`mutate`](https://dplyr.tidyverse.org/reference/mutate.html)`(``strategy ``=`` `[`ifelse`](https://rdrr.io/r/base/ifelse.html)`(``strategy`` ``==`` ``"CIR"``, ``"JR"``, ``strategy``)``)`` `` ``impute_obj_JR`` ``<-`` `[`impute`](https://openpharma.github.io/rbmi/reference/impute.md)`(`` `` ``draw_obj``,`` `` references ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"Control"`` ``=`` ``"Control"``, ``"Intervention"`` ``=`` ``"Control"``)``,`` `` update_strategy ``=`` ``data_ice_JR`` ``)`` `` ``ana_obj_JR`` ``<-`` `[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(`` `` ``impute_obj_JR``,`` `` vars ``=`` ``vars_an`` ``)`` `` ``pool_obj_JR`` ``<-`` `[`pool`](https://openpharma.github.io/rbmi/reference/pool.md)`(``ana_obj_JR``)`` ``pool_obj_JR`` ``#> `` ``#> Pool Object`` ``#> -----------`` ``#> Number of Results Combined: 20`` ``#> Method: rubin`` ``#> Confidence Level: 0.95`` ``#> Alternative: two.sided`` ``#> `` ``#> Results:`` ``#> `` ``#> ==================================================`` ``#> parameter est se lci uci pval `` ``#> --------------------------------------------------`` ``#> trt_1 -0.485 0.513 -1.496 0.526 0.346 `` ``#> lsm_ref_1 2.609 0.363 1.892 3.325 <0.001 `` ``#> lsm_alt_1 2.124 0.361 1.412 2.836 <0.001 `` ``#> trt_2 -0.06 0.535 -1.115 0.995 0.911 `` ``#> lsm_ref_2 3.694 0.378 2.948 4.441 <0.001 `` ``#> lsm_alt_2 3.634 0.381 2.882 4.387 <0.001 `` ``#> trt_3 -1.767 0.598 -2.948 -0.587 0.004 `` ``#> lsm_ref_3 5.845 0.422 5.012 6.677 <0.001 `` ``#> lsm_alt_3 4.077 0.432 3.225 4.93 <0.001 `` ``#> trt_4 -2.529 0.686 -3.883 -1.175 <0.001 `` ``#> lsm_ref_4 7.637 0.495 6.659 8.614 <0.001 `` ``#> lsm_alt_4 5.108 0.492 4.138 6.078 <0.001 `` ``#> trt_5 -3.523 0.856 -5.212 -1.833 <0.001 `` ``#> lsm_ref_5 9.554 0.61 8.351 10.758 <0.001 `` ``#> lsm_alt_5 6.032 0.611 4.827 7.237 <0.001 `` ``#> trt_6 -4.36 0.952 -6.238 -2.482 <0.001 `` ``#> lsm_ref_6 11.003 0.676 9.669 12.337 <0.001 `` ``#> lsm_alt_6 6.643 0.687 5.287 8 <0.001 `` ``#> --------------------------------------------------`
 
 For imputations under a jump to reference assumption, we get an
 estimated difference of -4.360 (95% CI -6.238 to -2.482) between the two
@@ -495,30 +257,7 @@ As an example, the user can check how the CIR strategy was implemented
 by looking at function
 [`strategy_CIR()`](https://openpharma.github.io/rbmi/reference/strategies.md).
 
-``` r
-
-strategy_CIR
-#> function (pars_group, pars_ref, index_mar) 
-#> {
-#>     if (all(index_mar)) {
-#>         return(pars_group)
-#>     }
-#>     else if (all(!index_mar)) {
-#>         return(pars_ref)
-#>     }
-#>     mu <- pars_group$mu
-#>     last_mar <- which(!index_mar)[1] - 1
-#>     increments_from_last_mar_ref <- pars_ref$mu[!index_mar] - 
-#>         pars_ref$mu[last_mar]
-#>     mu[!index_mar] <- mu[last_mar] + increments_from_last_mar_ref
-#>     sigma <- compute_sigma(sigma_group = pars_group$sigma, sigma_ref = pars_ref$sigma, 
-#>         index_mar = index_mar)
-#>     pars <- list(mu = mu, sigma = sigma)
-#>     return(pars)
-#> }
-#> <bytecode: 0x5605591ed9b8>
-#> <environment: namespace:rbmi>
-```
+`strategy_CIR`` ``#> function (pars_group, pars_ref, index_mar) `` ``#> {`` ``#> if (all(index_mar)) {`` ``#> return(pars_group)`` ``#> }`` ``#> else if (all(!index_mar)) {`` ``#> return(pars_ref)`` ``#> }`` ``#> mu <- pars_group$mu`` ``#> last_mar <- which(!index_mar)[1] - 1`` ``#> increments_from_last_mar_ref <- pars_ref$mu[!index_mar] - `` ``#> pars_ref$mu[last_mar]`` ``#> mu[!index_mar] <- mu[last_mar] + increments_from_last_mar_ref`` ``#> sigma <- compute_sigma(sigma_group = pars_group$sigma, sigma_ref = pars_ref$sigma, `` ``#> index_mar = index_mar)`` ``#> pars <- list(mu = mu, sigma = sigma)`` ``#> return(pars)`` ``#> }`` ``#> <bytecode: 0x55da085eab98>`` ``#> <environment: namespace:rbmi>`
 
 To further illustrate this for a simple example, assume that a new
 strategy is to be implemented as follows: - The marginal mean of the
@@ -533,42 +272,11 @@ distribution, the covariance matrix from the assigned group is taken.
 To do this, we first need to define the imputation function which for
 this example could be coded as follows:
 
-``` r
-
-strategy_AVG <- function(pars_group, pars_ref, index_mar) {
-    mu_mean <- (pars_group$mu + pars_ref$mu) / 2
-    x <- pars_group
-    x$mu[!index_mar] <- mu_mean[!index_mar]
-    return(x)
-}
-```
+`strategy_AVG`` ``<-`` ``function``(``pars_group``, ``pars_ref``, ``index_mar``)`` ``{`` `` ``mu_mean`` ``<-`` ``(``pars_group``$``mu`` ``+`` ``pars_ref``$``mu``)`` ``/`` ``2`` `` ``x`` ``<-`` ``pars_group`` `` ``x``$``mu``[``!``index_mar``]`` ``<-`` ``mu_mean``[``!``index_mar``]`` `` `[`return`](https://rdrr.io/r/base/function.html)`(``x``)`` ``}`
 
 And an example showing its use:
 
-``` r
-
-pars_group <- list(
-    mu = c(1, 2, 3),
-    sigma = as_vcov(c(1, 3, 2), c(0.4, 0.5, 0.45))
-)
-
-pars_ref <- list(
-    mu = c(5, 6, 7),
-    sigma = as_vcov(c(2, 1, 1), c(0.7, 0.8, 0.5))
-)
-
-index_mar <- c(TRUE, TRUE, FALSE)
-
-strategy_AVG(pars_group, pars_ref, index_mar)
-#> $mu
-#> [1] 1 2 5
-#> 
-#> $sigma
-#>      [,1] [,2] [,3]
-#> [1,]  1.0  1.2  1.0
-#> [2,]  1.2  9.0  2.7
-#> [3,]  1.0  2.7  4.0
-```
+`pars_group`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(`` `` mu ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``1``, ``2``, ``3``)``,`` `` sigma ``=`` `[`as_vcov`](https://openpharma.github.io/rbmi/reference/simulate_test_data.md)`(`[`c`](https://rdrr.io/r/base/c.html)`(``1``, ``3``, ``2``)``, `[`c`](https://rdrr.io/r/base/c.html)`(``0.4``, ``0.5``, ``0.45``)``)`` ``)`` `` ``pars_ref`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(`` `` mu ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``5``, ``6``, ``7``)``,`` `` sigma ``=`` `[`as_vcov`](https://openpharma.github.io/rbmi/reference/simulate_test_data.md)`(`[`c`](https://rdrr.io/r/base/c.html)`(``2``, ``1``, ``1``)``, `[`c`](https://rdrr.io/r/base/c.html)`(``0.7``, ``0.8``, ``0.5``)``)`` ``)`` `` ``index_mar`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``TRUE``, ``TRUE``, ``FALSE``)`` `` ``strategy_AVG``(``pars_group``, ``pars_ref``, ``index_mar``)`` ``#> $mu`` ``#> [1] 1 2 5`` ``#> `` ``#> $sigma`` ``#> [,1] [,2] [,3]`` ``#> [1,] 1.0 1.2 1.0`` ``#> [2,] 1.2 9.0 2.7`` ``#> [3,] 1.0 2.7 4.0`
 
 To incorporate this into `rbmi`, `data_ice` needs to be updated such
 that the strategy `AVG` is specified for visits affected by the ICE.
@@ -578,26 +286,7 @@ the
 [`getStrategies()`](https://openpharma.github.io/rbmi/reference/getStrategies.md)
 function as shown below:
 
-``` r
-
-data_ice_AVG <- data_ice_CIR %>% 
-    mutate(strategy = ifelse(strategy == "CIR", "AVG", strategy))
-
-
-draw_obj <- draws(
-    data = data,
-    data_ice = data_ice_AVG,
-    vars = vars,
-    method = method,
-    quiet = TRUE
-)
-
-impute_obj <- impute(
-    draw_obj,
-    references = c("Control" = "Control", "Intervention" = "Control"),
-    strategies = getStrategies(AVG = strategy_AVG)
-)
-```
+`data_ice_AVG`` ``<-`` ``data_ice_CIR`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`mutate`](https://dplyr.tidyverse.org/reference/mutate.html)`(``strategy ``=`` `[`ifelse`](https://rdrr.io/r/base/ifelse.html)`(``strategy`` ``==`` ``"CIR"``, ``"AVG"``, ``strategy``)``)`` `` `` ``draw_obj`` ``<-`` `[`draws`](https://openpharma.github.io/rbmi/reference/draws.md)`(`` `` data ``=`` ``data``,`` `` data_ice ``=`` ``data_ice_AVG``,`` `` vars ``=`` ``vars``,`` `` method ``=`` ``method``,`` `` quiet ``=`` ``TRUE`` ``)`` `` ``impute_obj`` ``<-`` `[`impute`](https://openpharma.github.io/rbmi/reference/impute.md)`(`` `` ``draw_obj``,`` `` references ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"Control"`` ``=`` ``"Control"``, ``"Intervention"`` ``=`` ``"Control"``)``,`` `` strategies ``=`` `[`getStrategies`](https://openpharma.github.io/rbmi/reference/getStrategies.md)`(``AVG ``=`` ``strategy_AVG``)`` ``)`
 
 Then, the analysis could proceed by calling
 [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
@@ -633,43 +322,7 @@ As a simple example, we replicate the ANCOVA analysis at the last visit
 for the CIR-based imputations with a user-defined analysis function
 below:
 
-``` r
-
-compare_change_lastvisit <- function(data, ...) {
-    fit <- lm(change ~ group + outcome_bl, data = data, subset = (visit == 6) )
-    res <- list(
-        trt = list(
-            est = coef(fit)["groupIntervention"],
-            se = sqrt(vcov(fit)["groupIntervention", "groupIntervention"]),
-            df = df.residual(fit)
-        )
-    )
-    return(res)
-}
-
-ana_obj_CIR6 <- analyse(
-  impute_obj_CIR,
-  fun = compare_change_lastvisit,
-  vars = vars_an
-)
-
-pool(ana_obj_CIR6)
-#> 
-#> Pool Object
-#> -----------
-#> Number of Results Combined: 20
-#> Method: rubin
-#> Confidence Level: 0.95
-#> Alternative: two.sided
-#> 
-#> Results:
-#> 
-#>   =================================================
-#>    parameter   est     se     lci    uci     pval  
-#>   -------------------------------------------------
-#>       trt     -4.537  0.954  -6.42  -2.655  <0.001 
-#>   -------------------------------------------------
-```
+`compare_change_lastvisit`` ``<-`` ``function``(``data``, ``...``)`` ``{`` `` ``fit`` ``<-`` `[`lm`](https://rdrr.io/r/stats/lm.html)`(``change`` ``~`` ``group`` ``+`` ``outcome_bl``, data ``=`` ``data``, subset ``=`` ``(``visit`` ``==`` ``6``)`` ``)`` `` ``res`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(`` `` trt ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(`` `` est ``=`` `[`coef`](https://rdrr.io/r/stats/coef.html)`(``fit``)``[``"groupIntervention"``]``,`` `` se ``=`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`vcov`](https://rdrr.io/r/stats/vcov.html)`(``fit``)``[``"groupIntervention"``, ``"groupIntervention"``]``)``,`` `` df ``=`` `[`df.residual`](https://rdrr.io/r/stats/df.residual.html)`(``fit``)`` `` ``)`` `` ``)`` `` `[`return`](https://rdrr.io/r/base/function.html)`(``res``)`` ``}`` `` ``ana_obj_CIR6`` ``<-`` `[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(`` `` ``impute_obj_CIR``,`` `` fun ``=`` ``compare_change_lastvisit``,`` `` vars ``=`` ``vars_an`` ``)`` `` `[`pool`](https://openpharma.github.io/rbmi/reference/pool.md)`(``ana_obj_CIR6``)`` ``#> `` ``#> Pool Object`` ``#> -----------`` ``#> Number of Results Combined: 20`` ``#> Method: rubin`` ``#> Confidence Level: 0.95`` ``#> Alternative: two.sided`` ``#> `` ``#> Results:`` ``#> `` ``#> =================================================`` ``#> parameter est se lci uci pval `` ``#> -------------------------------------------------`` ``#> trt -4.537 0.954 -6.42 -2.655 <0.001 `` ``#> -------------------------------------------------`
 
 As a second example, assume that for a supplementary analysis the user
 wants to compare the proportion of subjects with a change from baseline
@@ -677,60 +330,7 @@ of \>10 points at the last visit between the treatment groups with the
 baseline outcome as an additional covariate. This could lead to the
 following basic analysis function:
 
-``` r
-
-compare_prop_lastvisit <- function(data, ...) {
-    fit <- glm(
-        I(change > 10) ~ group + outcome_bl,
-        family = binomial(),
-        data = data,
-        subset = (visit == 6)
-    )
-    res <- list(
-        trt = list(
-            est = coef(fit)["groupIntervention"],
-            se = sqrt(vcov(fit)["groupIntervention", "groupIntervention"]),
-            df = NA
-        )
-    )
-    return(res)
-}
-    
-ana_obj_prop <- analyse(
-  impute_obj_CIR,
-  fun = compare_prop_lastvisit,
-  vars = vars_an
-)
-
-pool_obj_prop <- pool(ana_obj_prop)
-pool_obj_prop
-#> 
-#> Pool Object
-#> -----------
-#> Number of Results Combined: 20
-#> Method: rubin
-#> Confidence Level: 0.95
-#> Alternative: two.sided
-#> 
-#> Results:
-#> 
-#>   =================================================
-#>    parameter   est     se     lci     uci    pval  
-#>   -------------------------------------------------
-#>       trt     -1.052  0.314  -1.667  -0.438  0.001 
-#>   -------------------------------------------------
-
-tmp <- as.data.frame(pool_obj_prop) %>% 
-    mutate(
-        OR = exp(est),
-        OR.lci = exp(lci),
-        OR.uci = exp(uci)
-    ) %>% 
-    select(parameter, OR, OR.lci, OR.uci)
-tmp
-#>   parameter        OR   OR.lci    OR.uci
-#> 1       trt 0.3491078 0.188807 0.6455073
-```
+`compare_prop_lastvisit`` ``<-`` ``function``(``data``, ``...``)`` ``{`` `` ``fit`` ``<-`` `[`glm`](https://rdrr.io/r/stats/glm.html)`(`` `` `[`I`](https://rdrr.io/r/base/AsIs.html)`(``change`` ``>`` ``10``)`` ``~`` ``group`` ``+`` ``outcome_bl``,`` `` family ``=`` `[`binomial`](https://rdrr.io/r/stats/family.html)`(``)``,`` `` data ``=`` ``data``,`` `` subset ``=`` ``(``visit`` ``==`` ``6``)`` `` ``)`` `` ``res`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(`` `` trt ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(`` `` est ``=`` `[`coef`](https://rdrr.io/r/stats/coef.html)`(``fit``)``[``"groupIntervention"``]``,`` `` se ``=`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`vcov`](https://rdrr.io/r/stats/vcov.html)`(``fit``)``[``"groupIntervention"``, ``"groupIntervention"``]``)``,`` `` df ``=`` ``NA`` `` ``)`` `` ``)`` `` `[`return`](https://rdrr.io/r/base/function.html)`(``res``)`` ``}`` `` `` ``ana_obj_prop`` ``<-`` `[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(`` `` ``impute_obj_CIR``,`` `` fun ``=`` ``compare_prop_lastvisit``,`` `` vars ``=`` ``vars_an`` ``)`` `` ``pool_obj_prop`` ``<-`` `[`pool`](https://openpharma.github.io/rbmi/reference/pool.md)`(``ana_obj_prop``)`` ``pool_obj_prop`` ``#> `` ``#> Pool Object`` ``#> -----------`` ``#> Number of Results Combined: 20`` ``#> Method: rubin`` ``#> Confidence Level: 0.95`` ``#> Alternative: two.sided`` ``#> `` ``#> Results:`` ``#> `` ``#> =================================================`` ``#> parameter est se lci uci pval `` ``#> -------------------------------------------------`` ``#> trt -1.052 0.314 -1.667 -0.438 0.001 `` ``#> -------------------------------------------------`` `` ``tmp`` ``<-`` `[`as.data.frame`](https://rdrr.io/r/base/as.data.frame.html)`(``pool_obj_prop``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`mutate`](https://dplyr.tidyverse.org/reference/mutate.html)`(`` `` OR ``=`` `[`exp`](https://rdrr.io/r/base/Log.html)`(``est``)``,`` `` OR.lci ``=`` `[`exp`](https://rdrr.io/r/base/Log.html)`(``lci``)``,`` `` OR.uci ``=`` `[`exp`](https://rdrr.io/r/base/Log.html)`(``uci``)`` `` ``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`select`](https://dplyr.tidyverse.org/reference/select.html)`(``parameter``, ``OR``, ``OR.lci``, ``OR.uci``)`` ``tmp`` ``#> parameter OR OR.lci OR.uci`` ``#> 1 trt 0.3491078 0.188807 0.6455073`
 
 Note that if the user wants `rbmi` to use a normal approximation to the
 pooled test statistics, then the degrees of freedom need to be set to
@@ -782,18 +382,7 @@ function supports the user in creating this `data.frame`: it creates a
 skeleton `data.frame` containing one row per subject and visit with the
 value of `delta` set to 0 for all observations:
 
-``` r
-
-dat_delta <- delta_template(imputations = impute_obj_CIR)
-head(dat_delta)
-#>     id visit   group is_mar is_missing is_post_ice strategy delta
-#> 1 id_1     1 Control   TRUE       TRUE        TRUE      MAR     0
-#> 2 id_1     2 Control   TRUE       TRUE        TRUE      MAR     0
-#> 3 id_1     3 Control   TRUE       TRUE        TRUE      MAR     0
-#> 4 id_1     4 Control   TRUE       TRUE        TRUE      MAR     0
-#> 5 id_1     5 Control   TRUE       TRUE        TRUE      MAR     0
-#> 6 id_1     6 Control   TRUE       TRUE        TRUE      MAR     0
-```
+`dat_delta`` ``<-`` `[`delta_template`](https://openpharma.github.io/rbmi/reference/delta_template.md)`(``imputations ``=`` ``impute_obj_CIR``)`` `[`head`](https://rdrr.io/r/utils/head.html)`(``dat_delta``)`` ``#> id visit group is_mar is_missing is_post_ice strategy delta`` ``#> 1 id_1 1 Control TRUE TRUE TRUE MAR 0`` ``#> 2 id_1 2 Control TRUE TRUE TRUE MAR 0`` ``#> 3 id_1 3 Control TRUE TRUE TRUE MAR 0`` ``#> 4 id_1 4 Control TRUE TRUE TRUE MAR 0`` ``#> 5 id_1 5 Control TRUE TRUE TRUE MAR 0`` ``#> 6 id_1 6 Control TRUE TRUE TRUE MAR 0`
 
 Note that the output of
 [`delta_template()`](https://openpharma.github.io/rbmi/reference/delta_template.md)
@@ -807,52 +396,7 @@ Specifically, assume that a fixed “worsening adjustment” of +5 points is
 applied to all imputed values regardless of the treatment group. This
 could be programmed as follows:
 
-``` r
-
-# Set delta-value to 5 for all imputed (previously missing) outcomes and 0 for all other outcomes
-dat_delta <- delta_template(imputations = impute_obj_CIR) %>%
-    mutate(delta = is_missing * 5)
-
-# Repeat the analyses with the delta-adjusted values and pool results
-ana_delta <- analyse(
-    impute_obj_CIR,
-    delta = dat_delta,
-    vars = vars_an
-)
-pool(ana_delta)
-#> 
-#> Pool Object
-#> -----------
-#> Number of Results Combined: 20
-#> Method: rubin
-#> Confidence Level: 0.95
-#> Alternative: two.sided
-#> 
-#> Results:
-#> 
-#>   ==================================================
-#>    parameter   est     se     lci     uci     pval  
-#>   --------------------------------------------------
-#>      trt_1    -0.482  0.524  -1.516  0.552   0.359  
-#>    lsm_ref_1  2.718   0.37   1.987   3.448   <0.001 
-#>    lsm_alt_1  2.235   0.37   1.505   2.966   <0.001 
-#>      trt_2    -0.016  0.56   -1.12   1.089   0.978  
-#>    lsm_ref_2  3.907   0.396  3.125   4.688   <0.001 
-#>    lsm_alt_2  3.891   0.395  3.111   4.671   <0.001 
-#>      trt_3    -1.684  0.641  -2.948  -0.42   0.009  
-#>    lsm_ref_3  6.092   0.452  5.201   6.983   <0.001 
-#>    lsm_alt_3  4.408   0.452  3.515    5.3    <0.001 
-#>      trt_4    -2.359  0.741  -3.821  -0.897  0.002  
-#>    lsm_ref_4  7.951   0.526  6.913    8.99   <0.001 
-#>    lsm_alt_4  5.593   0.522  4.563   6.623   <0.001 
-#>      trt_5    -3.34   0.919  -5.153  -1.526  <0.001 
-#>    lsm_ref_5  9.899   0.643  8.631   11.168  <0.001 
-#>    lsm_alt_5  6.559   0.653  5.271   7.848   <0.001 
-#>      trt_6    -4.21   1.026  -6.236  -2.184  <0.001 
-#>    lsm_ref_6  11.435  0.718  10.019  12.851  <0.001 
-#>    lsm_alt_6  7.225   0.725  5.793   8.656   <0.001 
-#>   --------------------------------------------------
-```
+`# Set delta-value to 5 for all imputed (previously missing) outcomes and 0 for all other outcomes`` ``dat_delta`` ``<-`` `[`delta_template`](https://openpharma.github.io/rbmi/reference/delta_template.md)`(``imputations ``=`` ``impute_obj_CIR``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `[`mutate`](https://dplyr.tidyverse.org/reference/mutate.html)`(``delta ``=`` ``is_missing`` ``*`` ``5``)`` `` ``# Repeat the analyses with the delta-adjusted values and pool results`` ``ana_delta`` ``<-`` `[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(`` `` ``impute_obj_CIR``,`` `` delta ``=`` ``dat_delta``,`` `` vars ``=`` ``vars_an`` ``)`` `[`pool`](https://openpharma.github.io/rbmi/reference/pool.md)`(``ana_delta``)`` ``#> `` ``#> Pool Object`` ``#> -----------`` ``#> Number of Results Combined: 20`` ``#> Method: rubin`` ``#> Confidence Level: 0.95`` ``#> Alternative: two.sided`` ``#> `` ``#> Results:`` ``#> `` ``#> ==================================================`` ``#> parameter est se lci uci pval `` ``#> --------------------------------------------------`` ``#> trt_1 -0.482 0.524 -1.516 0.552 0.359 `` ``#> lsm_ref_1 2.718 0.37 1.987 3.448 <0.001 `` ``#> lsm_alt_1 2.235 0.37 1.505 2.966 <0.001 `` ``#> trt_2 -0.016 0.56 -1.12 1.089 0.978 `` ``#> lsm_ref_2 3.907 0.396 3.125 4.688 <0.001 `` ``#> lsm_alt_2 3.891 0.395 3.111 4.671 <0.001 `` ``#> trt_3 -1.684 0.641 -2.948 -0.42 0.009 `` ``#> lsm_ref_3 6.092 0.452 5.201 6.983 <0.001 `` ``#> lsm_alt_3 4.408 0.452 3.515 5.3 <0.001 `` ``#> trt_4 -2.359 0.741 -3.821 -0.897 0.002 `` ``#> lsm_ref_4 7.951 0.526 6.913 8.99 <0.001 `` ``#> lsm_alt_4 5.593 0.522 4.563 6.623 <0.001 `` ``#> trt_5 -3.34 0.919 -5.153 -1.526 <0.001 `` ``#> lsm_ref_5 9.899 0.643 8.631 11.168 <0.001 `` ``#> lsm_alt_5 6.559 0.653 5.271 7.848 <0.001 `` ``#> trt_6 -4.21 1.026 -6.236 -2.184 <0.001 `` ``#> lsm_ref_6 11.435 0.718 10.019 12.851 <0.001 `` ``#> lsm_alt_6 7.225 0.725 5.793 8.656 <0.001 `` ``#> --------------------------------------------------`
 
 The same approach can be used to implement a tipping point analysis.
 Here, we apply different delta-adjustments to imputed data from the
@@ -863,82 +407,7 @@ the delta-values in each group between -5 to +15 points to investigate
 which delta combinations lead to a “tipping” of the primary analysis
 result, defined here as an analysis p-value \\\geq 0.05\\.
 
-``` r
-
-
-
-
-perform_tipp_analysis <- function(delta_control, delta_intervention, cl) {
-
-    # Derive delta offset based on control and intervention specific deltas
-    delta_df <-  delta_df_init %>%
-        mutate(
-            delta_ctl = (group == "Control") * is_missing * delta_control,
-            delta_int = (group == "Intervention") * is_missing * delta_intervention,
-            delta = delta_ctl + delta_int
-        )
-
-    ana_delta <- analyse(
-        impute_obj_CIR,
-        fun = compare_change_lastvisit,
-        vars = vars_an,
-        delta = delta_df,
-        ncores = cl
-    )
-
-    pool_delta <- as.data.frame(pool(ana_delta))
-
-    list(
-        trt_effect_6 = pool_delta[["est"]],
-        pval_6 = pool_delta[["pval"]]
-    )
-}
-
-# Get initial delta template
-delta_df_init <- delta_template(impute_obj_CIR)
-
-tipp_frame_grid <- expand.grid(
-    delta_control = seq(-5, 15, by = 2),
-    delta_intervention = seq(-5, 15, by = 2)
-) %>%
-    as_tibble()
-
-# parallelise to speed up computation
-cl <- make_rbmi_cluster(2)
-
-tipp_frame <- tipp_frame_grid %>%
-    mutate(
-        results_list = map2(delta_control, delta_intervention, perform_tipp_analysis, cl = cl),
-        trt_effect_6 = map_dbl(results_list, "trt_effect_6"),
-        pval_6 = map_dbl(results_list, "pval_6")
-    ) %>%
-    select(-results_list) %>%
-    mutate(
-        pval = cut(
-            pval_6,
-            c(0, 0.001, 0.01, 0.05, 0.2, 1),
-            right = FALSE,
-            labels = c("<0.001", "0.001 - <0.01", "0.01- <0.05", "0.05 - <0.20", ">= 0.20")
-        )
-    )
-
-# Close cluster when done with it
-parallel::stopCluster(cl)
-
-# Show delta values which lead to non-significant analysis results
-tipp_frame %>%
-    filter(pval_6 >= 0.05)
-#> # A tibble: 3 × 5
-#>   delta_control delta_intervention trt_effect_6 pval_6 pval        
-#>           <dbl>              <dbl>        <dbl>  <dbl> <fct>       
-#> 1            -5                 15        -1.99 0.0935 0.05 - <0.20
-#> 2            -3                 15        -2.15 0.0704 0.05 - <0.20
-#> 3            -1                 15        -2.31 0.0527 0.05 - <0.20
-
-ggplot(tipp_frame, aes(delta_control, delta_intervention, fill = pval)) +
-    geom_raster() +
-    scale_fill_manual(values = c("darkgreen", "lightgreen", "lightyellow", "orange", "red"))
-```
+` `` `` ``perform_tipp_analysis`` ``<-`` ``function``(``delta_control``, ``delta_intervention``, ``cl``)`` ``{`` `` `` ``# Derive delta offset based on control and intervention specific deltas`` `` ``delta_df`` ``<-`` ``delta_df_init`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `[`mutate`](https://dplyr.tidyverse.org/reference/mutate.html)`(`` `` delta_ctl ``=`` ``(``group`` ``==`` ``"Control"``)`` ``*`` ``is_missing`` ``*`` ``delta_control``,`` `` delta_int ``=`` ``(``group`` ``==`` ``"Intervention"``)`` ``*`` ``is_missing`` ``*`` ``delta_intervention``,`` `` delta ``=`` ``delta_ctl`` ``+`` ``delta_int`` `` ``)`` `` `` ``ana_delta`` ``<-`` `[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(`` `` ``impute_obj_CIR``,`` `` fun ``=`` ``compare_change_lastvisit``,`` `` vars ``=`` ``vars_an``,`` `` delta ``=`` ``delta_df``,`` `` ncores ``=`` ``cl`` `` ``)`` `` `` ``pool_delta`` ``<-`` `[`as.data.frame`](https://rdrr.io/r/base/as.data.frame.html)`(`[`pool`](https://openpharma.github.io/rbmi/reference/pool.md)`(``ana_delta``)``)`` `` `` `[`list`](https://rdrr.io/r/base/list.html)`(`` `` trt_effect_6 ``=`` ``pool_delta``[[``"est"``]``]``,`` `` pval_6 ``=`` ``pool_delta``[[``"pval"``]``]`` `` ``)`` ``}`` `` ``# Get initial delta template`` ``delta_df_init`` ``<-`` `[`delta_template`](https://openpharma.github.io/rbmi/reference/delta_template.md)`(``impute_obj_CIR``)`` `` ``tipp_frame_grid`` ``<-`` `[`expand.grid`](https://rdrr.io/r/base/expand.grid.html)`(`` `` delta_control ``=`` `[`seq`](https://rdrr.io/r/base/seq.html)`(``-``5``, ``15``, by ``=`` ``2``)``,`` `` delta_intervention ``=`` `[`seq`](https://rdrr.io/r/base/seq.html)`(``-``5``, ``15``, by ``=`` ``2``)`` ``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `[`as_tibble`](https://tibble.tidyverse.org/reference/as_tibble.html)`(``)`` `` ``# parallelise to speed up computation`` ``cl`` ``<-`` `[`make_rbmi_cluster`](https://openpharma.github.io/rbmi/reference/make_rbmi_cluster.md)`(``2``)`` `` ``tipp_frame`` ``<-`` ``tipp_frame_grid`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `[`mutate`](https://dplyr.tidyverse.org/reference/mutate.html)`(`` `` results_list ``=`` `[`map2`](https://purrr.tidyverse.org/reference/map2.html)`(``delta_control``, ``delta_intervention``, ``perform_tipp_analysis``, cl ``=`` ``cl``)``,`` `` trt_effect_6 ``=`` `[`map_dbl`](https://purrr.tidyverse.org/reference/map.html)`(``results_list``, ``"trt_effect_6"``)``,`` `` pval_6 ``=`` `[`map_dbl`](https://purrr.tidyverse.org/reference/map.html)`(``results_list``, ``"pval_6"``)`` `` ``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `[`select`](https://dplyr.tidyverse.org/reference/select.html)`(``-``results_list``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `[`mutate`](https://dplyr.tidyverse.org/reference/mutate.html)`(`` `` pval ``=`` `[`cut`](https://rdrr.io/r/base/cut.html)`(`` `` ``pval_6``,`` `` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``0.001``, ``0.01``, ``0.05``, ``0.2``, ``1``)``,`` `` right ``=`` ``FALSE``,`` `` labels ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"<0.001"``, ``"0.001 - <0.01"``, ``"0.01- <0.05"``, ``"0.05 - <0.20"``, ``">= 0.20"``)`` `` ``)`` `` ``)`` `` ``# Close cluster when done with it`` ``parallel``::`[`stopCluster`](https://rdrr.io/r/parallel/makeCluster.html)`(``cl``)`` `` ``# Show delta values which lead to non-significant analysis results`` ``tipp_frame`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `[`filter`](https://dplyr.tidyverse.org/reference/filter.html)`(``pval_6`` ``>=`` ``0.05``)`` ``#> ``# A tibble: 3 × 5`` ``#> delta_control delta_intervention trt_effect_6 pval_6 pval `` ``#> ``<dbl>`` ``<dbl>`` ``<dbl>`` ``<dbl>`` ``<fct>`` `` ``#> ``1`` -``5`` 15 -``1.99`` 0.093``5`` 0.05 - <0.20`` ``#> ``2`` -``3`` 15 -``2.15`` 0.070``4`` 0.05 - <0.20`` ``#> ``3`` -``1`` 15 -``2.31`` 0.052``7`` 0.05 - <0.20`` `` `[`ggplot`](https://ggplot2.tidyverse.org/reference/ggplot.html)`(``tipp_frame``, `[`aes`](https://ggplot2.tidyverse.org/reference/aes.html)`(``delta_control``, ``delta_intervention``, fill ``=`` ``pval``)``)`` ``+`` `` `[`geom_raster`](https://ggplot2.tidyverse.org/reference/geom_tile.html)`(``)`` ``+`` `` `[`scale_fill_manual`](https://ggplot2.tidyverse.org/reference/scale_manual.html)`(``values ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"darkgreen"``, ``"lightgreen"``, ``"lightyellow"``, ``"orange"``, ``"red"``)``)`
 
 ![](advanced_files/figure-html/unnamed-chunk-15-1.png)
 
@@ -1047,83 +516,18 @@ To program this, we first use the `delta` and `dlag` arguments of
 [`delta_template()`](https://openpharma.github.io/rbmi/reference/delta_template.md)
 to set up a corresponding template `data.frame`:
 
-``` r
-
-delta_df <- delta_template(
-    impute_obj_CIR,
-    delta = c(2, 2, 2, 2, 2, 2),
-    dlag = c(1, 1, 1, 1, 1, 1)
-)
-
-head(delta_df)
-#>     id visit   group is_mar is_missing is_post_ice strategy delta
-#> 1 id_1     1 Control   TRUE       TRUE        TRUE      MAR     2
-#> 2 id_1     2 Control   TRUE       TRUE        TRUE      MAR     4
-#> 3 id_1     3 Control   TRUE       TRUE        TRUE      MAR     6
-#> 4 id_1     4 Control   TRUE       TRUE        TRUE      MAR     8
-#> 5 id_1     5 Control   TRUE       TRUE        TRUE      MAR    10
-#> 6 id_1     6 Control   TRUE       TRUE        TRUE      MAR    12
-```
+`delta_df`` ``<-`` `[`delta_template`](https://openpharma.github.io/rbmi/reference/delta_template.md)`(`` `` ``impute_obj_CIR``,`` `` delta ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``2``, ``2``, ``2``, ``2``, ``2``, ``2``)``,`` `` dlag ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``1``, ``1``, ``1``, ``1``, ``1``, ``1``)`` ``)`` `` `[`head`](https://rdrr.io/r/utils/head.html)`(``delta_df``)`` ``#> id visit group is_mar is_missing is_post_ice strategy delta`` ``#> 1 id_1 1 Control TRUE TRUE TRUE MAR 2`` ``#> 2 id_1 2 Control TRUE TRUE TRUE MAR 4`` ``#> 3 id_1 3 Control TRUE TRUE TRUE MAR 6`` ``#> 4 id_1 4 Control TRUE TRUE TRUE MAR 8`` ``#> 5 id_1 5 Control TRUE TRUE TRUE MAR 10`` ``#> 6 id_1 6 Control TRUE TRUE TRUE MAR 12`
 
 Next, we can use the additional metadata variables provided by
 [`delta_template()`](https://openpharma.github.io/rbmi/reference/delta_template.md)
 to manually reset the delta values for the control group back to 0:
 
-``` r
-
-delta_df2 <- delta_df %>%
-    mutate(delta = if_else(group == "Control", 0, delta))
-
-head(delta_df2)
-#>     id visit   group is_mar is_missing is_post_ice strategy delta
-#> 1 id_1     1 Control   TRUE       TRUE        TRUE      MAR     0
-#> 2 id_1     2 Control   TRUE       TRUE        TRUE      MAR     0
-#> 3 id_1     3 Control   TRUE       TRUE        TRUE      MAR     0
-#> 4 id_1     4 Control   TRUE       TRUE        TRUE      MAR     0
-#> 5 id_1     5 Control   TRUE       TRUE        TRUE      MAR     0
-#> 6 id_1     6 Control   TRUE       TRUE        TRUE      MAR     0
-```
+`delta_df2`` ``<-`` ``delta_df`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `[`mutate`](https://dplyr.tidyverse.org/reference/mutate.html)`(``delta ``=`` `[`if_else`](https://dplyr.tidyverse.org/reference/if_else.html)`(``group`` ``==`` ``"Control"``, ``0``, ``delta``)``)`` `` `[`head`](https://rdrr.io/r/utils/head.html)`(``delta_df2``)`` ``#> id visit group is_mar is_missing is_post_ice strategy delta`` ``#> 1 id_1 1 Control TRUE TRUE TRUE MAR 0`` ``#> 2 id_1 2 Control TRUE TRUE TRUE MAR 0`` ``#> 3 id_1 3 Control TRUE TRUE TRUE MAR 0`` ``#> 4 id_1 4 Control TRUE TRUE TRUE MAR 0`` ``#> 5 id_1 5 Control TRUE TRUE TRUE MAR 0`` ``#> 6 id_1 6 Control TRUE TRUE TRUE MAR 0`
 
 Finally, we can use our delta `data.frame` to apply the desired delta
 offset to our analysis:
 
-``` r
-
-ana_delta <- analyse(impute_obj_CIR, delta = delta_df2, vars = vars_an)
-pool(ana_delta)
-#> 
-#> Pool Object
-#> -----------
-#> Number of Results Combined: 20
-#> Method: rubin
-#> Confidence Level: 0.95
-#> Alternative: two.sided
-#> 
-#> Results:
-#> 
-#>   ==================================================
-#>    parameter   est     se     lci     uci     pval  
-#>   --------------------------------------------------
-#>      trt_1    -0.446  0.514  -1.459  0.567   0.386  
-#>    lsm_ref_1   2.62   0.363  1.904   3.335   <0.001 
-#>    lsm_alt_1  2.173   0.363  1.458   2.889   <0.001 
-#>      trt_2    0.072   0.546  -1.006   1.15   0.895  
-#>    lsm_ref_2  3.708   0.387  2.945   4.471   <0.001 
-#>    lsm_alt_2   3.78   0.386  3.018   4.542   <0.001 
-#>      trt_3    -1.507  0.626  -2.743  -0.272  0.017  
-#>    lsm_ref_3  5.844   0.441  4.973   6.714   <0.001 
-#>    lsm_alt_3  4.336   0.442  3.464   5.209   <0.001 
-#>      trt_4    -2.062  0.731  -3.504  -0.621  0.005  
-#>    lsm_ref_4  7.658   0.519  6.634   8.682   <0.001 
-#>    lsm_alt_4  5.596   0.515   4.58   6.612   <0.001 
-#>      trt_5    -2.938  0.916  -4.746  -1.13   0.002  
-#>    lsm_ref_5  9.558   0.641  8.293   10.823  <0.001 
-#>    lsm_alt_5   6.62   0.651  5.335   7.905   <0.001 
-#>      trt_6    -3.53   1.045  -5.591  -1.469  0.001  
-#>    lsm_ref_6  11.045  0.73   9.604   12.486  <0.001 
-#>    lsm_alt_6  7.515   0.738  6.058   8.971   <0.001 
-#>   --------------------------------------------------
-```
+`ana_delta`` ``<-`` `[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(``impute_obj_CIR``, delta ``=`` ``delta_df2``, vars ``=`` ``vars_an``)`` `[`pool`](https://openpharma.github.io/rbmi/reference/pool.md)`(``ana_delta``)`` ``#> `` ``#> Pool Object`` ``#> -----------`` ``#> Number of Results Combined: 20`` ``#> Method: rubin`` ``#> Confidence Level: 0.95`` ``#> Alternative: two.sided`` ``#> `` ``#> Results:`` ``#> `` ``#> ==================================================`` ``#> parameter est se lci uci pval `` ``#> --------------------------------------------------`` ``#> trt_1 -0.446 0.514 -1.459 0.567 0.386 `` ``#> lsm_ref_1 2.62 0.363 1.904 3.335 <0.001 `` ``#> lsm_alt_1 2.173 0.363 1.458 2.889 <0.001 `` ``#> trt_2 0.072 0.546 -1.006 1.15 0.895 `` ``#> lsm_ref_2 3.708 0.387 2.945 4.471 <0.001 `` ``#> lsm_alt_2 3.78 0.386 3.018 4.542 <0.001 `` ``#> trt_3 -1.507 0.626 -2.743 -0.272 0.017 `` ``#> lsm_ref_3 5.844 0.441 4.973 6.714 <0.001 `` ``#> lsm_alt_3 4.336 0.442 3.464 5.209 <0.001 `` ``#> trt_4 -2.062 0.731 -3.504 -0.621 0.005 `` ``#> lsm_ref_4 7.658 0.519 6.634 8.682 <0.001 `` ``#> lsm_alt_4 5.596 0.515 4.58 6.612 <0.001 `` ``#> trt_5 -2.938 0.916 -4.746 -1.13 0.002 `` ``#> lsm_ref_5 9.558 0.641 8.293 10.823 <0.001 `` ``#> lsm_alt_5 6.62 0.651 5.335 7.905 <0.001 `` ``#> trt_6 -3.53 1.045 -5.591 -1.469 0.001 `` ``#> lsm_ref_6 11.045 0.73 9.604 12.486 <0.001 `` ``#> lsm_alt_6 7.515 0.738 6.058 8.971 <0.001 `` ``#> --------------------------------------------------`
 
 ## References
 

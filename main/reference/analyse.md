@@ -125,6 +125,16 @@ relies on the fact that ANCOVA is a linear transformation of the
 outcomes. Thus care is required when applying alternative analysis
 functions in this setting.
 
+Note that
+[`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md)
+supports the analysis of two or more treatment arms; for more than two
+arms it extends the `ref` / `alt` naming scheme with `alt2`, `alt3`,
+etc. The set of treatment-group contrasts to estimate can be customised
+via the `group_contrasts` argument of
+[`set_vars()`](https://openpharma.github.io/rbmi/reference/set_vars.md).
+See [`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md)
+for full details.
+
 The `delta` argument can be used to specify offsets to be applied to the
 outcome variable in the imputed datasets prior to the analysis. This is
 typically used for sensitivity or tipping point analyses. The delta

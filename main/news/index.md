@@ -2,6 +2,36 @@
 
 ## rbmi (development version)
 
+### New Features
+
+- [`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md)
+  now supports the analysis of two or more treatment groups. For more
+  than two groups the `ref` / `alt` naming scheme is extended with
+  `alt2`, `alt3`, etc. based on the factor levels of `vars$group`; the
+  two-group output is unchanged (`trt`, `lsm_ref`, `lsm_alt`) for
+  backwards compatibility.
+  [`set_vars()`](https://openpharma.github.io/rbmi/reference/set_vars.md)
+  gained a `group_contrasts` argument allowing users to specify a
+  bespoke set of treatment-group contrasts for
+  [`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md).
+  By default a contrast of each non-reference group versus the reference
+  group is estimated. Custom contrasts must be named (the name becomes
+  the output `parameter` name) and may be given as pairwise
+  `c(minuend, subtrahend)` character vectors or as general named numeric
+  weight vectors over the group levels
+  (e.g. `c(Placebo = -1, A = 0.5, B = 0.5)` for a pooled comparison);
+  contrasts are evaluated in a contrast-coding-agnostic way. The
+  `data.frame` produced by
+  [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) /
+  [`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) now
+  includes explicit `estimate_type`, `group`, `group_level_1`,
+  `group_level_2`, `contrast_label` and `visit` columns when the
+  analysis was performed with
+  [`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md).
+  The existing `parameter` column is retained for backwards
+  compatibility.
+  ([\#520](https://github.com/openpharma/rbmi/issues/520))
+
 ## rbmi 1.6.1
 
 CRAN release: 2026-07-22

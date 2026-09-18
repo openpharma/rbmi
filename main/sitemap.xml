@@ -21,6 +21,12 @@
 <url><loc>https://openpharma.github.io/rbmi/reference/adjust_trajectories_single.html</loc></url>
 <url><loc>https://openpharma.github.io/rbmi/reference/analyse.html</loc></url>
 <url><loc>https://openpharma.github.io/rbmi/reference/ancova.html</loc></url>
+<url><loc>https://openpharma.github.io/rbmi/reference/ancova_contrast_design.html</loc></url>
+<url><loc>https://openpharma.github.io/rbmi/reference/ancova_contrast_name.html</loc></url>
+<url><loc>https://openpharma.github.io/rbmi/reference/ancova_core.html</loc></url>
+<url><loc>https://openpharma.github.io/rbmi/reference/ancova_group_labels.html</loc></url>
+<url><loc>https://openpharma.github.io/rbmi/reference/ancova_linear_contrast.html</loc></url>
+<url><loc>https://openpharma.github.io/rbmi/reference/ancova_resolve_contrasts.html</loc></url>
 <url><loc>https://openpharma.github.io/rbmi/reference/ancova_single.html</loc></url>
 <url><loc>https://openpharma.github.io/rbmi/reference/antidepressant_data.html</loc></url>
 <url><loc>https://openpharma.github.io/rbmi/reference/apply_delta.html</loc></url>
@@ -64,6 +70,7 @@
 <url><loc>https://openpharma.github.io/rbmi/reference/fit_mcmc.html</loc></url>
 <url><loc>https://openpharma.github.io/rbmi/reference/fit_mmrm.html</loc></url>
 <url><loc>https://openpharma.github.io/rbmi/reference/format_method_descriptions.html</loc></url>
+<url><loc>https://openpharma.github.io/rbmi/reference/frm_find_and_replace.html</loc></url>
 <url><loc>https://openpharma.github.io/rbmi/reference/generate_data_single.html</loc></url>
 <url><loc>https://openpharma.github.io/rbmi/reference/getStrategies.html</loc></url>
 <url><loc>https://openpharma.github.io/rbmi/reference/get_ESS.html</loc></url>
@@ -127,6 +134,7 @@
 <url><loc>https://openpharma.github.io/rbmi/reference/record.html</loc></url>
 <url><loc>https://openpharma.github.io/rbmi/reference/recursive_reduce.html</loc></url>
 <url><loc>https://openpharma.github.io/rbmi/reference/remove_if_all_missing.html</loc></url>
+<url><loc>https://openpharma.github.io/rbmi/reference/resolve_contrast_weights.html</loc></url>
 <url><loc>https://openpharma.github.io/rbmi/reference/rubin_df.html</loc></url>
 <url><loc>https://openpharma.github.io/rbmi/reference/rubin_rules.html</loc></url>
 <url><loc>https://openpharma.github.io/rbmi/reference/sample_ids.html</loc></url>

@@ -89,11 +89,7 @@ Below, we report how data according to the specifications above can be
 simulated with function
 [`simulate_data()`](https://openpharma.github.io/rbmi/reference/simulate_data.md):
 
-``` r
-
-library(rbmi)
-library(dplyr)
-```
+[`library`](https://rdrr.io/r/base/library.html)`(`[`rbmi`](https://openpharma.github.io/rbmi/)`)`` `[`library`](https://rdrr.io/r/base/library.html)`(`[`dplyr`](https://dplyr.tidyverse.org)`)`
 
     ## 
     ## Attaching package: 'dplyr'
@@ -106,55 +102,7 @@ library(dplyr)
     ## 
     ##     intersect, setdiff, setequal, union
 
-``` r
-
-set.seed(1392)
-
-time <- c(0, 3, 6, 9, 12)
-
-# Mean trajectory control
-muC <- c(50.0, 52.5, 55.0, 57.5, 60.0)
-
-# Mean trajectory intervention
-muT <- c(50.0, 52.5, 55.0, 56.25, 57.50)
-
-# Create Sigma
-sd_error <- 2.5
-covRE <- rbind(
-  c(25.0, 6.25),
-  c(6.25, 25.0)
-)
-
-Sigma <- cbind(1, time / 12) %*%
-    covRE %*% rbind(1, time / 12) +
-    diag(sd_error^2, nrow = length(time))
-
-# Set simulation parameters of the control group
-parsC <- set_simul_pars(
-    mu = muC,
-    sigma = Sigma,
-    n = 100, # sample size
-    prob_ice1 = 0.03, # prob of discontinuation for outcome equal to 50
-    or_outcome_ice1 = 1.10,  # +1 point increase => +10% odds of discontinuation
-    prob_post_ice1_dropout = 0.5 # dropout rate following discontinuation
-)
-
-# Set simulation parameters of the intervention group
-parsT <- parsC
-parsT$mu <- muT
-parsT$prob_ice1 <- 0.04
-
-# Simulate data
-data <- simulate_data(
-    pars_c = parsC,
-    pars_t = parsT,
-    post_ice1_traj = "CIR" # Assumption about post-ice trajectory
-) %>%
-  select(-c(outcome_noICE, ind_ice2)) # remove unncessary columns
-  
-
-head(data)
-```
+[`set.seed`](https://rdrr.io/r/base/Random.html)`(``1392``)`` `` ``time`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``3``, ``6``, ``9``, ``12``)`` `` ``# Mean trajectory control`` ``muC`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``50.0``, ``52.5``, ``55.0``, ``57.5``, ``60.0``)`` `` ``# Mean trajectory intervention`` ``muT`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``50.0``, ``52.5``, ``55.0``, ``56.25``, ``57.50``)`` `` ``# Create Sigma`` ``sd_error`` ``<-`` ``2.5`` ``covRE`` ``<-`` `[`rbind`](https://rdrr.io/r/base/cbind.html)`(`` `` `[`c`](https://rdrr.io/r/base/c.html)`(``25.0``, ``6.25``)``,`` `` `[`c`](https://rdrr.io/r/base/c.html)`(``6.25``, ``25.0``)`` ``)`` `` ``Sigma`` ``<-`` `[`cbind`](https://rdrr.io/r/base/cbind.html)`(``1``, ``time`` ``/`` ``12``)`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` `` ``covRE`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` `[`rbind`](https://rdrr.io/r/base/cbind.html)`(``1``, ``time`` ``/`` ``12``)`` ``+`` `` `[`diag`](https://rdrr.io/r/base/diag.html)`(``sd_error``^``2``, nrow ``=`` `[`length`](https://rdrr.io/r/base/length.html)`(``time``)``)`` `` ``# Set simulation parameters of the control group`` ``parsC`` ``<-`` `[`set_simul_pars`](https://openpharma.github.io/rbmi/reference/set_simul_pars.md)`(`` `` mu ``=`` ``muC``,`` `` sigma ``=`` ``Sigma``,`` `` n ``=`` ``100``, ``# sample size`` `` prob_ice1 ``=`` ``0.03``, ``# prob of discontinuation for outcome equal to 50`` `` or_outcome_ice1 ``=`` ``1.10``, ``# +1 point increase => +10% odds of discontinuation`` `` prob_post_ice1_dropout ``=`` ``0.5`` ``# dropout rate following discontinuation`` ``)`` `` ``# Set simulation parameters of the intervention group`` ``parsT`` ``<-`` ``parsC`` ``parsT``$``mu`` ``<-`` ``muT`` ``parsT``$``prob_ice1`` ``<-`` ``0.04`` `` ``# Simulate data`` ``data`` ``<-`` `[`simulate_data`](https://openpharma.github.io/rbmi/reference/simulate_data.md)`(`` `` pars_c ``=`` ``parsC``,`` `` pars_t ``=`` ``parsT``,`` `` post_ice1_traj ``=`` ``"CIR"`` ``# Assumption about post-ice trajectory`` ``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `[`select`](https://dplyr.tidyverse.org/reference/select.html)`(``-`[`c`](https://rdrr.io/r/base/c.html)`(``outcome_noICE``, ``ind_ice2``)``)`` ``# remove unncessary columns`` `` `` `` `[`head`](https://rdrr.io/r/utils/head.html)`(``data``)`
 
     ##     id visit   group outcome_bl ind_ice1 dropout_ice1  outcome
     ## 1 id_1     0 Control   53.35397        0            0 53.35397
@@ -174,26 +122,7 @@ models.
 The proportion of subjects with an ICE and the proportion of subjects
 who withdrew from the simulated study is summarized below:
 
-``` r
-
-# Compute endpoint of interest: change from baseline
-data <- data %>% 
-  filter(visit != "0") %>%
-  mutate(
-    change = outcome - outcome_bl,
-    visit = factor(visit, levels = unique(visit))
-  )
-      
-
-data %>%
-  group_by(visit) %>% 
-  summarise(
-    freq_disc_ctrl = mean(ind_ice1[group == "Control"] == 1),
-    freq_dropout_ctrl = mean(dropout_ice1[group == "Control"] == 1),
-    freq_disc_interv = mean(ind_ice1[group == "Intervention"] == 1),
-    freq_dropout_interv = mean(dropout_ice1[group == "Intervention"] == 1)
-  )
-```
+`# Compute endpoint of interest: change from baseline`` ``data`` ``<-`` ``data`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`filter`](https://dplyr.tidyverse.org/reference/filter.html)`(``visit`` ``!=`` ``"0"``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `[`mutate`](https://dplyr.tidyverse.org/reference/mutate.html)`(`` `` change ``=`` ``outcome`` ``-`` ``outcome_bl``,`` `` visit ``=`` `[`factor`](https://rdrr.io/r/base/factor.html)`(``visit``, levels ``=`` `[`unique`](https://rdrr.io/r/base/unique.html)`(``visit``)``)`` `` ``)`` `` `` `` ``data`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `[`group_by`](https://dplyr.tidyverse.org/reference/group_by.html)`(``visit``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`summarise`](https://dplyr.tidyverse.org/reference/summarise.html)`(`` `` freq_disc_ctrl ``=`` `[`mean`](https://rdrr.io/r/base/mean.html)`(``ind_ice1``[``group`` ``==`` ``"Control"``]`` ``==`` ``1``)``,`` `` freq_dropout_ctrl ``=`` `[`mean`](https://rdrr.io/r/base/mean.html)`(``dropout_ice1``[``group`` ``==`` ``"Control"``]`` ``==`` ``1``)``,`` `` freq_disc_interv ``=`` `[`mean`](https://rdrr.io/r/base/mean.html)`(``ind_ice1``[``group`` ``==`` ``"Intervention"``]`` ``==`` ``1``)``,`` `` freq_dropout_interv ``=`` `[`mean`](https://rdrr.io/r/base/mean.html)`(``dropout_ice1``[``group`` ``==`` ``"Intervention"``]`` ``==`` ``1``)`` `` ``)`
 
     ## # A tibble: 4 × 5
     ##   visit freq_disc_ctrl freq_dropout_ctrl freq_disc_interv freq_dropout_interv
@@ -268,43 +197,7 @@ combined with the jackknife.
 
 ### 4.1 Basic MAR model
 
-``` r
-
-# Define key variables for the imputation and analysis models
-vars <- set_vars(
-  subjid = "id",
-  visit = "visit",
-  outcome = "change",
-  group = "group",
-  covariates = c("outcome_bl*visit", "group*visit")
-)
-
-vars_an <- vars
-vars_an$covariates <- "outcome_bl"
-
-# Define imputation method
-method <- method_condmean(type = "jackknife")
-
-draw_obj <- draws(
-  data = data,
-  data_ice = NULL,
-  vars = vars,
-  method = method,
-  quiet = TRUE
-)
-
-impute_obj <- impute(
-  draw_obj
-)
-
-ana_obj <- analyse(
-  impute_obj,
-  vars = vars_an
-)
-
-pool_obj_basicMAR <- pool(ana_obj)
-pool_obj_basicMAR
-```
+`# Define key variables for the imputation and analysis models`` ``vars`` ``<-`` `[`set_vars`](https://openpharma.github.io/rbmi/reference/set_vars.md)`(`` `` subjid ``=`` ``"id"``,`` `` visit ``=`` ``"visit"``,`` `` outcome ``=`` ``"change"``,`` `` group ``=`` ``"group"``,`` `` covariates ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"outcome_bl*visit"``, ``"group*visit"``)`` ``)`` `` ``vars_an`` ``<-`` ``vars`` ``vars_an``$``covariates`` ``<-`` ``"outcome_bl"`` `` ``# Define imputation method`` ``method`` ``<-`` `[`method_condmean`](https://openpharma.github.io/rbmi/reference/method.md)`(``type ``=`` ``"jackknife"``)`` `` ``draw_obj`` ``<-`` `[`draws`](https://openpharma.github.io/rbmi/reference/draws.md)`(`` `` data ``=`` ``data``,`` `` data_ice ``=`` ``NULL``,`` `` vars ``=`` ``vars``,`` `` method ``=`` ``method``,`` `` quiet ``=`` ``TRUE`` ``)`` `` ``impute_obj`` ``<-`` `[`impute`](https://openpharma.github.io/rbmi/reference/impute.md)`(`` `` ``draw_obj`` ``)`` `` ``ana_obj`` ``<-`` `[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(`` `` ``impute_obj``,`` `` vars ``=`` ``vars_an`` ``)`` `` ``pool_obj_basicMAR`` ``<-`` `[`pool`](https://openpharma.github.io/rbmi/reference/pool.md)`(``ana_obj``)`` ``pool_obj_basicMAR`
 
     ## 
     ## Pool Object
@@ -335,35 +228,7 @@ pool_obj_basicMAR
 
 ### 4.2 Retrieved dropout model 1 (RD1)
 
-``` r
-
-# derive variable "time_since_ice1" (time since ICE in months)
-data <- data %>% 
-  group_by(id) %>% 
-  mutate(time_since_ice1 = cumsum(ind_ice1)*3)
-
-vars$covariates <- c("outcome_bl*visit", "group*visit", "time_since_ice1*group")
-
-draw_obj <- draws(
-  data = data,
-  data_ice = NULL,
-  vars = vars,
-  method = method,
-  quiet = TRUE
-)
-
-impute_obj <- impute(
-  draw_obj
-)
-
-ana_obj <- analyse(
-  impute_obj,
-  vars = vars_an
-)
-
-pool_obj_RD1 <- pool(ana_obj)
-pool_obj_RD1
-```
+`# derive variable "time_since_ice1" (time since ICE in months)`` ``data`` ``<-`` ``data`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`group_by`](https://dplyr.tidyverse.org/reference/group_by.html)`(``id``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`mutate`](https://dplyr.tidyverse.org/reference/mutate.html)`(``time_since_ice1 ``=`` `[`cumsum`](https://rdrr.io/r/base/cumsum.html)`(``ind_ice1``)``*``3``)`` `` ``vars``$``covariates`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``"outcome_bl*visit"``, ``"group*visit"``, ``"time_since_ice1*group"``)`` `` ``draw_obj`` ``<-`` `[`draws`](https://openpharma.github.io/rbmi/reference/draws.md)`(`` `` data ``=`` ``data``,`` `` data_ice ``=`` ``NULL``,`` `` vars ``=`` ``vars``,`` `` method ``=`` ``method``,`` `` quiet ``=`` ``TRUE`` ``)`` `` ``impute_obj`` ``<-`` `[`impute`](https://openpharma.github.io/rbmi/reference/impute.md)`(`` `` ``draw_obj`` ``)`` `` ``ana_obj`` ``<-`` `[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(`` `` ``impute_obj``,`` `` vars ``=`` ``vars_an`` ``)`` `` ``pool_obj_RD1`` ``<-`` `[`pool`](https://openpharma.github.io/rbmi/reference/pool.md)`(``ana_obj``)`` ``pool_obj_RD1`
 
     ## 
     ## Pool Object
@@ -394,30 +259,7 @@ pool_obj_RD1
 
 ### 4.3 Retrieved dropout model 2 (RD2)
 
-``` r
-
-vars$covariates <- c("outcome_bl*visit", "group*visit", "ind_ice1*group*visit")
-
-draw_obj <- draws(
-  data = data,
-  data_ice = NULL,
-  vars = vars,
-  method = method,
-  quiet = TRUE
-)
-
-impute_obj <- impute(
-  draw_obj
-)
-
-ana_obj <- analyse(
-  impute_obj,
-  vars = vars_an
-)
-
-pool_obj_RD2 <- pool(ana_obj)
-pool_obj_RD2
-```
+`vars``$``covariates`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``"outcome_bl*visit"``, ``"group*visit"``, ``"ind_ice1*group*visit"``)`` `` ``draw_obj`` ``<-`` `[`draws`](https://openpharma.github.io/rbmi/reference/draws.md)`(`` `` data ``=`` ``data``,`` `` data_ice ``=`` ``NULL``,`` `` vars ``=`` ``vars``,`` `` method ``=`` ``method``,`` `` quiet ``=`` ``TRUE`` ``)`` `` ``impute_obj`` ``<-`` `[`impute`](https://openpharma.github.io/rbmi/reference/impute.md)`(`` `` ``draw_obj`` ``)`` `` ``ana_obj`` ``<-`` `[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(`` `` ``impute_obj``,`` `` vars ``=`` ``vars_an`` ``)`` `` ``pool_obj_RD2`` ``<-`` `[`pool`](https://openpharma.github.io/rbmi/reference/pool.md)`(``ana_obj``)`` ``pool_obj_RD2`
 
     ## 
     ## Pool Object

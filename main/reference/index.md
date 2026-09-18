@@ -21,9 +21,6 @@
 - [`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md) :
   Analysis of Covariance
 
-- [`ancova_single()`](https://openpharma.github.io/rbmi/reference/ancova_single.md)
-  : Implements an Analysis of Covariance (ANCOVA)
-
 - [`antidepressant_data`](https://openpharma.github.io/rbmi/reference/antidepressant_data.md)
   : Antidepressant trial data
 

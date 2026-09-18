@@ -96,13 +96,7 @@ To defer a test to the scheduled build simply include
 `skip_if_not(is_extended_test())` to the top of the `test_that()` block
 i.e.
 
-``` r
-
-test_that("some unit test", {
-    skip_if_not(is_extended_test())
-    expect_equal(1,1)
-})
-```
+`test_that``(``"some unit test"``, ``{`` `` ``skip_if_not``(``is_extended_test``(``)``)`` `` ``expect_equal``(``1``,``1``)`` ``}``)`
 
 The scheduled tests can also be manually activated by going to
 “<https://github.com/openpharma/rbmi>” -\> “Actions” -\> “Bi-Weekly” -\>

@@ -107,7 +107,7 @@ control_bayes()
 #> [1] "mmrm"
 #> 
 #> $seed
-#> [1] 1867699052
+#> [1] 1050152937
 #> 
 
 # Customise the warmup, thinning and seed used by the MCMC sampler

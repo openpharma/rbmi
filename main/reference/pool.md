@@ -94,7 +94,13 @@ The [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html)
 method returns a `data.frame` with one row per parameter (columns
 `parameter`, `est`, `se`, `lci`, `uci`, `pval`) and the
 [`print()`](https://rdrr.io/r/base/print.html) method returns its input
-invisibly.
+invisibly. When the analysis function attached per-parameter metadata
+(as [`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md)
+does), [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html)
+additionally appends the metadata columns (`estimate_type`, `group`,
+`group_level_1`, `group_level_2`, `visit`); the
+[`print()`](https://rdrr.io/r/base/print.html) method still shows only
+the six classic columns for a compact display.
 
 `mcse()` returns an `mcse` object; a list of class `"mcse"` containing
 `pars` (the Monte Carlo standard errors of the pooled estimates, in the

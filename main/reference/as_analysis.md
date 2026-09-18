@@ -6,7 +6,14 @@ defined.
 ## Usage
 
 ``` r
-as_analysis(results, method, delta = NULL, fun = NULL, fun_name = NULL)
+as_analysis(
+  results,
+  method,
+  delta = NULL,
+  fun = NULL,
+  fun_name = NULL,
+  par_meta = NULL
+)
 ```
 
 ## Arguments
@@ -36,3 +43,9 @@ as_analysis(results, method, delta = NULL, fun = NULL, fun_name = NULL)
 
   The character name of the analysis function (used for printing)
   purposes.
+
+- par_meta:
+
+  Optional `data.frame` of per-parameter metadata (e.g. the group levels
+  and visit associated with each analysis parameter) as attached by the
+  analysis function. May be `NULL`.
