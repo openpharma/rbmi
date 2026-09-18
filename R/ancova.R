@@ -1,7 +1,7 @@
 #' Analysis of Covariance
 #'
-#' Performs an analysis of covariance between two groups returning the estimated
-#' "treatment effect" (i.e. the contrast between the two treatment groups) and
+#' Performs an analysis of covariance between two or more treatment groups returning the
+#' estimated "treatment effect" (i.e. the contrast between treatment groups) and
 #' the least square means estimates in each group.
 #'
 #' @param data A `data.frame` containing the data to be used in the model.
@@ -41,13 +41,38 @@
 #'    ...
 #')
 #'```
-#' Please note that `ref` refers to the first factor level of `vars$group` which does not necessarily
-#' coincide with the control arm. Analogously, `alt` refers to the second factor level of `vars$group`.
-#' `trt` refers to the model contrast translating the mean difference between the second level and first level.
+#' `ancova()` supports two or more treatment groups. The group levels are referred to
+#' via a fixed naming scheme derived from the factor levels of `vars$group`: `ref` is the
+#' first factor level, `alt` the second, `alt2` the third, `alt3` the fourth, and so on.
+#' Note that `ref` does not necessarily coincide with the control arm; it is simply the
+#' first factor level.
+#'
+#' The least square means for each group are returned as `lsm_ref`, `lsm_alt`, `lsm_alt2`,
+#' etc. Treatment effects (model contrasts) are returned as `trt` for the `alt` vs `ref`
+#' comparison, `trt_alt2` for `alt2` vs `ref`, and so on. For the common case of two groups
+#' this reduces to the original `trt`, `lsm_ref` and `lsm_alt` naming, ensuring backwards
+#' compatibility.
+#'
+#' By default a treatment effect is calculated for every non-reference group versus the
+#' reference group, using the `trt` / `trt_alt2` / ... names described above. Alternatively
+#' a bespoke set of contrasts can be requested via the `group_contrasts` argument of
+#' [set_vars()]; see its documentation for details. Such contrasts must be named, and the
+#' supplied name is used as the `parameter` name and carried through to the
+#' `contrast_label` column of the [pool()] output. Contrasts may be pairwise (a length-2
+#' `c(minuend, subtrahend)` character vector) or general linear contrasts (a named numeric
+#' weight vector over the group levels).
 #'
 #' If you want to include interaction terms in your model this can be done
 #' by providing them to the `covariates` argument of [set_vars()]
 #' e.g. `set_vars(covariates = c("sex*age"))`.
+#'
+#' Note that the treatment effects (`trt`, `trt_alt2`, ...) are the relevant linear
+#' combinations of the model coefficients, i.e. the group main-effect contrasts evaluated
+#' at the reference level of any covariates. The least square means (`lsm_*`) are instead
+#' computed according to the requested `weights`. When `group` interacts with a covariate
+#' these two quantities differ, so `trt` is not in general equal to `lsm_alt - lsm_ref`.
+#' This matches the behaviour of the original two-group implementation, where `trt` has
+#' always been the model coefficient.
 #'
 #' @inheritSection lsmeans Weighting
 #'
@@ -55,11 +80,20 @@
 #' @seealso [stats::lm()]
 #' @seealso [set_vars()]
 #' @return
-#' A named list with one set of entries per visit. For each visit the list
-#' contains the estimated treatment effect (`trt_<visit>`) and the least square
-#' means for the reference and alternative groups (`lsm_ref_<visit>` and
-#' `lsm_alt_<visit>`). Each of these elements is itself a list holding the
-#' estimate (`est`), standard error (`se`) and degrees of freedom (`df`).
+#' A named list with one set of entries per visit, each suffixed by the visit name.
+#' For each visit the list contains:
+#'
+#' - the estimated treatment effect(s). For the default (`group_contrasts = NULL`) these
+#'   are `trt_<visit>` for the `alt` vs `ref` comparison and `trt_alt2_<visit>`,
+#'   `trt_alt3_<visit>`, ... for further non-reference groups versus the reference group.
+#'   When `group_contrasts` is supplied each contrast is named `<name>_<visit>` using the
+#'   list name given for that contrast. Also
+#' - the least square means for each group (`lsm_ref_<visit>`, `lsm_alt_<visit>`,
+#'   `lsm_alt2_<visit>`, ...).
+#'
+#' For the common case of two groups this reduces to `trt_<visit>`, `lsm_ref_<visit>`
+#' and `lsm_alt_<visit>`. Each of these elements is itself a list holding the estimate
+#' (`est`), standard error (`se`) and degrees of freedom (`df`).
 #'
 #' @examples
 #' # Simulate a small dataset with a single visit, a treatment group and a
@@ -84,8 +118,68 @@
 #' # called directly; see [analyse()].
 #' ancova(dat, vars)
 #'
+#' # Multi-arm ANCOVA with a bespoke, named set of contrasts. With three groups
+#' # the default would compare each active arm against the reference ("Placebo");
+#' # here we additionally request the "High" vs "Low" contrast. Explicit contrasts
+#' # must be named, and the names become the output parameter names.
+#' set.seed(102)
+#' dat3 <- data.frame(
+#'     visit = factor("visit_1"),
+#'     group = factor(
+#'         rep(c("Placebo", "Low", "High"), each = 50),
+#'         levels = c("Placebo", "Low", "High")
+#'     ),
+#'     basval = rnorm(150)
+#' )
+#' dat3$outcome <- 5 +
+#'     2 * (dat3$group == "Low") +
+#'     4 * (dat3$group == "High") +
+#'     dat3$basval +
+#'     rnorm(150)
+#'
+#' vars3 <- set_vars(
+#'     outcome = "outcome",
+#'     group = "group",
+#'     visit = "visit",
+#'     covariates = "basval",
+#'     group_contrasts = list(
+#'         low_vs_pbo  = c("Low", "Placebo"),
+#'         high_vs_pbo = c("High", "Placebo"),
+#'         high_vs_low = c("High", "Low")
+#'     )
+#' )
+#'
+#' # Output names: `low_vs_pbo`, `high_vs_pbo`, `high_vs_low`, plus
+#' # `lsm_ref` / `lsm_alt` / `lsm_alt2`.
+#' names(ancova(dat3, vars3))
+#'
 #' @export
 ancova <- function(
+    data,
+    vars,
+    visits = NULL,
+    weights = c("counterfactual", "equal", "proportional_em", "proportional")
+) {
+    ancova_core(
+        data = data,
+        vars = vars,
+        visits = visits,
+        weights = weights
+    )
+}
+
+
+#' Core ANCOVA Implementation
+#'
+#' Internal function that provides the common functionality for the (multi-arm) ANCOVA
+#' analysis. This function handles input validation, visit processing, delegates the
+#' actual single-visit analysis to [ancova_single()], and assembles the per-parameter
+#' metadata.
+#'
+#' @inheritParams ancova
+#'
+#' @keywords internal
+ancova_core <- function(
     data,
     vars,
     visits = NULL,
@@ -95,9 +189,10 @@ ancova <- function(
     group <- vars[["group"]]
     covariates <- vars[["covariates"]]
     visit <- vars[["visit"]]
+    group_contrasts <- vars[["group_contrasts"]]
     weights <- match.arg(weights)
 
-    expected_vars <- c(extract_covariates(covariates), outcome, group)
+    expected_vars <- all.vars(as_simple_formula(outcome, c(covariates, group)))
 
     assert_that(
         !any(visit %in% expected_vars),
@@ -160,12 +255,48 @@ ancova <- function(
         visits,
         function(x) {
             data2 <- data[data[[visit]] == x, ]
-            res <- ancova_single(data2, outcome, group, covariates, weights)
-            names(res) <- paste0(names(res), "_", x)
-            return(res)
+            fit <- ancova_single(
+                data2,
+                outcome,
+                group,
+                covariates,
+                weights,
+                group_contrasts
+            )
+            meta <- attr(fit, "rbmi_par_meta")
+            names(fit) <- paste0(names(fit), "_", x)
+            meta[["parameter"]] <- paste0(meta[["parameter"]], "_", x)
+            meta[["visit"]] <- x
+            attr(fit, "rbmi_par_meta") <- meta
+            fit
         }
     )
-    return(unlist(res, recursive = FALSE))
+    parameter_names <- unlist(lapply(res, names), use.names = FALSE)
+    assert_that(
+        !any(duplicated(parameter_names)),
+        msg = paste(
+            "Contrast names and visit names must produce unique parameter names;",
+            "please rename the conflicting contrasts or visits"
+        )
+    )
+    par_meta <- do.call(rbind, lapply(res, attr, "rbmi_par_meta"))
+    par_meta[["group"]] <- group
+    par_meta <- par_meta[,
+        c(
+            "parameter",
+            "estimate_type",
+            "group",
+            "group_level_1",
+            "group_level_2",
+            "contrast_label",
+            "visit"
+        )
+    ]
+    rownames(par_meta) <- NULL
+
+    out <- unlist(res, recursive = FALSE)
+    attr(out, "rbmi_par_meta") <- par_meta
+    return(out)
 }
 
 
@@ -182,9 +313,21 @@ ancova <- function(
 #' @inheritParams ancova
 #' @inheritSection lsmeans Weighting
 #'
+#' @param group_contrasts Optional list specifying bespoke treatment-group contrasts.
+#' See [set_vars()] and [ancova()] for details. If `NULL` (default) a contrast of each
+#' non-reference group versus the reference group is calculated.
+#'
 #' @details
-#' - `group` must be a factor variable with only 2 levels.
+#' - `group` must be a factor variable with two or more levels, all of which must be
+#'   observed in the data.
 #' - `outcome` must be a continuous numeric variable.
+#'
+#' The group levels are mapped to a fixed set of labels (`ref`, `alt`, `alt2`, ...) based
+#' on the factor level ordering; see [ancova()] for the resulting naming scheme.
+#'
+#' @section Reserved Variable Names:
+#' This function uses `"rbmiGroup"` as an internal variable name. If your dataset
+#' contains a variable with this name, the function will error.
 #'
 #' @examples
 #' \dontrun{
@@ -194,45 +337,451 @@ ancova <- function(
 #' }
 #' @seealso [ancova()]
 #' @importFrom stats lm coef vcov df.residual
+#' @keywords internal
 ancova_single <- function(
     data,
     outcome,
     group,
     covariates,
-    weights = c("counterfactual", "equal", "proportional_em", "proportional")
+    weights = c("counterfactual", "equal", "proportional_em", "proportional"),
+    group_contrasts = NULL
 ) {
     weights <- match.arg(weights)
     assert_that(
         is.factor(data[[group]]),
-        length(levels(data[[group]])) == 2,
-        length(unique(data[[group]])) == 2,
-        msg = "`data[[vars$group]]` must be a factor variable with 2 levels"
+        length(levels(data[[group]])) >= 2,
+        length(unique(data[[group]])) == length(levels(data[[group]])),
+        msg = paste(
+            "`data[[vars$group]]` must be a factor variable with two or more levels,",
+            "all of which must be observed in the data"
+        )
+    )
+    assert_that(
+        !"rbmiGroup" %in% names(data),
+        msg = paste(
+            "`rbmiGroup` is a reserved variable name for internal use, please rename",
+            "your variable to avoid conflicts"
+        )
     )
 
-    # Manually convert to dummary variables to make extraction easier
-    data[[group]] <- as.numeric(data[[group]]) - 1
+    orig_levels <- levels(data[[group]])
+    n_lvl <- length(orig_levels)
+    labels <- ancova_group_labels(n_lvl)
+    intcode <- paste0("L", seq_len(n_lvl))
 
-    data2 <- data[, c(extract_covariates(covariates), outcome, group)]
+    # Standardise the group levels + variable name so that coefficient / term
+    # extraction is robust to whitespace or special characters in the user levels.
+    model_vars <- all.vars(as_simple_formula(outcome, c(covariates, group)))
+    data2 <- data[, model_vars, drop = FALSE]
+    data2[["rbmiGroup"]] <- factor(
+        intcode[as.integer(data2[[group]])],
+        levels = intcode
+    )
+    data2 <- data2[!names(data2) %in% group]
 
-    frm <- as_simple_formula(outcome, c(group, covariates))
+    frm <- as_simple_formula(outcome, c(covariates, group))
+    frm <- frm_find_and_replace(frm, as.name(group), as.name("rbmiGroup"))
 
     mod <- lm(formula = frm, data = data2)
+    beta <- coef(mod)
+    vcov_mod <- vcov(mod)
+    df_res <- df.residual(mod)
 
-    args <- list(model = mod, .weights = weights)
-    args[[group]] <- 0
-    lsm0 <- do.call(lsmeans, args)
+    contrast_design <- ancova_contrast_design(mod, data2, outcome)
 
-    args[[group]] <- 1
-    lsm1 <- do.call(lsmeans, args)
+    # Least square means for every group level
+    lsm <- lapply(intcode, function(code) {
+        args <- list(model = mod, .weights = weights)
+        args[["rbmiGroup"]] <- code
+        do.call(lsmeans, args)
+    })
+    names(lsm) <- paste0("lsm_", labels)
 
-    x <- list(
-        trt = list(
-            est = coef(mod)[[group]],
-            se = sqrt(vcov(mod)[group, group]),
-            df = df.residual(mod)
-        ),
-        lsm_ref = lsm0,
-        lsm_alt = lsm1
+    # Resolve the requested contrasts to weight vectors over the group levels.
+    contrasts <- ancova_resolve_contrasts(group_contrasts, orig_levels, labels)
+
+    trt <- lapply(contrasts, function(ct) {
+        ancova_linear_contrast(
+            ct[["weights"]],
+            beta,
+            vcov_mod,
+            df_res,
+            contrast_design
+        )
+    })
+    names(trt) <- vapply(
+        contrasts,
+        function(ct) ct[["parameter"]],
+        character(1)
     )
-    return(x)
+
+    res <- append(trt, lsm)
+
+    # Parameter metadata (uses the actual group level labels, not ref/alt)
+    meta_trt <- data.frame(
+        parameter = names(trt),
+        estimate_type = "contrast",
+        contrast_label = vapply(
+            contrasts,
+            function(ct) ct[["label"]],
+            character(1)
+        ),
+        group_level_1 = vapply(
+            contrasts,
+            function(ct) ct[["level_1"]],
+            character(1)
+        ),
+        group_level_2 = vapply(
+            contrasts,
+            function(ct) ct[["level_2"]],
+            character(1)
+        ),
+        stringsAsFactors = FALSE
+    )
+    meta_lsm <- data.frame(
+        parameter = names(lsm),
+        estimate_type = "lsm",
+        contrast_label = NA_character_,
+        group_level_1 = orig_levels,
+        group_level_2 = NA_character_,
+        stringsAsFactors = FALSE
+    )
+    attr(res, "rbmi_par_meta") <- rbind(meta_trt, meta_lsm)
+    res
+}
+
+
+#' ANCOVA group level labels
+#'
+#' Maps the ordered factor levels of the group variable to the fixed `rbmi` label
+#' scheme: the first level is `ref`, the second `alt`, and any further levels
+#' `alt2`, `alt3`, etc.
+#'
+#' @param n Integer, the number of group levels.
+#' @return A character vector of labels of length `n`.
+#' @keywords internal
+ancova_group_labels <- function(n) {
+    vapply(
+        seq_len(n),
+        function(i) {
+            if (i == 1) {
+                "ref"
+            } else if (i == 2) {
+                "alt"
+            } else {
+                paste0("alt", i - 1)
+            }
+        },
+        character(1)
+    )
+}
+
+
+#' Name a default ANCOVA treatment-effect contrast
+#'
+#' Determines the `parameter` name for a default contrast of a non-reference level against
+#' the reference level: the second factor level is `trt`, the third `trt_alt2`, the fourth
+#' `trt_alt3`, and so on. Only used for the default (`group_contrasts = NULL`) set;
+#' user-supplied contrasts are named explicitly by the caller.
+#'
+#' @param i Integer, 1-based index of the (non-reference) group level.
+#' @param labels Character vector of level labels as returned by [ancova_group_labels()].
+#' @return A length 1 character vector with the parameter name.
+#' @keywords internal
+ancova_contrast_name <- function(i, labels) {
+    if (i == 2) {
+        "trt"
+    } else {
+        paste0("trt_", labels[i])
+    }
+}
+
+
+#' Resolve the set of ANCOVA contrasts to compute
+#'
+#' Translates the optional `group_contrasts` specification into a list of contrast
+#' records. Each record holds a weight vector over the group levels (`weights`, in
+#' factor-level order, summing to zero), the output `parameter` name, an optional
+#' user `label`, and the `level_1` / `level_2` group labels for simple pairwise
+#' contrasts (`NA` for general weight-vector contrasts).
+#'
+#' When `group_contrasts` is `NULL` the default is each non-reference level versus the
+#' reference level, using the backwards-compatible `trt` / `trt_alt2` / ... naming.
+#' Otherwise the list must be fully named; each element is either a length-2 character
+#' vector `c(minuend, subtrahend)` (a pairwise contrast) or a numeric weight vector over
+#' the group levels, and the list name is used as the `parameter` name.
+#'
+#' @param group_contrasts Either `NULL` or a fully named list of length-2 character
+#'   vectors and/or numeric weight vectors. See [set_vars()].
+#' @param orig_levels Character vector of the group factor levels (in order).
+#' @param labels Character vector of `ref`/`alt`/... labels from [ancova_group_labels()].
+#' @return A list of contrast records (see description).
+#' @keywords internal
+ancova_resolve_contrasts <- function(group_contrasts, orig_levels, labels) {
+    n_lvl <- length(orig_levels)
+    record <- function(weights, parameter, label, level_1, level_2) {
+        list(
+            weights = weights,
+            parameter = parameter,
+            label = label,
+            level_1 = level_1,
+            level_2 = level_2
+        )
+    }
+    pairwise_weights <- function(i, j) {
+        w <- numeric(n_lvl)
+        w[i] <- 1
+        w[j] <- -1
+        w
+    }
+
+    # Default: each non-reference level vs the reference, using the derived
+    # `trt` / `trt_alt2` / ... names (the only place derived names are used).
+    if (is.null(group_contrasts)) {
+        return(lapply(seq_len(n_lvl)[-1], function(i) {
+            record(
+                pairwise_weights(i, 1L),
+                ancova_contrast_name(i, labels),
+                NA_character_,
+                orig_levels[i],
+                orig_levels[1]
+            )
+        }))
+    }
+
+    nms <- names(group_contrasts)
+    assert_that(
+        is.list(group_contrasts),
+        length(group_contrasts) >= 1,
+        !is.null(nms) && !anyNA(nms) && all(nzchar(nms)),
+        msg = "`vars$group_contrasts` must be a non-empty, fully named list"
+    )
+
+    records <- Map(
+        function(el, label) {
+            if (is.character(el)) {
+                assert_that(
+                    length(el) == 2,
+                    msg = paste(
+                        "character `vars$group_contrasts` elements must be length-2",
+                        "`c(minuend, subtrahend)` vectors"
+                    )
+                )
+                idx <- match(el, orig_levels)
+                assert_that(
+                    !anyNA(idx),
+                    msg = sprintf(
+                        "`vars$group_contrasts` references group level(s) not present in the data: %s",
+                        paste(el[is.na(idx)], collapse = ", ")
+                    )
+                )
+                assert_that(
+                    idx[[1]] != idx[[2]],
+                    msg = "`vars$group_contrasts` cannot contrast a group level with itself"
+                )
+                record(
+                    pairwise_weights(idx[[1]], idx[[2]]),
+                    label,
+                    label,
+                    orig_levels[idx[[1]]],
+                    orig_levels[idx[[2]]]
+                )
+            } else if (is.numeric(el)) {
+                record(
+                    resolve_contrast_weights(el, orig_levels),
+                    label,
+                    label,
+                    NA_character_,
+                    NA_character_
+                )
+            } else {
+                stop(paste(
+                    "each `vars$group_contrasts` element must be a length-2 character",
+                    "vector or a numeric weight vector"
+                ))
+            }
+        },
+        group_contrasts,
+        nms
+    )
+
+    params <- vapply(records, `[[`, character(1), "parameter")
+    assert_that(
+        !any(grepl("^lsm_", params)),
+        msg = "`vars$group_contrasts` names must not start with `lsm_` (reserved for least-squares means)"
+    )
+    assert_that(
+        !any(duplicated(params)),
+        msg = "`vars$group_contrasts` contains duplicate contrast names"
+    )
+    unname(records)
+}
+
+
+#' Resolve a numeric contrast weight vector to full group-level order
+#'
+#' Expands a (possibly level-named or level-length) numeric weight vector into a full
+#' vector over all group levels in factor order, validating that it references known
+#' levels, sums to zero and is not trivially zero.
+#'
+#' @param x Numeric weight vector, either named by group levels (missing levels are
+#'   filled with `0`) or of length `length(orig_levels)` in factor order.
+#' @param orig_levels Character vector of the group factor levels (in order).
+#' @return A numeric vector of length `length(orig_levels)` summing to zero.
+#' @keywords internal
+resolve_contrast_weights <- function(x, orig_levels) {
+    n_lvl <- length(orig_levels)
+    w <- numeric(n_lvl)
+    if (!is.null(names(x)) && any(nzchar(names(x)))) {
+        idx <- match(names(x), orig_levels)
+        assert_that(
+            !anyNA(idx),
+            msg = sprintf(
+                "`vars$group_contrasts` weight vector references unknown group level(s): %s",
+                paste(names(x)[is.na(idx)], collapse = ", ")
+            )
+        )
+        assert_that(
+            !any(duplicated(idx)),
+            msg = "`vars$group_contrasts` weight vector names must be unique group levels"
+        )
+        w[idx] <- as.numeric(x)
+    } else {
+        assert_that(
+            length(x) == n_lvl,
+            msg = sprintf(
+                "Unnamed `vars$group_contrasts` weight vectors must have one entry per group level (%d)",
+                n_lvl
+            )
+        )
+        w <- as.numeric(x)
+    }
+    assert_that(
+        isTRUE(abs(sum(w)) < sqrt(.Machine$double.eps)),
+        msg = "`vars$group_contrasts` weight vectors must sum to zero"
+    )
+    assert_that(
+        any(w != 0),
+        msg = "`vars$group_contrasts` weight vectors must not be all zero"
+    )
+    w
+}
+
+
+#' Build the ANCOVA contrast design matrix
+#'
+#' Creates one complete model-matrix row per treatment-group level. Numeric
+#' covariates are set to zero, logical covariates to `FALSE`, and factor covariates
+#' to their first level. The fitted model's contrast coding is retained so that
+#' differences between rows include all required interaction coefficients.
+#'
+#' @param model A fitted `lm` model containing the internal `rbmiGroup` factor.
+#' @param data The raw model data used to fit `model`, including the untransformed
+#'   predictor columns required to evaluate transformed terms.
+#' @param outcome Character, the outcome variable name.
+#' @return A numeric model matrix with one row per `rbmiGroup` level.
+#' @keywords internal
+ancova_contrast_design <- function(model, data, outcome) {
+    group_levels <- model$xlevels[["rbmiGroup"]]
+    assert_that(
+        !is.null(group_levels),
+        length(group_levels) >= 2,
+        msg = "`model` must contain an `rbmiGroup` factor with at least two levels"
+    )
+
+    reference_data <- data[
+        rep(1, length(group_levels)),
+        setdiff(names(data), outcome),
+        drop = FALSE
+    ]
+    rownames(reference_data) <- NULL
+    for (var in setdiff(names(reference_data), "rbmiGroup")) {
+        if (var %in% names(model$xlevels)) {
+            reference_data[[var]] <- factor(
+                model$xlevels[[var]][[1]],
+                levels = model$xlevels[[var]],
+                ordered = is.ordered(reference_data[[var]])
+            )
+        } else if (is.logical(reference_data[[var]])) {
+            reference_data[[var]] <- FALSE
+        } else if (is.numeric(reference_data[[var]])) {
+            reference_data[[var]] <- 0
+        }
+    }
+    reference_data[["rbmiGroup"]] <- factor(
+        group_levels,
+        levels = group_levels
+    )
+
+    stats::model.matrix(
+        stats::delete.response(stats::terms(model)),
+        data = reference_data,
+        contrasts.arg = model$contrasts,
+        xlev = model$xlevels
+    )
+}
+
+
+#' Compute a single ANCOVA linear contrast
+#'
+#' Evaluates a linear contrast over the group levels as a linear combination of the
+#' model coefficients. The group-level weights are applied to complete model design
+#' rows evaluated at the covariate reference point, so interactions are included and
+#' the result is independent of the active `contrasts` coding.
+#'
+#' @param weights Numeric weight vector over the group levels (factor order), summing
+#'   to zero.
+#' @param beta Numeric vector of model coefficients.
+#' @param vcov_mod Variance-covariance matrix of the model coefficients.
+#' @param df_res Residual degrees of freedom.
+#' @param contrast_design Numeric model matrix with one row per group level, evaluated
+#'   at the covariate reference point, and one column per model coefficient.
+#' @return A list with elements `est`, `se` and `df`.
+#'
+#' @details
+#' The contrast is evaluated at the covariate reference (covariate = 0): covariate
+#' main-effect and interaction columns receive zero weight and cancel for a
+#' sum-to-zero contrast. Group-by-covariate interaction columns are included when they
+#' are non-zero at that reference point. A required coefficient that is missing,
+#' aliased (`NA`) or absent from the
+#' variance-covariance matrix indicates a rank-deficient design and triggers an error
+#' rather than a silently dropped term.
+#' @keywords internal
+ancova_linear_contrast <- function(
+    weights,
+    beta,
+    vcov_mod,
+    df_res,
+    contrast_design
+) {
+    assert_that(
+        is.numeric(beta),
+        !is.null(names(beta)),
+        msg = "`beta` must be a named numeric vector"
+    )
+    assert_that(
+        is.matrix(contrast_design),
+        length(weights) == nrow(contrast_design),
+        isTRUE(abs(sum(weights)) < sqrt(.Machine$double.eps)),
+        msg = "contrast weights must have one entry per group level and sum to zero"
+    )
+    lvec <- as.vector(crossprod(weights, contrast_design))
+    names(lvec) <- colnames(contrast_design)
+    required <- names(lvec)[abs(lvec) > sqrt(.Machine$double.eps)]
+    assert_that(
+        all(required %in% names(beta)),
+        all(required %in% colnames(vcov_mod)),
+        !anyNA(beta[required]),
+        msg = paste(
+            "required coefficients are missing, aliased, or not aligned with the",
+            "variance-covariance matrix; the design matrix is rank-deficient"
+        )
+    )
+    lvec <- lvec[required]
+    vcov_required <- vcov_mod[required, required, drop = FALSE]
+    list(
+        est = sum(lvec * beta[required]),
+        se = sqrt(drop(t(lvec) %*% vcov_required %*% lvec)),
+        df = df_res
+    )
 }
