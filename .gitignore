@@ -63,3 +63,11 @@ docs
 local/
 *.rds
 revdep/
+
+
+
+
+.Rprofile
+rproject.toml
+rv.lock
+rv/*
