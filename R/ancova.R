@@ -553,7 +553,7 @@ ancova_resolve_contrasts <- function(group_contrasts, orig_levels, labels) {
     assert_that(
         is.list(group_contrasts),
         length(group_contrasts) >= 1,
-        !is.null(nms) && all(nzchar(nms)),
+        !is.null(nms) && !anyNA(nms) && all(nzchar(nms)),
         msg = "`vars$group_contrasts` must be a non-empty, fully named list"
     )
 

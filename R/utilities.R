@@ -504,7 +504,7 @@ validate.ivars <- function(x, ...) {
         nms <- names(gc)
         assert_that(
             length(gc) >= 1,
-            !is.null(nms) && all(nzchar(nms)),
+            !is.null(nms) && !anyNA(nms) && all(nzchar(nms)),
             msg = "`vars$group_contrasts` should be a non-empty, fully named list"
         )
         ok <- vapply(

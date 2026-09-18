@@ -770,6 +770,20 @@ test_that("set_vars validates group_contrasts", {
         set_vars(group = "grp", group_contrasts = list(c("A", "B"))),
         regexp = "named"
     )
+    missing_name <- list(c("A", "B"))
+    names(missing_name) <- NA_character_
+    expect_error(
+        set_vars(group = "grp", group_contrasts = missing_name),
+        regexp = "named"
+    )
+    expect_error(
+        ancova_resolve_contrasts(
+            missing_name,
+            orig_levels = c("A", "B"),
+            labels = c("ref", "alt")
+        ),
+        regexp = "named"
+    )
     expect_error(
         set_vars(group = "grp", group_contrasts = list(ab = c("A"))),
         regexp = "group_contrasts"
