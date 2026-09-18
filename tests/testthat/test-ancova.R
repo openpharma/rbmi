@@ -1068,6 +1068,86 @@ test_that("ancova metadata propagates through pool() -> as.data.frame() (integra
 })
 
 
+test_that("custom ancova contrasts pool distinct completed datasets", {
+    set.seed(402)
+    n <- 300
+    grp_levels <- c("Placebo", "A", "B")
+    dat <- tibble(
+        visit = "v1",
+        age = rnorm(n),
+        grp = factor(
+            sample(grp_levels, size = n, replace = TRUE),
+            levels = grp_levels
+        ),
+        out = rnorm(
+            n,
+            mean = 50 + 2 * age + 3 * (grp == "A") + 6 * (grp == "B"),
+            sd = 8
+        )
+    )
+    vars <- set_vars(
+        outcome = "out",
+        group = "grp",
+        covariates = "age",
+        visit = "visit",
+        group_contrasts = list(
+            b_vs_a = c("B", "A"),
+            active_vs_pbo = c(Placebo = -1, A = 0.5, B = 0.5)
+        )
+    )
+
+    shifts <- c(-2, 0, 3)
+    analyses <- lapply(shifts, function(shift) {
+        completed <- dat
+        completed$out <- completed$out + shift * (completed$grp == "B")
+        ancova(completed, vars)
+    })
+    meta <- attr(analyses[[1]], "rbmi_par_meta")
+    ana_obj <- as_analysis(
+        results = analyses,
+        method = method_bayes(n_samples = length(analyses)),
+        par_meta = meta
+    )
+    pooled <- pool(ana_obj)
+    pooled_df <- as.data.frame(pooled)
+
+    for (parameter in c("b_vs_a_v1", "active_vs_pbo_v1")) {
+        estimates <- vapply(analyses, function(x) x[[parameter]]$est, numeric(1))
+        ses <- vapply(analyses, function(x) x[[parameter]]$se, numeric(1))
+        dfs <- vapply(analyses, function(x) x[[parameter]]$df, numeric(1))
+        expected <- rubin_rules(estimates, ses, unique(dfs))
+        actual <- pooled_df[pooled_df$parameter == parameter, ]
+
+        expect_gt(var(estimates), 0)
+        expect_equal(actual$est, expected$est_point)
+        expect_equal(actual$se^2, expected$var_t)
+
+        standardised <- estimates - if (parameter == "b_vs_a_v1")  shifts else shifts / 2
+        expect_equal(
+            standardised,
+            rep(mean(standardised), 3),
+            tolerance = sqrt(.Machine$double.eps)
+        )
+    }
+
+    pairwise_meta <- pooled_df[pooled_df$parameter == "b_vs_a_v1", ]
+    expect_equal(pairwise_meta$estimate_type, "contrast")
+    expect_equal(pairwise_meta$contrast_label, "b_vs_a")
+    expect_equal(pairwise_meta$group_level_1, "B")
+    expect_equal(pairwise_meta$group_level_2, "A")
+    expect_equal(pairwise_meta$visit, "v1")
+
+    weighted_meta <- pooled_df[
+        pooled_df$parameter == "active_vs_pbo_v1",
+    ]
+    expect_equal(weighted_meta$estimate_type, "contrast")
+    expect_equal(weighted_meta$contrast_label, "active_vs_pbo")
+    expect_true(is.na(weighted_meta$group_level_1))
+    expect_true(is.na(weighted_meta$group_level_2))
+    expect_equal(weighted_meta$visit, "v1")
+})
+
+
 test_that("ancova - weight-vector (pooled) contrasts", {
     set.seed(451)
     n <- 900
