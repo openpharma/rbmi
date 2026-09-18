@@ -8,7 +8,7 @@ test_that("Rubin's rules", {
 
     actual_res <- sapply(
         v_com,
-        function(i) rubin_rules(ests, ses, i),
+        function(i) rubin_rules(ests, ses, i, method = "barnard-rubin"),
         simplify = FALSE
     )
 
@@ -19,21 +19,25 @@ test_that("Rubin's rules", {
 
     actual_res <- sapply(
         v_com,
-        function(i) rubin_rules(ests_allequal, ses, i),
+        function(i) {
+            rubin_rules(ests_allequal, ses, i, method = "barnard-rubin")
+        },
         simplify = FALSE
     )
     expect_equal(actual_res, mice_res2, tolerance = 10e-4)
 
     # check when v_com <- Inf
     v_com <- Inf
-    actual_res <- rubin_rules(ests, ses, v_com)
+    actual_res <- rubin_rules(ests, ses, v_com, method = "barnard-rubin")
     expect_equal(actual_res, mice_res3)
 
     # when v_com = NA or v_com = Inf and there are no missing values, df = Inf
     v_com <- c(Inf, NA)
     actual_res <- sapply(
         v_com,
-        function(i) rubin_rules(ests_allequal, ses, i)$df
+        function(i) {
+            rubin_rules(ests_allequal, ses, i, method = "barnard-rubin")$df
+        }
     )
 
     expect_true(all(actual_res == Inf))
@@ -42,12 +46,33 @@ test_that("Rubin's rules", {
     ses <- rep(NA, 100)
     v_com <- Inf
     expect_equal(
-        rubin_rules(ests, ses, v_com),
+        rubin_rules(ests, ses, v_com, method = "barnard-rubin"),
         list(
             est_point = mean(ests),
             var_t = NA,
             df = NA
         )
+    )
+})
+
+test_that("original Rubin degrees of freedom are calculated correctly", {
+    M <- 10
+    var_b <- 2
+    var_w <- 5
+    var_t <- var_w + (1 + 1 / M) * var_b
+    r <- (1 + 1 / M) * var_b / var_w
+
+    expect_equal(
+        rubin_orig_df(v_com = 20, var_b = var_b, var_t = var_t, M = M),
+        (M - 1) * (1 + 1 / r)^2
+    )
+    expect_equal(
+        rubin_orig_df(v_com = 20, var_b = 0, var_t = var_w, M = M),
+        Inf
+    )
+    expect_equal(
+        rubin_orig_df(v_com = Inf, var_b = var_b, var_t = var_t, M = M),
+        rubin_orig_df(v_com = 5, var_b = var_b, var_t = var_t, M = M)
     )
 })
 
@@ -325,6 +350,70 @@ test_that("Pool (Rubin) works as expected when se = NA in analysis model", {
             pvalue = as.numeric(NA)
         ),
         tolerance = 1e-2
+    )
+})
+
+test_that("pool selects the requested Rubin degrees-of-freedom method", {
+    runanalysis <- function(est) {
+        list("p1" = list(est = est, se = 1, df = 10))
+    }
+    results <- as_analysis(
+        method = method_approxbayes(n_samples = 3),
+        results = lapply(c(1, 2, 4), runanalysis)
+    )
+
+    modern <- pool(results, rubin_df_method = "barnard-rubin")
+    original <- pool(results, rubin_df_method = "rubin")
+
+    expect_equal(modern$pars$p1$est, original$pars$p1$est)
+    expect_equal(modern$pars$p1$se, original$pars$p1$se)
+    expect_false(isTRUE(all.equal(modern$pars$p1$ci, original$pars$p1$ci)))
+    expect_error(
+        pool(results, rubin_df_method = "unknown"),
+        "'arg' should be one of"
+    )
+})
+
+test_that("pool_internal.rubin passes on the Rubin method", {
+    results <- structure(
+        list(est = c(1, 2, 4), se = c(1, 1, 1), df = c(10, 10, 10)),
+        class = c("rubin", "list")
+    )
+    args <- list(
+        results = results,
+        conf.level = 0.95,
+        alternative = "two.sided",
+        type = "percentile",
+        D = NULL
+    )
+
+    modern <- do.call(
+        pool_internal.rubin,
+        c(args, rubin_df_method = "barnard-rubin")
+    )
+    original <- do.call(pool_internal.rubin, c(args, rubin_df_method = "rubin"))
+    modern_rules <- rubin_rules(
+        results$est,
+        results$se,
+        10,
+        method = "barnard-rubin"
+    )
+    original_rules <- rubin_rules(
+        results$est,
+        results$se,
+        10,
+        method = "rubin"
+    )
+
+    expect_equal(modern$se, sqrt(modern_rules$var_t))
+    expect_equal(original$se, sqrt(original_rules$var_t))
+    expect_equal(
+        modern$ci,
+        modern$est + c(-1, 1) * qt(0.975, modern_rules$df) * modern$se
+    )
+    expect_equal(
+        original$ci,
+        original$est + c(-1, 1) * qt(0.975, original_rules$df) * original$se
     )
 })
 

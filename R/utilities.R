@@ -987,14 +987,14 @@ set_options <- function() {
 #' This function traverses a language object (such as an expression or call)
 #' and recursively replaces all occurrences of a specified symbol with another symbol.
 #'
-#' @param frm A language object (e.g., call, expression, or list of calls) to search and modify.
-#' @param find_sym A symbol (as a name) to find within \code{frm}.
+#' @param expr A language object (e.g., call, expression, or list of calls) to search and modify.
+#' @param find_sym A symbol (as a name) to find within \code{expr}.
 #' @param replace_sym A symbol (as a name) to replace \code{find_sym} with.
 #'
 #' @return The modified language object with all instances of \code{find_sym} replaced by \code{replace_sym}.
 #'
 #' @details
-#' Replacement happens for symbols found within calls (recursively). A `frm` that is
+#' Replacement happens for symbols found within calls (recursively). A `expr` that is
 #' itself a bare symbol equal to `find_sym` is returned unchanged; this is not reachable
 #' from the `ancova()` call site because the input is always a formula (a call).
 #'

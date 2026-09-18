@@ -9,9 +9,9 @@ rubin_df(v_com, var_b, var_t, M)
 \arguments{
 \item{v_com}{Positive number representing the degrees of freedom in the complete-data analysis.}
 
-\item{var_b}{Between-variance of point estimate across multiply imputed datasets.}
+\item{var_b}{Between-imputation sample variance of the point estimates across multiply imputed datasets.}
 
-\item{var_t}{Total-variance of point estimate according to Rubin's rules.}
+\item{var_t}{Estimate (according to Rubin's rules) of the variance of the point estimates.}
 
 \item{M}{Number of imputations.}
 }

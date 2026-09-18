@@ -7,11 +7,11 @@
 frm_find_and_replace(expr, find_sym, replace_sym)
 }
 \arguments{
-\item{find_sym}{A symbol (as a name) to find within \code{frm}.}
+\item{expr}{A language object (e.g., call, expression, or list of calls) to search and modify.}
+
+\item{find_sym}{A symbol (as a name) to find within \code{expr}.}
 
 \item{replace_sym}{A symbol (as a name) to replace \code{find_sym} with.}
-
-\item{frm}{A language object (e.g., call, expression, or list of calls) to search and modify.}
 }
 \value{
 The modified language object with all instances of \code{find_sym} replaced by \code{replace_sym}.
@@ -21,7 +21,7 @@ This function traverses a language object (such as an expression or call)
 and recursively replaces all occurrences of a specified symbol with another symbol.
 }
 \details{
-Replacement happens for symbols found within calls (recursively). A \code{frm} that is
+Replacement happens for symbols found within calls (recursively). A \code{expr} that is
 itself a bare symbol equal to \code{find_sym} is returned unchanged; this is not reachable
 from the \code{ancova()} call site because the input is always a formula (a call).
 }

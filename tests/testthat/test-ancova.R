@@ -1112,17 +1112,27 @@ test_that("custom ancova contrasts pool distinct completed datasets", {
     pooled_df <- as.data.frame(pooled)
 
     for (parameter in c("b_vs_a_v1", "active_vs_pbo_v1")) {
-        estimates <- vapply(analyses, function(x) x[[parameter]]$est, numeric(1))
+        estimates <- vapply(
+            analyses,
+            function(x) x[[parameter]]$est,
+            numeric(1)
+        )
         ses <- vapply(analyses, function(x) x[[parameter]]$se, numeric(1))
         dfs <- vapply(analyses, function(x) x[[parameter]]$df, numeric(1))
-        expected <- rubin_rules(estimates, ses, unique(dfs))
+        expected <- rubin_rules(
+            estimates,
+            ses,
+            unique(dfs),
+            method = "barnard-rubin"
+        )
         actual <- pooled_df[pooled_df$parameter == parameter, ]
 
         expect_gt(var(estimates), 0)
         expect_equal(actual$est, expected$est_point)
         expect_equal(actual$se^2, expected$var_t)
 
-        standardised <- estimates - if (parameter == "b_vs_a_v1")  shifts else shifts / 2
+        standardised <- estimates -
+            if (parameter == "b_vs_a_v1") shifts else shifts / 2
         expect_equal(
             standardised,
             rep(mean(standardised), 3),
