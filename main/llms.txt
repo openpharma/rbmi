@@ -402,6 +402,9 @@ issue](https://github.com/openpharma/rbmi/issues)
 - [`rubin_df()`](https://openpharma.github.io/rbmi/reference/rubin_df.md)
   : Barnard and Rubin degrees of freedom adjustment
 
+- [`rubin_orig_df()`](https://openpharma.github.io/rbmi/reference/rubin_orig_df.md)
+  : Original Rubin degrees of freedom approximation
+
 - [`rubin_rules()`](https://openpharma.github.io/rbmi/reference/rubin_rules.md)
   : Combine estimates using Rubin's rules
 

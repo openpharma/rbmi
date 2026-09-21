@@ -4,6 +4,10 @@
 
 ### New Features
 
+- [`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) gains
+  a `rubin_df_method` argument. The default `"barnard-rubin"` uses the
+  Barnard-Rubin small-sample degrees-of-freedom adjustment, while
+  `"rubin"` uses the original approximation from Rubin (1987).
 - [`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md)
   now supports the analysis of two or more treatment groups. For more
   than two groups the `ref` / `alt` naming scheme is extended with

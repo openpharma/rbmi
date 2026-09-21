@@ -7,10 +7,10 @@ details.
 ## Usage
 
 ``` r
-pool_internal(results, conf.level, alternative, type, D)
+pool_internal(results, conf.level, alternative, type, D, ...)
 
 # S3 method for class 'jackknife'
-pool_internal(results, conf.level, alternative, type, D)
+pool_internal(results, conf.level, alternative, type, D, ...)
 
 # S3 method for class 'bootstrap'
 pool_internal(
@@ -18,14 +18,15 @@ pool_internal(
   conf.level,
   alternative,
   type = c("percentile", "normal"),
-  D
+  D,
+  ...
 )
 
 # S3 method for class 'bmlmi'
-pool_internal(results, conf.level, alternative, type, D)
+pool_internal(results, conf.level, alternative, type, D, ...)
 
 # S3 method for class 'rubin'
-pool_internal(results, conf.level, alternative, type, D)
+pool_internal(results, conf.level, alternative, type, D, rubin_df_method, ...)
 ```
 
 ## Arguments
@@ -59,6 +60,18 @@ pool_internal(results, conf.level, alternative, type, D)
 
   numeric representing the number of imputations between each bootstrap
   sample in the BMLMI method.
+
+- ...:
+
+  not used.
+
+- rubin_df_method:
+
+  a character string specifying the degrees-of-freedom approximation
+  used when pooling with Rubin's rules. `"barnard-rubin"` (default) uses
+  the Barnard-Rubin (1999) small-sample adjustment, while `"rubin"` uses
+  the approximation from Rubin (1987). Ignored for other pooling
+  methods.
 
 ## Value
 

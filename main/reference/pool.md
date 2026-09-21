@@ -9,7 +9,8 @@ pool(
   results,
   conf.level = 0.95,
   alternative = c("two.sided", "less", "greater"),
-  type = c("percentile", "normal")
+  type = c("percentile", "normal"),
+  rubin_df_method = c("barnard-rubin", "rubin")
 )
 
 # S3 method for class 'pool'
@@ -52,6 +53,14 @@ print(x, ..., pval_digits = 2, pval_eps = 1e-06, pval_nsmall = 5)
   `method_condmean(type = "bootstrap")` was specified in the original
   call to
   [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md).
+
+- rubin_df_method:
+
+  a character string specifying the degrees-of-freedom approximation
+  used when pooling with Rubin's rules. `"barnard-rubin"` (default) uses
+  the Barnard-Rubin (1999) small-sample adjustment, while `"rubin"` uses
+  the approximation from Rubin (1987). Ignored for other pooling
+  methods.
 
 - x:
 
@@ -119,11 +128,12 @@ particular:
   &
   [`method_bayes()`](https://openpharma.github.io/rbmi/reference/method.md)
   both use Rubin's rules to pool estimates and variances across multiple
-  imputed datasets, and the Barnard-Rubin rule to pool degree's of
-  freedom; see Little & Rubin (2002). Here, the `mcse()` function can
-  compute the Monte Carlo standard error (MCSE) of the pooled estimates,
-  via a Jackknife variance estimator for all parameters; see Efron &
-  Gong (1983) and Royston, Carlin & White (2009).
+  imputed datasets. By default, the Barnard-Rubin (1999) rule is used to
+  pool degrees of freedom; set `rubin_df_method = "rubin"` to use the
+  original approximation from Rubin (1987). Here, the `mcse()` function
+  can compute the Monte Carlo standard error (MCSE) of the pooled
+  estimates, via a Jackknife variance estimator for all parameters; see
+  Efron & Gong (1983) and Royston, Carlin & White (2009).
 
 - `method_condmean(type = "bootstrap")` uses percentile or normal
   approximation; see Efron & Tibshirani (1994). Note that for the
@@ -138,6 +148,9 @@ particular:
 
 ## References
 
+John Barnard and Donald B. Rubin. Small-Sample Degrees of Freedom with
+Multiple Imputation. Biometrika, 86(4):948-955, 1999.
+
 Bradley Efron and Robert J Tibshirani. An introduction to the bootstrap.
 CRC press, 1994. \[Section 11\]
 
@@ -148,6 +161,9 @@ jackknife, and cross-validation. The American Statistician, 37(1):36-48,
 Roderick J. A. Little and Donald B. Rubin. Statistical Analysis with
 Missing Data, Second Edition. John Wiley & Sons, Hoboken, New Jersey,
 2002. \[Section 5.4\]
+
+Donald B. Rubin. Multiple Imputation for Nonresponse in Surveys. John
+Wiley & Sons, New York, 1987. \[Section 3.3\]
 
 Royston, P., Carlin, J. B., & White, I. R. Multiple imputation of
 missing values: New features for mim. Stata Journal, 9(2): 252-264,

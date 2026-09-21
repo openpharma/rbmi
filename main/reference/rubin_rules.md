@@ -6,7 +6,7 @@ Rubin's rules. See details.
 ## Usage
 
 ``` r
-rubin_rules(ests, ses, v_com)
+rubin_rules(ests, ses, v_com, method)
 ```
 
 ## Arguments
@@ -26,6 +26,12 @@ rubin_rules(ests, ses, v_com)
   Positive number representing the degrees of freedom in the
   complete-data analysis.
 
+- method:
+
+  Degrees-of-freedom approximation to use: `"barnard-rubin"` applies the
+  Barnard-Rubin (1999) small-sample adjustment and `"rubin"` applies
+  Rubin's (1987) original approximation.
+
 ## Value
 
 A list containing:
@@ -35,7 +41,7 @@ A list containing:
 
 - `var_t`: total variance according to Little-Rubin (2002).
 
-- `df`: degrees of freedom according to Barnard-Rubin (1999).
+- `df`: degrees of freedom according to the selected `method`.
 
 ## Details
 
@@ -46,8 +52,8 @@ the complete-data analyses (given by the input argument `ests`). The
 total variance `var_t` is the sum of two terms representing the
 within-variance and the between-variance (see Little-Rubin (2002)). The
 function also returns `df`, the estimated pooled degrees of freedom
-according to Barnard-Rubin (1999) that can be used for inference based
-on the t-distribution.
+according to the selected `method`, which can be used for inference
+based on the t-distribution.
 
 ## References
 
@@ -57,6 +63,9 @@ multiple imputation. Biometrika, 86, 948-955
 Roderick J. A. Little and Donald B. Rubin. Statistical Analysis with
 Missing Data, Second Edition. John Wiley & Sons, Hoboken, New Jersey,
 2002. \[Section 5.4\]
+
+Rubin, D.B. (1987). Multiple Imputation for Nonresponse in Surveys. John
+Wiley & Sons, New York. \[Section 3.3\]
 
 ## See also
 

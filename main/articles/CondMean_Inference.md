@@ -117,7 +117,85 @@ Finally, we call the function
 derive the parameter estimates of the base imputation model for the full
 dataset and all leave-one-subject-out samples.
 
-[`library`](https://rdrr.io/r/base/library.html)`(`[`rbmi`](https://openpharma.github.io/rbmi/)`)`` `[`library`](https://rdrr.io/r/base/library.html)`(`[`dplyr`](https://dplyr.tidyverse.org)`)`` ``#> `` ``#> Attaching package: 'dplyr'`` ``#> The following objects are masked from 'package:stats':`` ``#> `` ``#> filter, lag`` ``#> The following objects are masked from 'package:base':`` ``#> `` ``#> intersect, setdiff, setequal, union`` `` ``dat`` ``<-`` ``antidepressant_data`` `` ``# Use expand_locf to add rows corresponding to visits with missing outcomes to`` ``# the dataset`` ``dat`` ``<-`` `[`expand_locf`](https://openpharma.github.io/rbmi/reference/expand.md)`(`` `` ``dat``,`` `` PATIENT ``=`` `[`levels`](https://rdrr.io/r/base/levels.html)`(``dat``$``PATIENT``)``, ``# expand by PATIENT and VISIT `` `` VISIT ``=`` `[`levels`](https://rdrr.io/r/base/levels.html)`(``dat``$``VISIT``)``,`` `` vars ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"BASVAL"``, ``"THERAPY"``)``, ``# fill with LOCF BASVAL and THERAPY`` `` group ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"PATIENT"``)``,`` `` order ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"PATIENT"``, ``"VISIT"``)`` ``)`` `` ``# create data_ice and set the imputation strategy to JR for`` ``# each patient with at least one missing observation`` ``dat_ice`` ``<-`` ``dat`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`arrange`](https://dplyr.tidyverse.org/reference/arrange.html)`(``PATIENT``, ``VISIT``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`filter`](https://dplyr.tidyverse.org/reference/filter.html)`(`[`is.na`](https://rdrr.io/r/base/NA.html)`(``CHANGE``)``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`group_by`](https://dplyr.tidyverse.org/reference/group_by.html)`(``PATIENT``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`slice`](https://dplyr.tidyverse.org/reference/slice.html)`(``1``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `[`ungroup`](https://dplyr.tidyverse.org/reference/group_by.html)`(``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`select`](https://dplyr.tidyverse.org/reference/select.html)`(``PATIENT``, ``VISIT``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`mutate`](https://dplyr.tidyverse.org/reference/mutate.html)`(``strategy ``=`` ``"JR"``)`` `` ``# In this dataset, subject 3618 has an intermittent missing values which`` ``# does not correspond to a study drug discontinuation. We therefore remove`` ``` # this subject from `dat_ice`. (In the later imputation step, it will ``` ``# automatically be imputed under the default MAR assumption.)`` ``dat_ice`` ``<-`` ``dat_ice``[``-`[`which`](https://rdrr.io/r/base/which.html)`(``dat_ice``$``PATIENT`` ``==`` ``3618``)``,``]`` `` ``# Define the names of key variables in our dataset and`` ``` # the covariates included in the imputation model using `set_vars()` ``` ``vars`` ``<-`` `[`set_vars`](https://openpharma.github.io/rbmi/reference/set_vars.md)`(`` `` outcome ``=`` ``"CHANGE"``,`` `` visit ``=`` ``"VISIT"``,`` `` subjid ``=`` ``"PATIENT"``,`` `` group ``=`` ``"THERAPY"``,`` `` covariates ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"BASVAL*VISIT"``, ``"THERAPY*VISIT"``)`` ``)`` `` ``# Define which imputation method to use (here: conditional mean imputation`` ``# with jackknife as resampling) `` ``method`` ``<-`` `[`method_condmean`](https://openpharma.github.io/rbmi/reference/method.md)`(``type ``=`` ``"jackknife"``)`` `` ``# Create samples for the imputation parameters by running the draws() function`` ``drawObj`` ``<-`` `[`draws`](https://openpharma.github.io/rbmi/reference/draws.md)`(`` `` data ``=`` ``dat``,`` `` data_ice ``=`` ``dat_ice``,`` `` vars ``=`` ``vars``,`` `` method ``=`` ``method``,`` `` quiet ``=`` ``TRUE`` ``)`` ``drawObj`` ``#> `` ``#> Draws Object`` ``#> ------------`` ``#> Number of Samples: 1 + 172`` ``#> Number of Failed Samples: 0`` ``#> Model Formula: CHANGE ~ 1 + THERAPY + VISIT + BASVAL * VISIT + THERAPY * VISIT`` ``#> Imputation Type: condmean`` ``#> Method:`` ``#> name: Conditional Mean`` ``#> covariance: us`` ``#> threshold: 0.01`` ``#> same_cov: TRUE`` ``#> REML: TRUE`` ``#> type: jackknife`
+\
+[`library`](https://rdrr.io/r/base/library.html)`(`[`rbmi`](https://openpharma.github.io/rbmi/)`)`\
+[`library`](https://rdrr.io/r/base/library.html)`(`[`dplyr`](https://dplyr.tidyverse.org)`)`\
+`#> `\
+`#> Attaching package: 'dplyr'`\
+`#> The following objects are masked from 'package:stats':`\
+`#> `\
+`#>     filter, lag`\
+`#> The following objects are masked from 'package:base':`\
+`#> `\
+`#>     intersect, setdiff, setequal, union`\
+\
+`dat`` ``<-`` ``antidepressant_data`\
+\
+`# Use expand_locf to add rows corresponding to visits with missing outcomes to`\
+`# the dataset`\
+`dat`` ``<-`` `[`expand_locf`](https://openpharma.github.io/rbmi/reference/expand.md)`(`\
+`  ``dat``,`\
+`  PATIENT ``=`` `[`levels`](https://rdrr.io/r/base/levels.html)`(``dat``$``PATIENT``)``, ``# expand by PATIENT and VISIT `\
+`  VISIT ``=`` `[`levels`](https://rdrr.io/r/base/levels.html)`(``dat``$``VISIT``)``,`\
+`  vars ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"BASVAL"``, ``"THERAPY"``)``, ``# fill with LOCF BASVAL and THERAPY`\
+`  group ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"PATIENT"``)``,`\
+`  order ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"PATIENT"``, ``"VISIT"``)`\
+`)`\
+\
+`# create data_ice and set the imputation strategy to JR for`\
+`# each patient with at least one missing observation`\
+`dat_ice`` ``<-`` ``dat`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `\
+`  `[`arrange`](https://dplyr.tidyverse.org/reference/arrange.html)`(``PATIENT``, ``VISIT``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `\
+`  `[`filter`](https://dplyr.tidyverse.org/reference/filter.html)`(`[`is.na`](https://rdrr.io/r/base/NA.html)`(``CHANGE``)``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `\
+`  `[`group_by`](https://dplyr.tidyverse.org/reference/group_by.html)`(``PATIENT``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `\
+`  `[`slice`](https://dplyr.tidyverse.org/reference/slice.html)`(``1``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)\
+`  `[`ungroup`](https://dplyr.tidyverse.org/reference/group_by.html)`(``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `\
+`  `[`select`](https://dplyr.tidyverse.org/reference/select.html)`(``PATIENT``, ``VISIT``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `\
+`  `[`mutate`](https://dplyr.tidyverse.org/reference/mutate.html)`(``strategy ``=`` ``"JR"``)`\
+\
+`# In this dataset, subject 3618 has an intermittent missing values which`\
+`# does not correspond to a study drug discontinuation. We therefore remove`\
+`` # this subject from `dat_ice`. (In the later imputation step, it will ``\
+`# automatically be imputed under the default MAR assumption.)`\
+`dat_ice`` ``<-`` ``dat_ice``[``-`[`which`](https://rdrr.io/r/base/which.html)`(``dat_ice``$``PATIENT`` ``==`` ``3618``)``,``]`\
+\
+`# Define the names of key variables in our dataset and`\
+`` # the covariates included in the imputation model using `set_vars()` ``\
+`vars`` ``<-`` `[`set_vars`](https://openpharma.github.io/rbmi/reference/set_vars.md)`(`\
+`  outcome ``=`` ``"CHANGE"``,`\
+`  visit ``=`` ``"VISIT"``,`\
+`  subjid ``=`` ``"PATIENT"``,`\
+`  group ``=`` ``"THERAPY"``,`\
+`  covariates ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"BASVAL*VISIT"``, ``"THERAPY*VISIT"``)`\
+`)`\
+\
+`# Define which imputation method to use (here: conditional mean imputation`\
+`# with jackknife as resampling) `\
+`method`` ``<-`` `[`method_condmean`](https://openpharma.github.io/rbmi/reference/method.md)`(``type ``=`` ``"jackknife"``)`\
+\
+`# Create samples for the imputation parameters by running the draws() function`\
+`drawObj`` ``<-`` `[`draws`](https://openpharma.github.io/rbmi/reference/draws.md)`(`\
+`  data ``=`` ``dat``,`\
+`  data_ice ``=`` ``dat_ice``,`\
+`  vars ``=`` ``vars``,`\
+`  method ``=`` ``method``,`\
+`  quiet ``=`` ``TRUE`\
+`)`\
+`drawObj`\
+`#> `\
+`#> Draws Object`\
+`#> ------------`\
+`#> Number of Samples: 1 + 172`\
+`#> Number of Failed Samples: 0`\
+`#> Model Formula: CHANGE ~ 1 + THERAPY + VISIT + BASVAL * VISIT + THERAPY * VISIT`\
+`#> Imputation Type: condmean`\
+`#> Method:`\
+`#>     name: Conditional Mean`\
+`#>     covariance: us`\
+`#>     threshold: 0.01`\
+`#>     same_cov: TRUE`\
+`#>     REML: TRUE`\
+`#>     type: jackknife`
 
 ### 3.2 Impute
 
@@ -126,7 +204,22 @@ We can use now the function
 perform the imputation of the original dataset and of each leave-one-out
 samples using the results obtained at the previous step.
 
-`references`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``"DRUG"`` ``=`` ``"PLACEBO"``, ``"PLACEBO"`` ``=`` ``"PLACEBO"``)`` ``imputeObj`` ``<-`` `[`impute`](https://openpharma.github.io/rbmi/reference/impute.md)`(``drawObj``, ``references``)`` ``imputeObj`` ``#> `` ``#> Imputation Object`` ``#> -----------------`` ``#> Number of Imputed Datasets: 1 + 172`` ``#> Fraction of Missing Data (Original Dataset):`` ``#> 4: 0%`` ``#> 5: 8%`` ``#> 6: 13%`` ``#> 7: 25%`` ``#> References:`` ``#> DRUG -> PLACEBO`` ``#> PLACEBO -> PLACEBO`
+\
+`references`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``"DRUG"`` ``=`` ``"PLACEBO"``, ``"PLACEBO"`` ``=`` ``"PLACEBO"``)`\
+`imputeObj`` ``<-`` `[`impute`](https://openpharma.github.io/rbmi/reference/impute.md)`(``drawObj``, ``references``)`\
+`imputeObj`\
+`#> `\
+`#> Imputation Object`\
+`#> -----------------`\
+`#> Number of Imputed Datasets: 1 + 172`\
+`#> Fraction of Missing Data (Original Dataset):`\
+`#>     4:   0%`\
+`#>     5:   8%`\
+`#>     6:  13%`\
+`#>     7:  25%`\
+`#> References:`\
+`#>     DRUG    -> PLACEBO`\
+`#>     PLACEBO -> PLACEBO`
 
 ### 3.3 Analyse
 
@@ -135,7 +228,42 @@ Once the datasets have been imputed, we can call the
 function to apply the complete-data analysis model (here ANCOVA) to each
 imputed dataset.
 
-` ``` # Set analysis variables using `rbmi` function "set_vars" ``` ``vars_an`` ``<-`` `[`set_vars`](https://openpharma.github.io/rbmi/reference/set_vars.md)`(`` `` group ``=`` ``vars``$``group``,`` `` visit ``=`` ``vars``$``visit``,`` `` outcome ``=`` ``vars``$``outcome``,`` `` covariates ``=`` ``"BASVAL"`` ``)`` `` ``# Analyse MAR imputation with derived delta adjustment`` ``anaObj`` ``<-`` `[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(`` `` ``imputeObj``,`` `` ``rbmi``::`[`ancova`](https://openpharma.github.io/rbmi/reference/ancova.md)`,`` `` vars ``=`` ``vars_an`` ``)`` ``anaObj`` ``#> `` ``#> Analysis Object`` ``#> ---------------`` ``#> Number of Results: 1 + 172`` ``#> Analysis Function: rbmi::ancova`` ``#> Delta Applied: FALSE`` ``#> Analysis Estimates:`` ``#> trt_4`` ``#> lsm_ref_4`` ``#> lsm_alt_4`` ``#> trt_5`` ``#> lsm_ref_5`` ``#> lsm_alt_5`` ``#> trt_6`` ``#> lsm_ref_6`` ``#> lsm_alt_6`` ``#> trt_7`` ``#> lsm_ref_7`` ``#> lsm_alt_7`
+\
+\
+`` # Set analysis variables using `rbmi` function "set_vars" ``\
+`vars_an`` ``<-`` `[`set_vars`](https://openpharma.github.io/rbmi/reference/set_vars.md)`(`\
+`  group ``=`` ``vars``$``group``,`\
+`  visit ``=`` ``vars``$``visit``,`\
+`  outcome ``=`` ``vars``$``outcome``,`\
+`  covariates ``=`` ``"BASVAL"`\
+`)`\
+\
+`# Analyse MAR imputation with derived delta adjustment`\
+`anaObj`` ``<-`` `[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(`\
+`  ``imputeObj``,`\
+`  ``rbmi``::`[`ancova`](https://openpharma.github.io/rbmi/reference/ancova.md)`,`\
+`  vars ``=`` ``vars_an`\
+`)`\
+`anaObj`\
+`#> `\
+`#> Analysis Object`\
+`#> ---------------`\
+`#> Number of Results: 1 + 172`\
+`#> Analysis Function: rbmi::ancova`\
+`#> Delta Applied: FALSE`\
+`#> Analysis Estimates:`\
+`#>     trt_4`\
+`#>     lsm_ref_4`\
+`#>     lsm_alt_4`\
+`#>     trt_5`\
+`#>     lsm_ref_5`\
+`#>     lsm_alt_5`\
+`#>     trt_6`\
+`#>     lsm_ref_6`\
+`#>     lsm_alt_6`\
+`#>     trt_7`\
+`#>     lsm_ref_7`\
+`#>     lsm_alt_7`
 
 ### 3.4 Pool
 
@@ -145,7 +273,35 @@ calling the
 [`pool()`](https://openpharma.github.io/rbmi/reference/pool.md)
 function.
 
-`poolObj`` ``<-`` `[`pool`](https://openpharma.github.io/rbmi/reference/pool.md)`(``anaObj``)`` ``poolObj`` ``#> `` ``#> Pool Object`` ``#> -----------`` ``#> Number of Results Combined: 1 + 172`` ``#> Method: jackknife`` ``#> Confidence Level: 0.95`` ``#> Alternative: two.sided`` ``#> `` ``#> Results:`` ``#> `` ``#> ==================================================`` ``#> parameter est se lci uci pval `` ``#> --------------------------------------------------`` ``#> trt_4 -0.092 0.695 -1.453 1.27 0.895 `` ``#> lsm_ref_4 -1.616 0.588 -2.767 -0.464 0.006 `` ``#> lsm_alt_4 -1.708 0.396 -2.484 -0.931 <0.001 `` ``#> trt_5 1.305 0.878 -0.416 3.027 0.137 `` ``#> lsm_ref_5 -4.133 0.688 -5.481 -2.785 <0.001 `` ``#> lsm_alt_5 -2.828 0.604 -4.011 -1.645 <0.001 `` ``#> trt_6 1.929 0.862 0.239 3.619 0.025 `` ``#> lsm_ref_6 -6.088 0.671 -7.402 -4.773 <0.001 `` ``#> lsm_alt_6 -4.159 0.686 -5.503 -2.815 <0.001 `` ``#> trt_7 2.126 0.858 0.444 3.807 0.013 `` ``#> lsm_ref_7 -6.965 0.685 -8.307 -5.622 <0.001 `` ``#> lsm_alt_7 -4.839 0.762 -6.333 -3.346 <0.001 `` ``#> --------------------------------------------------`
+\
+`poolObj`` ``<-`` `[`pool`](https://openpharma.github.io/rbmi/reference/pool.md)`(``anaObj``)`\
+`poolObj`\
+`#> `\
+`#> Pool Object`\
+`#> -----------`\
+`#> Number of Results Combined: 1 + 172`\
+`#> Method: jackknife`\
+`#> Confidence Level: 0.95`\
+`#> Alternative: two.sided`\
+`#> `\
+`#> Results:`\
+`#> `\
+`#>   ==================================================`\
+`#>    parameter   est     se     lci     uci     pval  `\
+`#>   --------------------------------------------------`\
+`#>      trt_4    -0.092  0.695  -1.453   1.27   0.895  `\
+`#>    lsm_ref_4  -1.616  0.588  -2.767  -0.464  0.006  `\
+`#>    lsm_alt_4  -1.708  0.396  -2.484  -0.931  <0.001 `\
+`#>      trt_5    1.305   0.878  -0.416  3.027   0.137  `\
+`#>    lsm_ref_5  -4.133  0.688  -5.481  -2.785  <0.001 `\
+`#>    lsm_alt_5  -2.828  0.604  -4.011  -1.645  <0.001 `\
+`#>      trt_6    1.929   0.862  0.239   3.619   0.025  `\
+`#>    lsm_ref_6  -6.088  0.671  -7.402  -4.773  <0.001 `\
+`#>    lsm_alt_6  -4.159  0.686  -5.503  -2.815  <0.001 `\
+`#>      trt_7    2.126   0.858  0.444   3.807   0.013  `\
+`#>    lsm_ref_7  -6.965  0.685  -8.307  -5.622  <0.001 `\
+`#>    lsm_alt_7  -4.839  0.762  -6.333  -3.346  <0.001 `\
+`#>   --------------------------------------------------`
 
 This gives an estimated treatment effect of 2.13 (95% CI 0.44 to 3.81)
 at the last visit with an associated p-value of 0.013.
@@ -163,7 +319,64 @@ The code for the pre-processing of the dataset and for the “draws” step
 is equivalent to the code provided for the frequentist inference. Please
 refer to [that section](#draws) for details about this step.
 
-` `[`library`](https://rdrr.io/r/base/library.html)`(`[`rbmi`](https://openpharma.github.io/rbmi/)`)`` `[`library`](https://rdrr.io/r/base/library.html)`(`[`dplyr`](https://dplyr.tidyverse.org)`)`` `` ``dat`` ``<-`` ``antidepressant_data`` `` ``# Use expand_locf to add rows corresponding to visits with missing outcomes to`` ``# the dataset`` ``dat`` ``<-`` `[`expand_locf`](https://openpharma.github.io/rbmi/reference/expand.md)`(`` `` ``dat``,`` `` PATIENT ``=`` `[`levels`](https://rdrr.io/r/base/levels.html)`(``dat``$``PATIENT``)``, ``# expand by PATIENT and VISIT `` `` VISIT ``=`` `[`levels`](https://rdrr.io/r/base/levels.html)`(``dat``$``VISIT``)``,`` `` vars ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"BASVAL"``, ``"THERAPY"``)``, ``# fill with LOCF BASVAL and THERAPY`` `` group ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"PATIENT"``)``,`` `` order ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"PATIENT"``, ``"VISIT"``)`` ``)`` `` ``# create data_ice and set the imputation strategy to JR for`` ``# each patient with at least one missing observation`` ``dat_ice`` ``<-`` ``dat`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`arrange`](https://dplyr.tidyverse.org/reference/arrange.html)`(``PATIENT``, ``VISIT``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`filter`](https://dplyr.tidyverse.org/reference/filter.html)`(`[`is.na`](https://rdrr.io/r/base/NA.html)`(``CHANGE``)``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`group_by`](https://dplyr.tidyverse.org/reference/group_by.html)`(``PATIENT``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`slice`](https://dplyr.tidyverse.org/reference/slice.html)`(``1``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `[`ungroup`](https://dplyr.tidyverse.org/reference/group_by.html)`(``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`select`](https://dplyr.tidyverse.org/reference/select.html)`(``PATIENT``, ``VISIT``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `` `` `[`mutate`](https://dplyr.tidyverse.org/reference/mutate.html)`(``strategy ``=`` ``"JR"``)`` `` ``# In this dataset, subject 3618 has an intermittent missing values which`` ``# does not correspond to a study drug discontinuation. We therefore remove`` ``` # this subject from `dat_ice`. (In the later imputation step, it will ``` ``# automatically be imputed under the default MAR assumption.)`` ``dat_ice`` ``<-`` ``dat_ice``[``-`[`which`](https://rdrr.io/r/base/which.html)`(``dat_ice``$``PATIENT`` ``==`` ``3618``)``,``]`` `` ``# Define the names of key variables in our dataset and`` ``` # the covariates included in the imputation model using `set_vars()` ``` ``vars`` ``<-`` `[`set_vars`](https://openpharma.github.io/rbmi/reference/set_vars.md)`(`` `` outcome ``=`` ``"CHANGE"``,`` `` visit ``=`` ``"VISIT"``,`` `` subjid ``=`` ``"PATIENT"``,`` `` group ``=`` ``"THERAPY"``,`` `` covariates ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"BASVAL*VISIT"``, ``"THERAPY*VISIT"``)`` ``)`` `` ``# Define which imputation method to use (here: conditional mean imputation`` ``# with jackknife as resampling) `` ``method`` ``<-`` `[`method_condmean`](https://openpharma.github.io/rbmi/reference/method.md)`(``type ``=`` ``"jackknife"``)`` `` ``# Create samples for the imputation parameters by running the draws() function`` ``drawObj`` ``<-`` `[`draws`](https://openpharma.github.io/rbmi/reference/draws.md)`(`` `` data ``=`` ``dat``,`` `` data_ice ``=`` ``dat_ice``,`` `` vars ``=`` ``vars``,`` `` method ``=`` ``method``,`` `` quiet ``=`` ``TRUE`` ``)`` ``drawObj`
+\
+\
+[`library`](https://rdrr.io/r/base/library.html)`(`[`rbmi`](https://openpharma.github.io/rbmi/)`)`\
+[`library`](https://rdrr.io/r/base/library.html)`(`[`dplyr`](https://dplyr.tidyverse.org)`)`\
+\
+`dat`` ``<-`` ``antidepressant_data`\
+\
+`# Use expand_locf to add rows corresponding to visits with missing outcomes to`\
+`# the dataset`\
+`dat`` ``<-`` `[`expand_locf`](https://openpharma.github.io/rbmi/reference/expand.md)`(`\
+`  ``dat``,`\
+`  PATIENT ``=`` `[`levels`](https://rdrr.io/r/base/levels.html)`(``dat``$``PATIENT``)``, ``# expand by PATIENT and VISIT `\
+`  VISIT ``=`` `[`levels`](https://rdrr.io/r/base/levels.html)`(``dat``$``VISIT``)``,`\
+`  vars ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"BASVAL"``, ``"THERAPY"``)``, ``# fill with LOCF BASVAL and THERAPY`\
+`  group ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"PATIENT"``)``,`\
+`  order ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"PATIENT"``, ``"VISIT"``)`\
+`)`\
+\
+`# create data_ice and set the imputation strategy to JR for`\
+`# each patient with at least one missing observation`\
+`dat_ice`` ``<-`` ``dat`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `\
+`  `[`arrange`](https://dplyr.tidyverse.org/reference/arrange.html)`(``PATIENT``, ``VISIT``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `\
+`  `[`filter`](https://dplyr.tidyverse.org/reference/filter.html)`(`[`is.na`](https://rdrr.io/r/base/NA.html)`(``CHANGE``)``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `\
+`  `[`group_by`](https://dplyr.tidyverse.org/reference/group_by.html)`(``PATIENT``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `\
+`  `[`slice`](https://dplyr.tidyverse.org/reference/slice.html)`(``1``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)\
+`  `[`ungroup`](https://dplyr.tidyverse.org/reference/group_by.html)`(``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `\
+`  `[`select`](https://dplyr.tidyverse.org/reference/select.html)`(``PATIENT``, ``VISIT``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `\
+`  `[`mutate`](https://dplyr.tidyverse.org/reference/mutate.html)`(``strategy ``=`` ``"JR"``)`\
+\
+`# In this dataset, subject 3618 has an intermittent missing values which`\
+`# does not correspond to a study drug discontinuation. We therefore remove`\
+`` # this subject from `dat_ice`. (In the later imputation step, it will ``\
+`# automatically be imputed under the default MAR assumption.)`\
+`dat_ice`` ``<-`` ``dat_ice``[``-`[`which`](https://rdrr.io/r/base/which.html)`(``dat_ice``$``PATIENT`` ``==`` ``3618``)``,``]`\
+\
+`# Define the names of key variables in our dataset and`\
+`` # the covariates included in the imputation model using `set_vars()` ``\
+`vars`` ``<-`` `[`set_vars`](https://openpharma.github.io/rbmi/reference/set_vars.md)`(`\
+`  outcome ``=`` ``"CHANGE"``,`\
+`  visit ``=`` ``"VISIT"``,`\
+`  subjid ``=`` ``"PATIENT"``,`\
+`  group ``=`` ``"THERAPY"``,`\
+`  covariates ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"BASVAL*VISIT"``, ``"THERAPY*VISIT"``)`\
+`)`\
+\
+`# Define which imputation method to use (here: conditional mean imputation`\
+`# with jackknife as resampling) `\
+`method`` ``<-`` `[`method_condmean`](https://openpharma.github.io/rbmi/reference/method.md)`(``type ``=`` ``"jackknife"``)`\
+\
+`# Create samples for the imputation parameters by running the draws() function`\
+`drawObj`` ``<-`` `[`draws`](https://openpharma.github.io/rbmi/reference/draws.md)`(`\
+`  data ``=`` ``dat``,`\
+`  data_ice ``=`` ``dat_ice``,`\
+`  vars ``=`` ``vars``,`\
+`  method ``=`` ``method``,`\
+`  quiet ``=`` ``TRUE`\
+`)`\
+`drawObj`
 
 ### 4.2 Imputation step including calculation of delta-adjustment
 
@@ -187,7 +400,92 @@ function returns a list containing the imputation objects under both
 reference-based and MAR imputation, plus a `data.frame` which contains
 the delta-adjustment.
 
-` ``#' Get delta adjustment that matches reference-based imputation`` ``#' `` ``` #' @param draws: A `draws` object created by `draws()`. ``` ``` #' @param data_ice: `data.frame` containing the information about the intercurrent ``` ``#' events and the imputation strategies. Must represent the desired imputation`` ``#' strategy and not the MAR-variant.`` ``#' @param references: A named vector. Identifies the references to be used`` ``#' for reference-based imputation methods.`` ``#' `` ``#' @return `` ``#' The function returns a list containing the imputation objects under both`` ``` #' reference-based and MAR imputation, plus a `data.frame` which contains the ``` ``#' delta-adjustment.`` ``#' `` ``` #' @seealso `draws()`, `impute()`. ``` ``get_delta_match_refBased`` ``<-`` ``function``(``draws``, ``data_ice``, ``references``)`` ``{`` `` `` `` ``` # Impute according to `data_ice` ``` `` ``imputeObj`` ``<-`` `[`impute`](https://openpharma.github.io/rbmi/reference/impute.md)`(`` `` draws ``=`` ``drawObj``,`` `` update_strategy ``=`` ``data_ice``,`` `` references ``=`` ``references`` `` ``)`` `` `` `` ``vars`` ``<-`` ``imputeObj``$``data``$``vars`` `` `` `` ``# Access imputed dataset (index=1 for method_condmean(type = "jackknife"))`` `` ``cmi`` ``<-`` `[`extract_imputed_dfs`](https://openpharma.github.io/rbmi/reference/extract_imputed_dfs.md)`(``imputeObj``, index ``=`` ``1``, idmap ``=`` ``TRUE``)``[[``1``]``]`` `` ``idmap`` ``<-`` `[`attributes`](https://rdrr.io/r/base/attributes.html)`(``cmi``)``$``idmap`` `` ``cmi`` ``<-`` ``cmi``[``, `[`c`](https://rdrr.io/r/base/c.html)`(``vars``$``subjid``, ``vars``$``visit``, ``vars``$``outcome``)``]`` `` `[`colnames`](https://rdrr.io/r/base/colnames.html)`(``cmi``)``[`[`colnames`](https://rdrr.io/r/base/colnames.html)`(``cmi``)`` ``==`` ``vars``$``outcome``]`` ``<-`` ``"y_imp"`` `` `` `` ``` # Map back original patients id since `rbmi` re-code ids to ensure id uniqueness ``` `` `` `` ``cmi``[[``vars``$``subjid``]``]`` ``<-`` ``idmap``[`[`match`](https://rdrr.io/r/base/match.html)`(``cmi``[[``vars``$``subjid``]``]``, `[`names`](https://rdrr.io/r/base/names.html)`(``idmap``)``)``]`` `` `` `` ``# Derive conditional mean imputations under MAR`` `` ``dat_ice_MAR`` ``<-`` ``data_ice`` `` `` ``dat_ice_MAR``[[``vars``$``strategy``]``]`` ``<-`` ``"MAR"`` `` `` `` ``# Impute under MAR `` `` ``# Note that in this specific context, it is desirable that an update `` `` `` ``# from a reference-based strategy to MAR uses the exact same data for `` `` ``# fitting the imputation models, i.e. that available post-ICE data are `` `` ``# omitted from the imputation model for both. This is the case when `` `` ``# using argument update_strategy in function impute(). `` `` ``# However, for other settings (i.e. if one is interested in switching to`` `` ``# a standard MAR imputation strategy altogether), this behavior is `` `` ``# undesirable and, consequently, the function throws a warning which `` `` ``# we suppress here. `` `` `[`suppressWarnings`](https://rdrr.io/r/base/warning.html)`(`` `` ``imputeObj_MAR`` ``<-`` `[`impute`](https://openpharma.github.io/rbmi/reference/impute.md)`(`` `` ``draws``,`` `` update_strategy ``=`` ``dat_ice_MAR`` `` ``)`` `` ``)`` `` `` `` `` ``# Access imputed dataset (index=1 for method_condmean(type = "jackknife"))`` `` ``cmi_MAR`` ``<-`` `[`extract_imputed_dfs`](https://openpharma.github.io/rbmi/reference/extract_imputed_dfs.md)`(``imputeObj_MAR``, index ``=`` ``1``, idmap ``=`` ``TRUE``)``[[``1``]``]`` `` ``idmap`` ``<-`` `[`attributes`](https://rdrr.io/r/base/attributes.html)`(``cmi_MAR``)``$``idmap`` `` ``cmi_MAR`` ``<-`` ``cmi_MAR``[``, `[`c`](https://rdrr.io/r/base/c.html)`(``vars``$``subjid``, ``vars``$``visit``, ``vars``$``outcome``)``]`` `` `[`colnames`](https://rdrr.io/r/base/colnames.html)`(``cmi_MAR``)``[`[`colnames`](https://rdrr.io/r/base/colnames.html)`(``cmi_MAR``)`` ``==`` ``vars``$``outcome``]`` ``<-`` ``"y_MAR"`` `` `` `` ``` # Map back original patients id since `rbmi` re-code ids to ensure id uniqueness ``` `` ``cmi_MAR``[[``vars``$``subjid``]``]`` ``<-`` ``idmap``[`[`match`](https://rdrr.io/r/base/match.html)`(``cmi_MAR``[[``vars``$``subjid``]``]``, `[`names`](https://rdrr.io/r/base/names.html)`(``idmap``)``)``]`` `` `` `` ``# Derive delta adjustment "aligned with ref-based imputation",`` `` ``# i.e. difference between ref-based imputation and MAR imputation`` `` ``delta_adjust`` ``<-`` `[`merge`](https://rdrr.io/r/base/merge.html)`(``cmi``, ``cmi_MAR``, by ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``vars``$``subjid``, ``vars``$``visit``)``, all ``=`` ``TRUE``)`` `` ``delta_adjust``$``delta`` ``<-`` ``delta_adjust``$``y_imp`` ``-`` ``delta_adjust``$``y_MAR`` `` `` ``ret_obj`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(`` `` imputeObj ``=`` ``imputeObj``,`` `` imputeObj_MAR ``=`` ``imputeObj_MAR``,`` `` delta_adjust ``=`` ``delta_adjust`` `` ``)`` `` `` `` `[`return`](https://rdrr.io/r/base/function.html)`(``ret_obj``)`` ``}`` `` ``references`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``"DRUG"`` ``=`` ``"PLACEBO"``, ``"PLACEBO"`` ``=`` ``"PLACEBO"``)`` `` ``res_delta_adjust`` ``<-`` ``get_delta_match_refBased``(``drawObj``, ``dat_ice``, ``references``)`
+\
+\
+`#' Get delta adjustment that matches reference-based imputation`\
+`#' `\
+`` #' @param draws: A `draws` object created by `draws()`. ``\
+`` #' @param data_ice: `data.frame` containing the information about the intercurrent ``\
+`#' events and the imputation strategies. Must represent the desired imputation`\
+`#' strategy and not the MAR-variant.`\
+`#' @param references: A named vector. Identifies the references to be used`\
+`#' for reference-based imputation methods.`\
+`#' `\
+`#' @return `\
+`#' The function returns a list containing the imputation objects under both`\
+`` #' reference-based and MAR imputation, plus a `data.frame` which contains the ``\
+`#' delta-adjustment.`\
+`#' `\
+`` #' @seealso `draws()`, `impute()`. ``\
+`get_delta_match_refBased`` ``<-`` ``function``(``draws``, ``data_ice``, ``references``)`` ``{`\
+`  `\
+`  ``` # Impute according to `data_ice` ``\
+`  ``imputeObj`` ``<-`` `[`impute`](https://openpharma.github.io/rbmi/reference/impute.md)`(`\
+`    draws ``=`` ``drawObj``,`\
+`    update_strategy ``=`` ``data_ice``,`\
+`    references ``=`` ``references`\
+`  ``)`\
+`  `\
+`  ``vars`` ``<-`` ``imputeObj``$``data``$``vars`\
+`  `\
+`  ``# Access imputed dataset (index=1 for method_condmean(type = "jackknife"))`\
+`  ``cmi`` ``<-`` `[`extract_imputed_dfs`](https://openpharma.github.io/rbmi/reference/extract_imputed_dfs.md)`(``imputeObj``, index ``=`` ``1``, idmap ``=`` ``TRUE``)``[[``1``]``]`\
+`  ``idmap`` ``<-`` `[`attributes`](https://rdrr.io/r/base/attributes.html)`(``cmi``)``$``idmap`\
+`  ``cmi`` ``<-`` ``cmi``[``, `[`c`](https://rdrr.io/r/base/c.html)`(``vars``$``subjid``, ``vars``$``visit``, ``vars``$``outcome``)``]`\
+`  `[`colnames`](https://rdrr.io/r/base/colnames.html)`(``cmi``)``[`[`colnames`](https://rdrr.io/r/base/colnames.html)`(``cmi``)`` ``==`` ``vars``$``outcome``]`` ``<-`` ``"y_imp"`\
+`  `\
+`  ``` # Map back original patients id since `rbmi` re-code ids to ensure id uniqueness ``\
+`  `\
+`  ``cmi``[[``vars``$``subjid``]``]`` ``<-`` ``idmap``[`[`match`](https://rdrr.io/r/base/match.html)`(``cmi``[[``vars``$``subjid``]``]``, `[`names`](https://rdrr.io/r/base/names.html)`(``idmap``)``)``]`\
+`  `\
+`  ``# Derive conditional mean imputations under MAR`\
+`  ``dat_ice_MAR`` ``<-`` ``data_ice`` `\
+`  ``dat_ice_MAR``[[``vars``$``strategy``]``]`` ``<-`` ``"MAR"`\
+`  `\
+`  ``# Impute under MAR `\
+`  ``# Note that in this specific context, it is desirable that an update   `\
+\
+`  ``# from a reference-based strategy to MAR uses the exact same data for `\
+`  ``# fitting the imputation models, i.e. that available post-ICE data are `\
+`  ``# omitted from the imputation model for both. This is the case when    `\
+`  ``# using argument update_strategy in function impute(). `\
+`  ``# However, for other settings (i.e. if one is interested in switching to`\
+`  ``# a standard MAR imputation strategy altogether), this behavior is  `\
+`  ``# undesirable and, consequently, the function throws a warning which `\
+`  ``# we suppress here. `\
+`  `[`suppressWarnings`](https://rdrr.io/r/base/warning.html)`(`\
+`    ``imputeObj_MAR`` ``<-`` `[`impute`](https://openpharma.github.io/rbmi/reference/impute.md)`(`\
+`      ``draws``,`\
+`      update_strategy ``=`` ``dat_ice_MAR`\
+`    ``)`\
+`  ``)`` `\
+`  `\
+`  ``# Access imputed dataset (index=1 for method_condmean(type = "jackknife"))`\
+`  ``cmi_MAR`` ``<-`` `[`extract_imputed_dfs`](https://openpharma.github.io/rbmi/reference/extract_imputed_dfs.md)`(``imputeObj_MAR``, index ``=`` ``1``, idmap ``=`` ``TRUE``)``[[``1``]``]`\
+`  ``idmap`` ``<-`` `[`attributes`](https://rdrr.io/r/base/attributes.html)`(``cmi_MAR``)``$``idmap`\
+`  ``cmi_MAR`` ``<-`` ``cmi_MAR``[``, `[`c`](https://rdrr.io/r/base/c.html)`(``vars``$``subjid``, ``vars``$``visit``, ``vars``$``outcome``)``]`\
+`  `[`colnames`](https://rdrr.io/r/base/colnames.html)`(``cmi_MAR``)``[`[`colnames`](https://rdrr.io/r/base/colnames.html)`(``cmi_MAR``)`` ``==`` ``vars``$``outcome``]`` ``<-`` ``"y_MAR"`\
+`  `\
+`  ``` # Map back original patients id since `rbmi` re-code ids to ensure id uniqueness ``\
+`  ``cmi_MAR``[[``vars``$``subjid``]``]`` ``<-`` ``idmap``[`[`match`](https://rdrr.io/r/base/match.html)`(``cmi_MAR``[[``vars``$``subjid``]``]``, `[`names`](https://rdrr.io/r/base/names.html)`(``idmap``)``)``]`\
+`  `\
+`  ``# Derive delta adjustment "aligned with ref-based imputation",`\
+`  ``# i.e. difference between ref-based imputation and MAR imputation`\
+`  ``delta_adjust`` ``<-`` `[`merge`](https://rdrr.io/r/base/merge.html)`(``cmi``, ``cmi_MAR``, by ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``vars``$``subjid``, ``vars``$``visit``)``, all ``=`` ``TRUE``)`\
+`  ``delta_adjust``$``delta`` ``<-`` ``delta_adjust``$``y_imp`` ``-`` ``delta_adjust``$``y_MAR`\
+\
+`  ``ret_obj`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(`\
+`    imputeObj ``=`` ``imputeObj``,`\
+`    imputeObj_MAR ``=`` ``imputeObj_MAR``,`\
+`    delta_adjust ``=`` ``delta_adjust`\
+`  ``)`\
+`  `\
+`  `[`return`](https://rdrr.io/r/base/function.html)`(``ret_obj``)`\
+`}`\
+\
+`references`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``"DRUG"`` ``=`` ``"PLACEBO"``, ``"PLACEBO"`` ``=`` ``"PLACEBO"``)`\
+\
+`res_delta_adjust`` ``<-`` ``get_delta_match_refBased``(``drawObj``, ``dat_ice``, ``references``)`
 
 ### 4.3 Analyse
 
@@ -203,7 +501,23 @@ The argument `delta` can be used to add a delta-adjustment prior to the
 analysis and we set this to the delta-adjustment obtained in the
 previous step: `delta = res_delta_adjust$delta_adjust`.
 
-` ``` # Set analysis variables using `rbmi` function "set_vars" ``` ``vars_an`` ``<-`` `[`set_vars`](https://openpharma.github.io/rbmi/reference/set_vars.md)`(`` `` group ``=`` ``vars``$``group``,`` `` visit ``=`` ``vars``$``visit``,`` `` outcome ``=`` ``vars``$``outcome``,`` `` covariates ``=`` ``"BASVAL"`` ``)`` `` ``# Analyse MAR imputation with derived delta adjustment`` ``anaObj_MAR_delta`` ``<-`` `[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(`` `` ``res_delta_adjust``$``imputeObj_MAR``,`` `` ``rbmi``::`[`ancova`](https://openpharma.github.io/rbmi/reference/ancova.md)`,`` `` delta ``=`` ``res_delta_adjust``$``delta_adjust``,`` `` vars ``=`` ``vars_an`` ``)`
+\
+\
+`` # Set analysis variables using `rbmi` function "set_vars" ``\
+`vars_an`` ``<-`` `[`set_vars`](https://openpharma.github.io/rbmi/reference/set_vars.md)`(`\
+`  group ``=`` ``vars``$``group``,`\
+`  visit ``=`` ``vars``$``visit``,`\
+`  outcome ``=`` ``vars``$``outcome``,`\
+`  covariates ``=`` ``"BASVAL"`\
+`)`\
+\
+`# Analyse MAR imputation with derived delta adjustment`\
+`anaObj_MAR_delta`` ``<-`` `[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(`\
+`  ``res_delta_adjust``$``imputeObj_MAR``,`\
+`  ``rbmi``::`[`ancova`](https://openpharma.github.io/rbmi/reference/ancova.md)`,`\
+`  delta ``=`` ``res_delta_adjust``$``delta_adjust``,`\
+`  vars ``=`` ``vars_an`\
+`)`
 
 ### 4.4 Pool
 
@@ -213,7 +527,36 @@ to extract the treatment effect estimate (as well as the estimated
 marginal means) at each visit and apply the jackknife variance estimator
 to the analysis estimates from all the imputed leave-one-out samples.
 
-` ``poolObj_MAR_delta`` ``<-`` `[`pool`](https://openpharma.github.io/rbmi/reference/pool.md)`(``anaObj_MAR_delta``)`` ``poolObj_MAR_delta`` ``#> `` ``#> Pool Object`` ``#> -----------`` ``#> Number of Results Combined: 1 + 172`` ``#> Method: jackknife`` ``#> Confidence Level: 0.95`` ``#> Alternative: two.sided`` ``#> `` ``#> Results:`` ``#> `` ``#> ==================================================`` ``#> parameter est se lci uci pval `` ``#> --------------------------------------------------`` ``#> trt_4 -0.092 0.695 -1.453 1.27 0.895 `` ``#> lsm_ref_4 -1.616 0.588 -2.767 -0.464 0.006 `` ``#> lsm_alt_4 -1.708 0.396 -2.484 -0.931 <0.001 `` ``#> trt_5 1.305 0.944 -0.545 3.156 0.167 `` ``#> lsm_ref_5 -4.133 0.738 -5.579 -2.687 <0.001 `` ``#> lsm_alt_5 -2.828 0.603 -4.01 -1.646 <0.001 `` ``#> trt_6 1.929 0.993 -0.018 3.876 0.052 `` ``#> lsm_ref_6 -6.088 0.758 -7.574 -4.602 <0.001 `` ``#> lsm_alt_6 -4.159 0.686 -5.504 -2.813 <0.001 `` ``#> trt_7 2.126 1.123 -0.076 4.327 0.058 `` ``#> lsm_ref_7 -6.965 0.85 -8.63 -5.299 <0.001 `` ``#> lsm_alt_7 -4.839 0.763 -6.335 -3.343 <0.001 `` ``#> --------------------------------------------------`
+\
+\
+`poolObj_MAR_delta`` ``<-`` `[`pool`](https://openpharma.github.io/rbmi/reference/pool.md)`(``anaObj_MAR_delta``)`\
+`poolObj_MAR_delta`\
+`#> `\
+`#> Pool Object`\
+`#> -----------`\
+`#> Number of Results Combined: 1 + 172`\
+`#> Method: jackknife`\
+`#> Confidence Level: 0.95`\
+`#> Alternative: two.sided`\
+`#> `\
+`#> Results:`\
+`#> `\
+`#>   ==================================================`\
+`#>    parameter   est     se     lci     uci     pval  `\
+`#>   --------------------------------------------------`\
+`#>      trt_4    -0.092  0.695  -1.453   1.27   0.895  `\
+`#>    lsm_ref_4  -1.616  0.588  -2.767  -0.464  0.006  `\
+`#>    lsm_alt_4  -1.708  0.396  -2.484  -0.931  <0.001 `\
+`#>      trt_5    1.305   0.944  -0.545  3.156   0.167  `\
+`#>    lsm_ref_5  -4.133  0.738  -5.579  -2.687  <0.001 `\
+`#>    lsm_alt_5  -2.828  0.603  -4.01   -1.646  <0.001 `\
+`#>      trt_6    1.929   0.993  -0.018  3.876   0.052  `\
+`#>    lsm_ref_6  -6.088  0.758  -7.574  -4.602  <0.001 `\
+`#>    lsm_alt_6  -4.159  0.686  -5.504  -2.813  <0.001 `\
+`#>      trt_7    2.126   1.123  -0.076  4.327   0.058  `\
+`#>    lsm_ref_7  -6.965  0.85   -8.63   -5.299  <0.001 `\
+`#>    lsm_alt_7  -4.839  0.763  -6.335  -3.343  <0.001 `\
+`#>   --------------------------------------------------`
 
 This gives an estimated treatment effect of 2.13 (95% CI -0.08 to 4.33)
 at the last visit with an associated p-value of 0.058. Per construction

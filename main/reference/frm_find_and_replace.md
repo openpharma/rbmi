@@ -12,18 +12,18 @@ frm_find_and_replace(expr, find_sym, replace_sym)
 
 ## Arguments
 
+- expr:
+
+  A language object (e.g., call, expression, or list of calls) to search
+  and modify.
+
 - find_sym:
 
-  A symbol (as a name) to find within `frm`.
+  A symbol (as a name) to find within `expr`.
 
 - replace_sym:
 
   A symbol (as a name) to replace `find_sym` with.
-
-- frm:
-
-  A language object (e.g., call, expression, or list of calls) to search
-  and modify.
 
 ## Value
 
@@ -33,7 +33,7 @@ by `replace_sym`.
 ## Details
 
 Replacement happens for symbols found within calls (recursively). A
-`frm` that is itself a bare symbol equal to `find_sym` is returned
+`expr` that is itself a bare symbol equal to `find_sym` is returned
 unchanged; this is not reachable from the
 [`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md) call
 site because the input is always a formula (a call).

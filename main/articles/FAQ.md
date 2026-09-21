@@ -142,7 +142,17 @@ conditional mean imputation paper (Wolbers et al.
 This can be achieved using custom analysis functions as outlined in
 Section 7 of the Advanced Vignette. e.g.
 
-`ancova_modified`` ``<-`` ``function``(``data``, ``...``)`` ``{`` `` ``data2`` ``<-`` ``data`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `[`mutate`](https://dplyr.tidyverse.org/reference/mutate.html)`(``ENDPOINT ``=`` ``ENDPOINT`` ``-`` ``BASELINE``)`` `` ``rbmi``::`[`ancova`](https://openpharma.github.io/rbmi/reference/ancova.md)`(``data2``, ``...``)`` ``}`` `` ``anaObj`` ``<-`` ``rbmi``::`[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(`` `` ``imputeObj``,`` `` ``ancova_modified``,`` `` vars ``=`` ``vars`` `` ``)`
+\
+`ancova_modified`` ``<-`` ``function``(``data``, ``...``)`` ``{`\
+`    ``data2`` ``<-`` ``data`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `[`mutate`](https://dplyr.tidyverse.org/reference/mutate.html)`(``ENDPOINT ``=`` ``ENDPOINT`` ``-`` ``BASELINE``)`\
+`    ``rbmi``::`[`ancova`](https://openpharma.github.io/rbmi/reference/ancova.md)`(``data2``, ``...``)`\
+`}`\
+\
+`anaObj`` ``<-`` ``rbmi``::`[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(`\
+`    ``imputeObj``,`\
+`    ``ancova_modified``,`\
+`    vars ``=`` ``vars`\
+` ``)`
 
 \
 
@@ -153,7 +163,11 @@ Yes. The default
 function supports two or more treatment groups directly, so no special
 handling is required:
 
-`anaObj`` ``<-`` ``rbmi``::`[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(`` `` ``imputeObj``,`` `` vars ``=`` ``vars`` `` ``)`
+\
+`anaObj`` ``<-`` ``rbmi``::`[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(`\
+`    ``imputeObj``,`\
+`    vars ``=`` ``vars`\
+` ``)`
 
 For more than two groups the `ref` / `alt` naming scheme is extended
 with `alt2`, `alt3`, etc. (based on the factor levels of `vars$group`).
@@ -165,7 +179,21 @@ Custom contrasts must be named, and the names become the output
 parameter names. For example, with three arms `"Placebo"`, `"Low"` and
 `"High"` you can request a bespoke set of pairwise contrasts:
 
-`vars`` ``<-`` `[`set_vars`](https://openpharma.github.io/rbmi/reference/set_vars.md)`(`` `` subjid ``=`` ``"PATIENT"``,`` `` visit ``=`` ``"VISIT"``,`` `` outcome ``=`` ``"CHANGE"``,`` `` group ``=`` ``"THERAPY"``,`` `` covariates ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"BASVAL*VISIT"``, ``"THERAPY*VISIT"``)``,`` `` group_contrasts ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(`` `` low_vs_pbo ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"Low"``, ``"Placebo"``)``,`` `` high_vs_pbo ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"High"``, ``"Placebo"``)``,`` `` high_vs_low ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"High"``, ``"Low"``)`` `` ``)`` ``)`` `` ``anaObj`` ``<-`` ``rbmi``::`[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(``imputeObj``, vars ``=`` ``vars``)`
+\
+`vars`` ``<-`` `[`set_vars`](https://openpharma.github.io/rbmi/reference/set_vars.md)`(`\
+`    subjid ``=`` ``"PATIENT"``,`\
+`    visit ``=`` ``"VISIT"``,`\
+`    outcome ``=`` ``"CHANGE"``,`\
+`    group ``=`` ``"THERAPY"``,`\
+`    covariates ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"BASVAL*VISIT"``, ``"THERAPY*VISIT"``)``,`\
+`    group_contrasts ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(`\
+`        low_vs_pbo  ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"Low"``, ``"Placebo"``)``,`\
+`        high_vs_pbo ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"High"``, ``"Placebo"``)``,`\
+`        high_vs_low ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"High"``, ``"Low"``)`\
+`    ``)`\
+`)`\
+\
+`anaObj`` ``<-`` ``rbmi``::`[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(``imputeObj``, vars ``=`` ``vars``)`
 
 Contrasts are not restricted to pairwise comparisons. A contrast can
 also be given as a named numeric weight vector over the group levels
@@ -174,7 +202,17 @@ active arms against `"Placebo"`. The list name is used as the parameter
 name and is carried through to the `contrast_label` column of the
 [`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) output:
 
-`vars`` ``<-`` `[`set_vars`](https://openpharma.github.io/rbmi/reference/set_vars.md)`(`` `` subjid ``=`` ``"PATIENT"``,`` `` visit ``=`` ``"VISIT"``,`` `` outcome ``=`` ``"CHANGE"``,`` `` group ``=`` ``"THERAPY"``,`` `` covariates ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"BASVAL*VISIT"``, ``"THERAPY*VISIT"``)``,`` `` group_contrasts ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(`` `` pooled_vs_pbo ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``Placebo ``=`` ``-``1``, Low ``=`` ``0.5``, High ``=`` ``0.5``)`` `` ``)`` ``)`
+\
+`vars`` ``<-`` `[`set_vars`](https://openpharma.github.io/rbmi/reference/set_vars.md)`(`\
+`    subjid ``=`` ``"PATIENT"``,`\
+`    visit ``=`` ``"VISIT"``,`\
+`    outcome ``=`` ``"CHANGE"``,`\
+`    group ``=`` ``"THERAPY"``,`\
+`    covariates ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"BASVAL*VISIT"``, ``"THERAPY*VISIT"``)``,`\
+`    group_contrasts ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(`\
+`        pooled_vs_pbo ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``Placebo ``=`` ``-``1``, Low ``=`` ``0.5``, High ``=`` ``0.5``)`\
+`    ``)`\
+`)`
 
 Please see the documentation for
 [`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md) and
