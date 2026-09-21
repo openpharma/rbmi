@@ -76,6 +76,17 @@ test_that("original Rubin degrees of freedom are calculated correctly", {
     )
 })
 
+test_that("rubin_orig_df gives expected error about incompatible inputs", {
+    M <- 10
+    var_b <- 3
+    var_t <- 2
+
+    expect_error(
+        rubin_orig_df(v_com = 99, var_b = var_b, var_t = var_t, M = M),
+        "(M * var_t) must be larger than ((M + 1) * var_b)",
+        fixed = TRUE
+    )
+})
 
 test_that("pval_percentile", {
     est <- c(0, rep(1, 3))

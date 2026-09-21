@@ -493,7 +493,8 @@ rubin_df <- function(v_com, var_b, var_t, M) {
 #' @details Let \eqn{V_W = V_T - (1 + 1 / M) V_B} be the within-imputation
 #' variance and \eqn{r = (1 + 1 / M) V_B / V_W} be the relative increase in
 #' variance due to nonresponse. The returned degrees of freedom are
-#' \eqn{(M - 1) (1 + 1 / r)^2}.
+#' \eqn{(M - 1) (1 + 1 / r)^2}. Note that the internal computation is
+#' algebraically simplified to \eqn{(M - 1) ((M V_T) / ((M + 1) V_B))^2}.
 #'
 #' @references
 #' Rubin, D.B. (1987). Multiple Imputation for Nonresponse in Surveys.
@@ -506,16 +507,16 @@ rubin_orig_df <- function(v_com, var_b, var_t, M) {
     df <- if (var_b == 0) {
         Inf
     } else {
-        var_w <- var_t - (1 + 1 / M) * var_b
+        fraction <- (M * var_t) / ((M + 1) * var_b)
 
-        if (var_w <= 0) {
+        if (fraction <= 1) {
             stop(
-                "Within-imputation variance estimate `var_w` must be positive."
+                "(M * var_t) must be larger than ((M + 1) * var_b). ",
+                "Please check var_t, var_b and M."
             )
         }
 
-        r <- (1 + 1 / M) * var_b / var_w
-        (M - 1) * (1 + 1 / r)^2
+        (M - 1) * fraction^2
     }
 
     df

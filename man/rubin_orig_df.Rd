@@ -13,7 +13,7 @@ rubin_orig_df(v_com, var_b, var_t, M)
 
 \item{var_t}{Estimate (according to Rubin's rules) of the variance of the point estimates.}
 
-\item{M}{Number of imputations.}
+\item{M}{Number of imputations (integer larger than 1).}
 }
 \value{
 Degrees of freedom according to the original Rubin approximation.
@@ -27,7 +27,8 @@ Rubin (1987) approximation.
 Let \eqn{V_W = V_T - (1 + 1 / M) V_B} be the within-imputation
 variance and \eqn{r = (1 + 1 / M) V_B / V_W} be the relative increase in
 variance due to nonresponse. The returned degrees of freedom are
-\eqn{(M - 1) (1 + 1 / r)^2}.
+\eqn{(M - 1) (1 + 1 / r)^2}. Note that the internal computation is
+algebraically simplified to \eqn{(M - 1) ((M V_T) / ((M + 1) V_B))^2}.
 }
 \references{
 Rubin, D.B. (1987). Multiple Imputation for Nonresponse in Surveys.

@@ -13,7 +13,7 @@ rubin_df(v_com, var_b, var_t, M)
 
 \item{var_t}{Estimate (according to Rubin's rules) of the variance of the point estimates.}
 
-\item{M}{Number of imputations.}
+\item{M}{Number of imputations (integer larger than 1).}
 }
 \value{
 Degrees of freedom according to Barnard-Rubin formula. See Barnard-Rubin (1999).
