@@ -434,7 +434,7 @@ pool_internal.rubin <- function(
 #' @param v_com Positive number representing the degrees of freedom in the complete-data analysis.
 #' @param var_b Between-imputation sample variance of the point estimates across multiply imputed datasets.
 #' @param var_t Estimate (according to Rubin's rules) of the variance of the point estimates.
-#' @param M Number of imputations.
+#' @param M Number of imputations (integer larger than 1).
 #'
 #' @return Degrees of freedom according to Barnard-Rubin formula. See Barnard-Rubin (1999).
 #'
@@ -451,7 +451,7 @@ rubin_df <- function(v_com, var_b, var_t, M) {
     assert_that(is.number(v_com))
     assert_that(is.number(var_b) && noNA(var_b) && var_b >= 0)
     assert_that(is.number(var_t) && noNA(var_t) && var_t > 0)
-    assert_that(is.count(M))
+    assert_that(is.count(M) && M > 1)
 
     df <- if (is.na(v_com) || (is.infinite(v_com) && var_b == 0)) {
         Inf
@@ -501,7 +501,7 @@ rubin_df <- function(v_com, var_b, var_t, M) {
 rubin_orig_df <- function(v_com, var_b, var_t, M) {
     assert_that(is.number(var_b) && noNA(var_b) && var_b >= 0)
     assert_that(is.number(var_t) && noNA(var_t) && var_t > 0)
-    assert_that(is.count(M))
+    assert_that(is.count(M) && M > 1)
 
     df <- if (var_b == 0) {
         Inf
