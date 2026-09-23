@@ -1,0 +1,625 @@
+# Importing externally imputed datasets
+
+## Objective
+
+`rbmi` currently assumes that every analysis starts with `draws()` and
+`impute()`. The objective of this change is to support completed datasets made
+by another package or system while retaining the usual downstream workflow:
+
+```r
+imputations <- import(
+    completed_datasets,
+    vars = set_vars(
+        subjid = "USUBJID",
+        visit = "AVISIT",
+        group = "TRT",
+        outcome = "CHG",
+        covariates = "BASE"
+    ),
+    method = method_unknown(pooling = "rubin")
+)
+
+analysis <- analyse(imputations, fun = ancova, vars = imputations$data$vars)
+result <- pool(analysis)
+```
+
+The imported object should be a real `imputation` object. In particular,
+`analyse()`, `extract_imputed_dfs()`, explicit delta adjustments, parallel
+analysis and `pool()` should not need a separate external-data code path.
+
+## Existing implementation in `rbmiUtils`
+
+`rbmiUtils::analyse_mi_data()` takes one stacked data frame with an `IMPID`
+column, splits it, calls the analysis function, and constructs an `analysis`
+object itself. This demonstrates the use case, but duplicates validation,
+delta handling, printing, and the construction logic from `rbmi::analyse()`.
+It also bypasses the `imputation` interface, so improvements to that interface
+do not automatically benefit `analyse_mi_data()`.
+
+The `rbmiUtils` development branch
+`50-analyse_mi_data-when-the-exact-imputation-method-is-unknown` additionally
+accepts a pooling rule and manufactures a Bayesian or conditional-mean method
+object so that current `rbmi` validation passes. Its important insight is that
+the pooling rule, rather than the exact imputation algorithm, is what the
+analysis and pooling steps need. Manufacturing a known method is nevertheless
+misleading: for example, an external Rubin-style MI data set was not thereby
+created by `method_bayes()`.
+
+## Structure of an `rbmi` imputation object
+
+An `rbmi` imputation currently contains:
+
+```text
+imputation
++-- imputations: imputation_list_df (only the values missing in the source data)
++-- data:        longdata (source data, variable names, missingness and ICE metadata)
++-- method:      method_* object
+`-- references:  reference-arm mapping
+```
+
+`analyse()` already goes through `extract_imputed_df()` to materialise each
+completed data set. That is the appropriate starting point for our imported storage
+backend. Converting completed data frames into the existing compact
+`longdata` representation is not reliable without the original incomplete
+data: completed data alone cannot reveal which cells were imputed, and two
+imputations may legitimately contain the same imputed value. Treating every
+outcome as originally missing would also make `print()` and
+`delta_template()` incorrect.
+
+## Proposed design
+
+### New `import()` generic function
+
+As with `draws()`, dispatch should be on the method, not on the data. The data
+are always supplied in the same form: a non-empty list of completed data
+frames. Method dispatch is useful because the expected number and layout of
+those frames differs by inference method.
+
+```r
+import <- function(
+    data,
+    vars,
+    method = method_unknown(),
+    original = NULL,
+    data_ice = NULL,
+    references = NULL,
+    source_id = NULL,
+    ...
+) {
+    UseMethod("import", method)
+}
+
+import.unknown <- function(
+    data,
+    vars,
+    method,
+    original = NULL,
+    data_ice = NULL,
+    references = NULL,
+    ...
+) {
+    # Validate and construct an imputation object.
+}
+```
+
+The methods are `import.bayes()`, `import.approxbayes()`,
+`import.condmean()`, `import.bmlmi()` and `import.unknown()`. They perform
+method-specific validation and then call one internal constructor, avoiding
+duplication of storage code. This parallels `draws()`, whose methods establish
+the sampling layout before returning a common `draws` object.
+
+Here `data` is a non-empty list of completed data frames. The optional `original`
+is the incomplete pre-imputation data set, and `data_ice` has the same meaning
+as in `draws()`. Neither is needed for `analyse()` or `pool()`, but together
+they enable truthful original-missingness and ICE metadata for
+`delta_template()` downstream. `references` is optional provenance; it must not silently
+default to an identity mapping, because that would claim knowledge about how
+the external values were generated. 
+
+`source_id` is only used in `import.condmean()`, where it names the
+column that maps resampled subject occurrences back to subjects in `original`.
+
+Because other packages also export a
+function named `import()`, documentation should recommend `rbmi::import()` in
+ambiguous sessions.
+
+The first implementation should require:
+
+- all entries to be data frames containing the variables named by `vars`;
+- a numeric, non-missing outcome in every completed data set;
+- unique subject-occurrence/visit keys within every data set;
+- invariant group values within each source subject and compatible column
+  classes/factor levels (apart from occurrence IDs); and
+- a data-set count compatible with `method`.
+
+Rows can be sorted internally by subject and visit, so their input order need
+not match where the method requires a common grid. Other columns are retained in full and may differ between
+imputations; this permits externally imputed covariates even though `rbmi`'s own
+imputation model only imputes the outcome. 
+
+### Method-specific layouts
+
+The following contracts are part of the import, not assumptions left to
+`analyse()`:
+
+| Import method | Number and layout of completed data sets | Pooling |
+|---|---|---|
+| `import.bayes()` | `method$n_samples`; common subject/visit grid | Rubin |
+| `import.approxbayes()` | `method$n_samples`; common subject/visit grid, despite bootstrap being used to estimate model parameters | Rubin |
+| `import.condmean(type = "bootstrap")` | original conditional-mean data set first, followed by `method$n_samples` bootstrap data sets | Bootstrap |
+| `import.condmean(type = "jackknife")` | original conditional-mean data set first, followed by one leave-one-subject-out data set per original subject | Jackknife |
+| `import.bmlmi()` | `method$B * method$D` data sets, ordered as `D` adjacent imputations within each bootstrap sample | BMLMI |
+| `import.unknown()` | `method$n_samples`; common subject/visit grid | Rubin |
+
+Approximate Bayes uses bootstrap samples to estimate parameters, but each
+completed data set is an imputation of the original subject grid. It therefore
+uses the same fixed-grid validator as Bayes and unknown Rubin-style MI.
+
+Conditional-mean bootstrap is different. The first data set in the list represents the
+original complete sample; every following data set in the list represents a bootstrap sample and
+can contain the same source subject more than once. Within each completed data
+set, `data[[vars$subjid]]` must identify *occurrences* uniquely. For example,
+two selections of subject `101` could have occurrence IDs `b03_017` and
+`b03_029`. The column named by `source_id` (only used in the `import.condmean()` method) contains `101` for both occurrences.
+This explicit mapping avoids trying to infer bootstrap identity from duplicated
+rows, and it supplies the `idmap` needed by existing delta handling.
+
+For `method_condmean(type = "bootstrap")`, validation should require:
+
+- `length(data) == method$n_samples + 1`;
+- the original sample data set to have one occurrence for every original subject;
+- every bootstrap data set to have the same number of subject occurrences as
+  the original sample, each with a complete visit grid;
+- all `source_id` values to occur in `original`, or in the first completed
+  data set when `original` is unavailable; and
+- when strata are available, each bootstrap sample to retain the original
+  number of occurrences per stratum, matching `rbmi`'s stratified bootstrap.
+
+For jackknife, validation should require `N + 1` data sets for `N` original
+subjects, with the original data set first and each later data set omitting
+exactly one distinct source subject. For BMLMI, `source_id` has the same meaning
+as for conditional-mean bootstrap; each adjacent block of `D` data sets must
+have an identical subject-occurrence map. The full data frames within a block
+may differ in their imputed outcomes.
+
+### Unknown method
+
+We add a genuine method class instead of disguising the pooling choice as an
+existing method:
+
+```r
+method_unknown <- function(
+    pooling = c("rubin", "bootstrap", "jackknife", "bmlmi"),
+    D = NULL
+) {
+    pooling <- match.arg(pooling)
+    if (pooling == "bmlmi" && is.null(D)) {
+        stop("`D` is required for BMLMI pooling")
+    }
+
+    structure(
+        list(pooling = pooling, D = D, n_samples = NULL),
+        class = c("method", "unknown")
+    )
+}
+```
+
+`import.unknown()` fills `n_samples` after seeing the data: `M` for Rubin
+pooling and `M - 1` for bootstrap pooling, matching the convention currently
+expected by `validate.analysis()`. For BMLMI it checks that `M` is divisible by
+`D`. For jackknife it validates the data-set count against the number of source
+subjects.
+Bootstrap, jackknife and BMLMI pooling carry stronger assumptions about sample
+ordering and resampling. These paths should therefore warn that `rbmi` can
+validate shape but cannot verify provenance.
+Rubin pooling remains the default and the recommended choice when only
+completed MI data are known.
+
+Unknown Rubin-style MI uses the fixed-grid validator. Unknown bootstrap,
+jackknife and BMLMI use the corresponding resampling-layout validators above
+and require `source_id`. Thus `method_unknown()` expresses the inference
+contract without falsely claiming which algorithm generated the imputations.
+
+### Internal pooling look-up
+
+Introduce one internal helper, used by both `as_analysis()` and validation,
+instead of inspecting `class(method)[[2]]` in several places:
+
+```r
+pooling_method <- function(method) {
+    if (inherits(method, "unknown")) {
+        return(method$pooling)
+    }
+    if (inherits(method, "bayes") || inherits(method, "approxbayes")) {
+        return("rubin")
+    }
+    if (inherits(method, "condmean")) {
+        return(if (method$type == "jackknife") "jackknife" else "bootstrap")
+    }
+    if (inherits(method, "bmlmi")) {
+        return("bmlmi")
+    }
+    stop("Unsupported method object")
+}
+```
+
+This also removes the fragile assumption that the decisive method class is
+always the second class. `mcse()` should continue to accept only actual
+`bayes` and `approxbayes` methods.
+
+### Storage behind the imputation interface
+
+Keep the top-level `imputation` shape, but allow two validated storage pairs:
+
+| Source | `imputations` | `data` metadata/backend |
+|---|---|---|
+| `impute()` | compact `imputation_list_df` | existing `longdata` |
+| `import()` | `completed_imputation_list` | new `completed_data` |
+
+Each `completed_imputation` owns one complete data frame and its
+occurrence-to-source ID map. `completed_data` stores `vars` plus optional
+metadata derived from `original`. A small internal generic materialises either
+representation:
+
+```r
+materialise_imputation <- function(x, data, idmap = FALSE) {
+    UseMethod("materialise_imputation")
+}
+
+materialise_imputation.imputation_df <- function(x, data, idmap = FALSE) {
+    data$get_data(x, idmap = idmap)
+}
+
+materialise_imputation.completed_imputation <- function(
+    x, data, idmap = FALSE
+) {
+    out <- x$data
+    # Apply the same deterministic subject-ID remapping used by longdata.
+    # x$source_ids maps each occurrence to an original subject.
+    remap_subject_ids(
+        out,
+        vars = data$vars,
+        source_ids = x$source_ids,
+        idmap = idmap
+    )
+}
+```
+
+`extract_imputed_df()` then calls this generic and retains its existing common
+delta-adjustment logic. Consequently `analyse()` and
+`extract_imputed_dfs()` do not care where the completed data originated.
+`validate.imputation()` validates the two supported storage pairs and rejects
+mixed representations.
+
+This is preferable to adding `if (imported)` logic to `analyse()`: storage is
+resolved at the existing materialisation boundary, and all analyses still
+consume ordinary data frames through the same path.
+
+### Metadata-dependent behaviour
+
+If `original` is supplied, `completed_data` records the original missingness
+mask. On a fixed grid it should verify identical subject/visit keys and
+invariant observed outcomes across all completed data sets. If `data_ice` is also supplied, it
+records strategy and post-ICE metadata using the existing validation rules.
+Without these inputs, the corresponding metadata are unknowable and must be
+represented as unavailable, not guessed.
+
+For resampled data, the invariance check is performed after joining each
+occurrence to `original` through `source_id`. The occurrence IDs are used only
+inside the completed data set; delta templates and provenance remain keyed by
+the source subject. This mirrors the ID scrambling and `idmap` behaviour of
+the existing compact backend.
+
+- `analyse(..., delta = explicit_data_frame)` remains available, because the
+  caller explicitly identifies the rows and offsets.
+- `delta_template()` should give an informative error unless `original` was
+  supplied. As in `draws()`, a missing `data_ice` means that no ICE metadata is
+  applied; supplying it enables the post-ICE and strategy-derived fields.
+- `print.imputation()` should show `Original missingness: unavailable` and
+  `References: not supplied` where appropriate.
+- `extract_imputed_dfs()` must reproduce the imported data (apart from rbmi's
+  documented subject-ID remapping and row normalisation).
+
+## Prototype constructor
+
+The following illustrates dispatch and the conditional-mean checks. The class
+constructors and error helpers would be internal in the production
+implementation.
+
+```r
+import <- function(
+    data,
+    vars,
+    method = method_unknown(),
+    original = NULL,
+    data_ice = NULL,
+    references = NULL,
+    source_id = NULL,
+    ...
+) {
+    UseMethod("import", method)
+}
+
+import.bayes <- function(data, vars, method, ...) {
+    validate_fixed_grid(data, vars, expected = method$n_samples)
+    import_completed(data, vars, method, ...)
+}
+
+import.approxbayes <- import.bayes
+
+import.condmean <- function(
+    data,
+    vars,
+    method,
+    original = NULL,
+    data_ice = NULL,
+    references = NULL,
+    source_id = NULL,
+    ...
+) {
+    if (method$type == "bootstrap") {
+        validate_bootstrap_layout(
+            data = data,
+            original = original,
+            vars = vars,
+            source_id = source_id,
+            expected_replicates = method$n_samples
+        )
+    } else {
+        validate_jackknife_layout(
+            data = data,
+            original = original,
+            vars = vars,
+            source_id = source_id
+        )
+    }
+
+    import_completed(
+        data = data,
+        vars = vars,
+        method = method,
+        original = original,
+        data_ice = data_ice,
+        references = references,
+        source_id = source_id
+    )
+}
+
+import.unknown <- function(data, vars, method, ...) {
+    method$n_samples <- switch(
+        method$pooling,
+        rubin = length(data),
+        bootstrap = length(data) - 1L,
+        NULL
+    )
+    validate_unknown_layout(data, vars, method, ...)
+    import_completed(data, vars, method, ...)
+}
+
+import_completed <- function(
+    data,
+    vars,
+    method,
+    original = NULL,
+    data_ice = NULL,
+    references = NULL,
+    source_id = NULL
+) {
+    validate(vars)
+    stopifnot(
+        length(data) > 0L,
+        all(vapply(data, is.data.frame, logical(1)))
+    )
+
+    required <- unique(c(
+        vars$subjid, vars$visit, vars$group, vars$outcome,
+        vars$strata, extract_covariates(vars$covariates)
+    ))
+    stopifnot(all(vapply(
+        data,
+        function(x) all(required %in% names(x)),
+        logical(1)
+    )))
+
+    stored <- lapply(data, function(x) {
+        source <- if (is.null(source_id)) x[[vars$subjid]] else x[[source_id]]
+        id_pairs <- unique(data.frame(
+            occurrence = as.character(x[[vars$subjid]]),
+            source = as.character(source)
+        ))
+        stopifnot(!anyDuplicated(id_pairs$occurrence))
+        source_map <- setNames(id_pairs$source, id_pairs$occurrence)
+        structure(
+            list(data = x, source_ids = source_map),
+            class = c("completed_imputation", "list")
+        )
+    })
+    class(stored) <- c("completed_imputation_list", "list")
+
+    metadata <- new_completed_data(
+        vars = vars,
+        original = original,
+        data_ice = data_ice,
+        prototype = data[[1L]]
+    )
+
+    out <- as_imputation(
+        imputations = stored,
+        data = metadata,
+        method = method,
+        references = references
+    )
+    validate(out)
+    out
+}
+```
+
+`import.bmlmi()` follows the same pattern as `import.condmean()`, using a
+`validate_bmlmi_layout()` helper that checks `B * D` data sets and identical
+occurrence maps within each block of `D`. There is deliberately no
+
+`import.data.frame()` method: dispatch belongs to `method`, while a separate
+convenience helper function could split stacked `IMPID` data before calling `import()`.
+
+## Testing and implementation sequence
+
+1. Add `method_unknown()`, `pooling_method()` and tests for every pooling
+   mapping; refactor existing methods without changing their results.
+2. Add the completed-data classes, validators and materialisation methods.
+3. Implement the method-dispatched `import()` methods and round-trip tests
+   comparing each imported data set with `extract_imputed_dfs()`.
+4. Test `import() -> analyse() -> pool()` against direct per-data-set analyses,
+   including custom analysis functions, explicit delta data and parallel use.
+5. Test conditional-mean bootstrap and jackknife layouts, including repeated
+   source subjects, occurrence ID remapping, ordering and method counts. Test
+   BMLMI blocks separately.
+6. Test failures for inconsistent keys, duplicate occurrence/visit rows,
+   factor level drift, remaining outcome missingness, invalid source IDs and
+   incompatible method counts.
+7. Update printing and document the unavailable-metadata behaviour.
+
+The implementation should land with both fixed-grid Rubin imports and
+conditional-mean resampling imports. BMLMI uses the same mapping machinery but
+should only be enabled once its `B`-by-`D` ordering has dedicated tests.
+
+## End-to-end examples
+
+These examples use only the proposed public API and are intended to become
+executed documentation tests when the implementation lands. The first imports
+ordinary Rubin-style MI data of unknown provenance. The second shows the
+additional ID information required for conditional-mean bootstrap data.
+
+### Rubin-style MI of unknown provenance
+
+```r
+library(rbmi)
+
+set.seed(2026)
+n_subjects <- 40L
+n_imputations <- 5L
+
+subject <- data.frame(
+    USUBJID = factor(sprintf("P%03d", seq_len(n_subjects))),
+    ARM = factor(rep(c("Placebo", "Active"), each = n_subjects / 2L)),
+    BASE = rnorm(n_subjects, mean = 10, sd = 2)
+)
+
+original <- subject[rep(seq_len(n_subjects), each = 2L), ]
+original$AVISIT <- factor(
+    rep(c("Week 4", "Week 8"), times = n_subjects),
+    levels = c("Week 4", "Week 8")
+)
+original$CHG <-
+    -0.4 * original$BASE +
+    1.5 * (original$ARM == "Active") +
+    0.5 * (original$AVISIT == "Week 8") +
+    rnorm(nrow(original))
+
+missing_subjects <- sample(levels(original$USUBJID), 10L)
+is_missing <-
+    original$USUBJID %in% missing_subjects &
+    original$AVISIT == "Week 8"
+original$CHG[is_missing] <- NA_real_
+
+# Stand-in for files received from an external imputation system.
+completed <- lapply(seq_len(n_imputations), function(i) {
+    out <- original
+    out$CHG[is_missing] <-
+        -0.4 * out$BASE[is_missing] +
+        1.5 * (out$ARM[is_missing] == "Active") +
+        0.5 +
+        rnorm(sum(is_missing))
+    out
+})
+
+vars <- set_vars(
+    subjid = "USUBJID",
+    visit = "AVISIT",
+    group = "ARM",
+    outcome = "CHG",
+    covariates = "BASE"
+)
+
+imputations <- rbmi::import(
+    data = completed,
+    vars = vars,
+    method = method_unknown(pooling = "rubin"),
+    original = original
+)
+
+analysis <- analyse(
+    imputations = imputations,
+    fun = ancova,
+    vars = vars,
+    visits = "Week 8"
+)
+pooled <- pool(analysis)
+as.data.frame(pooled)
+```
+
+### Conditional-mean bootstrap
+
+The original-sample conditional means are first in `completed_bootstrap`.
+Every later element is one stratified bootstrap sample. `USUBJID` identifies a
+unique sampled occurrence, while `SOURCE_ID` retains the original subject ID;
+therefore a source subject selected twice is represented unambiguously.
+
+```r
+B <- 10L
+
+# For illustration, create deterministic conditional-mean replacements.
+conditional_mean <- original
+conditional_mean$CHG[is_missing] <-
+    -0.4 * conditional_mean$BASE[is_missing] +
+    1.5 * (conditional_mean$ARM[is_missing] == "Active") +
+    0.5
+conditional_mean$SOURCE_ID <- as.character(conditional_mean$USUBJID)
+
+arm_by_subject <- split(
+    as.character(subject$USUBJID),
+    subject$ARM
+)
+
+bootstrap_data <- lapply(seq_len(B), function(b) {
+    sampled_sources <- unlist(lapply(
+        arm_by_subject,
+        function(ids) sample(ids, length(ids), replace = TRUE)
+    ), use.names = FALSE)
+
+    sampled_occurrences <- lapply(seq_along(sampled_sources), function(j) {
+        source <- sampled_sources[[j]]
+        out <- conditional_mean[
+            as.character(conditional_mean$USUBJID) == source,
+            ,
+            drop = FALSE
+        ]
+        out$SOURCE_ID <- source
+        out$USUBJID <- sprintf("B%02d_O%03d", b, j)
+        out
+    })
+
+    out <- do.call(rbind, sampled_occurrences)
+    rownames(out) <- NULL
+    out$USUBJID <- factor(out$USUBJID)
+    out
+})
+
+completed_bootstrap <- c(list(conditional_mean), bootstrap_data)
+
+bootstrap_imputations <- rbmi::import(
+    data = completed_bootstrap,
+    vars = vars,
+    method = method_condmean(type = "bootstrap", n_samples = B),
+    original = original,
+    source_id = "SOURCE_ID"
+)
+
+bootstrap_analysis <- analyse(
+    imputations = bootstrap_imputations,
+    fun = ancova,
+    vars = vars,
+    visits = "Week 8"
+)
+bootstrap_pooled <- pool(bootstrap_analysis)
+as.data.frame(bootstrap_pooled)
+```
