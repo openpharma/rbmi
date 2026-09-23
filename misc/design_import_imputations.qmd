@@ -49,13 +49,13 @@ created by `method_bayes()`.
 
 An `rbmi` imputation currently contains:
 
-```text
-imputation
-+-- imputations: imputation_list_df (only the values missing in the source data)
-+-- data:        longdata (source data, variable names, missingness and ICE metadata)
-+-- method:      method_* object
-`-- references:  reference-arm mapping
-```
+- `imputations`: an `imputation_list_df` containing only the values that were
+  missing in the source data;
+- `data`: a `longdata` object containing the source data, variable names,
+  missingness information and ICE metadata;
+- `method`: the `method_*` object that determines the inference and pooling
+  approach; and
+- `references`: the reference-arm mapping used for reference-based imputation.
 
 `analyse()` already goes through `extract_imputed_df()` to materialise each
 completed data set. That is the appropriate starting point for our imported storage
