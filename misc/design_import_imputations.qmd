@@ -752,3 +752,10 @@ bootstrap_analysis <- rbmi::analyse(
 bootstrap_pooled <- pool(bootstrap_analysis)
 as.data.frame(bootstrap_pooled)
 ```
+
+Here `pool()` defaults to `type = "percentile"` conditional-mean bootstrap pooling, therefore there are no standard errors reported. In this case all p-values are zero because all 10 bootstrap samples show a positive effect. Alternatively we could use normal approximation standard errors and p-values:
+
+```{r}
+bootstrap_pooled <- pool(bootstrap_analysis, type = "normal")
+as.data.frame(bootstrap_pooled)
+```
