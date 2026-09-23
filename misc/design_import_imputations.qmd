@@ -185,40 +185,22 @@ may differ in their imputed outcomes.
 ### Unknown method
 
 We add a genuine method class instead of disguising the pooling choice as an
-existing method:
+existing method. We can only offer Rubin's pooling method here, as we would need to 
+have other information about the imputation process to justify using a different pooling method.
 
 ```r
-method_unknown <- function(
-    pooling = c("rubin", "bootstrap", "jackknife", "bmlmi"),
-    D = NULL
-) {
-    pooling <- match.arg(pooling)
-    if (pooling == "bmlmi" && is.null(D)) {
-        stop("`D` is required for BMLMI pooling")
-    }
-
+method_unknown <- function() {
     structure(
-        list(pooling = pooling, D = D, n_samples = NULL),
+        list(pooling = "Rubin", n_samples = NA_integer_),
         class = c("method", "unknown")
     )
 }
 ```
 
-`import.unknown()` fills `n_samples` after seeing the data: `M` for Rubin
-pooling and `M - 1` for bootstrap pooling, matching the convention currently
-expected by `validate.analysis()`. For BMLMI it checks that `M` is divisible by
-`D`. For jackknife it validates the data-set count against the number of source
-subjects.
-Bootstrap, jackknife and BMLMI pooling carry stronger assumptions about sample
-ordering and resampling. These paths should therefore warn that `rbmi` can
-validate shape but cannot verify provenance.
-Rubin pooling remains the default and the recommended choice when only
-completed MI data are known.
+`import.unknown()` fills `n_samples` after seeing the data, matching the convention currently
+expected by `validate.analysis()`. 
 
-Unknown Rubin-style MI uses the fixed-grid validator. Unknown bootstrap,
-jackknife and BMLMI use the corresponding resampling-layout validators above
-and require `source_id`. Thus `method_unknown()` expresses the inference
-contract without falsely claiming which algorithm generated the imputations.
+Unknown Rubin-style MI uses the fixed-grid validator. 
 
 ### Internal pooling look-up
 
