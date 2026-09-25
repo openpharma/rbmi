@@ -218,8 +218,11 @@ behaviour, not a new imputation algorithm.
 
 ### Internal pooling look-up
 
-Introduce one internal helper, used by both `as_analysis()` and validation,
-instead of inspecting `class(method)[[2]]` in several places:
+The package now includes the internal, roxygen2-documented
+`pooling_method()` helper in `R/analyse.R`, with tests for every method mapping.
+Both `as_analysis()` and `validate.analysis()` use it in place of inspecting
+`class(method)[[2]]`. This is the package change needed for the private
+`unknown` method in the executable prototype. Its design is:
 
 ```text
 PSEUDOCODE
@@ -241,8 +244,8 @@ pooling_method <- function(method) {
 }
 ```
 
-This also removes the fragile assumption that the decisive method class is
-always the second class. `mcse()` should continue to accept only actual
+This removes the assumption that the decisive method class is always the
+second class. `mcse()` should continue to accept only actual
 `bayes` and `approxbayes` methods. No special `analyse()` method or wrapper is
 needed: `analyse()` remains method-agnostic, and `as_analysis()` uses
 `pooling_method()` when it assigns the class of the collected results.
@@ -328,8 +331,8 @@ the existing compact backend.
 This is a rough roadmap how the functionality according to the above design 
 can be implemented efficiently in the package:
 
-1. Add `pooling_method()` and tests for every pooling mapping, including the
-   private unknown method; refactor existing methods without changing their results.
+1. Done (was necessary to get below prototype code to run): add `pooling_method()` and tests for every pooling mapping, including
+   the private unknown method; use it in analysis construction and validation.
 2. Add the completed-data classes, validators and materialisation methods.
 3. Implement the method-dispatched `import()` methods and round-trip tests
    comparing each imported data set with `extract_imputed_dfs()`.
@@ -349,13 +352,9 @@ can be implemented efficiently in the package:
 
 ### Prototype code
 
-To keep the prototype code self-contained, it uses existing `rbmi` method
-classes so imported objects can be passed directly to the unmodified
-`rbmi::analyse()`. Once `pooling_method()` is used
-internally by `as_analysis()`, the private unknown method can replace that
-adapter. After the package
-implementation lands, this setup chunk can be removed and the examples can
-call `rbmi::import()` directly.
+The prototype uses `rbmi`'s existing compact imputation storage. The
+new `pooling_method()` helper in the package lets `rbmi::analyse()` recognize the
+private unknown method and select Rubin pooling.
 
 When `original` is omitted, this compact-storage prototype builds a source
 grid from the union of all completed data sets, matching bootstrap occurrences
@@ -512,16 +511,19 @@ import.bayes <- function(
 # Approximate Bayesian imports have the same layout as Bayesian imports.
 import.approxbayes <- import.bayes
 
-# Use the current rbmi Rubin-pooling method class for unknown provenance.
+# Record unknown provenance while retaining the number of imputations.
 import.NULL <- function(
     data, vars, method, original = NULL, data_ice = NULL, references = NULL,
     source_id = NULL, ...
 ) {
     validate_fixed_grid(data, vars, length(data))
     stopifnot(is.null(source_id))
-    rubin_adapter <-
+    imported_method <- structure(
+        list(n_samples = length(data)),
+        class = c("method", "unknown")
+    )
     import_compact(
-        data, vars, rubin_adapter, original, data_ice, references, source_id
+        data, vars, imported_method, original, data_ice, references, source_id
     )
 }
 
