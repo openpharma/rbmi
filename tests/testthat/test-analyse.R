@@ -2,6 +2,24 @@ suppressPackageStartupMessages({
     library(dplyr)
 })
 
+test_that("unknown imported methods use Rubin pooling", {
+    unknown <- structure(list(n_samples = 2L), class = c("method", "unknown"))
+    expect_identical(pooling_method(unknown), "rubin")
+    expect_identical(pooling_method(method_bayes(n_samples = 2)), "rubin")
+    expect_identical(pooling_method(method_approxbayes(n_samples = 2)), "rubin")
+    expect_identical(pooling_method(method_condmean(n_samples = 2)), "bootstrap")
+    expect_identical(pooling_method(method_condmean(type = "jackknife")), "jackknife")
+    expect_identical(pooling_method(method_bmlmi(B = 2, D = 2)), "bmlmi")
+
+    results <- list(
+        list(p1 = list(est = 1, df = 4, se = 1)),
+        list(p1 = list(est = 2, df = 4, se = 1))
+    )
+    analysis <- as_analysis(results, method = unknown)
+    expect_s3_class(analysis$results, "rubin")
+    expect_true(validate(analysis))
+})
+
 
 test_that("basic constructions of `analysis` work as expected", {
     oldopt <- getOption("warnPartialMatchDollar")
