@@ -371,7 +371,7 @@ Omitting `references` records an empty mapping, not an inferred reference arm.
 
 library(rbmi)
 
-# New S3 generic function for import.
+# Dispatch imports by the method used to create the completed data sets.
 import <- function(
     data,
     vars,
@@ -385,6 +385,7 @@ import <- function(
     UseMethod("import", method)
 }
 
+# Check the fields and outcome values required by every import method.
 validate_completed <- function(data, vars) {
     stopifnot(
         length(data) > 0L,
@@ -403,9 +404,11 @@ validate_completed <- function(data, vars) {
     )
 }
 
+# Require the expected number of data sets and the same subject-visit grid.
 validate_fixed_grid <- function(data, vars, expected) {
     validate_completed(data, vars)
     stopifnot(length(data) == expected)
+    # Compare keys independently of row order.
     key <- function(x) {
         sort(paste(x[[vars$subjid]], x[[vars$visit]], sep = "\r"))
     }
@@ -413,6 +416,48 @@ validate_fixed_grid <- function(data, vars, expected) {
     stopifnot(all(vapply(keys[-1L], identical, logical(1), keys[[1L]])))
 }
 
+# Reconstruct source rows from completed data when the original is unavailable.
+# Map bootstrap occurrences to their source subjects before deduplicating.
+source_from_completed <- function(data, vars, source_id) {
+    source_rows <- do.call(rbind, lapply(data, function(x) {
+        if (!is.null(source_id)) x[[vars$subjid]] <- x[[source_id]]
+        x[setdiff(names(x), c(vars$outcome, source_id))]
+    }))
+    original <- unique(source_rows)
+    stopifnot(!anyDuplicated(original[c(vars$subjid, vars$visit)]))
+    original[[vars$subjid]] <- factor(original[[vars$subjid]])
+    original[[vars$outcome]] <- 0
+    original
+}
+
+# Store one completed data set as values for the source's missing visits.
+# Preserve the source ID for each sampled bootstrap occurrence.
+to_imputation_df <- function(x, vars, longdata, source_id) {
+    occurrences <- unique(as.character(x[[vars$subjid]]))
+    singles <- lapply(occurrences, function(occurrence) {
+        rows <- x[as.character(x[[vars$subjid]]) == occurrence, , drop = FALSE]
+        source <- if (is.null(source_id)) {
+            occurrence
+        } else {
+            unique(as.character(rows[[source_id]]))
+        }
+        stopifnot(length(source) == 1L, source %in% longdata$ids)
+
+        visit_order <- match(
+            longdata$visits,
+            as.character(rows[[vars$visit]])
+        )
+        stopifnot(!anyNA(visit_order))
+        values <- rows[[vars$outcome]][visit_order]
+        rbmi:::imputation_single(
+            id = source,
+            values = values[longdata$is_missing[[source]]]
+        )
+    })
+    rbmi:::imputation_df(singles)
+}
+
+# Build the compact rbmi object shared by the method-specific import methods.
 import_compact <- function(
     data,
     vars,
@@ -424,14 +469,7 @@ import_compact <- function(
 ) {
     no_original <- is.null(original)
     if (no_original) {
-        source_rows <- do.call(rbind, lapply(data, function(x) {
-            if (!is.null(source_id)) x[[vars$subjid]] <- x[[source_id]]
-            x[setdiff(names(x), c(vars$outcome, source_id))]
-        }))
-        original <- unique(source_rows)
-        stopifnot(!anyDuplicated(original[c(vars$subjid, vars$visit)]))
-        original[[vars$subjid]] <- factor(original[[vars$subjid]])
-        original[[vars$outcome]] <- 0
+        original <- source_from_completed(data, vars, source_id)
     }
     longdata <- longDataConstructor$new(original, vars)
     longdata$set_strategies(data_ice)
@@ -441,32 +479,9 @@ import_compact <- function(
         longdata$is_missing <- lapply(longdata$is_missing, function(x) rep(TRUE, length(x)))
     }
 
-    to_imputation_df <- function(x) {
-        occurrences <- unique(as.character(x[[vars$subjid]]))
-        singles <- lapply(occurrences, function(occurrence) {
-            rows <- x[as.character(x[[vars$subjid]]) == occurrence, , drop = FALSE]
-            source <- if (is.null(source_id)) {
-                occurrence
-            } else {
-                unique(as.character(rows[[source_id]]))
-            }
-            stopifnot(length(source) == 1L, source %in% longdata$ids)
-
-            visit_order <- match(
-                longdata$visits,
-                as.character(rows[[vars$visit]])
-            )
-            stopifnot(!anyNA(visit_order))
-            values <- rows[[vars$outcome]][visit_order]
-            rbmi:::imputation_single(
-                id = source,
-                values = values[longdata$is_missing[[source]]]
-            )
-        })
-        rbmi:::imputation_df(singles)
-    }
-
-    stored <- lapply(data, to_imputation_df)
+    stored <- lapply(data, to_imputation_df,
+        vars = vars, longdata = longdata, source_id = source_id
+    )
     stored <- do.call(rbmi:::imputation_list_df, stored)
     if (is.null(references)) {
         references <- setNames(character(), character())
@@ -483,6 +498,7 @@ import_compact <- function(
     out
 }
 
+# Check Bayesian sample layout before using the shared compact constructor.
 import.bayes <- function(
     data, vars, method, original = NULL, data_ice = NULL, references = NULL,
     source_id = NULL, ...
@@ -493,8 +509,10 @@ import.bayes <- function(
     )
 }
 
+# Approximate Bayesian imports have the same layout as Bayesian imports.
 import.approxbayes <- import.bayes
 
+# Check bootstrap layout and require an occurrence-to-source ID column.
 import.condmean <- function(
     data, vars, method, original = NULL, data_ice = NULL, references = NULL,
     source_id = NULL, ...
