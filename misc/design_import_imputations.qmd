@@ -138,7 +138,7 @@ The first implementation should require:
 Rows can be sorted internally by subject and visit, so their input order need
 not match where the method requires a common grid. Other columns are retained in full and may differ between
 imputations; this permits externally imputed covariates even though `rbmi`'s own
-imputation model only imputes the outcome. 
+imputation model only imputes the outcome. Thus the completed data frames may contain additional columns beyond those required by `rbmi`.
 
 ### Method-specific layouts
 
