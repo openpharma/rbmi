@@ -607,6 +607,7 @@ This is the complete user workflow when it is not clear which multiple imputatio
 ```{r}
 #| label: example-rubin
 
+# First let's create the original dataset with missing values.
 set.seed(2026)
 n_subjects <- 40L
 n_imputations <- 5L
@@ -634,7 +635,7 @@ is_missing <-
     original$AVISIT == "Week 8"
 original$CHG[is_missing] <- NA_real_
 
-# Stand-in for files received from an external imputation system.
+# Now we create the data sets representing the multiple imputations.
 completed <- lapply(seq_len(n_imputations), function(i) {
     out <- original
     out$CHG[is_missing] <-
@@ -645,6 +646,7 @@ completed <- lapply(seq_len(n_imputations), function(i) {
     out
 })
 
+# Finally here comes the actual user interface demo.
 vars <- set_vars(
     subjid = "USUBJID",
     visit = "AVISIT",
@@ -668,8 +670,12 @@ pooled <- pool(analysis)
 as.data.frame(pooled)
 ```
 
+We can see in the above example that the import is easy and brings us back to the standard `rbmi` workflow afterwards.
+
+
 ### Conditional-mean bootstrap
 
+Let's look also at a more complicated example with conditional mean imputation.
 The original-sample conditional means are first in `completed_bootstrap`.
 Every later element is one stratified bootstrap sample. `USUBJID` identifies a
 unique sampled occurrence, while `SOURCE_ID` retains the original subject ID;
@@ -719,6 +725,7 @@ bootstrap_data <- lapply(seq_len(B), function(b) {
 
 completed_bootstrap <- c(list(conditional_mean), bootstrap_data)
 
+# Here we need to use the method and source_id arguments.
 bootstrap_imputations <- import(
     data = completed_bootstrap,
     vars = vars,
