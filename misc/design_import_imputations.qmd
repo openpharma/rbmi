@@ -349,14 +349,21 @@ can be implemented efficiently in the package:
 The following executable R code prototype uses `rbmi`'s existing compact
 imputation storage. 
 
-There are some limitations here to make the prototype self-contained and short:
-First it requires `original` to be supplied. 
-Second it deliberately uses only existing `rbmi` method classes, so the imported object can be passed
+To keep the prototype self-contained and short, it deliberately uses only
+existing `rbmi` method classes, so the imported object can be passed
 directly to the unmodified `rbmi::analyse()`. Once `pooling_method()` is used
 internally by `as_analysis()`, the private unknown method will follow the same
 path; it does not require a separate analysis function. After the package
 implementation lands, this setup chunk can be removed and the examples can
 call `rbmi::import()` directly.
+
+When `original` is omitted, this compact-storage prototype builds a source
+grid from the union of all completed data sets, matching bootstrap occurrences
+by `source_id`. Non-outcome fields must agree for each subject and visit. It
+then marks every outcome as missing so each completed outcome can be stored.
+Its missingness metadata therefore does not describe the original data; the user can supply
+`original` when that metadata matters.
+Omitting `references` records an empty mapping, not an inferred reference arm.
 
 ```{r}
 #| label: executable-import-prototype
@@ -369,9 +376,9 @@ import <- function(
     data,
     vars,
     method,
-    original,
+    original = NULL,
     data_ice = NULL,
-    references,
+    references = NULL,
     source_id = NULL,
     ...
 ) {
@@ -415,8 +422,24 @@ import_compact <- function(
     references,
     source_id
 ) {
+    no_original <- is.null(original)
+    if (no_original) {
+        source_rows <- do.call(rbind, lapply(data, function(x) {
+            if (!is.null(source_id)) x[[vars$subjid]] <- x[[source_id]]
+            x[setdiff(names(x), c(vars$outcome, source_id))]
+        }))
+        original <- unique(source_rows)
+        stopifnot(!anyDuplicated(original[c(vars$subjid, vars$visit)]))
+        original[[vars$subjid]] <- factor(original[[vars$subjid]])
+        original[[vars$outcome]] <- 0
+    }
     longdata <- longDataConstructor$new(original, vars)
     longdata$set_strategies(data_ice)
+    if (no_original) {
+        longdata$data[[vars$outcome]] <- NA_real_
+        longdata$values <- lapply(longdata$values, function(x) rep(NA_real_, length(x)))
+        longdata$is_missing <- lapply(longdata$is_missing, function(x) rep(TRUE, length(x)))
+    }
 
     to_imputation_df <- function(x) {
         occurrences <- unique(as.character(x[[vars$subjid]]))
@@ -445,6 +468,9 @@ import_compact <- function(
 
     stored <- lapply(data, to_imputation_df)
     stored <- do.call(rbmi:::imputation_list_df, stored)
+    if (is.null(references)) {
+        references <- setNames(character(), character())
+    }
     references <- add_class(references, "references")
 
     out <- rbmi:::as_imputation(
@@ -458,7 +484,7 @@ import_compact <- function(
 }
 
 import.bayes <- function(
-    data, vars, method, original, data_ice = NULL, references,
+    data, vars, method, original = NULL, data_ice = NULL, references = NULL,
     source_id = NULL, ...
 ) {
     validate_fixed_grid(data, vars, method$n_samples)
@@ -470,7 +496,7 @@ import.bayes <- function(
 import.approxbayes <- import.bayes
 
 import.condmean <- function(
-    data, vars, method, original, data_ice = NULL, references,
+    data, vars, method, original = NULL, data_ice = NULL, references = NULL,
     source_id = NULL, ...
 ) {
     validate_completed(data, vars)
@@ -544,14 +570,10 @@ vars <- set_vars(
     covariates = "BASE"
 )
 
-references <- setNames(levels(original$ARM), levels(original$ARM))
-
 imputations <- import(
     data = completed,
     vars = vars,
-    method = method_bayes(n_samples = n_imputations),
-    original = original,
-    references = references
+    method = method_bayes(n_samples = n_imputations)
 )
 
 analysis <- rbmi::analyse(
@@ -619,8 +641,6 @@ bootstrap_imputations <- import(
     data = completed_bootstrap,
     vars = vars,
     method = method_condmean(type = "bootstrap", n_samples = B),
-    original = original,
-    references = references,
     source_id = "SOURCE_ID"
 )
 
