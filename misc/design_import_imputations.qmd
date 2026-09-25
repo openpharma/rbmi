@@ -346,14 +346,14 @@ can be implemented efficiently in the package:
 
 ## End-to-end examples
 
-The following executable R code prototype uses `rbmi`'s existing compact
-imputation storage. 
 
-To keep the prototype self-contained and short, it deliberately uses only
-existing `rbmi` method classes, so the imported object can be passed
-directly to the unmodified `rbmi::analyse()`. Once `pooling_method()` is used
-internally by `as_analysis()`, the private unknown method will follow the same
-path; it does not require a separate analysis function. After the package
+### Prototype code
+
+To keep the prototype code self-contained, it uses existing `rbmi` method
+classes so imported objects can be passed directly to the unmodified
+`rbmi::analyse()`. Once `pooling_method()` is used
+internally by `as_analysis()`, the private unknown method can replace that
+adapter. After the package
 implementation lands, this setup chunk can be removed and the examples can
 call `rbmi::import()` directly.
 
@@ -375,7 +375,7 @@ library(rbmi)
 import <- function(
     data,
     vars,
-    method,
+    method = NULL,
     original = NULL,
     data_ice = NULL,
     references = NULL,
@@ -512,32 +512,95 @@ import.bayes <- function(
 # Approximate Bayesian imports have the same layout as Bayesian imports.
 import.approxbayes <- import.bayes
 
-# Check bootstrap layout and require an occurrence-to-source ID column.
+# Use the current rbmi Rubin-pooling method class for unknown provenance.
+import.NULL <- function(
+    data, vars, method, original = NULL, data_ice = NULL, references = NULL,
+    source_id = NULL, ...
+) {
+    validate_fixed_grid(data, vars, length(data))
+    stopifnot(is.null(source_id))
+    rubin_adapter <-
+    import_compact(
+        data, vars, rubin_adapter, original, data_ice, references, source_id
+    )
+}
+
+# Check bootstrap or jackknife layout and map occurrences to source IDs.
 import.condmean <- function(
     data, vars, method, original = NULL, data_ice = NULL, references = NULL,
     source_id = NULL, ...
 ) {
     validate_completed(data, vars)
     stopifnot(
-        method$type == "bootstrap",
-        length(data) == method$n_samples + 1L,
+        method$type %in% c("bootstrap", "jackknife"),
         !is.null(source_id),
         all(vapply(data, function(x) source_id %in% names(x), logical(1)))
     )
+    source_sets <- lapply(data, function(x) {
+        by_occurrence <- split(
+            as.character(x[[source_id]]), as.character(x[[vars$subjid]])
+        )
+        stopifnot(all(lengths(lapply(by_occurrence, unique)) == 1L))
+        vapply(by_occurrence, function(ids) ids[[1L]], character(1))
+    })
+    originals <- unname(source_sets[[1L]])
+    stopifnot(!anyDuplicated(originals))
+    if (method$type == "bootstrap") {
+        stopifnot(
+            length(data) == method$n_samples + 1L,
+            all(lengths(source_sets[-1L]) == length(originals)),
+            all(vapply(source_sets[-1L], function(ids) {
+                all(ids %in% originals)
+            }, logical(1)))
+        )
+    } else {
+        stopifnot(length(data) == length(originals) + 1L)
+        omitted <- vapply(source_sets[-1L], function(ids) {
+            missing <- setdiff(originals, ids)
+            stopifnot(length(missing) == 1L, setequal(ids, setdiff(originals, missing)))
+            missing
+        }, character(1))
+        stopifnot(setequal(omitted, originals))
+    }
+    import_compact(
+        data, vars, method, original, data_ice, references, source_id
+    )
+}
+
+# Keep the D adjacent imputations for each BMLMI bootstrap occurrence map together.
+import.bmlmi <- function(
+    data, vars, method, original = NULL, data_ice = NULL, references = NULL,
+    source_id = NULL, ...
+) {
+    validate_completed(data, vars)
+    stopifnot(
+        length(data) == method$B * method$D,
+        !is.null(source_id),
+        all(vapply(data, function(x) source_id %in% names(x), logical(1)))
+    )
+    occurrence_map <- function(x) {
+        ids <- split(as.character(x[[source_id]]), as.character(x[[vars$subjid]]))
+        stopifnot(all(lengths(lapply(ids, unique)) == 1L))
+        vapply(ids, function(y) y[[1L]], character(1))
+    }
+    maps <- lapply(data, occurrence_map)
+    for (b in seq_len(method$B)) {
+        block <- ((b - 1L) * method$D + 1L):(b * method$D)
+        stopifnot(all(vapply(maps[block], identical, logical(1), maps[[block[[1L]]]])))
+    }
     import_compact(
         data, vars, method, original, data_ice, references, source_id
     )
 }
 ```
 
-The first executed example imports ordinary Rubin-style MI data with a known
-Bayesian pooling contract. In the implemented design, omitting `method_bayes()`
-uses Rubin pooling and changes only method metadata;
-the returned imputation object and the call to `analyse()` are unchanged. The
-second example shows the additional ID information required for
-conditional-mean bootstrap data.
+The first executed example imports ordinary MI data with unknown imputation
+provenance and uses Rubin pooling. The second example shows the additional ID
+information required for conditional-mean bootstrap data.
 
-### Rubin's pooling
+### Rubin's pooling for unknown `method`
+
+This is the complete user workflow when it is not clear which multiple imputation method was used. Only Rubin's pooling can be used in this case.
 
 ```{r}
 #| label: example-rubin
@@ -590,8 +653,7 @@ vars <- set_vars(
 
 imputations <- import(
     data = completed,
-    vars = vars,
-    method = method_bayes(n_samples = n_imputations)
+    vars = vars
 )
 
 analysis <- rbmi::analyse(
