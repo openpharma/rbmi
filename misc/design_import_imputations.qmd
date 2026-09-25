@@ -32,17 +32,12 @@ analysis and `pool()` should not need a separate external-data code path.
 column, splits it, calls the analysis function, and constructs an `analysis`
 object itself. This demonstrates the use case, but duplicates validation,
 delta handling, printing, and the construction logic from `rbmi::analyse()`.
-It also bypasses the `imputation` interface, so improvements to that interface
-do not automatically benefit `analyse_mi_data()`.
+It also bypasses the `imputation` interface, so improvements to that interface do not automatically benefit `analyse_mi_data()`.
 
 The `rbmiUtils` development branch
 `50-analyse_mi_data-when-the-exact-imputation-method-is-unknown` additionally
 accepts a pooling rule and manufactures a Bayesian or conditional-mean method
-object so that current `rbmi` validation passes. Its important insight is that
-the pooling rule, rather than the exact imputation algorithm, is what the
-analysis and pooling steps need. Manufacturing a known method is nevertheless
-misleading: for example, an external Rubin-style MI data set was not thereby
-created by `method_bayes()`.
+object so that current `rbmi` validation passes. However, this creates a duplication of the interface between the `method` and the pooling rule. 
 
 ## Structure of an `rbmi` imputation object
 
