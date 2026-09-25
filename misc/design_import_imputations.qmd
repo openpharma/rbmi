@@ -331,13 +331,12 @@ the existing compact backend.
 This is a rough roadmap how the functionality according to the above design 
 can be implemented efficiently in the package:
 
-1. Done (was necessary to get below prototype code to run): add `pooling_method()` and tests for every pooling mapping, including
+1. Done (was necessary to get below prototype code to run): add `pooling_method()`, including
    the private unknown method; use it in analysis construction and validation.
-2. Add the completed-data classes, validators and materialisation methods.
-3. Implement the method-dispatched `import()` methods and round-trip tests
+2. Add complete test coverage for `pooling_method()`.
+3. Add the completed-data classes, validators and materialisation methods.
+4. Implement the method-dispatched `import()` methods and round-trip tests
    comparing each imported data set with `extract_imputed_dfs()`.
-4. Test `import() -> analyse() -> pool()` against direct per-data-set analyses,
-   including custom analysis functions, explicit delta data and parallel use.
 5. Test conditional-mean bootstrap and jackknife layouts, including repeated
    source subjects, occurrence ID remapping, ordering and method counts. Test
    BMLMI blocks separately.
@@ -345,6 +344,15 @@ can be implemented efficiently in the package:
    factor level drift, remaining outcome missingness, invalid source IDs and
    incompatible method counts.
 7. Update printing and document the unavailable-metadata behaviour.
+8. Test `import() -> analyse() -> pool()` against direct per-data-set analyses,
+   including custom analysis functions, explicit delta data and parallel use.
+9. Test conditional-mean bootstrap and jackknife layouts, including repeated
+   source subjects, occurrence ID remapping, ordering and method counts. Test
+   BMLMI blocks separately.
+10. Test failures for inconsistent keys, duplicate occurrence/visit rows,
+   factor level drift, remaining outcome missingness, invalid source IDs and
+   incompatible method counts.
+11. Update printing and document the unavailable-metadata behaviour.
 
 
 ## End-to-end examples
@@ -352,10 +360,11 @@ can be implemented efficiently in the package:
 
 ### Prototype code
 
-The prototype uses `rbmi`'s existing compact imputation storage. The
+The
 new `pooling_method()` helper in the package lets `rbmi::analyse()` recognize the
 private unknown method and select Rubin pooling.
 
+The prototype uses `rbmi`'s existing compact imputation storage. In the actual implementation this may be replaced with the above proposed storage scheme.
 When `original` is omitted, this compact-storage prototype builds a source
 grid from the union of all completed data sets, matching bootstrap occurrences
 by `source_id`. Non-outcome fields must agree for each subject and visit. It
