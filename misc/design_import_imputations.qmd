@@ -1,12 +1,16 @@
 # Importing externally imputed datasets
 
+Note that we start this design doc with pseudo code parts, labelled clearly with `PSEUDOCODE`, which are not supposed to be running R code. Only in the later end-to-end example we use executable R code.
+
 ## Objective
 
 `rbmi` currently assumes that every analysis starts with `draws()` and
 `impute()`. The objective of this change is to support completed datasets made
 by another package or system while retaining the usual downstream workflow:
 
-```r
+```text
+PSEUDOCODE
+
 imputations <- import(
     completed_datasets,
     vars = set_vars(
@@ -69,7 +73,9 @@ are always supplied in the same form: a non-empty list of completed data
 frames. Method dispatch is useful because the expected number and layout of
 those frames differs by inference method.
 
-```r
+```text
+PSEUDOCODE
+
 import <- function(
     data,
     vars,
@@ -188,7 +194,9 @@ so the existing `imputation` and `analysis` interfaces retain their method
 metadata. This object is created only by `import()` and is not accepted by
 `draws()`. It can also not be confused by the user because it is not a `method_*()` created object.
 
-```r
+```text
+PSEUDOCODE
+
 import.NULL <- function(data, vars, method, ...) {
     validate_fixed_grid(data, vars, expected = length(data))
     imported_method <- structure(
@@ -208,7 +216,9 @@ behaviour, not a new imputation algorithm.
 Introduce one internal helper, used by both `as_analysis()` and validation,
 instead of inspecting `class(method)[[2]]` in several places:
 
-```r
+```text
+PSEUDOCODE
+
 pooling_method <- function(method) {
     if (inherits(method, "unknown")) {
         return("rubin")
@@ -246,7 +256,9 @@ occurrence-to-source ID map. `completed_data` stores `vars` plus optional
 metadata derived from `original`. A small internal generic materialises either
 representation:
 
-```r
+```text
+PSEUDOCODE
+
 materialise_imputation <- function(x, data, idmap = FALSE) {
     UseMethod("materialise_imputation")
 }
@@ -311,7 +323,9 @@ The following illustrates dispatch and the conditional-mean checks. The class
 constructors and error helpers would be internal in the production
 implementation.
 
-```r
+```text
+PSEUDOCODE
+
 import <- function(
     data,
     vars,
