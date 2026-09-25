@@ -15,8 +15,7 @@ imputations <- import(
         group = "TRT",
         outcome = "CHG",
         covariates = "BASE"
-    ),
-    method = method_unknown(pooling = "rubin")
+    )
 )
 
 analysis <- analyse(imputations, fun = ancova, vars = imputations$data$vars)
@@ -79,7 +78,7 @@ those frames differs by inference method.
 import <- function(
     data,
     vars,
-    method = method_unknown(),
+    method = NULL,
     original = NULL,
     data_ice = NULL,
     references = NULL,
@@ -89,7 +88,7 @@ import <- function(
     UseMethod("import", method)
 }
 
-import.unknown <- function(
+import.NULL <- function(
     data,
     vars,
     method,
@@ -103,7 +102,8 @@ import.unknown <- function(
 ```
 
 The methods are `import.bayes()`, `import.approxbayes()`,
-`import.condmean()`, `import.bmlmi()` and `import.unknown()`. They perform
+`import.condmean()`, `import.bmlmi()` and `import.NULL()`. `UseMethod()`
+dispatches on the implicit class `"NULL"` when `method` is omitted. This means that the exact method that was used to generate the multiple imputation data sets in the first place is unknown, and only the standard Rubin's pooling method can be used downstream. They perform
 method-specific validation and then call one internal constructor, avoiding
 duplication of storage code. This parallels `draws()`, whose methods establish
 the sampling layout before returning a common `draws` object.
@@ -149,13 +149,13 @@ The following contracts are part of the import, not assumptions left to
 | `import.condmean(type = "bootstrap")` | original conditional-mean data set first, followed by `method$n_samples` bootstrap data sets | Bootstrap |
 | `import.condmean(type = "jackknife")` | original conditional-mean data set first, followed by one leave-one-subject-out data set per original subject | Jackknife |
 | `import.bmlmi()` | `method$B * method$D` data sets, ordered as `D` adjacent imputations within each bootstrap sample | BMLMI |
-| `import.unknown()` | `method$n_samples`; common subject/visit grid | Rubin |
+| `import.NULL()` | any positive number of data sets; common subject/visit grid | Rubin |
 
 Approximate Bayes uses bootstrap samples to estimate parameters, but each
 completed data set is an imputation of the original subject grid. It therefore
-uses the same fixed-grid validator as Bayes and unknown Rubin-style MI.
+uses the same fixed-grid validator as Bayes and Rubin's pooling method.
 
-Conditional-mean bootstrap is different. The first data set in the list represents the
+Conditional-mean bootstrap is different: The first data set in the list represents the
 original complete sample; every following data set in the list represents a bootstrap sample and
 can contain the same source subject more than once. Within each completed data
 set, `data[[vars$subjid]]` must identify *occurrences* uniquely. For example,
@@ -182,25 +182,31 @@ as for conditional-mean bootstrap; each adjacent block of `D` data sets must
 have an identical subject-occurrence map. The full data frames within a block
 may differ in their imputed outcomes.
 
-### Unknown method
+### Import without a specified method
 
-We add a genuine method class instead of disguising the pooling choice as an
-existing method. We can only offer Rubin's pooling method here, as we would need to 
-have other information about the imputation process to justify using a different pooling method.
+When `method = NULL`, import assumes ordinary Rubin-style multiple imputation.
+There is no user-facing method constructor or pooling choice: a different
+pooling rule needs information about the imputation process that the completed
+data sets alone cannot supply. Internally, `import.NULL()` validates the fixed
+grid and records the inferred number of imputations in a private method object,
+so the existing `imputation` and `analysis` interfaces retain their method
+metadata. This object is created only by `import()` and is not accepted by
+`draws()`. It can also not be confused by the user because it is not a `method_*()` created object.
 
 ```r
-method_unknown <- function() {
-    structure(
-        list(pooling = "Rubin", n_samples = NA_integer_),
+import.NULL <- function(data, vars, method, ...) {
+    validate_fixed_grid(data, vars, expected = length(data))
+    imported_method <- structure(
+        list(n_samples = length(data)),
         class = c("method", "unknown")
     )
+    import_completed(data, vars, imported_method, ...)
 }
 ```
 
-`import.unknown()` fills `n_samples` after seeing the data, matching the convention currently
-expected by `validate.analysis()`. 
-
-Unknown Rubin-style MI uses the fixed-grid validator. 
+`validate.analysis()` can then use the recorded `n_samples` as it does for
+other methods. The internal `unknown` class denotes provenance and pooling
+behaviour, not a new imputation algorithm.
 
 ### Internal pooling look-up
 
@@ -210,7 +216,7 @@ instead of inspecting `class(method)[[2]]` in several places:
 ```r
 pooling_method <- function(method) {
     if (inherits(method, "unknown")) {
-        return(method$pooling)
+        return("rubin")
     }
     if (inherits(method, "bayes") || inherits(method, "approxbayes")) {
         return("rubin")
@@ -227,7 +233,7 @@ pooling_method <- function(method) {
 
 This also removes the fragile assumption that the decisive method class is
 always the second class. `mcse()` should continue to accept only actual
-`bayes` and `approxbayes` methods. No `analyse_unknown()` method or wrapper is
+`bayes` and `approxbayes` methods. No special `analyse()` method or wrapper is
 needed: `analyse()` remains method-agnostic, and `as_analysis()` uses
 `pooling_method()` when it assigns the class of the collected results.
 
@@ -314,7 +320,7 @@ implementation.
 import <- function(
     data,
     vars,
-    method = method_unknown(),
+    method = NULL,
     original = NULL,
     data_ice = NULL,
     references = NULL,
@@ -369,15 +375,13 @@ import.condmean <- function(
     )
 }
 
-import.unknown <- function(data, vars, method, ...) {
-    method$n_samples <- switch(
-        method$pooling,
-        rubin = length(data),
-        bootstrap = length(data) - 1L,
-        NULL
+import.NULL <- function(data, vars, method, ...) {
+    validate_fixed_grid(data, vars, expected = length(data))
+    imported_method <- structure(
+        list(n_samples = length(data)),
+        class = c("method", "unknown")
     )
-    validate_unknown_layout(data, vars, method, ...)
-    import_completed(data, vars, method, ...)
+    import_completed(data, vars, imported_method, ...)
 }
 
 import_completed <- function(
@@ -447,8 +451,8 @@ convenience helper function could split stacked `IMPID` data before calling `imp
 
 ## Testing and implementation sequence
 
-1. Add `method_unknown()`, `pooling_method()` and tests for every pooling
-   mapping; refactor existing methods without changing their results.
+1. Add `pooling_method()` and tests for every pooling mapping, including the
+   private unknown method; refactor existing methods without changing their results.
 2. Add the completed-data classes, validators and materialisation methods.
 3. Implement the method-dispatched `import()` methods and round-trip tests
    comparing each imported data set with `extract_imputed_dfs()`.
@@ -473,7 +477,7 @@ imputation storage. Requiring `original` is a limitation of this short
 prototype, not of the proposed completed-data backend. It deliberately uses
 only existing rbmi method classes, so the imported object can be passed
 directly to the unmodified `rbmi::analyse()`. Once `pooling_method()` is used
-internally by `as_analysis()`, `method_unknown()` will follow exactly the same
+internally by `as_analysis()`, the private unknown method will follow the same
 path; it does not require a separate analysis function. After the package
 implementation lands, this setup chunk can be removed and the examples can
 call `rbmi::import()` directly.
@@ -606,13 +610,13 @@ import.condmean <- function(
 ```
 
 The first executed example imports ordinary Rubin-style MI data with a known
-Bayesian pooling contract. In the implemented design, replacing
-`method_bayes()` with `method_unknown("rubin")` changes only method metadata;
+Bayesian pooling contract. In the implemented design, omitting `method_bayes()`
+uses Rubin pooling and changes only method metadata;
 the returned imputation object and the call to `analyse()` are unchanged. The
 second example shows the additional ID information required for
 conditional-mean bootstrap data.
 
-### Rubin-style MI
+### Rubin's pooling
 
 ```{r}
 #| label: example-rubin
