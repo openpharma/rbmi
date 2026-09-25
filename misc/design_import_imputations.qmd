@@ -43,6 +43,8 @@ The `rbmiUtils` development branch
 accepts a pooling rule and manufactures a Bayesian or conditional-mean method
 object so that current `rbmi` validation passes. However, this creates a duplication of the interface between the `method` and the pooling rule. 
 
+Strategically it makes sense to include `method` in the `import()` function signature, because it allows to completely reproduce the `imputed` object structure from the standard `rbmi` workflow. Typically in practice the programming team which produced the multiple imputed data sets will be the same or at least closely collaborating with the programmers who are writing the `rbmi` using code. Therefore it is known which statistical method was used with which assumptions, and can be passed transparently with the `method` argument. 
+
 ## Structure of an `rbmi` imputation object
 
 An `rbmi` imputation currently contains:
