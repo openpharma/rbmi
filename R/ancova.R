@@ -15,6 +15,10 @@
 #' `"proportional_em"` or `"proportional"`.
 #' Specifies the weighting strategy to be used when calculating the lsmeans.
 #' See the weighting section for more details.
+#' @param include_variance Logical. If `TRUE`, a `var_<visit>` entry is added to
+#' the results containing the residual variance estimate (`sigma^2`), its
+#' approximate standard error, and the residual degrees of freedom.
+#' Defaults to `FALSE`.
 #'
 #' @details
 #' The function works as follows:
@@ -158,7 +162,8 @@ ancova <- function(
     data,
     vars,
     visits = NULL,
-    weights = c("counterfactual", "equal", "proportional_em", "proportional")
+    weights = c("counterfactual", "equal", "proportional_em", "proportional"),
+    include_variance = FALSE
 ) {
     ancova_core(
         data = data,
@@ -255,6 +260,10 @@ ancova_core <- function(
         visits,
         function(x) {
             data2 <- data[data[[visit]] == x, ]
+            res <- ancova_single(data2, outcome, group, covariates, weights,
+                                 include_variance = include_variance)
+            names(res) <- paste0(names(res), "_", x)
+            return(res)
             fit <- ancova_single(
                 data2,
                 outcome,
@@ -344,6 +353,7 @@ ancova_single <- function(
     group,
     covariates,
     weights = c("counterfactual", "equal", "proportional_em", "proportional"),
+    include_variance = FALSE
     group_contrasts = NULL
 ) {
     weights <- match.arg(weights)
@@ -784,4 +794,15 @@ ancova_linear_contrast <- function(
         se = sqrt(drop(t(lvec) %*% vcov_required %*% lvec)),
         df = df_res
     )
+    if (include_variance) {
+        x <- c(
+            list(var = list(
+                est = summary(mod)$sigma^2,
+                se = summary(mod)$sigma^2 / sqrt(df.residual(mod) / 2),
+                df = df.residual(mod)
+            )),
+            x
+        )
+    }
+    return(x)
 }
