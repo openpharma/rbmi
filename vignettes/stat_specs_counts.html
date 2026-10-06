@@ -30,6 +30,28 @@ ul.task-list{list-style: none;}
 
 
 
+<style type="text/css">
+
+div.csl-bib-body { }
+div.csl-entry {
+clear: both;
+}
+.hanging div.csl-entry {
+margin-left:2em;
+text-indent:-2em;
+}
+div.csl-left-margin {
+min-width:2em;
+float:left;
+}
+div.csl-right-inline {
+margin-left:2em;
+padding-left:1em;
+}
+div.csl-indent {
+margin-left: 2em;
+}
+</style>
 
 <style type="text/css">body {
 background-color: #fff;
@@ -241,6 +263,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <li><a href="#analysis" id="toc-analysis"><span class="toc-section-number">2.7</span> Analysis</a></li>
 <li><a href="#pooling" id="toc-pooling"><span class="toc-section-number">2.8</span> Pooling</a></li>
 </ul></li>
+<li><a href="#references" id="toc-references">References</a></li>
 </ul>
 </div>
 
@@ -249,8 +272,8 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <p>This document describes the statistical methods implemented in the <code>rbmi</code> R package for multiple imputation of count outcomes. Please see the <a href="stat_specs.html">separate vignette</a> for details on the implemented statistical methods for continuous outcomes.</p>
 <p>The package focuses on multiple imputation (MI) for count outcomes following these approaches:</p>
 <ol style="list-style-type: decimal">
-<li><span class="citation">(<a href="#ref-keene2014"><strong>keene2014?</strong></a>)</span> is the basic proposal for Bayesian MI for negative binomial count data, covering two time periods: before and after discontinuing the trial and treatment at the same time.</li>
-<li><span class="citation">(<a href="#ref-roger2019"><strong>roger2019?</strong></a>)</span> extends this to more than two time periods, in particular a third time period where patients are still continuing the trial, but have stopped treatment already. This is the more general setting, which is implemented in <code>rbmi</code>.</li>
+<li><span class="citation">Keene et al. (<a href="#ref-Keene2014">2014</a>)</span> is the basic proposal for Bayesian MI for negative binomial count data, covering two time periods: before and after discontinuing the trial and treatment at the same time.</li>
+<li><span class="citation">Roger et al. (<a href="#ref-Roger2019">2019</a>)</span> extends this to more than two time periods, in particular a third time period where patients are still continuing the trial, but have stopped treatment already. This is the more general setting, which is implemented in <code>rbmi</code>.</li>
 </ol>
 <p>Note that time to recurrent events can also be analyzed with Andersen-Gill models, but this is not available in the package at this point.</p>
 </div>
@@ -258,7 +281,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <h2><span class="header-section-number">2</span> Statistical methodology</h2>
 <div id="notation" class="section level3" number="2.1">
 <h3><span class="header-section-number">2.1</span> Notation</h3>
-<p>We follow quite closely the notation in <span class="citation">(<a href="#ref-roger2019"><strong>roger2019?</strong></a>)</span>.</p>
+<p>We follow quite closely the notation in <span class="citation">Roger et al. (<a href="#ref-Roger2019">2019</a>)</span>.</p>
 <ul>
 <li>We have <span class="math inline">\(i = 1, \dotsc, N\)</span> patients in the considered analysis population of the trial.</li>
 <li>There are <span class="math inline">\(m = 3\)</span> periods for each patient:
@@ -281,7 +304,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 </div>
 <div id="model" class="section level3" number="2.2">
 <h3><span class="header-section-number">2.2</span> Model</h3>
-<p>We want to model the number of events <span class="math inline">\(Y_{ij}\)</span> for patient <span class="math inline">\(i\)</span> in period <span class="math inline">\(j\)</span> using a joint <a href="https://en.wikipedia.org/wiki/Negative_multinomial_distribution">negative multinomial distribution</a> <span class="citation">(<a href="#ref-keene2014"><strong>keene2014?</strong></a>)</span>:</p>
+<p>We want to model the number of events <span class="math inline">\(Y_{ij}\)</span> for patient <span class="math inline">\(i\)</span> in period <span class="math inline">\(j\)</span> using a joint <a href="https://en.wikipedia.org/wiki/Negative_multinomial_distribution">negative multinomial distribution</a> <span class="citation">(<a href="#ref-Keene2014">Keene et al. 2014</a>)</span>:</p>
 <p><span class="math display">\[
 \mathbb{P}(Y_{i} = (y_{i1}, y_{i2}, y_{i3})) =
 \frac{\Gamma(y_0 + \sum_{j=1}^3 y_{ij})}{\Gamma(y_0) \prod_{j=1}^3 \Gamma(y_{ij} + 1)}
@@ -350,7 +373,7 @@ effect when a common dispersion parameter is fitted across treatment arms.</p>
 </div>
 <div id="off-treatment-modeling" class="section level3" number="2.5">
 <h3><span class="header-section-number">2.5</span> Off-treatment Modeling</h3>
-<p>As described in <span class="citation">(<a href="#ref-roger2019"><strong>roger2019?</strong></a>)</span>, we can adapt the model for the off-treatment period (period 2) to reflect different assumptions about the treatment effect after stopping treatment, which will then also affect the imputation of <span class="math inline">\(Y_{i3}\)</span> for patients who withdrew later from the study:</p>
+<p>As described in <span class="citation">Roger et al. (<a href="#ref-Roger2019">2019</a>)</span>, we can adapt the model for the off-treatment period (period 2) to reflect different assumptions about the treatment effect after stopping treatment, which will then also affect the imputation of <span class="math inline">\(Y_{i3}\)</span> for patients who withdrew later from the study:</p>
 <ul>
 <li>Off-treatment arm levels can be introduced separately for each randomised treatment arm. This can be implemented by including an interaction term between the treatment arm and the off-treatment period indicator, which would apply to both periods 2 and 3.</li>
 <li>The off-treatment arm level can also be shared across randomised treatment arms, which can be implemented by introducing a new factor level for the treatment arm variable, which is only active in periods 2 and 3, but not in period 1. This would correspond to the assumption that all patients behave the same after stopping treatment, regardless of their randomised treatment arm.</li>
@@ -359,7 +382,7 @@ effect when a common dispersion parameter is fitted across treatment arms.</p>
 <div id="imputation" class="section level3" number="2.6">
 <h3><span class="header-section-number">2.6</span> Imputation</h3>
 <p>We use the negative multinomial model (i.e. with the frailty integrated out) for the observed data to get the MCMC samples for the regression coefficients <span class="math inline">\(\beta\)</span> and dispersion parameter <span class="math inline">\(\phi\)</span>, and then use these to impute <span class="math inline">\(Y_{i3}\)</span> in a separate step. Note that we will only need to impute the missing values for <span class="math inline">\(Y_{i3}\)</span>, as we observe <span class="math inline">\(Y_{i1}\)</span> and <span class="math inline">\(Y_{i2}\)</span> for all patients.</p>
-<p>This is also described briefly in <span class="citation">(<a href="#ref-roger2019"><strong>roger2019?</strong></a>)</span> on p. 89. The required conditional distribution for <span class="math inline">\(Y_{i3}\)</span> given <span class="math inline">\(Y_{i1}\)</span> and <span class="math inline">\(Y_{i2}\)</span> can be derived from formula (7) in <span class="citation">(<a href="#ref-keene2014"><strong>keene2014?</strong></a>)</span>:</p>
+<p>This is also described briefly in <span class="citation">Roger et al. (<a href="#ref-Roger2019">2019</a>)</span> on p. 89. The required conditional distribution for <span class="math inline">\(Y_{i3}\)</span> given <span class="math inline">\(Y_{i1}\)</span> and <span class="math inline">\(Y_{i2}\)</span> can be derived from formula (7) in <span class="citation">Keene et al. (<a href="#ref-Keene2014">2014</a>)</span>:</p>
 <p><span class="math display">\[
 Y_{i3} | Y_{i1}, Y_{i2} \sim \text{NegativeBinomial}\left(
   \frac{\phi_{g_i^*}^{-1} + \hat{\mu}_{i1} + \hat{\mu}_{i2}}{\phi_{g_i^*}^{-1} + \hat{\mu}_{i1} + \hat{\mu}_{i2} + \hat{\mu}_{i3}},
@@ -388,6 +411,17 @@ arm. With a shared dispersion parameter, the group index can be dropped.</p>
 <div id="pooling" class="section level3" number="2.8">
 <h3><span class="header-section-number">2.8</span> Pooling</h3>
 <p>Finally, Rubin’s rules are applied to pool the estimates (on the log-rate scale, i.e. the regression coefficients <span class="math inline">\(\beta\)</span>) across the imputed datasets, and we can then exponentiate the pooled estimates and confidence intervals to get the results for the rate ratios.</p>
+</div>
+</div>
+<div id="references" class="section level2 unnumbered">
+<h2>References</h2>
+<div id="refs" class="references csl-bib-body hanging-indent">
+<div id="ref-Keene2014" class="csl-entry">
+Keene, Oliver N, James H Roger, Benjamin F Hartley, and Michael G Kenward. 2014. <span>“Missing Data Sensitivity Analysis for Recurrent Event Data Using Controlled Imputation.”</span> <em>Pharmaceutical Statistics</em> 13 (4): 258–64. <a href="https://doi.org/10.1002/pst.1624">https://doi.org/10.1002/pst.1624</a>.
+</div>
+<div id="ref-Roger2019" class="csl-entry">
+Roger, James H, Daniel J Bratton, Bhabita Mayer, Juan J Abellan, and Oliver N Keene. 2019. <span>“Treatment Policy Estimands for Recurrent Event Data Using Data Collected After Cessation of Randomised Treatment.”</span> <em>Pharmaceutical Statistics</em> 18 (1): 85–95. <a href="https://doi.org/10.1002/pst.1910">https://doi.org/10.1002/pst.1910</a>.
+</div>
 </div>
 </div>
 
