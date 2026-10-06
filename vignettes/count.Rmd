@@ -24,10 +24,33 @@ knitr::opts_chunk$set(
     collapse = TRUE,
     comment = "#>"
 )
+
+# Record chunk runtimes using the R Markdown Cookbook timing hook recipe:
+# https://pkg.yihui.org/rmarkdown-cookbook/time-chunk
+chunk_times <- list()
+knitr::knit_hooks$set(time_it = local({
+    start <- NULL
+    function(before, options) {
+        if (before) {
+            start <<- Sys.time()
+        } else {
+            chunk_times[[options$label]] <<- as.numeric(
+                difftime(Sys.time(), start, units = "secs")
+            )
+        }
+        invisible(NULL)
+    }
+}))
+
+runtime_seconds <- function(label) {
+    sprintf("%.2f", chunk_times[[label]])
+}
 ```
 
 Now we'll walk through how count data can be modeled using the `rbmi` package. The following sections will cover the necessary steps to prepare your data, draw parameter samples, impute missing values, and pool estimates across multiple imputations.
 For the statistical method details please see the [separate vignette](stat_specs_counts.html).
+The runtimes reported below are elapsed times measured when this vignette is
+built and will vary with the computing environment.
 
 ## The Data
 
@@ -207,7 +230,7 @@ method <- method_bayes(
 
 Finally we can call the `draws()` function to draw samples from the posterior distribution of the model parameters:
 
-```{r}
+```{r draw-shared, time_it = TRUE}
 set.seed(987)
 drawObj <- draws(
     outcome = "count",
@@ -217,6 +240,9 @@ drawObj <- draws(
     method = method,
     quiet = TRUE
 )
+```
+
+```{r}
 drawObj
 ```
 
@@ -224,8 +250,11 @@ drawObj
 
 Now we basically just run the imputation:
 
-```{r}
+```{r impute-shared, time_it = TRUE}
 imputeObj <- impute(drawObj)
+```
+
+```{r}
 imputeObj
 ```
 
@@ -247,7 +276,9 @@ ana_vars <- set_vars(
     group = "TreatLab",
     covariates = c("BaseCount")
 )
+```
 
+```{r analyse-shared, time_it = TRUE}
 anaObj <- analyse(
     imputeObj,
     neg_bin_regression,
@@ -262,12 +293,15 @@ imputations. Pooling is performed on the log-rate scale using Rubin's rules,
 with confidence intervals and p-values based on the standard normal
 distribution.
 
-```{r}
+```{r pool-shared, time_it = TRUE}
 poolObj <- pool(
     anaObj,
     conf.level = 0.95,
     alternative = "two.sided"
 )
+```
+
+```{r}
 poolObj
 ```
 
@@ -317,6 +351,11 @@ dplyr::left_join(
     dplyr::mutate(dplyr::across(dplyr::where(is.numeric), ~ round(.x, 4)))
 ```
 
+Runtime: draw `r runtime_seconds("draw-shared")` seconds,
+impute `r runtime_seconds("impute-shared")` seconds,
+analyse `r runtime_seconds("analyse-shared")` seconds, and
+pool `r runtime_seconds("pool-shared")` seconds.
+
 ## Additional modeling options
 
 ### Separate draw model sampling for each treatment group
@@ -352,7 +391,9 @@ method_by_arm <- method_bayes(
         seed = 1821
     )
 )
+```
 
+```{r draw-by-arm, time_it = TRUE}
 drawObj_by_arm <- draws(
     outcome = "count",
     data = dat_count_filled,
@@ -384,7 +425,7 @@ with the default shared `phi`.
 The downstream workflow is unchanged. Setting the seed immediately before
 `impute()` makes the conditional negative-binomial draws reproducible.
 
-```{r}
+```{r impute-by-arm, time_it = TRUE}
 set.seed(123)
 imputeObj_by_arm <- impute(drawObj_by_arm)
 ```
@@ -394,18 +435,23 @@ imputeObj_by_arm <- impute(drawObj_by_arm)
 The treatment-policy analysis still combines all randomized treatment arms and
 uses the same analysis model as above. Only the imputation model has changed.
 
-```{r}
+```{r analyse-by-arm, time_it = TRUE}
 anaObj_by_arm <- analyse(
     imputeObj_by_arm,
     neg_bin_regression,
     vars = ana_vars
 )
+```
 
+```{r pool-by-arm, time_it = TRUE}
 poolObj_by_arm <- pool(
     anaObj_by_arm,
     conf.level = 0.95,
     alternative = "two.sided"
 )
+```
+
+```{r}
 poolObj_by_arm
 ```
 
@@ -453,6 +499,11 @@ dplyr::left_join(
     dplyr::mutate(dplyr::across(dplyr::where(is.numeric), ~ round(.x, 4)))
 ```
 
+Runtime: draw `r runtime_seconds("draw-by-arm")` seconds,
+impute `r runtime_seconds("impute-by-arm")` seconds,
+analyse `r runtime_seconds("analyse-by-arm")` seconds, and
+pool `r runtime_seconds("pool-by-arm")` seconds.
+
 ### Treatment interaction terms on all model covariates
 
 This model also gives each treatment arm its own on- and off-treatment rates
@@ -479,7 +530,9 @@ vars_all_treatment_interactions <- set_vars(
         "TreatLab:BaseCount"
     )
 )
+```
 
+```{r draw-all-treatment-interactions, time_it = TRUE}
 drawObj_all_treatment_interactions <- draws(
     outcome = "count",
     data = dat_count_filled,
@@ -488,7 +541,9 @@ drawObj_all_treatment_interactions <- draws(
     method = method,
     quiet = TRUE
 )
+```
 
+```{r impute-all-treatment-interactions, time_it = TRUE}
 set.seed(123)
 imputeObj_all_treatment_interactions <- impute(
     drawObj_all_treatment_interactions
@@ -501,18 +556,23 @@ The treatment-policy analysis model is unchanged: it uses randomized
 treatment and baseline count, without distinguishing on- and off-treatment
 periods.
 
-```{r}
+```{r analyse-all-treatment-interactions, time_it = TRUE}
 anaObj_all_treatment_interactions <- analyse(
     imputeObj_all_treatment_interactions,
     neg_bin_regression,
     vars = ana_vars
 )
+```
 
+```{r pool-all-treatment-interactions, time_it = TRUE}
 poolObj_all_treatment_interactions <- pool(
     anaObj_all_treatment_interactions,
     conf.level = 0.95,
     alternative = "two.sided"
 )
+```
+
+```{r}
 poolObj_all_treatment_interactions
 ```
 
@@ -552,6 +612,11 @@ dplyr::left_join(
     dplyr::select(-model) |> 
     dplyr::mutate(dplyr::across(dplyr::where(is.numeric), ~ round(.x, 4)))
 ```
+
+Runtime: draw `r runtime_seconds("draw-all-treatment-interactions")` seconds,
+impute `r runtime_seconds("impute-all-treatment-interactions")` seconds,
+analyse `r runtime_seconds("analyse-all-treatment-interactions")` seconds, and
+pool `r runtime_seconds("pool-all-treatment-interactions")` seconds.
 
 ### More complex model which also splits time by season
 
@@ -668,7 +733,9 @@ vars_season <- set_vars(
         "Quarter"
     )
 )
+```
 
+```{r draw-season, time_it = TRUE}
 drawObj_season <- draws(
     outcome = "count",
     data = dat_count_season,
@@ -686,9 +753,12 @@ before drawing the next cell. With only one missing cell, this reduces exactly
 to the conditional negative-binomial calculation used by the original
 three-period implementation.
 
-```{r}
+```{r impute-season, time_it = TRUE}
 set.seed(123)
 imputeObj_season <- impute(drawObj_season)
+```
+
+```{r}
 imputeObj_season
 ```
 
@@ -704,17 +774,25 @@ ana_vars_season <- set_vars(
     group = "TreatLab",
     covariates = "BaseCount"
 )
+```
 
+```{r analyse-season, time_it = TRUE}
 anaObj_season <- analyse(
     imputeObj_season,
     neg_bin_regression,
     vars = ana_vars_season
 )
+```
+
+```{r pool-season, time_it = TRUE}
 poolObj_season <- pool(
     anaObj_season,
     conf.level = 0.95,
     alternative = "two.sided"
 )
+```
+
+```{r}
 poolObj_season
 ```
 
@@ -747,6 +825,11 @@ left_join(
     select(-model) |> 
     dplyr::mutate(dplyr::across(dplyr::where(is.numeric), ~ round(.x, 4)))
 ```
+
+Runtime: draw `r runtime_seconds("draw-season")` seconds,
+impute `r runtime_seconds("impute-season")` seconds,
+analyse `r runtime_seconds("analyse-season")` seconds, and
+pool `r runtime_seconds("pool-season")` seconds.
 
 ### Fixed rate model for the active arms
 
@@ -810,7 +893,9 @@ fixed_lambda_strategies <- get_count_strategies(
         period = "3"
     )
 )
+```
 
+```{r impute-fixed-lambda, time_it = TRUE}
 set.seed(123)
 imputeObj_fixed_lambda <- impute(
     drawObj,
@@ -821,19 +906,23 @@ imputeObj_fixed_lambda <- impute(
 
 The treatment-policy analysis and pooling steps are unchanged.
 
-```{r}
+```{r analyse-fixed-lambda, time_it = TRUE}
 anaObj_fixed_lambda <- analyse(
     imputeObj_fixed_lambda,
     neg_bin_regression,
     vars = ana_vars
 )
+```
 
+```{r pool-fixed-lambda, time_it = TRUE}
 poolObj_fixed_lambda <- pool(
     anaObj_fixed_lambda,
     conf.level = 0.95,
     alternative = "two.sided"
 )
+```
 
+```{r}
 rate_ratios_fixed_lambda <- as.data.frame(poolObj_fixed_lambda) |>
     filter(parameter %in% c("TreatLab100mg", "TreatLab300mg")) |>
     transmute(
@@ -861,6 +950,11 @@ left_join(
     dplyr::mutate(dplyr::across(dplyr::where(is.numeric), ~ round(.x, 4)))
 ```
 
+Runtime: draw `r runtime_seconds("draw-shared")` seconds (reusing the original draws),
+impute `r runtime_seconds("impute-fixed-lambda")` seconds,
+analyse `r runtime_seconds("analyse-fixed-lambda")` seconds, and
+pool `r runtime_seconds("pool-fixed-lambda")` seconds.
+
 ### Off-treatment estimate is doubled for the active arms
 
 The same controlled-imputation mechanism can multiply rather than replace the
@@ -886,7 +980,9 @@ double_rate_strategies <- get_count_strategies(
         period = "3"
     )
 )
+```
 
+```{r impute-double-rate, time_it = TRUE}
 set.seed(123)
 imputeObj_double_rate <- impute(
     drawObj,
@@ -895,19 +991,23 @@ imputeObj_double_rate <- impute(
 )
 ```
 
-```{r}
+```{r analyse-double-rate, time_it = TRUE}
 anaObj_double_rate <- analyse(
     imputeObj_double_rate,
     neg_bin_regression,
     vars = ana_vars
 )
+```
 
+```{r pool-double-rate, time_it = TRUE}
 poolObj_double_rate <- pool(
     anaObj_double_rate,
     conf.level = 0.95,
     alternative = "two.sided"
 )
+```
 
+```{r}
 rate_ratios_double_rate <- as.data.frame(poolObj_double_rate) |>
     filter(parameter %in% c("TreatLab100mg", "TreatLab300mg")) |>
     transmute(
@@ -934,3 +1034,8 @@ left_join(
     select(-model) |>
     dplyr::mutate(dplyr::across(dplyr::where(is.numeric), ~ round(.x, 4)))
 ```
+
+Runtime: draw `r runtime_seconds("draw-shared")` seconds (reusing the original draws),
+impute `r runtime_seconds("impute-double-rate")` seconds,
+analyse `r runtime_seconds("analyse-double-rate")` seconds, and
+pool `r runtime_seconds("pool-double-rate")` seconds.
