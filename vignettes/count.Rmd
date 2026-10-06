@@ -56,7 +56,8 @@ dat_count <- dat_count_raw |>
         period = as.character(period),
         TreatLab = factor(TreatLab, levels = c("Placebo", "100mg", "300mg")),
         OnOff = factor(OnOff, levels = c("On", "Off"))
-    )
+    ) |> 
+    arrange(patient, period)
 head(dat_count)
 ```
 
@@ -933,6 +934,3 @@ left_join(
     select(-model) |>
     dplyr::mutate(dplyr::across(dplyr::where(is.numeric), ~ round(.x, 4)))
 ```
-
-
-## References 

@@ -10,6 +10,8 @@
 
 ## Bug Fixes
 
+* Count draws now display the period duration variable as an offset in the printed model formula.
+
 * `scalerConstructor` previously failed when applied to a matrix instead of a `data.frame`. This is fixed now.
 
 # rbmi 1.6.1

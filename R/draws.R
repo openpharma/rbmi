@@ -708,7 +708,8 @@ print.draws_count <- function(x, ...) {
         x,
         endpoint_type = "count",
         exclude_method = c("covariance", "prior_cov"),
-        exclude_control = "init"
+        exclude_control = "init",
+        offset = x$data$vars$duration
     )
 }
 
@@ -717,10 +718,14 @@ print_draws <- function(
     x,
     endpoint_type = NULL,
     exclude_method = character(),
-    exclude_control = character()
+    exclude_control = character(),
+    offset = NULL
 ) {
     frm <- as.character(x$formula)
     frm_str <- sprintf("%s ~ %s", frm[[2]], frm[[3]])
+    if (!is.null(offset)) {
+        frm_str <- sprintf("%s + offset(%s)", frm_str, offset)
+    }
 
     meth <- switch(
         class(x$method)[[2]],
