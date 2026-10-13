@@ -107,6 +107,13 @@ covariates.
 Note that the treatment effects (\code{trt}, \code{trt_alt2}, ...) are the relevant linear
 combinations of the group main-effect coefficients. The least square means (\verb{lsm_*})
 are computed according to the requested \code{weights}.
+
+For treatment contrasts, numeric covariates are set to their observed means
+within each visit, excluding missing values, before formula transformations
+are applied (e.g. \code{log(mean(age, na.rm = TRUE))} for \code{log(age)}). Factor
+covariates are set to their first level and logical covariates to \code{FALSE}.
+With treatment-group interactions excluded, these reference values do not
+affect the treatment contrasts, provided the transformed values are finite.
 }
 \section{Weighting}{
 

@@ -950,12 +950,12 @@ test_that("ancova_contrast_design builds complete reference rows", {
         out = seq_len(8),
         rbmiGroup = factor(rep(c("L1", "L2"), each = 4)),
         sex = factor(rep(c("Female", "Male"), 4)),
-        age = rep(c(-2, -1, 1, 2), 2)
+        age = c(NA, 20, 30, 40, 50, 60, 70, 80)
     )
     expected_data <- data.frame(
         rbmiGroup = factor(c("L1", "L2"), levels = c("L1", "L2")),
         sex = factor(c("Female", "Female"), levels = c("Female", "Male")),
-        age = c(0, 0)
+        age = c(50, 50)
     )
 
     mod_treatment <- lm(out ~ rbmiGroup * sex + I(age^2), data = dat)
@@ -968,7 +968,7 @@ test_that("ancova_contrast_design builds complete reference rows", {
     )
 
     expect_equal(design_treatment, expected_treatment)
-    expect_equal(unname(design_treatment[, "I(age^2)"]), c(0, 0))
+    expect_equal(unname(design_treatment[, "I(age^2)"]), c(2500, 2500))
     expect_equal(
         unname(design_treatment[, "rbmiGroupL2:sexMale"]),
         c(0, 0)
@@ -986,7 +986,7 @@ test_that("ancova_contrast_design builds complete reference rows", {
     )
 
     expect_equal(design_sum, expected_sum)
-    expect_equal(unname(design_sum[, "I(age^2)"]), c(0, 0))
+    expect_equal(unname(design_sum[, "I(age^2)"]), c(2500, 2500))
     expect_equal(unname(design_sum[, "rbmiGroup1:sex1"]), c(1, -1))
 })
 
@@ -1385,4 +1385,33 @@ test_that("ancova - named contrasts populate the contrast_label metadata", {
     df <- as.data.frame(pool(ana_obj))
     expect_true("contrast_label" %in% names(df))
     expect_equal(df$contrast_label[df$parameter == "pooled_v1"], "pooled")
+})
+
+
+test_that("ancova supports log covariates with positive observed values", {
+    dat <- data.frame(
+        visit = "v1",
+        grp = factor(
+            rep(c("Control", "Active"), each = 6),
+            levels = c("Control", "Active")
+        ),
+        age = rep(c(20, 25, 35, 45, 55, 70), 2),
+        out = c(8, 9, 7, 11, 10, 12, 10, 11, 12, 11, 14, 13)
+    )
+    vars <- set_vars(
+        outcome = "out",
+        group = "grp",
+        visit = "visit",
+        covariates = "log(age)"
+    )
+    mod <- lm(out ~ log(age) + grp, data = dat)
+    res <- ancova(dat, vars)
+
+    expect_equal(res$trt_v1$est, coef(mod)[["grpActive"]])
+    expect_equal(res$trt_v1$se, sqrt(vcov(mod)["grpActive", "grpActive"]))
+    expect_equal(res$trt_v1$df, df.residual(mod))
+
+    dat$log_age <- log(dat$age)
+    vars$covariates <- "log_age"
+    expect_equal(res, ancova(dat, vars))
 })

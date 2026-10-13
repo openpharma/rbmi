@@ -80,7 +80,7 @@ as_simple_formula <- function(outcome, covars) {
 #' @keywords internal
 formula_has_interaction <- function(formula, variable) {
     model_terms <- stats::terms(formula)
-    assert_that(is.string(variable))
+    assert_that(assertthat::is.string(variable))
 
     interaction_terms <- attr(model_terms, "order") > 1
     if (!any(interaction_terms)) {
