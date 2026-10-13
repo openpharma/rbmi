@@ -368,7 +368,7 @@ test_that("ancova - 4-group functionality", {
 })
 
 
-test_that("ancova - LSMeans with group interactions (multi-arm)", {
+test_that("ancova - LSMeans with covariate interactions (multi-arm)", {
     set.seed(401)
 
     grp_levels <- c("Control", "Treatment1", "Treatment2")
@@ -385,7 +385,7 @@ test_that("ancova - LSMeans with group interactions (multi-arm)", {
             sample(grp_levels, size = n, replace = TRUE),
             levels = grp_levels
         ),
-        # Create interaction effect between group and sex
+        # Create an interaction effect between age and sex
         out = rnorm(
             n,
             mean = 40 +
@@ -393,25 +393,23 @@ test_that("ancova - LSMeans with group interactions (multi-arm)", {
                 3 * (sex == "Female") +
                 5 * (grp == "Treatment1") +
                 7 * (grp == "Treatment2") +
-                # Group-sex interactions
-                2 * (grp == "Treatment1" & sex == "Female") +
-                -1 * (grp == "Treatment2" & sex == "Female"),
+                0.2 * age * (sex == "Female"),
             sd = 8
         )
     )
 
-    # Test with group*sex interaction in covariates
+    # Test with age*sex interaction in covariates
     result_actual <- ancova(
         dat,
         list(
             outcome = "out",
             group = "grp",
-            covariates = c("age", "sex", "grp*sex"),
+            covariates = c("age", "sex", "age*sex"),
             visit = "visit"
         )
     )
 
-    mod <- lm(out ~ age + sex + grp + grp:sex, data = dat)
+    mod <- lm(out ~ age + sex + grp + age:sex, data = dat)
 
     # Check structure
     expected_names <- c(
@@ -456,7 +454,7 @@ test_that("ancova - LSMeans with group interactions (multi-arm)", {
         list(
             outcome = "out",
             group = "grp",
-            covariates = c("age", "sex", "grp*sex"),
+            covariates = c("age", "sex", "age*sex"),
             visit = "visit"
         ),
         weights = "equal"
@@ -1259,7 +1257,7 @@ test_that("ancova - contrasts are invariant to the active contrasts coding", {
 })
 
 
-test_that("ancova - factor interactions are invariant to contrast coding", {
+test_that("ancova rejects interactions involving the treatment group", {
     set.seed(454)
     n <- 800
     dat <- tibble(
@@ -1279,15 +1277,14 @@ test_that("ancova - factor interactions are invariant to contrast coding", {
         visit = "visit"
     )
 
-    old <- options(contrasts = c("contr.treatment", "contr.poly"))
-    on.exit(options(old), add = TRUE)
-    res_treatment <- ancova(dat, vars)
-
-    options(contrasts = c("contr.sum", "contr.poly"))
-    res_sum <- ancova(dat, vars)
-
-    expect_equal(res_sum$trt_v1$est, res_treatment$trt_v1$est)
-    expect_equal(res_sum$trt_v1$se, res_treatment$trt_v1$se)
+    dat$age <- rnorm(n)
+    for (interaction in c("grp * sex", "sex:grp", "grp * age", "grp:sex:age")) {
+        vars$covariates <- c("age", "sex", interaction)
+        expect_error(
+            ancova(dat, vars),
+            regexp = "Interactions involving the treatment group are not supported"
+        )
+    }
 })
 
 

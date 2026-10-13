@@ -64,15 +64,14 @@
 #'
 #' If you want to include interaction terms in your model this can be done
 #' by providing them to the `covariates` argument of [set_vars()]
-#' e.g. `set_vars(covariates = c("sex*age"))`.
+#' e.g. `set_vars(covariates = c("sex*age"))`. Interactions involving the treatment
+#' group (`vars$group`) are not supported and will result in an error, because the
+#' treatment contrasts would depend on the reference values of the interacting
+#' covariates.
 #'
 #' Note that the treatment effects (`trt`, `trt_alt2`, ...) are the relevant linear
-#' combinations of the model coefficients, i.e. the group main-effect contrasts evaluated
-#' at the reference level of any covariates. The least square means (`lsm_*`) are instead
-#' computed according to the requested `weights`. When `group` interacts with a covariate
-#' these two quantities differ, so `trt` is not in general equal to `lsm_alt - lsm_ref`.
-#' This matches the behaviour of the original two-group implementation, where `trt` has
-#' always been the model coefficient.
+#' combinations of the group main-effect coefficients. The least square means (`lsm_*`)
+#' are computed according to the requested `weights`.
 #'
 #' @inheritSection lsmeans Weighting
 #'
@@ -230,6 +229,21 @@ ancova_core <- function(
     assert_that(
         is.character(covariates) | is.null(covariates),
         msg = "`covariates` must be a character vector"
+    )
+
+    model_terms <- stats::terms(as_simple_formula(outcome, c(covariates, group)))
+    term_factors <- attr(model_terms, "factors")
+    group_variables <- vapply(
+        as.list(attr(model_terms, "variables"))[-1],
+        function(x) group %in% all.vars(x),
+        logical(1)
+    )
+    assert_that(
+        !any(term_factors[group_variables, attr(model_terms, "order") > 1, drop = FALSE] > 0),
+        msg = paste(
+            "Interactions involving the treatment group are not supported in ANCOVA.",
+            "Please adjust `vars$covariates` accordingly"
+        )
     )
 
     assert_that(
