@@ -191,7 +191,8 @@ ancova_core <- function(
     group_contrasts <- vars[["group_contrasts"]]
     weights <- match.arg(weights)
 
-    expected_vars <- all.vars(as_simple_formula(outcome, c(covariates, group)))
+    model_formula <- as_simple_formula(outcome, c(covariates, group))
+    expected_vars <- all.vars(model_formula)
 
     assert_that(
         !any(visit %in% expected_vars),
@@ -231,15 +232,8 @@ ancova_core <- function(
         msg = "`covariates` must be a character vector"
     )
 
-    model_terms <- stats::terms(as_simple_formula(outcome, c(covariates, group)))
-    term_factors <- attr(model_terms, "factors")
-    group_variables <- vapply(
-        as.list(attr(model_terms, "variables"))[-1],
-        function(x) group %in% all.vars(x),
-        logical(1)
-    )
     assert_that(
-        !any(term_factors[group_variables, attr(model_terms, "order") > 1, drop = FALSE] > 0),
+        !formula_has_interaction(model_formula, group),
         msg = paste(
             "Interactions involving the treatment group are not supported in ANCOVA.",
             "Please adjust `vars$covariates` accordingly"
