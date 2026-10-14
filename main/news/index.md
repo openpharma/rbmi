@@ -36,6 +36,13 @@
   compatibility.
   ([\#520](https://github.com/openpharma/rbmi/issues/520))
 
+### Bug Fixes
+
+- [`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md)
+  now rejects interactions involving the treatment group in
+  `vars$covariates`, avoiding treatment contrasts that depend on the
+  reference values of interacting covariates.
+
 ## rbmi 1.6.1
 
 CRAN release: 2026-07-22

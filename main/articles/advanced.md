@@ -505,7 +505,7 @@ by looking at function
 `#>     pars <- list(mu = mu, sigma = sigma)`\
 `#>     return(pars)`\
 `#> }`\
-`#> <bytecode: 0x562db43df4e8>`\
+`#> <bytecode: 0x559964c6b450>`\
 `#> <environment: namespace:rbmi>`
 
 To further illustrate this for a simple example, assume that a new
