@@ -64,15 +64,21 @@
 #'
 #' If you want to include interaction terms in your model this can be done
 #' by providing them to the `covariates` argument of [set_vars()]
-#' e.g. `set_vars(covariates = c("sex*age"))`.
+#' e.g. `set_vars(covariates = c("sex*age"))`. Interactions involving the treatment
+#' group (`vars$group`) are not supported and will result in an error, because the
+#' treatment contrasts would depend on the reference values of the interacting
+#' covariates.
 #'
 #' Note that the treatment effects (`trt`, `trt_alt2`, ...) are the relevant linear
-#' combinations of the model coefficients, i.e. the group main-effect contrasts evaluated
-#' at the reference level of any covariates. The least square means (`lsm_*`) are instead
-#' computed according to the requested `weights`. When `group` interacts with a covariate
-#' these two quantities differ, so `trt` is not in general equal to `lsm_alt - lsm_ref`.
-#' This matches the behaviour of the original two-group implementation, where `trt` has
-#' always been the model coefficient.
+#' combinations of the group main-effect coefficients. The least square means (`lsm_*`)
+#' are computed according to the requested `weights`.
+#'
+#' For treatment contrasts, numeric covariates are set to their observed means
+#' within each visit, excluding missing values, before formula transformations
+#' are applied (e.g. `log(mean(age, na.rm = TRUE))` for `log(age)`). Factor
+#' covariates are set to their first level and logical covariates to `FALSE`.
+#' With treatment-group interactions excluded, these reference values do not
+#' affect the treatment contrasts, provided the transformed values are finite.
 #'
 #' @inheritSection lsmeans Weighting
 #'
@@ -192,7 +198,8 @@ ancova_core <- function(
     group_contrasts <- vars[["group_contrasts"]]
     weights <- match.arg(weights)
 
-    expected_vars <- all.vars(as_simple_formula(outcome, c(covariates, group)))
+    model_formula <- as_simple_formula(outcome, c(covariates, group))
+    expected_vars <- all.vars(model_formula)
 
     assert_that(
         !any(visit %in% expected_vars),
@@ -230,6 +237,14 @@ ancova_core <- function(
     assert_that(
         is.character(covariates) | is.null(covariates),
         msg = "`covariates` must be a character vector"
+    )
+
+    assert_that(
+        !formula_has_interaction(model_formula, group),
+        msg = paste(
+            "Interactions involving the treatment group are not supported in ANCOVA.",
+            "Please adjust `vars$covariates` accordingly"
+        )
     )
 
     assert_that(
@@ -671,9 +686,12 @@ resolve_contrast_weights <- function(x, orig_levels) {
 #' Build the ANCOVA contrast design matrix
 #'
 #' Creates one complete model-matrix row per treatment-group level. Numeric
-#' covariates are set to zero, logical covariates to `FALSE`, and factor covariates
+#' covariates are set to their means in `data`, excluding missing values, logical
+#' covariates to `FALSE`, and factor covariates
 #' to their first level. The fitted model's contrast coding is retained so that
 #' differences between rows include all required interaction coefficients.
+#' Means are calculated on the raw covariate scale before applying formula
+#' transformations, using all non-missing values in the supplied visit data.
 #'
 #' @param model A fitted `lm` model containing the internal `rbmiGroup` factor.
 #' @param data The raw model data used to fit `model`, including the untransformed
@@ -705,7 +723,7 @@ ancova_contrast_design <- function(model, data, outcome) {
         } else if (is.logical(reference_data[[var]])) {
             reference_data[[var]] <- FALSE
         } else if (is.numeric(reference_data[[var]])) {
-            reference_data[[var]] <- 0
+            reference_data[[var]] <- mean(data[[var]], na.rm = TRUE)
         }
     }
     reference_data[["rbmiGroup"]] <- factor(
@@ -739,10 +757,12 @@ ancova_contrast_design <- function(model, data, outcome) {
 #' @return A list with elements `est`, `se` and `df`.
 #'
 #' @details
-#' The contrast is evaluated at the covariate reference (covariate = 0): covariate
-#' main-effect and interaction columns receive zero weight and cancel for a
-#' sum-to-zero contrast. Group-by-covariate interaction columns are included when they
-#' are non-zero at that reference point. A required coefficient that is missing,
+#' The contrast is evaluated at the reference values defined by
+#' [ancova_contrast_design()]. Finite columns involving only non-group covariates
+#' are identical across group rows and cancel for a sum-to-zero contrast.
+#' Group-by-covariate interaction columns are included when they are non-zero at
+#' that reference point, although [ancova()] currently rejects such interactions.
+#' A required coefficient that is missing,
 #' aliased (`NA`) or absent from the
 #' variance-covariance matrix indicates a rank-deficient design and triggers an error
 #' rather than a silently dropped term.

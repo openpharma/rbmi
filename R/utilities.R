@@ -69,6 +69,37 @@ as_simple_formula <- function(outcome, covars) {
 }
 
 
+#' Check whether a variable participates in a formula interaction
+#'
+#' @param formula A model formula.
+#' @param variable Character, the name of the variable to check.
+#' @return A single logical value indicating whether an interaction term involves
+#'   `variable`, including through a transformation such as `factor(variable)`.
+#' @details Uses expanded model terms, so interactions removed with `-` do not
+#'   count. Arithmetic inside `I()` is not treated as a formula interaction.
+#' @keywords internal
+formula_has_interaction <- function(formula, variable) {
+    model_terms <- stats::terms(formula)
+    assert_that(assertthat::is.string(variable))
+
+    interaction_terms <- attr(model_terms, "order") > 1
+    if (!any(interaction_terms)) {
+        return(FALSE)
+    }
+
+    # Each row of the factors matrix corresponds to a model variable expression.
+    # Inspect the expressions to also recognise variables inside transformations.
+    expressions <- as.list(attr(model_terms, "variables"))[-1L]
+    involves_variable <- vapply(
+        expressions,
+        function(x) variable %in% all.vars(x),
+        logical(1)
+    )
+    term_factors <- attr(model_terms, "factors")
+    any(term_factors[involves_variable, interaction_terms, drop = FALSE] > 0)
+}
+
+
 #' Expand `data.frame` into a design matrix
 #'
 #' Expands out a `data.frame` using a formula to create a design matrix.

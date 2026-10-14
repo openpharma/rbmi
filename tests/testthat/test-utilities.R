@@ -71,6 +71,37 @@ test_that("as_simple_formula", {
 })
 
 
+test_that("formula_has_interaction recognises expanded interaction terms", {
+    expect_true(formula_has_interaction(y ~ arm * sex, "arm"))
+    expect_true(formula_has_interaction(y ~ sex:arm, "arm"))
+    expect_true(formula_has_interaction(y ~ arm:sex:age, "arm"))
+    expect_true(formula_has_interaction(y ~ (arm + sex + age)^2, "arm"))
+    expect_true(formula_has_interaction(y ~ arm / sex, "arm"))
+    expect_true(formula_has_interaction(~ arm * age, "arm"))
+})
+
+
+test_that("formula_has_interaction ignores main effects and unrelated interactions", {
+    expect_false(formula_has_interaction(y ~ arm + age, "arm"))
+    expect_false(formula_has_interaction(y ~ arm + sex * age, "arm"))
+    expect_false(formula_has_interaction(y ~ arm_other * sex, "arm"))
+    expect_false(formula_has_interaction(y ~ sex * age, "arm"))
+    expect_false(formula_has_interaction(arm ~ sex * age, "arm"))
+    expect_false(formula_has_interaction(y ~ arm * sex - arm:sex, "arm"))
+    expect_false(formula_has_interaction(y ~ 1, "arm"))
+    expect_false(formula_has_interaction(y ~ 0, "arm"))
+})
+
+
+test_that("formula_has_interaction handles transformations and non-syntactic names", {
+    expect_true(formula_has_interaction(y ~ factor(arm) * age, "arm"))
+    expect_true(formula_has_interaction(y ~ arm * I(age^2), "arm"))
+    expect_true(formula_has_interaction(y ~ `treatment arm` * age, "treatment arm"))
+    expect_false(formula_has_interaction(y ~ arm + I(age^2), "arm"))
+    expect_false(formula_has_interaction(y ~ I(arm * age), "arm"))
+})
+
+
 test_that("sample_mvnorm", {
     # Sample singe value
     set.seed(3516)
