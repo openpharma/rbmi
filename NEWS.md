@@ -1,4 +1,4 @@
-# rbmi (development version)
+# rbmi 1.7.0
 
 ## New Features
 
@@ -20,13 +20,11 @@
   columns when the analysis was performed with `ancova()`. The existing `parameter` column
   is retained for backwards compatibility. (#520)
 
-
 ## Bug Fixes
 
 * `ancova()` now rejects interactions involving the treatment group in
   `vars$covariates`, avoiding treatment contrasts that depend on the reference
   values of interacting covariates.
-
 
 # rbmi 1.6.1
 
