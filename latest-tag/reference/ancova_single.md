@@ -12,7 +12,8 @@ ancova_single(
   outcome,
   group,
   covariates,
-  weights = c("counterfactual", "equal", "proportional_em", "proportional")
+  weights = c("counterfactual", "equal", "proportional_em", "proportional"),
+  group_contrasts = NULL
 )
 ```
 
@@ -42,11 +43,31 @@ ancova_single(
   strategy to be used when calculating the lsmeans. See the weighting
   section for more details.
 
+- group_contrasts:
+
+  Optional list specifying bespoke treatment-group contrasts. See
+  [`set_vars()`](https://openpharma.github.io/rbmi/reference/set_vars.md)
+  and
+  [`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md)
+  for details. If `NULL` (default) a contrast of each non-reference
+  group versus the reference group is calculated.
+
 ## Details
 
-- `group` must be a factor variable with only 2 levels.
+- `group` must be a factor variable with two or more levels, all of
+  which must be observed in the data.
 
 - `outcome` must be a continuous numeric variable.
+
+The group levels are mapped to a fixed set of labels (`ref`, `alt`,
+`alt2`, ...) based on the factor level ordering; see
+[`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md) for
+the resulting naming scheme.
+
+## Reserved Variable Names
+
+This function uses `"rbmiGroup"` as an internal variable name. If your
+dataset contains a variable with this name, the function will error.
 
 ## Weighting
 

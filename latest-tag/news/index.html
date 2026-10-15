@@ -28,7 +28,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">rbmi</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -55,6 +55,7 @@
     <div class="dropdown-menu" aria-labelledby="dropdown-versions">
     <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/main">main</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/latest-tag">latest-tag</a>
+<a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.7.0">v1.7.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.1">v1.6.1</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.0">v1.6.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.5.2">v1.5.2</a>
@@ -81,9 +82,31 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/openpharma/rbmi/blob/v1.6.1/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/openpharma/rbmi/blob/v1.7.0/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.7.0" id="rbmi-170">rbmi 1.7.0<a class="anchor" aria-label="anchor" href="#rbmi-170"></a>
+</h2>
+<div class="section level3">
+<h3 id="new-features-1-7-0">New Features<a class="anchor" aria-label="anchor" href="#new-features-1-7-0"></a>
+</h3>
+<ul>
+<li>
+<code><a href="../reference/pool.html">pool()</a></code> gains a <code>rubin_df_method</code> argument. The default <code>"barnard-rubin"</code> uses the Barnard-Rubin small-sample degrees-of-freedom adjustment, while <code>"rubin"</code> uses the original approximation from Rubin (1987). (<a href="https://github.com/openpharma/rbmi/issues/587" class="external-link">#587</a>)</li>
+<li>
+<code><a href="../reference/ancova.html">ancova()</a></code> now supports the analysis of two or more treatment groups. For more than two groups the <code>ref</code> / <code>alt</code> naming scheme is extended with <code>alt2</code>, <code>alt3</code>, etc. based on the factor levels of <code>vars$group</code>; the two-group output is unchanged (<code>trt</code>, <code>lsm_ref</code>, <code>lsm_alt</code>) for backwards compatibility. <code><a href="../reference/set_vars.html">set_vars()</a></code> gained a <code>group_contrasts</code> argument allowing users to specify a bespoke set of treatment-group contrasts for <code><a href="../reference/ancova.html">ancova()</a></code>. By default a contrast of each non-reference group versus the reference group is estimated. Custom contrasts must be named (the name becomes the output <code>parameter</code> name) and may be given as pairwise <code>c(minuend, subtrahend)</code> character vectors or as general named numeric weight vectors over the group levels (e.g. <code>c(Placebo = -1, A = 0.5, B = 0.5)</code> for a pooled comparison); contrasts are evaluated in a contrast-coding-agnostic way. The <code>data.frame</code> produced by <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> / <code><a href="../reference/pool.html">pool()</a></code> now includes explicit <code>estimate_type</code>, <code>group</code>, <code>group_level_1</code>, <code>group_level_2</code>, <code>contrast_label</code> and <code>visit</code> columns when the analysis was performed with <code><a href="../reference/ancova.html">ancova()</a></code>. The existing <code>parameter</code> column is retained for backwards compatibility. (<a href="https://github.com/openpharma/rbmi/issues/520" class="external-link">#520</a>)</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="bug-fixes-1-7-0">Bug Fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-1-7-0"></a>
+</h3>
+<ul>
+<li>
+<code><a href="../reference/ancova.html">ancova()</a></code> now rejects interactions involving the treatment group in <code>vars$covariates</code>, avoiding treatment contrasts that depend on the reference values of interacting covariates. (<a href="https://github.com/openpharma/rbmi/issues/595" class="external-link">#595</a>)</li>
+</ul>
+</div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.6.1" id="rbmi-161">rbmi 1.6.1<a class="anchor" aria-label="anchor" href="#rbmi-161"></a>
 </h2>

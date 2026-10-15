@@ -32,7 +32,7 @@ that are provided as input arguments to draws() and ancova().">
 
     <a class="navbar-brand me-2" href="../index.html">rbmi</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -59,6 +59,7 @@ that are provided as input arguments to draws() and ancova().">
     <div class="dropdown-menu" aria-labelledby="dropdown-versions">
     <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/main">main</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/latest-tag">latest-tag</a>
+<a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.7.0">v1.7.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.1">v1.6.1</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.0">v1.6.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.5.2">v1.5.2</a>
@@ -85,7 +86,7 @@ that are provided as input arguments to draws() and ancova().">
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Set key variables</h1>
-      <small class="dont-index">Source: <a href="https://github.com/openpharma/rbmi/blob/v1.6.1/R/utilities.R" class="external-link"><code>R/utilities.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/openpharma/rbmi/blob/v1.7.0/R/utilities.R" class="external-link"><code>R/utilities.R</code></a></small>
       <div class="d-none name"><code>set_vars.Rd</code></div>
     </div>
 
@@ -104,7 +105,8 @@ that are provided as input arguments to <code><a href="draws.html">draws()</a></
 <span>  group <span class="op">=</span> <span class="st">"group"</span>,</span>
 <span>  covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
 <span>  strata <span class="op">=</span> <span class="va">group</span>,</span>
-<span>  strategy <span class="op">=</span> <span class="st">"strategy"</span></span>
+<span>  strategy <span class="op">=</span> <span class="st">"strategy"</span>,</span>
+<span>  group_contrasts <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -150,6 +152,24 @@ sampling. See details.</p></dd>
 </dt>
 <dd><p>The name of the "strategy" variable. A length 1 character vector.</p></dd>
 
+
+<dt id="arg-group-contrasts">group_contrasts<a class="anchor" aria-label="anchor" href="#arg-group-contrasts"></a>
+</dt>
+<dd>
+<p>Optional specification of the treatment-group contrasts to be
+estimated by <code><a href="ancova.html">ancova()</a></code>. Either <code>NULL</code> (the default) or a fully named list whose
+elements are one of:</p>
+<ul>
+<li><p>a length-2 character vector <code>c(minuend, subtrahend)</code> giving a pairwise contrast
+<code>minuend - subtrahend</code> between two levels of <code>group</code>; or</p></li>
+<li><p>a numeric weight vector over the group levels (summing to zero), either named by
+the levels of <code>group</code> (unlisted levels default to <code>0</code>) or of the same length as the
+number of levels (in factor order).</p></li>
+</ul>
+<p>Each element must be named; the name is used as the output <code>parameter</code> name (and must
+not start with <code>lsm_</code>, which is reserved for the least-squares means). See details.</p>
+</dd>
+
 </dl>
 </div>
     <div class="section level2">
@@ -168,6 +188,17 @@ which variables should be included in the imputation and analysis models respect
 to include interaction terms these need to be manually specified i.e.
 <code>covariates = c("group*visit", "age*sex")</code>. Please note that the use of the <code><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I()</a></code> function to
 inhibit the interpretation/conversion of objects is not supported.</p>
+<p>The <code>group_contrasts</code> argument is only used by <code><a href="ancova.html">ancova()</a></code>. If <code>NULL</code> (default) a
+treatment effect is estimated for every non-reference group versus the reference group
+(the first factor level of <code>group</code>). Alternatively a bespoke set of contrasts can be
+requested. Pairwise contrasts are given as length-2 character vectors, e.g.
+<code>group_contrasts = list(c("A", "Placebo"), c("B", "Placebo"))</code> requests the contrasts
+<code>A - Placebo</code> and <code>B - Placebo</code>. More general linear contrasts are given as named
+numeric weight vectors over the group levels, e.g.
+<code>group_contrasts = list(pooled_vs_pbo = c(Placebo = -1, A = 0.5, B = 0.5))</code> contrasts
+the average of <code>A</code> and <code>B</code> against <code>Placebo</code>. List names are carried through to the
+<code>contrast_label</code> column of the <code><a href="pool.html">pool()</a></code> output; weight-vector contrasts must be named.
+See <code><a href="ancova.html">ancova()</a></code> for the resulting <code>parameter</code> naming scheme.</p>
 <p>Currently <code>strata</code> is only used by <code><a href="draws.html">draws()</a></code> in combination with <code>method_condmean(type = "bootstrap")</code>
 and <code><a href="method.html">method_approxbayes()</a></code> in order to allow for the specification of stratified bootstrap sampling.
 By default <code>strata</code> is set equal to the value of <code>group</code> as it is assumed most users will want to

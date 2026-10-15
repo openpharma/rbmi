@@ -18,11 +18,11 @@
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Analysis of Covariance — ancova">
-<meta name="description" content='Performs an analysis of covariance between two groups returning the estimated
-"treatment effect" (i.e. the contrast between the two treatment groups) and
+<meta name="description" content='Performs an analysis of covariance between two or more treatment groups returning the
+estimated "treatment effect" (i.e. the contrast between treatment groups) and
 the least square means estimates in each group.'>
-<meta property="og:description" content='Performs an analysis of covariance between two groups returning the estimated
-"treatment effect" (i.e. the contrast between the two treatment groups) and
+<meta property="og:description" content='Performs an analysis of covariance between two or more treatment groups returning the
+estimated "treatment effect" (i.e. the contrast between treatment groups) and
 the least square means estimates in each group.'>
 <meta property="og:image" content="https://openpharma.github.io/rbmi/logo.png">
 </head>
@@ -34,7 +34,7 @@ the least square means estimates in each group.'>
 
     <a class="navbar-brand me-2" href="../index.html">rbmi</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -61,6 +61,7 @@ the least square means estimates in each group.'>
     <div class="dropdown-menu" aria-labelledby="dropdown-versions">
     <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/main">main</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/latest-tag">latest-tag</a>
+<a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.7.0">v1.7.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.1">v1.6.1</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.0">v1.6.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.5.2">v1.5.2</a>
@@ -87,13 +88,13 @@ the least square means estimates in each group.'>
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Analysis of Covariance</h1>
-      <small class="dont-index">Source: <a href="https://github.com/openpharma/rbmi/blob/v1.6.1/R/ancova.R" class="external-link"><code>R/ancova.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/openpharma/rbmi/blob/v1.7.0/R/ancova.R" class="external-link"><code>R/ancova.R</code></a></small>
       <div class="d-none name"><code>ancova.Rd</code></div>
     </div>
 
     <div class="ref-description section level2">
-    <p>Performs an analysis of covariance between two groups returning the estimated
-"treatment effect" (i.e. the contrast between the two treatment groups) and
+    <p>Performs an analysis of covariance between two or more treatment groups returning the
+estimated "treatment effect" (i.e. the contrast between treatment groups) and
 the least square means estimates in each group.</p>
     </div>
 
@@ -145,11 +146,20 @@ See the weighting section for more details.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a>
 </h2>
-    <p>A named list with one set of entries per visit. For each visit the list
-contains the estimated treatment effect (<code>trt_&lt;visit&gt;</code>) and the least square
-means for the reference and alternative groups (<code>lsm_ref_&lt;visit&gt;</code> and
-<code>lsm_alt_&lt;visit&gt;</code>). Each of these elements is itself a list holding the
-estimate (<code>est</code>), standard error (<code>se</code>) and degrees of freedom (<code>df</code>).</p>
+    <p>A named list with one set of entries per visit, each suffixed by the visit name.
+For each visit the list contains:</p>
+<ul>
+<li><p>the estimated treatment effect(s). For the default (<code>group_contrasts = NULL</code>) these
+are <code>trt_&lt;visit&gt;</code> for the <code>alt</code> vs <code>ref</code> comparison and <code>trt_alt2_&lt;visit&gt;</code>,
+<code>trt_alt3_&lt;visit&gt;</code>, ... for further non-reference groups versus the reference group.
+When <code>group_contrasts</code> is supplied each contrast is named <code>&lt;name&gt;_&lt;visit&gt;</code> using the
+list name given for that contrast. Also</p></li>
+<li><p>the least square means for each group (<code>lsm_ref_&lt;visit&gt;</code>, <code>lsm_alt_&lt;visit&gt;</code>,
+<code>lsm_alt2_&lt;visit&gt;</code>, ...).</p></li>
+</ul>
+<p>For the common case of two groups this reduces to <code>trt_&lt;visit&gt;</code>, <code>lsm_ref_&lt;visit&gt;</code>
+and <code>lsm_alt_&lt;visit&gt;</code>. Each of these elements is itself a list holding the estimate
+(<code>est</code>), standard error (<code>se</code>) and degrees of freedom (<code>df</code>).</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a>
@@ -179,12 +189,39 @@ into a single list suffixed by the visit name, e.g.:</p>
 <span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>)</span></code></pre>
 <p></p>
 </div>
-<p>Please note that <code>ref</code> refers to the first factor level of <code>vars$group</code> which does not necessarily
-coincide with the control arm. Analogously, <code>alt</code> refers to the second factor level of <code>vars$group</code>.
-<code>trt</code> refers to the model contrast translating the mean difference between the second level and first level.</p>
+<p><code>ancova()</code> supports two or more treatment groups. The group levels are referred to
+via a fixed naming scheme derived from the factor levels of <code>vars$group</code>: <code>ref</code> is the
+first factor level, <code>alt</code> the second, <code>alt2</code> the third, <code>alt3</code> the fourth, and so on.
+Note that <code>ref</code> does not necessarily coincide with the control arm; it is simply the
+first factor level.</p>
+<p>The least square means for each group are returned as <code>lsm_ref</code>, <code>lsm_alt</code>, <code>lsm_alt2</code>,
+etc. Treatment effects (model contrasts) are returned as <code>trt</code> for the <code>alt</code> vs <code>ref</code>
+comparison, <code>trt_alt2</code> for <code>alt2</code> vs <code>ref</code>, and so on. For the common case of two groups
+this reduces to the original <code>trt</code>, <code>lsm_ref</code> and <code>lsm_alt</code> naming, ensuring backwards
+compatibility.</p>
+<p>By default a treatment effect is calculated for every non-reference group versus the
+reference group, using the <code>trt</code> / <code>trt_alt2</code> / ... names described above. Alternatively
+a bespoke set of contrasts can be requested via the <code>group_contrasts</code> argument of
+<code><a href="set_vars.html">set_vars()</a></code>; see its documentation for details. Such contrasts must be named, and the
+supplied name is used as the <code>parameter</code> name and carried through to the
+<code>contrast_label</code> column of the <code><a href="pool.html">pool()</a></code> output. Contrasts may be pairwise (a length-2
+<code>c(minuend, subtrahend)</code> character vector) or general linear contrasts (a named numeric
+weight vector over the group levels).</p>
 <p>If you want to include interaction terms in your model this can be done
 by providing them to the <code>covariates</code> argument of <code><a href="set_vars.html">set_vars()</a></code>
-e.g. <code>set_vars(covariates = c("sex*age"))</code>.</p>
+e.g. <code>set_vars(covariates = c("sex*age"))</code>. Interactions involving the treatment
+group (<code>vars$group</code>) are not supported and will result in an error, because the
+treatment contrasts would depend on the reference values of the interacting
+covariates.</p>
+<p>Note that the treatment effects (<code>trt</code>, <code>trt_alt2</code>, ...) are the relevant linear
+combinations of the group main-effect coefficients. The least square means (<code>lsm_*</code>)
+are computed according to the requested <code>weights</code>.</p>
+<p>For treatment contrasts, numeric covariates are set to their observed means
+within each visit, excluding missing values, before formula transformations
+are applied (e.g. <code>log(mean(age, na.rm = TRUE))</code> for <code>log(age)</code>). Factor
+covariates are set to their first level and logical covariates to <code>FALSE</code>.
+With treatment-group interactions excluded, these reference values do not
+affect the treatment contrasts, provided the transformed values are finite.</p>
     </div>
     <div class="section level2">
     <h2 id="weighting">Weighting<a class="anchor" aria-label="anchor" href="#weighting"></a>
@@ -320,6 +357,52 @@ for <code>weights = "counterfactual"</code>.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 97</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"rbmi_par_meta")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         parameter estimate_type group group_level_1 group_level_2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1     trt_visit_1      contrast group  Intervention       Control</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 lsm_ref_visit_1           lsm group       Control          &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 lsm_alt_visit_1           lsm group  Intervention          &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   contrast_label   visit</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1           &lt;NA&gt; visit_1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2           &lt;NA&gt; visit_1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3           &lt;NA&gt; visit_1</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Multi-arm ANCOVA with a bespoke, named set of contrasts. With three groups</span></span></span>
+<span class="r-in"><span><span class="co"># the default would compare each active arm against the reference ("Placebo");</span></span></span>
+<span class="r-in"><span><span class="co"># here we additionally request the "High" vs "Low" contrast. Explicit contrasts</span></span></span>
+<span class="r-in"><span><span class="co"># must be named, and the names become the output parameter names.</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">102</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">dat3</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>    visit <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="st">"visit_1"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    group <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>        <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Placebo"</span>, <span class="st">"Low"</span>, <span class="st">"High"</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">50</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>        levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Placebo"</span>, <span class="st">"Low"</span>, <span class="st">"High"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>    <span class="op">)</span>,</span></span>
+<span class="r-in"><span>    basval <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">150</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">dat3</span><span class="op">$</span><span class="va">outcome</span> <span class="op">&lt;-</span> <span class="fl">5</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>    <span class="fl">2</span> <span class="op">*</span> <span class="op">(</span><span class="va">dat3</span><span class="op">$</span><span class="va">group</span> <span class="op">==</span> <span class="st">"Low"</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>    <span class="fl">4</span> <span class="op">*</span> <span class="op">(</span><span class="va">dat3</span><span class="op">$</span><span class="va">group</span> <span class="op">==</span> <span class="st">"High"</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>    <span class="va">dat3</span><span class="op">$</span><span class="va">basval</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">150</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">vars3</span> <span class="op">&lt;-</span> <span class="fu"><a href="set_vars.html">set_vars</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>    outcome <span class="op">=</span> <span class="st">"outcome"</span>,</span></span>
+<span class="r-in"><span>    group <span class="op">=</span> <span class="st">"group"</span>,</span></span>
+<span class="r-in"><span>    visit <span class="op">=</span> <span class="st">"visit"</span>,</span></span>
+<span class="r-in"><span>    covariates <span class="op">=</span> <span class="st">"basval"</span>,</span></span>
+<span class="r-in"><span>    group_contrasts <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>        low_vs_pbo  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Low"</span>, <span class="st">"Placebo"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>        high_vs_pbo <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"High"</span>, <span class="st">"Placebo"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>        high_vs_low <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"High"</span>, <span class="st">"Low"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>    <span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Output names: `low_vs_pbo`, `high_vs_pbo`, `high_vs_low`, plus</span></span></span>
+<span class="r-in"><span><span class="co"># `lsm_ref` / `lsm_alt` / `lsm_alt2`.</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu">ancova</span><span class="op">(</span><span class="va">dat3</span>, <span class="va">vars3</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "low_vs_pbo_visit_1"  "high_vs_pbo_visit_1" "high_vs_low_visit_1"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [4] "lsm_ref_visit_1"     "lsm_alt_visit_1"     "lsm_alt2_visit_1"   </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

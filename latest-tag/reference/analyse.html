@@ -34,7 +34,7 @@ each of them.">
 
     <a class="navbar-brand me-2" href="../index.html">rbmi</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -61,6 +61,7 @@ each of them.">
     <div class="dropdown-menu" aria-labelledby="dropdown-versions">
     <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/main">main</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/latest-tag">latest-tag</a>
+<a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.7.0">v1.7.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.1">v1.6.1</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.0">v1.6.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.5.2">v1.5.2</a>
@@ -87,7 +88,7 @@ each of them.">
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Analyse Multiple Imputed Datasets</h1>
-      <small class="dont-index">Source: <a href="https://github.com/openpharma/rbmi/blob/v1.6.1/R/analyse.R" class="external-link"><code>R/analyse.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/openpharma/rbmi/blob/v1.7.0/R/analyse.R" class="external-link"><code>R/analyse.R</code></a></small>
       <div class="d-none name"><code>analyse.Rd</code></div>
     </div>
 
@@ -214,6 +215,10 @@ Please also note that the theoretical justification for the conditional mean imp
 method (<code>method = method_condmean()</code> in <code><a href="draws.html">draws()</a></code>) relies on the fact that ANCOVA is
 a linear transformation of the outcomes.
 Thus care is required when applying alternative analysis functions in this setting.</p>
+<p>Note that <code><a href="ancova.html">ancova()</a></code> supports the analysis of two or more treatment arms; for more than
+two arms it extends the <code>ref</code> / <code>alt</code> naming scheme with <code>alt2</code>, <code>alt3</code>, etc. The set of
+treatment-group contrasts to estimate can be customised via the <code>group_contrasts</code>
+argument of <code><a href="set_vars.html">set_vars()</a></code>. See <code><a href="ancova.html">ancova()</a></code> for full details.</p>
 <p>The <code>delta</code> argument can be used to specify offsets to be applied
 to the outcome variable in the imputed datasets prior to the analysis.
 This is typically used for sensitivity or tipping point analyses. The

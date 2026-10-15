@@ -30,7 +30,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">rbmi</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -57,6 +57,7 @@
     <div class="dropdown-menu" aria-labelledby="dropdown-versions">
     <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/main">main</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/latest-tag">latest-tag</a>
+<a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.7.0">v1.7.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.1">v1.6.1</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.0">v1.6.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.5.2">v1.5.2</a>
@@ -83,7 +84,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Combine estimates using Rubin's rules</h1>
-      <small class="dont-index">Source: <a href="https://github.com/openpharma/rbmi/blob/v1.6.1/R/pool.R" class="external-link"><code>R/pool.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/openpharma/rbmi/blob/v1.7.0/R/pool.R" class="external-link"><code>R/pool.R</code></a></small>
       <div class="d-none name"><code>rubin_rules.Rd</code></div>
     </div>
 
@@ -94,7 +95,7 @@
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a>
 </h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">rubin_rules</span><span class="op">(</span><span class="va">ests</span>, <span class="va">ses</span>, <span class="va">v_com</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">rubin_rules</span><span class="op">(</span><span class="va">ests</span>, <span class="va">ses</span>, <span class="va">v_com</span>, <span class="va">method</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -117,6 +118,13 @@
 </dt>
 <dd><p>Positive number representing the degrees of freedom in the complete-data analysis.</p></dd>
 
+
+<dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a>
+</dt>
+<dd><p>Degrees-of-freedom approximation to use: <code>"barnard-rubin"</code> applies
+the Barnard-Rubin (1999) small-sample adjustment and <code>"rubin"</code> applies
+Rubin's (1987) original approximation.</p></dd>
+
 </dl>
 </div>
     <div class="section level2">
@@ -126,7 +134,7 @@
 <ul>
 <li><p><code>est_point</code>: the pooled point estimate according to Little-Rubin (2002).</p></li>
 <li><p><code>var_t</code>: total variance according to Little-Rubin (2002).</p></li>
-<li><p><code>df</code>: degrees of freedom according to Barnard-Rubin (1999).</p></li>
+<li><p><code>df</code>: degrees of freedom according to the selected <code>method</code>.</p></li>
 </ul>
 </div>
     <div class="section level2">
@@ -137,8 +145,8 @@ the results from a multiple imputation procedure. The pooled point estimate <cod
 is the average across the point estimates from the complete-data analyses (given by the input argument <code>ests</code>).
 The total variance <code>var_t</code> is the sum of two terms representing the within-variance
 and the between-variance (see Little-Rubin (2002)). The function
-also returns <code>df</code>, the estimated pooled degrees of freedom according to Barnard-Rubin (1999)
-that can be used for inference based on the t-distribution.</p>
+also returns <code>df</code>, the estimated pooled degrees of freedom according to the
+selected <code>method</code>, which can be used for inference based on the t-distribution.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
@@ -147,6 +155,8 @@ that can be used for inference based on the t-distribution.</p>
 Small sample degrees of freedom with multiple imputation. Biometrika, 86, 948-955</p>
 <p>Roderick J. A. Little and Donald B. Rubin. Statistical Analysis with Missing
 Data, Second Edition. John Wiley &amp; Sons, Hoboken, New Jersey, 2002. [Section 5.4]</p>
+<p>Rubin, D.B. (1987). Multiple Imputation for Nonresponse in Surveys.
+John Wiley &amp; Sons, New York. [Section 3.3]</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a>

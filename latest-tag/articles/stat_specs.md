@@ -831,16 +831,28 @@ Confidence intervals and tests of the null hypothesis \\H_0:
 
 \\ T= (\hat{\theta}-\theta_0)/\sqrt{V(\hat{\theta})}. \\ Under the null
 hypothesis, \\T\\ has an approximate \\t\\-distribution with \\\nu\\
-degrees of freedom. \\\nu\\ is calculated according to the Barnard and
-Rubin approximation, see Barnard and Rubin ([1999](#ref-Barnard1999))
-(formula 3) or Little and Rubin ([2002](#ref-LittleRubin1992)) (formula
-(5.24), page 87):
+degrees of freedom. By default,
+`pool(rubin_df_method = "barnard-rubin")` calculates \\\nu\\ according
+to the Barnard and Rubin approximation, see Barnard and Rubin
+([1999](#ref-Barnard1999)) (formula 3) or Little and Rubin
+([2002](#ref-LittleRubin1992)) (formula (5.24), page 87):
 
 \\ \nu = \frac{\nu\_{old}\* \nu\_{obs}}{\nu\_{old} + \nu\_{obs}} \\ with
 \\ \nu\_{old} = \frac{M-1}{\lambda^2} \quad\mbox{and}\quad \nu\_{obs} =
 \frac{\nu\_{com} + 1}{\nu\_{com} + 3} \nu\_{com} (1 - \lambda) \\ where
 \\\lambda = \frac{(1 + \frac{1}{M})V_B(\hat{\theta})}{V(\hat{\theta})}\\
 is the fraction of missing information.
+
+Alternatively, `pool(rubin_df_method = "rubin")` uses the original
+degrees-of-freedom approximation from Rubin ([1987](#ref-Rubin1987))
+(equation 3.1.6): \\ \nu = (M - 1)\left(1 + \frac{1}{r}\right)^2, \\
+where \\ r = \frac{(1 +
+\frac{1}{M})V_B(\hat{\theta})}{V_W(\hat{\theta})} \\ is the relative
+increase in variance due to nonresponse. Unlike the Barnard and Rubin
+approximation, the original approximation does not account for the
+complete-data degrees of freedom \\\nu\_{com}\\ and can therefore give
+overly large degrees of freedom in small samples. Both approximations
+give \\\nu=\infty\\ when \\V_B(\hat{\theta})=0\\.
 
 #### 3.7.1 Monte Carlo standard error
 
@@ -1353,6 +1365,9 @@ Royston, Patrick, John B. Carlin, and Ian R. White. 2009. “Multiple
 Imputation of Missing Values: New Features for Mim.” *The Stata Journal*
 9 (2): 252–64.
 <https://journals.sagepub.com/doi/pdf/10.1177/1536867X0900900205>.
+
+Rubin, Donald B. 1987. *Multiple Imputation for Nonresponse in Surveys*.
+John Wiley & Sons.
 
 Stan Development Team. 2020. *RStan: The R Interface to Stan*.
 <https://mc-stan.org/>.

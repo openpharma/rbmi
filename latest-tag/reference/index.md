@@ -21,9 +21,6 @@
 - [`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md) :
   Analysis of Covariance
 
-- [`ancova_single()`](https://openpharma.github.io/rbmi/reference/ancova_single.md)
-  : Implements an Analysis of Covariance (ANCOVA)
-
 - [`antidepressant_data`](https://openpharma.github.io/rbmi/reference/antidepressant_data.md)
   : Antidepressant trial data
 
@@ -349,6 +346,9 @@
 
 - [`rubin_df()`](https://openpharma.github.io/rbmi/reference/rubin_df.md)
   : Barnard and Rubin degrees of freedom adjustment
+
+- [`rubin_orig_df()`](https://openpharma.github.io/rbmi/reference/rubin_orig_df.md)
+  : Original Rubin degrees of freedom approximation
 
 - [`rubin_rules()`](https://openpharma.github.io/rbmi/reference/rubin_rules.md)
   : Combine estimates using Rubin's rules

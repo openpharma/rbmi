@@ -27,7 +27,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">rbmi</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -54,6 +54,7 @@
     <div class="dropdown-menu" aria-labelledby="dropdown-versions">
     <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/main">main</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/latest-tag">latest-tag</a>
+<a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.7.0">v1.7.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.1">v1.6.1</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.0">v1.6.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.5.2">v1.5.2</a>
@@ -85,7 +86,7 @@
                         <h4 data-toc-skip class="author">Alessandro Noci, Craig Gower-Page, and Marcel Wolbers</h4>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/openpharma/rbmi/blob/v1.6.1/vignettes/stat_specs.Rmd" class="external-link"><code>vignettes/stat_specs.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/openpharma/rbmi/blob/v1.7.0/vignettes/stat_specs.Rmd" class="external-link"><code>vignettes/stat_specs.Rmd</code></a></small>
       <div class="d-none name"><code>stat_specs.Rmd</code></div>
     </div>
 
@@ -528,7 +529,7 @@ V(\hat{\theta}) = V_W(\hat{\theta}) + (1 + \frac{1}{M}) V_B(\hat{\theta})
 where <span class="math inline">\(V_W(\hat{\theta}) = \frac{1}{M}\sum_{m = 1}^M SE^2_m\)</span> is the within-variance and <span class="math inline">\(V_B(\hat{\theta}) = \frac{1}{M-1} \sum_{m = 1}^M (\hat{\theta}_m - \hat{\theta})^2\)</span> is the between-variance.</p>
 <p>Confidence intervals and tests of the null hypothesis <span class="math inline">\(H_0: \theta=\theta_0\)</span> are based on the <span class="math inline">\(t\)</span>-statistics <span class="math inline">\(T\)</span>:</p>
 <p><span class="math display">\[ T= (\hat{\theta}-\theta_0)/\sqrt{V(\hat{\theta})}. \]</span>
-Under the null hypothesis, <span class="math inline">\(T\)</span> has an approximate <span class="math inline">\(t\)</span>-distribution with <span class="math inline">\(\nu\)</span> degrees of freedom. <span class="math inline">\(\nu\)</span> is calculated according to the Barnard and Rubin approximation, see <span class="citation">Barnard and Rubin (<a href="#ref-Barnard1999">1999</a>)</span> (formula 3) or <span class="citation">Little and Rubin (<a href="#ref-LittleRubin1992">2002</a>)</span> (formula (5.24), page 87):</p>
+Under the null hypothesis, <span class="math inline">\(T\)</span> has an approximate <span class="math inline">\(t\)</span>-distribution with <span class="math inline">\(\nu\)</span> degrees of freedom. By default, <code>pool(rubin_df_method = "barnard-rubin")</code> calculates <span class="math inline">\(\nu\)</span> according to the Barnard and Rubin approximation, see <span class="citation">Barnard and Rubin (<a href="#ref-Barnard1999">1999</a>)</span> (formula 3) or <span class="citation">Little and Rubin (<a href="#ref-LittleRubin1992">2002</a>)</span> (formula (5.24), page 87):</p>
 <p><span class="math display">\[
 \nu = \frac{\nu_{old}* \nu_{obs}}{\nu_{old} + \nu_{obs}}
 \]</span>
@@ -537,6 +538,15 @@ with
 \nu_{old} = \frac{M-1}{\lambda^2} \quad\mbox{and}\quad \nu_{obs} = \frac{\nu_{com} + 1}{\nu_{com} + 3} \nu_{com} (1 - \lambda)
 \]</span>
 where <span class="math inline">\(\lambda = \frac{(1 + \frac{1}{M})V_B(\hat{\theta})}{V(\hat{\theta})}\)</span> is the fraction of missing information.</p>
+<p>Alternatively, <code>pool(rubin_df_method = "rubin")</code> uses the original degrees-of-freedom approximation from <span class="citation">Rubin (<a href="#ref-Rubin1987">1987</a>)</span> (equation 3.1.6):
+<span class="math display">\[
+\nu = (M - 1)\left(1 + \frac{1}{r}\right)^2,
+\]</span>
+where
+<span class="math display">\[
+r = \frac{(1 + \frac{1}{M})V_B(\hat{\theta})}{V_W(\hat{\theta})}
+\]</span>
+is the relative increase in variance due to nonresponse. Unlike the Barnard and Rubin approximation, the original approximation does not account for the complete-data degrees of freedom <span class="math inline">\(\nu_{com}\)</span> and can therefore give overly large degrees of freedom in small samples. Both approximations give <span class="math inline">\(\nu=\infty\)</span> when <span class="math inline">\(V_B(\hat{\theta})=0\)</span>.</p>
 <div class="section level4" number="3.7.1">
 <h4 id="monte-carlo-standard-error">
 <span class="header-section-number">3.7.1</span> Monte Carlo standard error<a class="anchor" aria-label="anchor" href="#monte-carlo-standard-error"></a>
@@ -772,6 +782,9 @@ Roger, James. 2021. <em>Reference-Based MI via Multivariate Normal RM (the <span
 </div>
 <div id="ref-Royston2009" class="csl-entry">
 Royston, Patrick, John B. Carlin, and Ian R. White. 2009. <span>“Multiple Imputation of Missing Values: New Features for Mim.”</span> <em>The Stata Journal</em> 9 (2): 252–64. <a href="https://journals.sagepub.com/doi/pdf/10.1177/1536867X0900900205" class="external-link">https://journals.sagepub.com/doi/pdf/10.1177/1536867X0900900205</a>.
+</div>
+<div id="ref-Rubin1987" class="csl-entry">
+Rubin, Donald B. 1987. <em>Multiple Imputation for Nonresponse in Surveys</em>. John Wiley &amp; Sons.
 </div>
 <div id="ref-Rstan" class="csl-entry">
 Stan Development Team. 2020. <em><span>RStan</span>: The <span>R</span> Interface to <span>Stan</span></em>. <a href="https://mc-stan.org/" class="external-link">https://mc-stan.org/</a>.

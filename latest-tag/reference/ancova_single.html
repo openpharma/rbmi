@@ -30,7 +30,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">rbmi</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -57,6 +57,7 @@
     <div class="dropdown-menu" aria-labelledby="dropdown-versions">
     <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/main">main</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/latest-tag">latest-tag</a>
+<a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.7.0">v1.7.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.1">v1.6.1</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.0">v1.6.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.5.2">v1.5.2</a>
@@ -83,7 +84,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Implements an Analysis of Covariance (ANCOVA)</h1>
-      <small class="dont-index">Source: <a href="https://github.com/openpharma/rbmi/blob/v1.6.1/R/ancova.R" class="external-link"><code>R/ancova.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/openpharma/rbmi/blob/v1.7.0/R/ancova.R" class="external-link"><code>R/ancova.R</code></a></small>
       <div class="d-none name"><code>ancova_single.Rd</code></div>
     </div>
 
@@ -99,7 +100,8 @@
 <span>  <span class="va">outcome</span>,</span>
 <span>  <span class="va">group</span>,</span>
 <span>  <span class="va">covariates</span>,</span>
-<span>  weights <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"counterfactual"</span>, <span class="st">"equal"</span>, <span class="st">"proportional_em"</span>, <span class="st">"proportional"</span><span class="op">)</span></span>
+<span>  weights <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"counterfactual"</span>, <span class="st">"equal"</span>, <span class="st">"proportional_em"</span>, <span class="st">"proportional"</span><span class="op">)</span>,</span>
+<span>  group_contrasts <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -137,6 +139,13 @@ to be included in the model as well as any interaction terms.</p></dd>
 Specifies the weighting strategy to be used when calculating the lsmeans.
 See the weighting section for more details.</p></dd>
 
+
+<dt id="arg-group-contrasts">group_contrasts<a class="anchor" aria-label="anchor" href="#arg-group-contrasts"></a>
+</dt>
+<dd><p>Optional list specifying bespoke treatment-group contrasts.
+See <code><a href="set_vars.html">set_vars()</a></code> and <code><a href="ancova.html">ancova()</a></code> for details. If <code>NULL</code> (default) a contrast of each
+non-reference group versus the reference group is calculated.</p></dd>
+
 </dl>
 </div>
     <div class="section level2">
@@ -144,10 +153,21 @@ See the weighting section for more details.</p></dd>
 </h2>
 
 <ul>
-<li><p><code>group</code> must be a factor variable with only 2 levels.</p></li>
+<li><p><code>group</code> must be a factor variable with two or more levels, all of which must be
+observed in the data.</p></li>
 <li><p><code>outcome</code> must be a continuous numeric variable.</p></li>
 </ul>
-</div>
+<p>The group levels are mapped to a fixed set of labels (<code>ref</code>, <code>alt</code>, <code>alt2</code>, ...) based
+on the factor level ordering; see <code><a href="ancova.html">ancova()</a></code> for the resulting naming scheme.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="reserved-variable-names">Reserved Variable Names<a class="anchor" aria-label="anchor" href="#reserved-variable-names"></a>
+</h2>
+
+
+<p>This function uses <code>"rbmiGroup"</code> as an internal variable name. If your dataset
+contains a variable with this name, the function will error.</p>
+    </div>
     <div class="section level2">
     <h2 id="weighting">Weighting<a class="anchor" aria-label="anchor" href="#weighting"></a>
 </h2>

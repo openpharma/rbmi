@@ -27,7 +27,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">rbmi</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -54,6 +54,7 @@
     <div class="dropdown-menu" aria-labelledby="dropdown-versions">
     <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/main">main</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/latest-tag">latest-tag</a>
+<a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.7.0">v1.7.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.1">v1.6.1</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.0">v1.6.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.5.2">v1.5.2</a>
@@ -85,7 +86,7 @@
                         <h4 data-toc-skip class="author">Alessandro Noci, Craig Gower-Page and Marcel Wolbers</h4>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/openpharma/rbmi/blob/v1.6.1/vignettes/FAQ.Rmd" class="external-link"><code>vignettes/FAQ.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/openpharma/rbmi/blob/v1.7.0/vignettes/FAQ.Rmd" class="external-link"><code>vignettes/FAQ.Rmd</code></a></small>
       <div class="d-none name"><code>FAQ.Rmd</code></div>
     </div>
 
@@ -189,6 +190,58 @@ We expect that conditional mean imputation is also valid if a general MMRM model
 <span>    <span class="va">ancova_modified</span>,</span>
 <span>    vars <span class="op">=</span> <span class="va">vars</span></span>
 <span> <span class="op">)</span></span></code></pre></div>
+<p><br></p>
+</div>
+<div class="section level3" number="1.7">
+<h3 id="is-ancova-on-more-than-2-treatment-groups-supported">
+<span class="header-section-number">1.7</span> Is ANCOVA on more than 2 treatment groups supported?<a class="anchor" aria-label="anchor" href="#is-ancova-on-more-than-2-treatment-groups-supported"></a>
+</h3>
+<p>Yes. The default <code><a href="../reference/ancova.html">ancova()</a></code> function supports two or more treatment groups directly, so no
+special handling is required:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">anaObj</span> <span class="op">&lt;-</span> <span class="fu">rbmi</span><span class="fu">::</span><span class="fu"><a href="../reference/analyse.html">analyse</a></span><span class="op">(</span></span>
+<span>    <span class="va">imputeObj</span>,</span>
+<span>    vars <span class="op">=</span> <span class="va">vars</span></span>
+<span> <span class="op">)</span></span></code></pre></div>
+<p>For more than two groups the <code>ref</code> / <code>alt</code> naming scheme is extended with <code>alt2</code>, <code>alt3</code>,
+etc. (based on the factor levels of <code>vars$group</code>). By default a treatment effect is
+estimated for every non-reference group versus the reference group; the set of contrasts
+can be customised via the <code>group_contrasts</code> argument of <code><a href="../reference/set_vars.html">set_vars()</a></code>. Custom contrasts
+must be named, and the names become the output parameter names. For example, with three
+arms <code>"Placebo"</code>, <code>"Low"</code> and <code>"High"</code> you can request a bespoke set of pairwise
+contrasts:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">vars</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_vars.html">set_vars</a></span><span class="op">(</span></span>
+<span>    subjid <span class="op">=</span> <span class="st">"PATIENT"</span>,</span>
+<span>    visit <span class="op">=</span> <span class="st">"VISIT"</span>,</span>
+<span>    outcome <span class="op">=</span> <span class="st">"CHANGE"</span>,</span>
+<span>    group <span class="op">=</span> <span class="st">"THERAPY"</span>,</span>
+<span>    covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"BASVAL*VISIT"</span>, <span class="st">"THERAPY*VISIT"</span><span class="op">)</span>,</span>
+<span>    group_contrasts <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>        low_vs_pbo  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Low"</span>, <span class="st">"Placebo"</span><span class="op">)</span>,</span>
+<span>        high_vs_pbo <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"High"</span>, <span class="st">"Placebo"</span><span class="op">)</span>,</span>
+<span>        high_vs_low <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"High"</span>, <span class="st">"Low"</span><span class="op">)</span></span>
+<span>    <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">anaObj</span> <span class="op">&lt;-</span> <span class="fu">rbmi</span><span class="fu">::</span><span class="fu"><a href="../reference/analyse.html">analyse</a></span><span class="op">(</span><span class="va">imputeObj</span>, vars <span class="op">=</span> <span class="va">vars</span><span class="op">)</span></span></code></pre></div>
+<p>Contrasts are not restricted to pairwise comparisons. A contrast can also be given as a
+named numeric weight vector over the group levels (which must sum to zero), for example to
+compare the average of the two active arms against <code>"Placebo"</code>. The list name is used as
+the parameter name and is carried through to the <code>contrast_label</code> column of the <code><a href="../reference/pool.html">pool()</a></code>
+output:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">vars</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_vars.html">set_vars</a></span><span class="op">(</span></span>
+<span>    subjid <span class="op">=</span> <span class="st">"PATIENT"</span>,</span>
+<span>    visit <span class="op">=</span> <span class="st">"VISIT"</span>,</span>
+<span>    outcome <span class="op">=</span> <span class="st">"CHANGE"</span>,</span>
+<span>    group <span class="op">=</span> <span class="st">"THERAPY"</span>,</span>
+<span>    covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"BASVAL*VISIT"</span>, <span class="st">"THERAPY*VISIT"</span><span class="op">)</span>,</span>
+<span>    group_contrasts <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>        pooled_vs_pbo <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>Placebo <span class="op">=</span> <span class="op">-</span><span class="fl">1</span>, Low <span class="op">=</span> <span class="fl">0.5</span>, High <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
+<span>    <span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Please see the documentation for <code><a href="../reference/ancova.html">ancova()</a></code> and <code><a href="../reference/set_vars.html">set_vars()</a></code> for more details.</p>
 <p><br></p>
 <div id="refs" class="references csl-bib-body hanging-indent">
 <div id="ref-White2005" class="csl-entry">

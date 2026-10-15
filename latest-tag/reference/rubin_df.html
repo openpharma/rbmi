@@ -30,7 +30,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">rbmi</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -57,6 +57,7 @@
     <div class="dropdown-menu" aria-labelledby="dropdown-versions">
     <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/main">main</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/latest-tag">latest-tag</a>
+<a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.7.0">v1.7.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.1">v1.6.1</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.0">v1.6.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.5.2">v1.5.2</a>
@@ -83,7 +84,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Barnard and Rubin degrees of freedom adjustment</h1>
-      <small class="dont-index">Source: <a href="https://github.com/openpharma/rbmi/blob/v1.6.1/R/pool.R" class="external-link"><code>R/pool.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/openpharma/rbmi/blob/v1.7.0/R/pool.R" class="external-link"><code>R/pool.R</code></a></small>
       <div class="d-none name"><code>rubin_df.Rd</code></div>
     </div>
 
@@ -110,17 +111,17 @@
 
 <dt id="arg-var-b">var_b<a class="anchor" aria-label="anchor" href="#arg-var-b"></a>
 </dt>
-<dd><p>Between-variance of point estimate across multiply imputed datasets.</p></dd>
+<dd><p>Between-imputation sample variance of the point estimates across multiply imputed datasets.</p></dd>
 
 
 <dt id="arg-var-t">var_t<a class="anchor" aria-label="anchor" href="#arg-var-t"></a>
 </dt>
-<dd><p>Total-variance of point estimate according to Rubin's rules.</p></dd>
+<dd><p>Estimate (according to Rubin's rules) of the variance of the point estimates.</p></dd>
 
 
 <dt id="arg-m">M<a class="anchor" aria-label="anchor" href="#arg-m"></a>
 </dt>
-<dd><p>Number of imputations.</p></dd>
+<dd><p>Number of imputations (integer larger than 1).</p></dd>
 
 </dl>
 </div>

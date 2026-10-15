@@ -32,7 +32,7 @@ pool() for details.">
 
     <a class="navbar-brand me-2" href="../index.html">rbmi</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -59,6 +59,7 @@ pool() for details.">
     <div class="dropdown-menu" aria-labelledby="dropdown-versions">
     <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/main">main</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/latest-tag">latest-tag</a>
+<a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.7.0">v1.7.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.1">v1.6.1</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.6.0">v1.6.0</a>
 <a class="dropdown-item" data-toggle="tooltip" title="" href="https://openpharma.github.io/rbmi/v1.5.2">v1.5.2</a>
@@ -85,7 +86,7 @@ pool() for details.">
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Internal Pool Methods</h1>
-      <small class="dont-index">Source: <a href="https://github.com/openpharma/rbmi/blob/v1.6.1/R/pool.R" class="external-link"><code>R/pool.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/openpharma/rbmi/blob/v1.7.0/R/pool.R" class="external-link"><code>R/pool.R</code></a></small>
       <div class="d-none name"><code>pool_internal.Rd</code></div>
     </div>
 
@@ -97,10 +98,10 @@ pool() for details.">
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a>
 </h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">pool_internal</span><span class="op">(</span><span class="va">results</span>, <span class="va">conf.level</span>, <span class="va">alternative</span>, <span class="va">type</span>, <span class="va">D</span><span class="op">)</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">pool_internal</span><span class="op">(</span><span class="va">results</span>, <span class="va">conf.level</span>, <span class="va">alternative</span>, <span class="va">type</span>, <span class="va">D</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'jackknife'</span></span>
-<span><span class="fu">pool_internal</span><span class="op">(</span><span class="va">results</span>, <span class="va">conf.level</span>, <span class="va">alternative</span>, <span class="va">type</span>, <span class="va">D</span><span class="op">)</span></span>
+<span><span class="fu">pool_internal</span><span class="op">(</span><span class="va">results</span>, <span class="va">conf.level</span>, <span class="va">alternative</span>, <span class="va">type</span>, <span class="va">D</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'bootstrap'</span></span>
 <span><span class="fu">pool_internal</span><span class="op">(</span></span>
@@ -108,14 +109,15 @@ pool() for details.">
 <span>  <span class="va">conf.level</span>,</span>
 <span>  <span class="va">alternative</span>,</span>
 <span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"percentile"</span>, <span class="st">"normal"</span><span class="op">)</span>,</span>
-<span>  <span class="va">D</span></span>
+<span>  <span class="va">D</span>,</span>
+<span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'bmlmi'</span></span>
-<span><span class="fu">pool_internal</span><span class="op">(</span><span class="va">results</span>, <span class="va">conf.level</span>, <span class="va">alternative</span>, <span class="va">type</span>, <span class="va">D</span><span class="op">)</span></span>
+<span><span class="fu">pool_internal</span><span class="op">(</span><span class="va">results</span>, <span class="va">conf.level</span>, <span class="va">alternative</span>, <span class="va">type</span>, <span class="va">D</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'rubin'</span></span>
-<span><span class="fu">pool_internal</span><span class="op">(</span><span class="va">results</span>, <span class="va">conf.level</span>, <span class="va">alternative</span>, <span class="va">type</span>, <span class="va">D</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">pool_internal</span><span class="op">(</span><span class="va">results</span>, <span class="va">conf.level</span>, <span class="va">alternative</span>, <span class="va">type</span>, <span class="va">D</span>, <span class="va">rubin_df_method</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -154,6 +156,19 @@ in the original call to <code><a href="draws.html">draws()</a></code>.</p></dd>
 <dt id="arg-d">D<a class="anchor" aria-label="anchor" href="#arg-d"></a>
 </dt>
 <dd><p>numeric representing the number of imputations between each bootstrap sample in the BMLMI method.</p></dd>
+
+
+<dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a>
+</dt>
+<dd><p>not used.</p></dd>
+
+
+<dt id="arg-rubin-df-method">rubin_df_method<a class="anchor" aria-label="anchor" href="#arg-rubin-df-method"></a>
+</dt>
+<dd><p>a character string specifying the degrees-of-freedom
+approximation used when pooling with Rubin's rules. <code>"barnard-rubin"</code> (default)
+uses the Barnard-Rubin (1999) small-sample adjustment, while <code>"rubin"</code>
+uses the approximation from Rubin (1987). Ignored for other pooling methods.</p></dd>
 
 </dl>
 </div>
