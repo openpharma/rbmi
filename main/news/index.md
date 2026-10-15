@@ -1,6 +1,6 @@
 # Changelog
 
-## rbmi (development version)
+## rbmi 1.7.0
 
 ### New Features
 
@@ -8,6 +8,7 @@
   a `rubin_df_method` argument. The default `"barnard-rubin"` uses the
   Barnard-Rubin small-sample degrees-of-freedom adjustment, while
   `"rubin"` uses the original approximation from Rubin (1987).
+  ([\#587](https://github.com/openpharma/rbmi/issues/587))
 - [`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md)
   now supports the analysis of two or more treatment groups. For more
   than two groups the `ref` / `alt` naming scheme is extended with
@@ -42,6 +43,7 @@
   now rejects interactions involving the treatment group in
   `vars$covariates`, avoiding treatment contrasts that depend on the
   reference values of interacting covariates.
+  ([\#595](https://github.com/openpharma/rbmi/issues/595))
 
 ## rbmi 1.6.1
 
