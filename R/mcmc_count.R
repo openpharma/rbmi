@@ -99,6 +99,10 @@ prepare_stan_data_count <- function(
     subject_all <- match(as.character(subjid), subject_ids)
 
     ddat <- as.matrix(ddat[observed, , drop = FALSE])
+    assert_that(
+        qr(ddat)$rank == ncol(ddat),
+        msg = "The observed count design matrix must have full column rank"
+    )
     subjid_observed <- subject_all[observed]
     outcome <- outcome[observed]
     duration <- duration[observed]
