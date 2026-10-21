@@ -8,10 +8,16 @@ as_analysis(
   results,
   method,
   delta = NULL,
+<<<<<<< HEAD
   transform = NULL,
   fun = NULL,
   fun_name = NULL,
   outcome_type = c("continuous", "count")
+=======
+  fun = NULL,
+  fun_name = NULL,
+  par_meta = NULL
+>>>>>>> main
 )
 }
 \arguments{
@@ -31,7 +37,13 @@ should be specified.}
 \item{fun_name}{The character name of the analysis function (used for printing)
 purposes.}
 
+<<<<<<< HEAD
 \item{outcome_type}{The endpoint type used to produce the imputations.}
+=======
+\item{par_meta}{Optional \code{data.frame} of per-parameter metadata (e.g. the group
+levels and visit associated with each analysis parameter) as attached by the
+analysis function. May be \code{NULL}.}
+>>>>>>> main
 }
 \description{
 Creates an analysis object ensuring that all components are

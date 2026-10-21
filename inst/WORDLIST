@@ -6,13 +6,19 @@ BFMI
 BMLMI
 Biometrika
 Bove
+<<<<<<< HEAD
 CAMIS
+=======
+>>>>>>> main
 CMD
 CR
 Clin
 Cov
 Cro
+<<<<<<< HEAD
 DIA
+=======
+>>>>>>> main
 Delmar
 Demitrack
 Detke
@@ -29,29 +35,43 @@ Kenward
 LKJ
 LMCF
 LOCF
+<<<<<<< HEAD
 LSHTM
 Lukas
 MCSE
 MCSEs
 METREO
+=======
+Lukas
+MCSE
+>>>>>>> main
 MIWithD
 MMRM
 MNAR
 MSB
 MSW
 Mallinckrodt
+<<<<<<< HEAD
 Modeling
 NSDCR
 NegativeBinomial
 ORCID
 Poisson
+=======
+NSDCR
+Nonresponse
+ORCID
+>>>>>>> main
 Psychopharmacol
 Quickstart
 RCTs
 RM
 SDCR
 STS
+<<<<<<< HEAD
 SWG
+=======
+>>>>>>> main
 Sabanes
 ScaledInvChiSquare
 Stata
@@ -61,9 +81,13 @@ Un
 Unscales
 Wiltse
 Yiu
+<<<<<<< HEAD
 analyzed
 antedependence
 anymore
+=======
+antedependence
+>>>>>>> main
 bd
 bmatrix
 cdot
@@ -75,18 +99,26 @@ estimands
 etc
 frac
 geq
+<<<<<<< HEAD
 ij
 ik
+=======
+>>>>>>> main
 infty
 ldots
 lsmean
 lsmeans
 mathbb
 mbox
+<<<<<<< HEAD
 mepolizumab
 mim
 modeled
 modeling
+=======
+mim
+nonresponse
+>>>>>>> main
 obs
 pst
 quickstart
@@ -95,6 +127,9 @@ sim
 th
 tr
 treedepth
+<<<<<<< HEAD
 u
+=======
+>>>>>>> main
 un
 unimputed

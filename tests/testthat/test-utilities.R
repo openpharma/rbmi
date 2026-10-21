@@ -71,6 +71,37 @@ test_that("as_simple_formula", {
 })
 
 
+test_that("formula_has_interaction recognises expanded interaction terms", {
+    expect_true(formula_has_interaction(y ~ arm * sex, "arm"))
+    expect_true(formula_has_interaction(y ~ sex:arm, "arm"))
+    expect_true(formula_has_interaction(y ~ arm:sex:age, "arm"))
+    expect_true(formula_has_interaction(y ~ (arm + sex + age)^2, "arm"))
+    expect_true(formula_has_interaction(y ~ arm / sex, "arm"))
+    expect_true(formula_has_interaction(~ arm * age, "arm"))
+})
+
+
+test_that("formula_has_interaction ignores main effects and unrelated interactions", {
+    expect_false(formula_has_interaction(y ~ arm + age, "arm"))
+    expect_false(formula_has_interaction(y ~ arm + sex * age, "arm"))
+    expect_false(formula_has_interaction(y ~ arm_other * sex, "arm"))
+    expect_false(formula_has_interaction(y ~ sex * age, "arm"))
+    expect_false(formula_has_interaction(arm ~ sex * age, "arm"))
+    expect_false(formula_has_interaction(y ~ arm * sex - arm:sex, "arm"))
+    expect_false(formula_has_interaction(y ~ 1, "arm"))
+    expect_false(formula_has_interaction(y ~ 0, "arm"))
+})
+
+
+test_that("formula_has_interaction handles transformations and non-syntactic names", {
+    expect_true(formula_has_interaction(y ~ factor(arm) * age, "arm"))
+    expect_true(formula_has_interaction(y ~ arm * I(age^2), "arm"))
+    expect_true(formula_has_interaction(y ~ `treatment arm` * age, "treatment arm"))
+    expect_false(formula_has_interaction(y ~ arm + I(age^2), "arm"))
+    expect_false(formula_has_interaction(y ~ I(arm * age), "arm"))
+})
+
+
 test_that("sample_mvnorm", {
     # Sample singe value
     set.seed(3516)
@@ -381,4 +412,69 @@ test_that("get_stan_model works as expected depending on covariance and prior on
     # Remaining tests for non-default priors.
     model <- expect_silent(get_stan_model("us", "lkj"))
     expect_snapshot(model)
+})
+
+
+test_that("frm_find_and_replace works as expected", {
+    # Things being tested here include:
+    #   - Can change values on both sides of the formula
+    #   - Interactions e.g.  `*` and `:`
+    #   - No arg functions  k()
+    #   - 1-arg functions  h(z)
+    #   - 2-arg functions  f(z, z)
+    #   - Constants e.g. + 1
+    #   - Data modification functions  I(z^2)
+    #   - Name subset  e.g. zz doesn't get renamed (where we are searching for z)
+    frm <- x + z ~ 1 +
+        z +
+        a +
+        b +
+        zz +
+        z:a +
+        a * z +
+        a * b +
+        h(z) +
+        f(z, z) +
+        k() +
+        I(z^2)
+    actual <- frm_find_and_replace(frm, as.name("z"), as.name("P"))
+    expected <- x + P ~ 1 +
+        P +
+        a +
+        b +
+        zz +
+        P:a +
+        a * P +
+        a * b +
+        h(P) +
+        f(P, P) +
+        k() +
+        I(P^2)
+    environment(actual) <- globalenv()
+    environment(expected) <- globalenv()
+    expect_equal(actual, expected)
+
+    # Special names / special characters
+    frm <- ~ ` .. !abc & `:x - 1 * x
+    actual <- frm_find_and_replace(frm, as.name(" .. !abc & "), as.name("bob"))
+    expected <- ~ bob:x - 1 * x
+    environment(actual) <- globalenv()
+    environment(expected) <- globalenv()
+    expect_equal(actual, expected)
+
+
+    # Doesn't alter core functions that happen to have the same name as variables
+    frm <- x ~ a + log(b) + log(log) + log * log
+    actual <- frm_find_and_replace(frm, as.name("log"), as.name("bob"))
+    expected <- x ~ a + log(b) + log(bob) + bob * bob
+    environment(actual) <- globalenv()
+    environment(expected) <- globalenv()
+    expect_equal(actual, expected)
+
+    frm <- x ~ a + I(a^2) + I
+    actual <- frm_find_and_replace(frm, as.name("I"), as.name("bob"))
+    expected <- x ~ a + I(a^2) + bob
+    environment(actual) <- globalenv()
+    environment(expected) <- globalenv()
+    expect_equal(actual, expected)
 })
