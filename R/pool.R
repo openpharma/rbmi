@@ -533,8 +533,8 @@ pool_internal.rubin <- function(
     alternative,
     type,
     D,
-    rubin_df_method,
     outcome_type = "continuous",
+    rubin_df_method,
     ...
 ) {
     ests <- results$est

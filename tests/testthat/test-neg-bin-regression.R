@@ -133,7 +133,12 @@ test_that("negative binomial regression coefficients pool with normal inference"
             function(result) result[[coefficient]]$se,
             numeric(1)
         )
-        rubin <- rubin_rules(estimates, standard_errors, Inf)
+        rubin <- rubin_rules(
+            estimates,
+            standard_errors,
+            Inf,
+            method = "barnard-rubin"
+        )
         expected_se <- sqrt(rubin$var_t)
 
         expect_equal(observed$pars[[coefficient]]$est, rubin$est_point)

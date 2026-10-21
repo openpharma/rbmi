@@ -54,8 +54,8 @@ pool_internal(
   alternative,
   type,
   D,
-  rubin_df_method,
   outcome_type = "continuous",
+  rubin_df_method,
   ...
 )
 }
