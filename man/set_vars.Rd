@@ -55,7 +55,7 @@ which are typically character or factor valued.}
 \item{duration}{The name of the "Duration" variable. A length 1 character
 vector or \code{NULL}. If \code{period} is specified, this argument is required. The
 corresponding data column must be numeric, finite, and greater than or equal
-to zero, apart from missing values.}
+to zero. Missing values are not allowed.}
 }
 \value{
 A \code{vars} object; a named list of class \code{ivars} recording the names of the key

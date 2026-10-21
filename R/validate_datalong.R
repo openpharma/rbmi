@@ -158,7 +158,7 @@ validate_datalong_types <- function(data, vars) {
             all(is.finite(duration)),
             all(duration >= 0),
             msg = sprintf(
-                "Variable `%s` should be numeric, finite and greater than or equal to zero, apart from missing values",
+                "Variable `%s` should be numeric, finite and greater than or equal to zero",
                 vars$duration
             )
         )

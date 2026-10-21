@@ -386,7 +386,7 @@ sort_by <- function(df, vars = NULL, decreasing = FALSE) {
 #' @param duration The name of the "Duration" variable. A length 1 character
 #' vector or `NULL`. If `period` is specified, this argument is required. The
 #' corresponding data column must be numeric, finite, and greater than or equal
-#' to zero, apart from missing values.
+#' to zero. Missing values are not allowed.
 #'
 #' @param outcome The name of the "Outcome" variable. A length 1 character vector.
 #'
