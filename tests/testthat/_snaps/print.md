@@ -8,6 +8,7 @@
       -----------
       Number of Results Combined: 50
       Method: rubin
+      Rubin df method: barnard-rubin
       Confidence Level: 0.95
       Alternative: two.sided
       
@@ -35,6 +36,7 @@
       -----------
       Number of Results Combined: 5
       Method: rubin
+      Rubin df method: barnard-rubin
       Confidence Level: 0.9
       Alternative: less
       
