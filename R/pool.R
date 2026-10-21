@@ -1019,7 +1019,7 @@ as_data_frame_internal <- function(x, pars = x$pars) {
         msg = "`x` must be a pool or mcse object"
     )
 
-    data.frame(
+    df <- data.frame(
         parameter = names(pars),
         est = vapply(pars, function(x) x$est, numeric(1)),
         se = vapply(pars, function(x) x$se, numeric(1)),
