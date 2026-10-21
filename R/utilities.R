@@ -1069,18 +1069,8 @@ get_stan_model <- function(covariance, prior_cov) {
 #' Stan model each time it is required. If the environment variable `RBMI_ENABLE_CACHE`
 #' has been set this will be used as the default value.
 #'
-#' ## `rbmi.count_phi_lower`
-#'
-#' Default = `1e-6`
-#'
-#' Lower bound for the dispersion parameter `phi` in count outcome models.
-#' Must be a finite, strictly positive number. This numerical safeguard truncates
-#' the gamma prior below the bound. Set it before fitting the count model;
-#' changing it does not require recompiling the Stan model.
-#'
 #' @examples
 #' \dontrun{
-#' options(rbmi.count_phi_lower = 1e-6)
 #' options(rbmi.cache_dir = "some/directory/path")
 #' options(rbmi.enable_cache = FALSE)
 #' }
@@ -1095,8 +1085,7 @@ set_options <- function() {
     current_opts <- names(options())
     rbmi_opts <- list(
         rbmi.cache_dir = cache_dir,
-        rbmi.enable_cache = enable_cache,
-        rbmi.count_phi_lower = 1e-6
+        rbmi.enable_cache = enable_cache
     )
     for (opt in names(rbmi_opts)) {
         if (!opt %in% current_opts) {

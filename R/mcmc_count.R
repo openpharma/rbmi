@@ -119,7 +119,6 @@ prepare_stan_data_count <- function(
         R = R,
         P = P,
         G = G,
-        phi_lower = getOption("rbmi.count_phi_lower", 1e-6),
         group = group_by_subject,
         subject = subjid_observed,
         y = as.integer(outcome),
@@ -139,13 +138,6 @@ prepare_stan_data_count <- function(
 #' @param ... Not used.
 #' @export
 validate.stan_data_count <- function(x, ...) {
-    assert_that(
-        is.number(x$phi_lower),
-        !is.na(x$phi_lower),
-        is.finite(x$phi_lower),
-        x$phi_lower > 0,
-        msg = "Option rbmi.count_phi_lower must be a finite, strictly positive number"
-    )
     assert_that(
         x$R == length(x$y),
         x$R == length(x$log_offset),
@@ -209,7 +201,8 @@ complete_control_bayes_count <- function(
 #' @keywords internal
 get_stan_model_count <- function() {
     model_string <- render_stan_model(
-        find_stan_file("count_model.stan")
+        find_stan_file("count_model.stan"),
+        data = list(machine_double_eps = .Machine$double.eps)
     )
     compile_stan_model(model_string, "rbmi_count_model")
 }
