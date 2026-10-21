@@ -41,6 +41,7 @@ Suggests:
     spelling
 Config/testthat/edition: 3
 Imports:
+    MASS,
     mmrm,
     pkgload,
     Matrix,
@@ -51,7 +52,8 @@ Imports:
     jinjar,
     fs,
     stringr,
-    lifecycle
+    lifecycle,
+    stats
 Depends: 
     R (>= 3.4.0)
 License: Apache License (>= 2)

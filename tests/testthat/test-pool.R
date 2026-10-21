@@ -88,6 +88,259 @@ test_that("rubin_orig_df gives expected error about incompatible inputs", {
     )
 })
 
+test_that("Rubin pooling uses t inference for continuous outcomes with infinite complete-data df", {
+    results <- structure(
+        list(
+            est = c(0.2, 0.7, 1.1, 0.5),
+            se = c(0.20, 0.25, 0.22, 0.24),
+            df = rep(Inf, 4)
+        ),
+        class = "rubin"
+    )
+    rubin <- rubin_rules(results$est, results$se, Inf, method = "barnard-rubin")
+    expected_se <- sqrt(rubin$var_t)
+    expected <- list(
+        est = rubin$est_point,
+        ci = rubin$est_point + c(-1, 1) * qt(0.975, rubin$df) * expected_se,
+        se = expected_se,
+        pvalue = 2 * pt(-abs(rubin$est_point / expected_se), df = rubin$df)
+    )
+
+    observed <- pool_internal(
+        results,
+        conf.level = 0.95,
+        alternative = "two.sided",
+        type = "percentile",
+        D = NULL,
+        rubin_df_method = "barnard-rubin",
+        outcome_type = "continuous"
+    )
+
+    expect_equal(observed, expected)
+    expect_false(is.infinite(rubin$df))
+})
+
+
+test_that("Rubin pooling uses normal inference for non-continuous outcomes with infinite complete-data df", {
+    results <- structure(
+        list(
+            est = c(0.2, 0.7, 1.1, 0.5),
+            se = c(0.20, 0.25, 0.22, 0.24),
+            df = rep(Inf, 4)
+        ),
+        class = "rubin"
+    )
+    rubin <- rubin_rules(results$est, results$se, Inf, method = "barnard-rubin")
+    expected_se <- sqrt(rubin$var_t)
+    expected <- list(
+        est = rubin$est_point,
+        ci = rubin$est_point + c(-1, 1) * qnorm(0.975) * expected_se,
+        se = expected_se,
+        pvalue = 2 * pnorm(-abs(rubin$est_point / expected_se))
+    )
+
+    observed <- pool_internal(
+        results,
+        conf.level = 0.95,
+        alternative = "two.sided",
+        type = "percentile",
+        D = NULL,
+        rubin_df_method = "barnard-rubin",
+        outcome_type = "count"
+    )
+
+    expect_equal(observed, expected)
+})
+
+
+test_that("Rubin pooling retains t inference for finite complete-data df", {
+    results <- structure(
+        list(
+            est = c(0.2, 0.7, 1.1, 0.5),
+            se = c(0.20, 0.25, 0.22, 0.24),
+            df = rep(80, 4)
+        ),
+        class = "rubin"
+    )
+    rubin <- rubin_rules(results$est, results$se, 80, method = "barnard-rubin")
+    expected_se <- sqrt(rubin$var_t)
+    expected <- list(
+        est = rubin$est_point,
+        ci = rubin$est_point + c(-1, 1) * qt(0.975, rubin$df) * expected_se,
+        se = expected_se,
+        pvalue = 2 * pt(
+            -abs(rubin$est_point / expected_se),
+            df = rubin$df
+        )
+    )
+
+    observed <- pool_internal(
+        results,
+        conf.level = 0.95,
+        alternative = "two.sided",
+        type = "percentile",
+        D = NULL,
+        rubin_df_method = "barnard-rubin",
+        outcome_type = "continuous"
+    )
+
+    expect_equal(observed, expected)
+})
+
+
+test_that("pool retains and reports transformed parameters separately", {
+    analysis_results <- list(
+        list(p1 = list(est = log(2), se = 0.20, df = Inf)),
+        list(p1 = list(est = log(3), se = 0.25, df = Inf))
+    )
+    original_analysis <- as_analysis(
+        results = analysis_results,
+        method = method_bayes(n_samples = 2)
+    )
+    transformed_analysis <- as_analysis(
+        results = analysis_results,
+        method = method_bayes(n_samples = 2),
+        transform = use_transform(exp(x))
+    )
+
+    original <- pool(original_analysis)
+    transformed <- pool(transformed_analysis)
+    expected <- original$pars$p1
+    observed <- transformed$transformed_pars$p1
+
+    expect_equal(transformed$pars, original$pars)
+    expect_equal(observed$est, exp(expected$est))
+    expect_equal(observed$ci, exp(expected$ci))
+    expect_equal(observed$se, exp(expected$est) * expected$se)
+    expect_equal(observed$pvalue, expected$pvalue)
+    expect_equal(
+        as.data.frame(transformed, scale = "original"),
+        as.data.frame(original)
+    )
+    expect_equal(
+        as.data.frame(transformed)$est,
+        exp(as.data.frame(original)$est)
+    )
+    expect_output(print(transformed), "transformed to the exp(x) scale", fixed = TRUE)
+    transformed$transform$scale <- "rate"
+    expect_output(print(transformed), "transformed to the rate scale")
+    expect_output(print(transformed, scale = "transformed"), "transformed to the rate scale")
+    original_print <- capture.output(print(transformed, scale = "original"))
+    expect_false(any(grepl("transformed to|transformation applied", original_print)))
+    expect_error(
+        as.data.frame(original, scale = "transformed"),
+        "Transformed results are unavailable"
+    )
+    expect_error(
+        print(original, scale = "transformed"),
+        "Transformed results are unavailable"
+    )
+})
+
+
+for (count_alternative in c("two.sided", "greater", "less")) {
+    test_that(paste("pool supports count models with alternative", count_alternative), {
+        # Match the log-scale results and reporting transformation supplied by
+        # neg_bin_regression(), without requiring MCMC draws or imputation.
+        analysis <- as_analysis(
+            results = list(
+                list(rate_ratio = list(est = log(2), se = 0.20, df = Inf)),
+                list(rate_ratio = list(est = log(3), se = 0.25, df = Inf))
+            ),
+            method = method_bayes(n_samples = 2),
+            outcome_type = "count",
+            transform = attr(neg_bin_regression, "transform")
+        )
+        untransformed <- analysis
+        untransformed$transform <- NULL
+        original <- pool(untransformed, alternative = count_alternative)
+        pooled <- pool(analysis, alternative = count_alternative)
+        expected <- original$pars$rate_ratio
+        observed <- pooled$transformed_pars$rate_ratio
+
+        expect_equal(pooled$pars, original$pars)
+        expect_equal(observed$est, exp(expected$est))
+        expect_equal(observed$ci, exp(expected$ci))
+        expect_equal(observed$se, exp(expected$est) * expected$se)
+        expect_equal(observed$pvalue, expected$pvalue)
+    })
+}
+
+
+test_that("pool orders confidence limits after a decreasing transformation", {
+    analysis <- as_analysis(
+        results = list(
+            list(p1 = list(est = 2, se = 0.20, df = Inf)),
+            list(p1 = list(est = 3, se = 0.25, df = Inf))
+        ),
+        method = method_bayes(n_samples = 2),
+        transform = use_transform(-x)
+    )
+
+    for (alternative in c("two.sided", "greater", "less")) {
+        pooled <- pool(analysis, alternative = alternative)
+        original <- pooled$pars$p1
+        transformed <- pooled$transformed_pars$p1
+
+        expect_equal(transformed$ci, rev(-original$ci))
+        expect_lte(transformed$ci[1], transformed$ci[2])
+        expect_equal(transformed$est, -original$est)
+        expect_equal(transformed$se, original$se)
+        expect_equal(transformed$pvalue, original$pvalue)
+    }
+})
+
+
+test_that("pool rejects transformations that are not monotone over a confidence interval", {
+    analysis <- as_analysis(
+        results = list(
+            list(p1 = list(est = -0.1, se = 1, df = Inf)),
+            list(p1 = list(est = 0.1, se = 1, df = Inf))
+        ),
+        method = method_bayes(n_samples = 2),
+        transform = use_transform(x^2)
+    )
+
+    expect_error(
+        pool(analysis),
+        "must be monotone over the pooled confidence interval"
+    )
+})
+
+
+test_that("transformation supports estimate-only results and retains df", {
+    analysis <- as_analysis(
+        results = list(
+            list(p1 = list(est = log(2))),
+            list(p1 = list(est = log(3))),
+            list(p1 = list(est = log(4)))
+        ),
+        method = method_condmean(n_samples = 2),
+        transform = use_transform(exp(x))
+    )
+    observed <- pool(analysis, type = "normal")
+
+    expect_true(is.finite(observed$transformed_pars$p1$est))
+    expect_equal(
+        observed$transformed_pars$p1$se,
+        observed$transformed_pars$p1$est * observed$pars$p1$se
+    )
+    expect_equal(
+        transform_pooled_par(
+            list(
+                est = log(2),
+                ci = log(c(1.5, 2.5)),
+                se = 0.1,
+                pvalue = 0.05,
+                df = 12
+            ),
+            use_transform(exp(x))
+        )$df,
+        12
+    )
+})
+
+
 test_that("pval_percentile", {
     est <- c(0, rep(1, 3))
     pvals <- pval_percentile(est)
@@ -382,6 +635,43 @@ test_that("pool selects the requested Rubin degrees-of-freedom method", {
     expect_error(
         pool(results, rubin_df_method = "unknown"),
         "'arg' should be one of"
+    )
+})
+
+test_that("mcse preserves the pooled Rubin degrees-of-freedom method", {
+    set.seed(1)
+    analysis <- as_analysis(
+        method = method_approxbayes(n_samples = 5),
+        results = lapply(rnorm(5), function(est) {
+            list(p1 = list(est = est, se = 1, df = 10))
+        })
+    )
+
+    for (df_method in c("barnard-rubin", "rubin")) {
+        pooled <- pool(analysis, rubin_df_method = df_method)
+        expect_identical(pooled$rubin_df_method, df_method)
+        expect_output(print(pooled), paste("Rubin df method:", df_method), fixed = TRUE)
+        expect_output(print(pooled), "Number of Results Combined: 5", fixed = TRUE)
+
+        leave_one_out <- lapply(seq_len(5), function(i) {
+            reduced <- analysis
+            reduced$results <- structure(
+                analysis$results[-i], class = class(analysis$results)
+            )
+            reduced$method$n_samples <- 4L
+            pool(reduced, rubin_df_method = df_method)$pars
+        })
+        expect_equal(mcse(pooled, analysis)$pars, mcse_combine_all_pars(leave_one_out))
+    }
+
+    pooled <- pool(analysis)
+    legacy <- pooled
+    legacy$rubin_df_method <- NULL
+    expect_equal(mcse(legacy, analysis), mcse(pooled, analysis))
+    expect_output(print(legacy), "Rubin df method: barnard-rubin", fixed = TRUE)
+    expect_equal(
+        mcse_jackknife(analysis, 1L, 0.95, "two.sided"),
+        mcse_jackknife(analysis, 1L, 0.95, "two.sided", "barnard-rubin")
     )
 })
 
@@ -969,4 +1259,41 @@ test_that("mcse works as expected", {
     # Snapshot tests can be flakey from minor changes in dependencies
     skip_if_not(is_core_test())
     expect_snapshot(print(result), cran = TRUE)
+})
+
+test_that("mcse honours the pooled reporting transformation", {
+    analysis <- as_analysis(
+        results = list(
+            list(p1 = list(est = log(2), se = 0.20, df = Inf)),
+            list(p1 = list(est = log(3), se = 0.25, df = Inf)),
+            list(p1 = list(est = log(4), se = 0.30, df = Inf))
+        ),
+        method = method_bayes(n_samples = 3),
+        transform = use_transform(exp(x))
+    )
+    pooled <- pool(analysis)
+    observed <- mcse(pooled, analysis)
+    original_jackknife <- lapply(
+        seq_len(pooled$N),
+        mcse_jackknife,
+        results = analysis,
+        conf.level = pooled$conf.level,
+        alternative = pooled$alternative
+    )
+    expected <- mcse_combine_all_pars(lapply(
+        original_jackknife,
+        transform_pooled_pars,
+        transform = analysis$transform
+    ))
+
+    expect_equal(observed$transformed_pars, expected)
+    expect_equal(as.data.frame(observed), as_data_frame_internal(observed, expected))
+    expect_equal(
+        as.data.frame(observed, scale = "original"),
+        as_data_frame_internal(observed)
+    )
+    expect_output(print(observed), "transformed to the exp(x) scale", fixed = TRUE)
+    observed$transform$scale <- "rate"
+    expect_output(print(observed), "transformed to the rate scale")
+    expect_false(any(grepl("transformed to", capture.output(print(observed, scale = "original")))))
 })
