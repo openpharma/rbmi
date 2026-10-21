@@ -307,7 +307,7 @@ test_that("count Stan data requires full rank in observed positive-duration cell
                     group = group,
                     same_cov = TRUE
                 ),
-                "The observed count design matrix must have full column rank"
+                "The positive-count design matrix must have full column rank"
             ),
             "Dropping subject\\(s\\).*: `2`"
         )

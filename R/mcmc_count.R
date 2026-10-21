@@ -81,12 +81,9 @@ prepare_stan_data_count <- function(
     subject_all <- match(as.character(subjid), subject_ids)
 
     ddat <- as.matrix(ddat[observed, , drop = FALSE])
-    assert_that(
-        qr(ddat)$rank == ncol(ddat),
-        msg = "The observed count design matrix must have full column rank"
-    )
     # Full rank among positive-count rows is a sufficient condition to rule
     # out coefficient directions supported only by zeros under flat priors.
+    # It also implies full rank of the complete observed design matrix.
     # Check the fitted design rather than period IDs: ragged time cells can
     # have no events while sharing all their coefficients with other cells.
     positive_design <- ddat[outcome[observed] > 0, , drop = FALSE]
