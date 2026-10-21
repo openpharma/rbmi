@@ -129,6 +129,8 @@ The optional \code{transform} argument specifies a transformation to apply to al
 pooled parameters for reporting. It defaults to the \code{"transform"} attribute
 of \code{fun}, so an analysis function can declare its usual reporting scale.
 Use \code{use_transform()} to create the specification from an expression in \code{x}.
+A specification is a list with \code{transform} and \code{derivative} functions and
+a required \code{scale} string naming the reporting scale in printed results.
 The analysis estimates are always retained and pooled on their original
 scale. After pooling, the transformation is applied to the pooled estimate
 and confidence limits; its derivative is used to obtain the transformed

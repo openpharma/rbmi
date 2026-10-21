@@ -4,14 +4,22 @@
 \alias{use_transform}
 \title{Create a pooled-parameter transformation}
 \usage{
-use_transform(expression)
+use_transform(
+  expression,
+  scale = paste(deparse(substitute(expression)), collapse = " ")
+)
 }
 \arguments{
 \item{expression}{An expression in \code{x} defining a vectorized
 transformation, for example \code{exp(x)}.}
+
+\item{scale}{Single non-empty string naming the transformed scale,
+for example \code{"rate"}. Used when printing pooled results and their Monte Carlo
+standard errors. Defaults to the deparsed transformation expression.}
 }
 \value{
-A list suitable for the \code{transform} argument of \code{\link[=analyse]{analyse()}}.
+A list containing \code{transform} and \code{derivative} functions and the
+\code{scale} label, suitable for the \code{transform} argument of \code{\link[=analyse]{analyse()}}.
 }
 \description{
 Creates the transformation specification used by \code{\link[=analyse]{analyse()}} from an
@@ -21,6 +29,6 @@ calculate the transformed standard error by the delta method. The
 transformation must be monotone over every pooled confidence interval.
 }
 \examples{
-use_transform(exp(x))
+use_transform(exp(x), scale = "rate")
 use_transform(-x)
 }

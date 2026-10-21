@@ -79,7 +79,8 @@ standard error (\code{se}) and p-value (\code{pvalue}).
 \item \code{transformed_pars}: when \code{analyse(..., transform = ...)} was used, a named
 list of the corresponding transformed results. Point estimates and
 confidence limits are transformed directly and standard errors use the
-delta method. The transformation must be monotone over each confidence
+delta method. The \code{transform$scale} label identifies the scale
+when printing transformed results. The transformation must be monotone over each confidence
 interval; otherwise \code{\link[=pool]{pool()}} errors. P-values are unchanged.
 \item \code{conf.level}: the confidence level used for the confidence intervals.
 \item \code{alternative}: the alternative hypothesis used to derive the p-values.

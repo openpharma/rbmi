@@ -281,6 +281,19 @@ test_that("use_transform creates a transformation and derivative from x", {
     expect_equal(negation_transform$derivative(2), -1)
     expect_equal(identity_transform$derivative(c(1, 2)), c(1, 1))
     expect_error(use_transform(exp(y)), "expression in `x`")
+    expect_identical(transform$scale, "exp(x)")
+    expect_identical(negation_transform$scale, "-x")
+    labelled <- use_transform(exp(x), scale = "rate")
+    expect_identical(labelled$scale, "rate")
+    expect_true(validate_transform(labelled))
+    expect_error(
+        validate_transform(list(transform = exp, derivative = exp)),
+        "functions named"
+    )
+    for (scale in list(NULL, "", "  ", NA_character_, c("rate", "odds"), 1)) {
+        expect_error(use_transform(exp(x), scale = scale), "single non-empty string")
+    }
+    expect_identical(attr(neg_bin_regression, "transform")$scale, "rate")
 })
 
 

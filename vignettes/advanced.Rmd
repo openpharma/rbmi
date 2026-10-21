@@ -432,7 +432,8 @@ ana_obj_prop <- analyse(
   vars = vars_an,
   transform = list(
       transform = exp,
-      derivative = exp
+      derivative = exp,
+      scale = "rate"
   )
 )
 

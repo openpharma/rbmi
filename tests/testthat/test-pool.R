@@ -221,9 +221,12 @@ test_that("pool retains and reports transformed parameters separately", {
         as.data.frame(transformed)$est,
         exp(as.data.frame(original)$est)
     )
-    expect_output(print(transformed), "transformation applied")
+    expect_output(print(transformed), "transformed to the exp(x) scale", fixed = TRUE)
+    transformed$transform$scale <- "rate"
+    expect_output(print(transformed), "transformed to the rate scale")
+    expect_output(print(transformed, scale = "transformed"), "transformed to the rate scale")
     original_print <- capture.output(print(transformed, scale = "original"))
-    expect_false(any(grepl("transformation applied", original_print, fixed = TRUE)))
+    expect_false(any(grepl("transformed to|transformation applied", original_print)))
     expect_error(
         as.data.frame(original, scale = "transformed"),
         "Transformed results are unavailable"
@@ -1252,5 +1255,8 @@ test_that("mcse honours the pooled reporting transformation", {
         as.data.frame(observed, scale = "original"),
         as_data_frame_internal(observed)
     )
-    expect_output(print(observed), "transformation applied")
+    expect_output(print(observed), "transformed to the exp(x) scale", fixed = TRUE)
+    observed$transform$scale <- "rate"
+    expect_output(print(observed), "transformed to the rate scale")
+    expect_false(any(grepl("transformed to", capture.output(print(observed, scale = "original")))))
 })

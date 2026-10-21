@@ -85,7 +85,8 @@
 #' - `transformed_pars`: when `analyse(..., transform = ...)` was used, a named
 #'   list of the corresponding transformed results. Point estimates and
 #'   confidence limits are transformed directly and standard errors use the
-#'   delta method. The transformation must be monotone over each confidence
+#'   delta method. The `transform$scale` label identifies the scale
+#'   when printing transformed results. The transformation must be monotone over each confidence
 #'   interval; otherwise [pool()] errors. P-values are unchanged.
 #' - `conf.level`: the confidence level used for the confidence intervals.
 #' - `alternative`: the alternative hypothesis used to derive the p-values.
@@ -1113,7 +1114,10 @@ print.pool <- function(
     results_header <- if (scale == "original") {
         "Results:"
     } else {
-        "Results (transformation applied; original-scale results are in `$pars`):"
+        sprintf(
+            "Results (transformed to the %s scale; original-scale results are in `$pars`):",
+            x$transform$scale
+        )
     }
     results_df <- as.data.frame(x, scale = scale)
 
@@ -1330,7 +1334,10 @@ print.mcse <- function(
         if (scale == "original") {
             "Results:"
         } else {
-            "Results (transformation applied; original-scale results are in `$pars`):"
+            sprintf(
+                "Results (transformed to the %s scale; original-scale results are in `$pars`):",
+                x$transform$scale
+            )
         },
         as_ascii_table(df),
         ""

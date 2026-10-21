@@ -32,7 +32,8 @@ All regression coefficients are returned on the model's log-rate scale so
 that they can be pooled with Rubin's rules by \code{\link[=pool]{pool()}}. For reporting,
 \code{neg_bin_regression()} has an exponential transformation attached, so
 \code{\link[=analyse]{analyse()}} and \code{\link[=pool]{pool()}} report its pooled parameters on the rate-ratio
-scale by default. This includes the
+scale by default, labelled as the rate scale via \code{scale = "rate"} in the
+transformation attribute. This includes the
 intercept, the treatment-group coefficients, and coefficients for any other
 terms in \code{vars$covariates}. The first level of \code{vars$group} is used as the
 reference group.

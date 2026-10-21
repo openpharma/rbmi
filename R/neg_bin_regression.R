@@ -9,7 +9,8 @@
 #' that they can be pooled with Rubin's rules by [pool()]. For reporting,
 #' `neg_bin_regression()` has an exponential transformation attached, so
 #' [analyse()] and [pool()] report its pooled parameters on the rate-ratio
-#' scale by default. This includes the
+#' scale by default, labelled as the rate scale via `scale = "rate"` in the
+#' transformation attribute. This includes the
 #' intercept, the treatment-group coefficients, and coefficients for any other
 #' terms in `vars$covariates`. The first level of `vars$group` is used as the
 #' reference group.
@@ -181,7 +182,8 @@ neg_bin_regression <- function(data, vars) {
 
 attr(neg_bin_regression, "transform") <- list(
     transform = exp,
-    derivative = exp
+    derivative = exp,
+    scale = "rate"
 )
 
 #' Covariance matrix for a negative binomial regression model

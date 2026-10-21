@@ -86,6 +86,8 @@
 #' pooled parameters for reporting. It defaults to the `"transform"` attribute
 #' of `fun`, so an analysis function can declare its usual reporting scale.
 #' Use `use_transform()` to create the specification from an expression in `x`.
+#' A specification is a list with `transform` and `derivative` functions and
+#' a `scale` string naming the reporting scale in printed results.
 #' The analysis estimates are always retained and pooled on their original
 #' scale. After pooling, the transformation is applied to the pooled estimate
 #' and confidence limits; its derivative is used to obtain the transformed
@@ -598,13 +600,23 @@ validate_transform <- function(transform) {
 
     assert_that(
         is.list(transform),
-        length(transform) == 2,
-        setequal(names(transform), c("transform", "derivative")),
-        all(vapply(transform, is.function, logical(1))),
+        length(transform) == 3L,
+        all(c("transform", "derivative", "scale") %in% names(transform)),
+        all(names(transform) %in% c("transform", "derivative", "scale")),
+        !anyDuplicated(names(transform)),
+        is.function(transform$transform),
+        is.function(transform$derivative),
         msg = paste(
             "`transform` must be a list with functions named",
-            "`transform` and `derivative`"
+            "`transform` and `derivative`, and a `scale` string"
         )
+    )
+    assert_that(
+        is.character(transform$scale) &&
+            length(transform$scale) == 1L &&
+            !is.na(transform$scale) &&
+            nzchar(trimws(transform$scale)),
+        msg = "`transform$scale` must be a single non-empty string"
     )
     invisible(TRUE)
 }
@@ -621,12 +633,19 @@ validate_transform <- function(transform) {
 #'
 #' @param expression An expression in `x` defining a vectorized
 #' transformation, for example `exp(x)`.
-#' @return A list suitable for the `transform` argument of [analyse()].
+#' @param scale Single non-empty string naming the transformed scale,
+#' for example `"rate"`. Used when printing pooled results and their Monte Carlo
+#' standard errors. Defaults to the deparsed transformation expression.
+#' @return A list containing `transform` and `derivative` functions and the
+#' `scale` label, suitable for the `transform` argument of [analyse()].
 #' @examples
-#' use_transform(exp(x))
+#' use_transform(exp(x), scale = "rate")
 #' use_transform(-x)
 #' @export
-use_transform <- function(expression) {
+use_transform <- function(
+    expression,
+    scale = paste(deparse(substitute(expression)), collapse = " ")
+) {
     transform_expression <- substitute(expression)
     assert_that(
         is.language(transform_expression),
@@ -635,7 +654,8 @@ use_transform <- function(expression) {
     )
     derivative_expression <- stats::D(transform_expression, "x")
 
-    list(
+    transform <- list(
+        scale = scale,
         transform = function(x) {
             eval(
                 transform_expression,
@@ -656,6 +676,8 @@ use_transform <- function(expression) {
             }
         }
     )
+    validate_transform(transform)
+    transform
 }
 
 
