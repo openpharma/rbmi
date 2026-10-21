@@ -93,14 +93,28 @@ We fit the above model with the following priors:
 - For the regression coefficients $\beta$, an improper uniform prior is used.
 - For the dispersion parameter $\phi$, a gamma distribution $G(a, b)$ with shape $a$ and inverse scale $b$ parameters both equal to 0.0001 is used.
 
-We use a lower bound of $10^{-6}$ on `phi` as a numerical safeguard. It makes the gamma prior
-technically truncated, but at this value the negative binomial is, for these
+We use a lower bound on the dispersion parameter $\phi$ as a numerical safeguard,
+controlled by the package option `rbmi.count_phi_lower` (default $10^{-6}$). It makes the gamma prior
+technically truncated, but at the default threshold the negative binomial is, for these
 data, effectively at its Poisson limit. The safeguard is needed because the
 very diffuse gamma prior has an integrable singularity at zero; and unconstrained exploration can cause
 divergent transitions even though still smaller values are not practically
 distinguishable from the Poisson limit.
 
-Note that these priors are currently fixed in the package. In the future we might offer additional prior options for users to choose from.
+The threshold must be a finite, strictly positive number and can be changed
+before fitting a count model, for example:
+
+```{r count-phi-lower, eval=FALSE}
+options(rbmi.count_phi_lower = 1e-6)
+```
+
+Changing the threshold does not require recompiling the Stan model. A larger
+threshold excludes more nearly Poisson models and may affect inference; a
+smaller threshold allows dispersion closer to zero but may worsen numerical
+stability. Check convergence diagnostics and sensitivity to the threshold when
+changing it.
+
+The prior distribution families and their parameters are currently fixed in the package. In the future we might offer additional prior options for users to choose from.
 
 ### Reference assumptions
 

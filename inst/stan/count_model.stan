@@ -2,6 +2,7 @@ data {
   int<lower=1> N;                       // Number of patients
   int<lower=1> R;                       // Number of observed cells
   int<lower=1> P;                       // Number of regression coefficients
+  real<lower=0> phi_lower;              // Lower bound for dispersion
   int<lower=1> G;                       // Number of dispersion parameter groups
   array[N] int<lower=1, upper=G> group; // Dispersion parameter group by patient
   array[R] int<lower=1, upper=N> subject; // Patient index for each observed cell
@@ -22,10 +23,8 @@ transformed data {
 
 parameters {
   vector[P] beta;                       // Regression coefficients
-  // Values below 1e-6 are effectively the Poisson limit for these models. The
-  // floor avoids the extreme near-zero geometry of the Gamma(.0001, .0001)
-  // prior while retaining the SAS GENMOD dispersion parameterization.
-  vector<lower=1e-6>[G] phi;
+  // Configurable floor avoids extreme near-zero geometry of the gamma prior.
+  vector<lower=phi_lower>[G] phi;
 }
 
 transformed parameters {

@@ -38,9 +38,20 @@ If \code{TRUE} then the package will attempt to cache compiled Stan models to th
 Stan model each time it is required. If the environment variable \code{RBMI_ENABLE_CACHE}
 has been set this will be used as the default value.
 }
+
+\subsection{\code{rbmi.count_phi_lower}}{
+
+Default = \code{1e-6}
+
+Lower bound for the dispersion parameter \code{phi} in count outcome models.
+Must be a finite, strictly positive number. This numerical safeguard truncates
+the gamma prior below the bound. Set it before fitting the count model;
+changing it does not require recompiling the Stan model.
+}
 }
 \examples{
 \dontrun{
+options(rbmi.count_phi_lower = 1e-6)
 options(rbmi.cache_dir = "some/directory/path")
 options(rbmi.enable_cache = FALSE)
 }
