@@ -54,7 +54,7 @@ test_that("count draws print endpoint-specific settings", {
 
     expect_identical(returned, result)
     expect_true(any(
-        output == "Model Formula: outcome ~ 1 + group + offset(duration)"
+        output == "Model Formula: outcome ~ 1 + group + offset(log(duration))"
     ))
     expect_true(any(output == "Endpoint Type: count"))
     expect_true(any(output == "Imputation Type: random"))
@@ -65,7 +65,7 @@ test_that("count draws print endpoint-specific settings", {
 })
 
 
-test_that("count draws print the configured duration variable as an offset", {
+test_that("count draws print the log of the configured duration as an offset", {
     result <- make_count_draws()
     result$data$vars$duration <- "Length"
     result$formula <- Observed_Count ~ 1 + TreatLab + TreatLab * OnOff + BaseCount
@@ -75,7 +75,7 @@ test_that("count draws print the configured duration variable as an offset", {
 
     expect_true(any(output == paste0(
         "Model Formula: Observed_Count ~ 1 + TreatLab + TreatLab * OnOff + ",
-        "BaseCount + offset(Length)"
+        "BaseCount + offset(log(Length))"
     )))
     expect_identical(result$formula, original_formula)
 

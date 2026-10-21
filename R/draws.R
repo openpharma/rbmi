@@ -724,7 +724,7 @@ print_draws <- function(
     frm <- as.character(x$formula)
     frm_str <- sprintf("%s ~ %s", frm[[2]], frm[[3]])
     if (!is.null(offset)) {
-        frm_str <- sprintf("%s + offset(%s)", frm_str, offset)
+        frm_str <- sprintf("%s + offset(log(%s))", frm_str, offset)
     }
 
     meth <- switch(
