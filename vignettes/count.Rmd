@@ -22,7 +22,8 @@ vignette: >
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
     collapse = TRUE,
-    comment = "#>"
+    comment = "#>",
+    error = FALSE
 )
 
 # Record chunk runtimes using the R Markdown Cookbook timing hook recipe:
@@ -114,9 +115,14 @@ dat_count_filled <- dat_count |>
     )
 ```
 
-The SAS reference results for the three models illustrated below are included as
+The SAS reference results for the models illustrated below are included as
 a CSV file with the package. We retain the two active-treatment versus placebo
 contrasts, so they can be compared directly with the pooled `rbmi` estimates.
+The assertions below stop vignette precompilation if any relative difference
+from SAS exceeds `5e-3` for rate ratios and confidence limits, or `0.1` for
+p-values. These tolerances allow for Monte Carlo variation between the two
+implementations; the existing results differ by up to approximately 0.4% and
+7%, respectively. Comparisons use unrounded results.
 
 ```{r}
 sas_results <- read.csv(
@@ -151,10 +157,38 @@ check_rate_ratio_results <- function(x, sas_model) {
         all(x[[2]] < x[[4]]),
         all(x[[5]] >= 0 & x[[5]] <= 1),
         setequal(sas_subset$comparison, expected_comparisons),
+        nrow(sas_subset) == 2,
         all(is.finite(as.matrix(
             sas_subset[, setdiff(names(sas_subset), c("model", "comparison"))]
         )))
     )
+    # Match contrasts explicitly because SAS and rbmi may order them differently.
+    sas_subset <- sas_subset[match(x$comparison, sas_subset$comparison), ]
+    statistics <- c("rate_ratio", "lower_95", "upper_95", "p_value")
+    relative_tolerance <- c(5e-3, 5e-3, 5e-3, 0.1)
+    for (i in seq_along(statistics)) {
+        actual <- x[[i + 1]]
+        expected <- sas_subset[[paste0("sas_", statistics[i])]]
+        difference <- abs(actual - expected)
+        failed <- which(difference > relative_tolerance[i] * abs(expected))
+        if (length(failed)) {
+            stop(
+                sprintf(
+                    paste0(
+                        "SAS comparison failed for %s (%s), %s: ",
+                        "rbmi = %.8g, SAS = %.8g, relative tolerance = %g"
+                    ),
+                    sas_model,
+                    x$comparison[failed[1]],
+                    statistics[i],
+                    actual[failed[1]],
+                    expected[failed[1]],
+                    relative_tolerance[i]
+                ),
+                call. = FALSE
+            )
+        }
+    }
     invisible(x)
 }
 ```
