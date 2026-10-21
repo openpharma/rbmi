@@ -232,6 +232,35 @@ test_that("pool retains and reports transformed parameters separately", {
 })
 
 
+for (count_alternative in c("two.sided", "greater", "less")) {
+    test_that(paste("pool supports count models with alternative", count_alternative), {
+        # Match the log-scale results and reporting transformation supplied by
+        # neg_bin_regression(), without requiring MCMC draws or imputation.
+        analysis <- as_analysis(
+            results = list(
+                list(rate_ratio = list(est = log(2), se = 0.20, df = Inf)),
+                list(rate_ratio = list(est = log(3), se = 0.25, df = Inf))
+            ),
+            method = method_bayes(n_samples = 2),
+            outcome_type = "count",
+            transform = attr(neg_bin_regression, "transform")
+        )
+        untransformed <- analysis
+        untransformed$transform <- NULL
+        original <- pool(untransformed, alternative = count_alternative)
+        pooled <- pool(analysis, alternative = count_alternative)
+        expected <- original$pars$rate_ratio
+        observed <- pooled$transformed_pars$rate_ratio
+
+        expect_equal(pooled$pars, original$pars)
+        expect_equal(observed$est, exp(expected$est))
+        expect_equal(observed$ci, exp(expected$ci))
+        expect_equal(observed$se, exp(expected$est) * expected$se)
+        expect_equal(observed$pvalue, expected$pvalue)
+    })
+}
+
+
 test_that("pool orders confidence limits after a decreasing transformation", {
     analysis <- as_analysis(
         results = list(
