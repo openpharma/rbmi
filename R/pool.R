@@ -220,6 +220,7 @@ pool <- function(
         alternative = alternative,
         N = length(results$results),
         method = method,
+        rubin_df_method = rubin_df_method,
         par_meta = results$par_meta
     )
     if (!is.null(results$transform)) {
@@ -1127,6 +1128,12 @@ print.pool <- function(
         "-----------",
         sprintf("Number of Results Combined: %s", n_string),
         sprintf("Method: %s", x$method),
+        if (x$method == "rubin") {
+            sprintf(
+                "Rubin df method: %s",
+                if (is.null(x$rubin_df_method)) "barnard-rubin" else x$rubin_df_method
+            )
+        },
         sprintf("Confidence Level: %s", x$conf.level),
         sprintf("Alternative: %s", x$alternative),
         "",
@@ -1154,7 +1161,13 @@ print.pool <- function(
 #' `omit_index`-th result left out.
 #' @rdname mcse_internal
 #' @export
-mcse_jackknife <- function(results, omit_index, conf.level, alternative) {
+mcse_jackknife <- function(
+    results,
+    omit_index,
+    conf.level,
+    alternative,
+    rubin_df_method = "barnard-rubin"
+) {
     assert_that(
         has_class(results, "analysis"),
         is.integer(omit_index),
@@ -1173,7 +1186,8 @@ mcse_jackknife <- function(results, omit_index, conf.level, alternative) {
     reduced_pooled <- pool(
         results = reduced_results,
         conf.level = conf.level,
-        alternative = alternative
+        alternative = alternative,
+        rubin_df_method = rubin_df_method
     )
     reduced_pooled$pars
 }
@@ -1255,7 +1269,12 @@ mcse <- function(x, results) {
         mcse_jackknife,
         results = results,
         conf.level = x$conf.level,
-        alternative = x$alternative
+        alternative = x$alternative,
+        rubin_df_method = if (is.null(x$rubin_df_method)) {
+            "barnard-rubin"
+        } else {
+            x$rubin_df_method
+        }
     )
     ret <- list(pars = mcse_combine_all_pars(jackknife_results), N = x$N)
     if (!is.null(results$transform)) {

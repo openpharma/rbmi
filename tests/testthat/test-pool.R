@@ -638,6 +638,43 @@ test_that("pool selects the requested Rubin degrees-of-freedom method", {
     )
 })
 
+test_that("mcse preserves the pooled Rubin degrees-of-freedom method", {
+    set.seed(1)
+    analysis <- as_analysis(
+        method = method_approxbayes(n_samples = 5),
+        results = lapply(rnorm(5), function(est) {
+            list(p1 = list(est = est, se = 1, df = 10))
+        })
+    )
+
+    for (df_method in c("barnard-rubin", "rubin")) {
+        pooled <- pool(analysis, rubin_df_method = df_method)
+        expect_identical(pooled$rubin_df_method, df_method)
+        expect_output(print(pooled), paste("Rubin df method:", df_method), fixed = TRUE)
+        expect_output(print(pooled), "Number of Results Combined: 5", fixed = TRUE)
+
+        leave_one_out <- lapply(seq_len(5), function(i) {
+            reduced <- analysis
+            reduced$results <- structure(
+                analysis$results[-i], class = class(analysis$results)
+            )
+            reduced$method$n_samples <- 4L
+            pool(reduced, rubin_df_method = df_method)$pars
+        })
+        expect_equal(mcse(pooled, analysis)$pars, mcse_combine_all_pars(leave_one_out))
+    }
+
+    pooled <- pool(analysis)
+    legacy <- pooled
+    legacy$rubin_df_method <- NULL
+    expect_equal(mcse(legacy, analysis), mcse(pooled, analysis))
+    expect_output(print(legacy), "Rubin df method: barnard-rubin", fixed = TRUE)
+    expect_equal(
+        mcse_jackknife(analysis, 1L, 0.95, "two.sided"),
+        mcse_jackknife(analysis, 1L, 0.95, "two.sided", "barnard-rubin")
+    )
+})
+
 test_that("pool_internal.rubin passes on the Rubin method", {
     results <- structure(
         list(est = c(1, 2, 4), se = c(1, 1, 1), df = c(10, 10, 10)),
