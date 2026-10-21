@@ -281,7 +281,7 @@ test_that("count Stan data drops subjects without observed positive-duration cel
 })
 
 
-test_that("count Stan data requires observed positive counts in every period", {
+test_that("count Stan data requires positive counts in every included period", {
     periods <- list(
         c(1, 2, 1, 2),
         c("1", "2", "1", "2"),
@@ -290,7 +290,6 @@ test_that("count Stan data requires observed positive counts in every period", {
     outcomes <- list(
         c(1, 0, 2, 0),
         c(1, NA, 2, 0),
-        c(1, NA, 2, NA),
         c(0, 0, 0, 0)
     )
     for (period in periods) {
@@ -307,6 +306,33 @@ test_that("count Stan data requires observed positive counts in every period", {
                 ),
                 "observed positive count in every period.*improper posterior.*`2`"
             )
+        }
+    }
+})
+
+
+test_that("count Stan data ignores periods without observed positive-duration cells", {
+    periods <- list(
+        c(1, 2, 1, 2),
+        c("1", "2", "1", "2"),
+        factor(c("1", "2", "1", "2"), levels = c("1", "2", "3"))
+    )
+    for (period in periods) {
+        for (missing_period in c(TRUE, FALSE)) {
+            actual <- prepare_stan_data_count(
+                ddat = matrix(1, nrow = 4, ncol = 1),
+                subjid = c("1", "1", "2", "2"),
+                period = period,
+                duration = if (missing_period) rep(1, 4) else c(1, 0, 1, 0),
+                outcome = if (missing_period) c(1, NA, 2, NA) else c(1, 0, 2, 0),
+                group = factor(rep("Control", 4)),
+                same_cov = TRUE
+            )
+
+            expect_equal(actual$R, 2)
+            expect_equal(actual$y, c(1L, 2L))
+            expect_equal(actual$X, matrix(1, nrow = 2, ncol = 1))
+            expect_true(validate(actual))
         }
     }
 })

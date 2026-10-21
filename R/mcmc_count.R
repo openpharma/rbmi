@@ -59,8 +59,8 @@ prepare_stan_data_count <- function(
     )
 
     # The flat prior on regression coefficients requires positive counts in
-    # every period to avoid an improper posterior.
-    periods <- unique(as.character(period))
+    # every period included in the Bayesian model to avoid an improper posterior.
+    periods <- unique(as.character(period[observed]))
     positive_periods <- as.character(period[observed & outcome > 0])
     invalid_periods <- periods[!periods %in% positive_periods]
     assert_that(
@@ -68,7 +68,8 @@ prepare_stan_data_count <- function(
         msg = sprintf(
             paste(
                 "Count outcomes must include at least one observed positive",
-                "count in every period to avoid an improper posterior.",
+                "count in every period included in the Bayesian model",
+                "to avoid an improper posterior.",
                 "Period(s) without positive counts: `%s`"
             ),
             paste(invalid_periods, collapse = "`, `")
