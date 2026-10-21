@@ -97,7 +97,7 @@ test_that("Rubin pooling uses t inference for continuous outcomes with infinite 
         ),
         class = "rubin"
     )
-    rubin <- rubin_rules(results$est, results$se, Inf)
+    rubin <- rubin_rules(results$est, results$se, Inf, method = "barnard-rubin")
     expected_se <- sqrt(rubin$var_t)
     expected <- list(
         est = rubin$est_point,
@@ -112,6 +112,7 @@ test_that("Rubin pooling uses t inference for continuous outcomes with infinite 
         alternative = "two.sided",
         type = "percentile",
         D = NULL,
+        rubin_df_method = "barnard-rubin",
         outcome_type = "continuous"
     )
 
@@ -129,7 +130,7 @@ test_that("Rubin pooling uses normal inference for non-continuous outcomes with 
         ),
         class = "rubin"
     )
-    rubin <- rubin_rules(results$est, results$se, Inf)
+    rubin <- rubin_rules(results$est, results$se, Inf, method = "barnard-rubin")
     expected_se <- sqrt(rubin$var_t)
     expected <- list(
         est = rubin$est_point,
@@ -144,6 +145,7 @@ test_that("Rubin pooling uses normal inference for non-continuous outcomes with 
         alternative = "two.sided",
         type = "percentile",
         D = NULL,
+        rubin_df_method = "barnard-rubin",
         outcome_type = "count"
     )
 
@@ -160,7 +162,7 @@ test_that("Rubin pooling retains t inference for finite complete-data df", {
         ),
         class = "rubin"
     )
-    rubin <- rubin_rules(results$est, results$se, 80)
+    rubin <- rubin_rules(results$est, results$se, 80, method = "barnard-rubin")
     expected_se <- sqrt(rubin$var_t)
     expected <- list(
         est = rubin$est_point,
@@ -178,6 +180,7 @@ test_that("Rubin pooling retains t inference for finite complete-data df", {
         alternative = "two.sided",
         type = "percentile",
         D = NULL,
+        rubin_df_method = "barnard-rubin",
         outcome_type = "continuous"
     )
 
@@ -271,12 +274,17 @@ test_that("pool orders confidence limits after a decreasing transformation", {
         transform = use_transform(-x)
     )
 
-    pooled <- pool(analysis)
-    original_ci <- pooled$pars$p1$ci
-    transformed_ci <- pooled$transformed_pars$p1$ci
+    for (alternative in c("two.sided", "greater", "less")) {
+        pooled <- pool(analysis, alternative = alternative)
+        original <- pooled$pars$p1
+        transformed <- pooled$transformed_pars$p1
 
-    expect_equal(transformed_ci, rev(-original_ci))
-    expect_lte(transformed_ci[1], transformed_ci[2])
+        expect_equal(transformed$ci, rev(-original$ci))
+        expect_lte(transformed$ci[1], transformed$ci[2])
+        expect_equal(transformed$est, -original$est)
+        expect_equal(transformed$se, original$se)
+        expect_equal(transformed$pvalue, original$pvalue)
+    }
 })
 
 

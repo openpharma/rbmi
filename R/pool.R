@@ -279,9 +279,12 @@ transform_pooled_par <- function(par, transform) {
 #' @keywords internal
 #' @noRd
 validate_monotone_pool_transform <- function(transform, ci, est) {
+    # For unbounded intervals, check the finite portion up to the estimate.
+    # This numerical check cannot establish monotonicity in an infinite tail.
+    grid_bounds <- range(c(ci[is.finite(ci)], est))
     derivative_grid <- apply_pool_transform(
         transform$derivative,
-        seq(ci[[1]], ci[[2]], length.out = 1001),
+        seq(grid_bounds[[1]], grid_bounds[[2]], length.out = 1001),
         "derivative"
     )
     assert_that(
