@@ -19,8 +19,8 @@
 #' @param origin Optional interval origin. For fixed intervals this is the
 #'   boundary immediately before interval zero. For calendar intervals it must
 #'   be the first day of a month. Defaults to `0` for numeric starts and
-#'   `1970-01-01` for `Date` starts. (Note that `interval = "week"`` with the default
-#'   numeric origin 0 / `1970-01-01`` (a Thursday) produces Thursday-based weeks.)
+#'   `1970-01-01` for `Date` starts. (Note that `interval = "week"` with the default
+#'   numeric origin 0 / `1970-01-01` (a Thursday) produces Thursday-based weeks.)
 #' @param period Optional name of the original period variable. When supplied,
 #'   `split_period` combines this value with `split_interval`, which allows two
 #'   original periods intersecting the same interval to remain distinct.
