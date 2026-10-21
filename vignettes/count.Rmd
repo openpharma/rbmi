@@ -65,7 +65,7 @@ library(dplyr)
 dat_count_raw <- read.csv(
     system.file("extdata", "sim_rogeretal.csv", package = "rbmi")
 )
-dat_count <- dat_count_raw |>
+dat_count <- dat_count_raw %>%
     dplyr::select(
         patient,
         period,
@@ -74,13 +74,13 @@ dat_count <- dat_count_raw |>
         Length,
         BaseCount,
         Observed_Count
-    ) |> 
+    ) %>% 
     mutate(
         patient = factor(patient),
         period = as.character(period),
         TreatLab = factor(TreatLab, levels = c("Placebo", "100mg", "300mg")),
         OnOff = factor(OnOff, levels = c("On", "Off"))
-    ) |> 
+    ) %>% 
     arrange(patient, period)
 head(dat_count)
 ```
@@ -98,14 +98,14 @@ The variables retained for this example are:
 The source data omit periods with zero length. We use `expand_locf()` to add these rows so that every patient has all three periods. The treatment arm and baseline count are carried forward, while `OnOff` is derived from the period. Added rows have zero length and a missing observed count.
 
 ```{r}
-dat_count_filled <- dat_count |>
+dat_count_filled <- dat_count %>%
     expand_locf(
         patient = levels(dat_count$patient),
         period = as.character(1:3),
         vars = c("TreatLab", "BaseCount"),
         group = "patient",
         order = c("patient", "period")
-    ) |> 
+    ) %>% 
     mutate(
         OnOff = factor(
             ifelse(period == "1", "On", "Off"),
@@ -130,11 +130,11 @@ Comparisons use unrounded results.
 sas_results <- read.csv(
     system.file("extdata", "results.csv", package = "rbmi"),
     check.names = FALSE
-) |>
+) %>%
     dplyr::filter(
         (TreatLab == "100mg" & `_TreatLab` == "Placebo") |
             (TreatLab == "300mg" & `_TreatLab` == "Placebo")
-    ) |>
+    ) %>%
     dplyr::transmute(
         model = Label,
         comparison = paste(TreatLab, "vs", `_TreatLab`),
@@ -220,10 +220,10 @@ Here we just use the same imputation strategy for all patients, but we would als
 Let's use the Missing At Random (MAR) strategy for all patients with positive post-withdrawal exposure in period 3. This matches the first model in the "Another case with three periods" analysis, where the period-3 design matrix retains each patient's randomized treatment arm:
 
 ```{r}
-dat_ice <- dat_count_filled |> 
-    filter(period == "3", Length > 0) |>
-    dplyr::select(patient) |>
-    distinct() |> 
+dat_ice <- dat_count_filled %>% 
+    filter(period == "3", Length > 0) %>%
+    dplyr::select(patient) %>%
+    distinct() %>% 
     mutate(
         strategy = "MAR"
     )
@@ -360,8 +360,8 @@ mcse(poolObj, anaObj)
 The corresponding SAS results are labelled `NM_Reg: Treat*OnOff BaseCount`.
 
 ```{r}
-rate_ratios_shared <- as.data.frame(poolObj) |>
-    dplyr::filter(parameter %in% c("TreatLab100mg", "TreatLab300mg")) |>
+rate_ratios_shared <- as.data.frame(poolObj) %>%
+    dplyr::filter(parameter %in% c("TreatLab100mg", "TreatLab300mg")) %>%
     dplyr::transmute(
         comparison = dplyr::recode(
             parameter,
@@ -382,8 +382,8 @@ dplyr::left_join(
     rate_ratios_shared,
     dplyr::filter(sas_results, model == "NM_Reg: Treat*OnOff BaseCount"),
     by = "comparison"
-) |>
-    dplyr::select(-model) |> 
+) %>%
+    dplyr::select(-model) %>% 
     dplyr::mutate(dplyr::across(dplyr::where(is.numeric), ~ round(.x, 4)))
 ```
 
@@ -495,8 +495,8 @@ For comparison with implementations that report treatment effects as rate
 ratios, extract the transformed pooled results:
 
 ```{r}
-rate_ratios_by_arm <- as.data.frame(poolObj_by_arm) |>
-    filter(parameter %in% c("TreatLab100mg", "TreatLab300mg")) |>
+rate_ratios_by_arm <- as.data.frame(poolObj_by_arm) %>%
+    filter(parameter %in% c("TreatLab100mg", "TreatLab300mg")) %>%
     transmute(
         comparison = recode(
             parameter,
@@ -521,7 +521,7 @@ The corresponding SAS results are labelled `NM_Reg: Separate for each Treat.`.
 
 ```{r}
 dplyr::left_join(
-    rate_ratios_by_arm |>
+    rate_ratios_by_arm %>%
         dplyr::rename(
             rbmi_rate_ratio = rate_ratio,
             rbmi_lower_95 = lower_95,
@@ -530,8 +530,8 @@ dplyr::left_join(
         ),
     dplyr::filter(sas_results, model == "NM_Reg: Separate for each Treat."),
     by = "comparison"
-) |>
-    dplyr::select(-model) |> 
+) %>%
+    dplyr::select(-model) %>% 
     dplyr::mutate(dplyr::across(dplyr::where(is.numeric), ~ round(.x, 4)))
 ```
 
@@ -619,8 +619,8 @@ The corresponding SAS results are labelled `Separate each Treat. Shared frai`.
 ```{r}
 rate_ratios_all_treatment_interactions <- as.data.frame(
     poolObj_all_treatment_interactions
-) |>
-    dplyr::filter(parameter %in% c("TreatLab100mg", "TreatLab300mg")) |>
+) %>%
+    dplyr::filter(parameter %in% c("TreatLab100mg", "TreatLab300mg")) %>%
     dplyr::transmute(
         comparison = dplyr::recode(
             parameter,
@@ -644,8 +644,8 @@ dplyr::left_join(
         model == "Separate each Treat. Shared frai"
     ),
     by = "comparison"
-) |>
-    dplyr::select(-model) |> 
+) %>%
+    dplyr::select(-model) %>% 
     dplyr::mutate(dplyr::across(dplyr::where(is.numeric), ~ round(.x, 4)))
 ```
 
@@ -679,13 +679,13 @@ SAS example. For other applications, `interval` can instead be `"week"`,
 require a `Date` start variable.
 
 ```{r}
-dat_count_season <- dat_count_raw |>
+dat_count_season <- dat_count_raw %>%
     mutate(
         patient = factor(patient),
         TreatLab = factor(TreatLab, levels = c("Placebo", "100mg", "300mg")),
         OnOff = factor(OnOff, levels = c("On", "Off")),
         cell_start = StartDate + Lengthsofar
-    ) |>
+    ) %>%
     split_time(
         start = "cell_start",
         duration = "Length",
@@ -694,7 +694,7 @@ dat_count_season <- dat_count_raw |>
         interval = 91,
         origin = 0,
         period = "period"
-    ) |>
+    ) %>%
     mutate(
         Quarter = factor(1 + split_interval %% 4, levels = 1:4)
     )
@@ -709,8 +709,8 @@ observed cell counts sum to the original observed count, and the 83 withdrawn
 patients contribute 204 missing positive-duration cells.
 
 ```{r}
-season_check <- dat_count_season |>
-    group_by(patient, period) |>
+season_check <- dat_count_season %>%
+    group_by(patient, period) %>%
     summarise(
         split_length = sum(split_duration),
         split_count = if (all(is.na(split_outcome))) {
@@ -752,9 +752,9 @@ the original period crossed with the absolute 91-day interval and supplies the
 within-patient ordering used for sequential imputation.
 
 ```{r}
-dat_ice_season <- dat_count_season |>
-    filter(is.na(split_outcome), split_duration > 0) |>
-    distinct(patient) |>
+dat_ice_season <- dat_count_season %>%
+    filter(is.na(split_outcome), split_duration > 0) %>%
+    distinct(patient) %>%
     mutate(strategy = "MAR")
 
 vars_season <- set_vars(
@@ -835,8 +835,8 @@ poolObj_season
 The corresponding SAS results are labelled `4 Seasons: Treat*OnOff BaseCount`.
 
 ```{r}
-rate_ratios_season <- as.data.frame(poolObj_season) |>
-    filter(parameter %in% c("TreatLab100mg", "TreatLab300mg")) |>
+rate_ratios_season <- as.data.frame(poolObj_season) %>%
+    filter(parameter %in% c("TreatLab100mg", "TreatLab300mg")) %>%
     transmute(
         comparison = recode(
             parameter,
@@ -857,8 +857,8 @@ left_join(
     rate_ratios_season,
     filter(sas_results, model == "4 Seasons: Treat*OnOff BaseCount"),
     by = "comparison"
-) |>
-    select(-model) |> 
+) %>%
+    select(-model) %>% 
     dplyr::mutate(dplyr::across(dplyr::where(is.numeric), ~ round(.x, 4)))
 ```
 
@@ -913,13 +913,13 @@ their imputation strategy. Placebo patients retain MAR imputation using the
 estimated placebo off-treatment rate.
 
 ```{r}
-active_period3_strategy <- dat_count_filled |>
+active_period3_strategy <- dat_count_filled %>%
     filter(
         period == "3",
         Length > 0,
         TreatLab != "Placebo"
-    ) |>
-    distinct(patient) |>
+    ) %>%
+    distinct(patient) %>%
     mutate(strategy = "FIXED_LAMBDA")
 
 fixed_lambda_strategies <- get_count_strategies(
@@ -959,8 +959,8 @@ poolObj_fixed_lambda <- pool(
 ```
 
 ```{r}
-rate_ratios_fixed_lambda <- as.data.frame(poolObj_fixed_lambda) |>
-    filter(parameter %in% c("TreatLab100mg", "TreatLab300mg")) |>
+rate_ratios_fixed_lambda <- as.data.frame(poolObj_fixed_lambda) %>%
+    filter(parameter %in% c("TreatLab100mg", "TreatLab300mg")) %>%
     transmute(
         comparison = recode(
             parameter,
@@ -981,8 +981,8 @@ left_join(
     rate_ratios_fixed_lambda,
     filter(sas_results, model == "Fixed 0.01 active imputed"),
     by = "comparison"
-) |>
-    select(-model) |>
+) %>%
+    select(-model) %>%
     dplyr::mutate(dplyr::across(dplyr::where(is.numeric), ~ round(.x, 4)))
 ```
 
@@ -1006,7 +1006,7 @@ patient retains their randomized arm's modeled off-treatment trajectory and
 dispersion parameter before the multiplier is applied.
 
 ```{r}
-active_period3_double_strategy <- active_period3_strategy |>
+active_period3_double_strategy <- active_period3_strategy %>%
     mutate(strategy = "DOUBLE_RATE")
 
 double_rate_strategies <- get_count_strategies(
@@ -1044,8 +1044,8 @@ poolObj_double_rate <- pool(
 ```
 
 ```{r}
-rate_ratios_double_rate <- as.data.frame(poolObj_double_rate) |>
-    filter(parameter %in% c("TreatLab100mg", "TreatLab300mg")) |>
+rate_ratios_double_rate <- as.data.frame(poolObj_double_rate) %>%
+    filter(parameter %in% c("TreatLab100mg", "TreatLab300mg")) %>%
     transmute(
         comparison = recode(
             parameter,
@@ -1066,8 +1066,8 @@ left_join(
     rate_ratios_double_rate,
     filter(sas_results, model == "Delta Active double rate off"),
     by = "comparison"
-) |>
-    select(-model) |>
+) %>%
+    select(-model) %>%
     dplyr::mutate(dplyr::across(dplyr::where(is.numeric), ~ round(.x, 4)))
 ```
 

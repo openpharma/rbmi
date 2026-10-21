@@ -35,9 +35,9 @@ make_count_fullusage_data <- function(
 
 
 make_count_ice <- function(data, strategy = "MAR") {
-    data |>
-        filter(is.na(outcome), duration > 0) |>
-        distinct(id) |>
+    data %>%
+        filter(is.na(outcome), duration > 0) %>%
+        distinct(id) %>%
         mutate(strategy = strategy)
 }
 
@@ -134,15 +134,19 @@ expect_count_treatment_order <- function(pool_object) {
 
 count_numeric_summary <- function(pool_object) {
     parameters <- c("groupLow", "groupHigh", "baseline")
-    result <- t(vapply(pool_object$pars[parameters], function(parameter) {
-        c(
-            estimate = parameter$est,
-            standard_error = parameter$se,
-            lower = parameter$ci[[1]],
-            upper = parameter$ci[[2]],
-            p_value = parameter$pvalue
-        )
-    }, numeric(5)))
+    result <- t(vapply(
+        pool_object$pars[parameters],
+        function(parameter) {
+            c(
+                estimate = parameter$est,
+                standard_error = parameter$se,
+                lower = parameter$ci[[1]],
+                upper = parameter$ci[[2]],
+                p_value = parameter$pvalue
+            )
+        },
+        numeric(5)
+    ))
     result
 }
 
@@ -168,8 +172,13 @@ test_that("simulate_count_data generates correlated count trial data", {
     expect_named(
         observed,
         c(
-            "id", "period", "duration", "group", "baseline",
-            "outcome_full", "outcome"
+            "id",
+            "period",
+            "duration",
+            "group",
+            "baseline",
+            "outcome_full",
+            "outcome"
         )
     )
     expect_equal(nrow(observed), (7 + 9) * 3)
@@ -275,8 +284,8 @@ test_that("full count usage follows all models in the count vignette", {
 
     # Controlled imputations reuse the main posterior draws, as in the
     # vignette, rather than fitting the observed-data model again.
-    active_missing <- dat |>
-        filter(group != "Placebo", is.na(outcome)) |>
+    active_missing <- dat %>%
+        filter(group != "Placebo", is.na(outcome)) %>%
         distinct(id)
     fixed_update <- mutate(active_missing, strategy = "FIXED_LAMBDA")
     double_update <- mutate(active_missing, strategy = "DOUBLE_RATE")
@@ -320,11 +329,15 @@ test_that("full count usage follows all models in the count vignette", {
         )
     )
     mean_active_imputed <- function(x) {
-        mean(vapply(extract_imputed_dfs(x), function(completed) {
-            mean(completed$outcome[
-                dat$group != "Placebo" & is.na(dat$outcome)
-            ])
-        }, numeric(1)))
+        mean(vapply(
+            extract_imputed_dfs(x),
+            function(completed) {
+                mean(completed$outcome[
+                    dat$group != "Placebo" & is.na(dat$outcome)
+                ])
+            },
+            numeric(1)
+        ))
     }
     controlled_imputation_means <- c(
         mar = mean_active_imputed(shared$imputations),
