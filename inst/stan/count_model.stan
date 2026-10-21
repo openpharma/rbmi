@@ -47,8 +47,16 @@ model {
 
   for (n in 1:N) {
     real shape = inv_phi[group[n]];
-    target += lgamma(shape + y_sum[n]) - lgamma(shape)
-      + shape * log(shape)
-      - (shape + y_sum[n]) * log(shape + mu_sum[n]);
+    real dispersion = phi[group[n]];
+
+    // Expand Gamma(shape + y_sum) / (Gamma(shape) * shape^y_sum)
+    // as a finite product. Subtracting lgamma terms loses precision near
+    // the Poisson limit (dispersion -> 0), which can trap the sampler.
+    if (y_sum[n] > 1) {
+      for (k in 1:(y_sum[n] - 1)) {
+        target += log1p(k * dispersion);
+      }
+    }
+    target += -(shape + y_sum[n]) * log1p(dispersion * mu_sum[n]);
   }
 }

@@ -3,6 +3,56 @@ suppressPackageStartupMessages({
 })
 
 
+test_that("count likelihood remains accurate near the Poisson limit", {
+    skip_if_not(is_core_test())
+
+    # A subject with two cells checks the joint likelihood; totals of zero
+    # and one also exercise the empty finite-product cases.
+    stan_data <- list(
+        N = 3L,
+        R = 4L,
+        P = 1L,
+        G = 3L,
+        group = 1:3,
+        subject = c(1L, 1L, 2L, 3L),
+        y = c(1L, 2L, 0L, 1L),
+        X = matrix(1, 4, 1),
+        log_offset = log(c(1, 2, 1, 1))
+    )
+    beta <- array(log(0.7), dim = 1)
+    fit <- rstan::sampling(
+        get_stan_model_count(),
+        data = stan_data,
+        chains = 1,
+        iter = 1,
+        warmup = 0,
+        algorithm = "Fixed_param",
+        init = list(list(beta = beta, phi = rep(0.5, 3))),
+        seed = 42,
+        refresh = 0
+    )
+    dispersion <- c(0.5, 1e-4, 1e-8, 1e-12, 2 * .Machine$double.eps)
+    actual <- vapply(dispersion, function(phi) {
+        parameters <- rstan::unconstrain_pars(
+            fit,
+            list(beta = beta, phi = rep(phi, 3))
+        )
+        rstan::log_prob(fit, parameters, adjust_transform = FALSE)
+    }, numeric(1))
+    expected <- vapply(dispersion, function(phi) {
+        # Independent reference: negative-binomial subject totals and the
+        # multinomial allocation of the first subject's total across cells.
+        sum(dnbinom(
+            c(3, 0, 1), size = 1 / phi, mu = c(2.1, 0.7, 0.7), log = TRUE
+        )) + dmultinom(c(1, 2), prob = c(1, 2), log = TRUE) +
+            3 * dgamma(phi, shape = 0.0001, rate = 0.0001, log = TRUE)
+    }, numeric(1))
+
+    # Stan omits constants that do not depend on parameters.
+    expect_equal(actual - actual[1], expected - expected[1], tolerance = 1e-10)
+})
+
+
 test_that("count Stan model is reused from the model cache", {
     skip_if_not(is_core_test())
 

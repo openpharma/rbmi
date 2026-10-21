@@ -58,24 +58,6 @@ prepare_stan_data_count <- function(
         msg = "Zero-duration cells cannot have positive counts"
     )
 
-    # The flat prior on regression coefficients requires positive counts in
-    # every period included in the Bayesian model to avoid an improper posterior.
-    periods <- unique(as.character(period[observed]))
-    positive_periods <- as.character(period[observed & outcome > 0])
-    invalid_periods <- periods[!periods %in% positive_periods]
-    assert_that(
-        length(invalid_periods) == 0,
-        msg = sprintf(
-            paste(
-                "Count outcomes must include at least one observed positive",
-                "count in every period included in the Bayesian model",
-                "to avoid an improper posterior.",
-                "Period(s) without positive counts: `%s`"
-            ),
-            paste(invalid_periods, collapse = "`, `")
-        )
-    )
-
     has_observed <- tapply(observed, as.character(subjid), any)
     removed_subjects <- names(has_observed)[!has_observed]
     if (length(removed_subjects) > 0) {
@@ -102,6 +84,19 @@ prepare_stan_data_count <- function(
     assert_that(
         qr(ddat)$rank == ncol(ddat),
         msg = "The observed count design matrix must have full column rank"
+    )
+    # Full rank among positive-count rows is a sufficient condition to rule
+    # out coefficient directions supported only by zeros under flat priors.
+    # Check the fitted design rather than period IDs: ragged time cells can
+    # have no events while sharing all their coefficients with other cells.
+    positive_design <- ddat[outcome[observed] > 0, , drop = FALSE]
+    assert_that(
+        nrow(positive_design) > 0 &&
+            qr(positive_design)$rank == ncol(ddat),
+        msg = paste(
+            "The positive-count design matrix must have full column rank",
+            "to ensure a proper posterior under flat coefficient priors"
+        )
     )
     subjid_observed <- subject_all[observed]
     outcome <- outcome[observed]

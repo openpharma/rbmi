@@ -315,7 +315,7 @@ test_that("count Stan data requires full rank in observed positive-duration cell
 })
 
 
-test_that("count Stan data requires positive counts in every included period", {
+test_that("count Stan data requires positive counts for period-specific effects", {
     periods <- list(
         c(1, 2, 1, 2),
         c("1", "2", "1", "2"),
@@ -330,7 +330,7 @@ test_that("count Stan data requires positive counts in every included period", {
         for (outcome in outcomes) {
             expect_error(
                 prepare_stan_data_count(
-                    ddat = matrix(1, nrow = 4, ncol = 1),
+                    ddat = cbind(intercept = 1, period2 = as.integer(period == "2")),
                     subjid = c("1", "1", "2", "2"),
                     period = period,
                     duration = rep(1, 4),
@@ -338,10 +338,26 @@ test_that("count Stan data requires positive counts in every included period", {
                     group = factor(rep("Control", 4)),
                     same_cov = TRUE
                 ),
-                "observed positive count in every period.*improper posterior.*`2`"
+                "positive-count design matrix.*proper posterior"
             )
         }
     }
+})
+
+
+test_that("count Stan data allows zero-count periods with shared coefficients", {
+    actual <- prepare_stan_data_count(
+        ddat = matrix(1, nrow = 4, ncol = 1),
+        subjid = c("1", "1", "2", "2"),
+        period = c("1", "2", "1", "2"),
+        duration = rep(1, 4),
+        outcome = c(1, 0, 2, 0),
+        group = factor(rep("Control", 4)),
+        same_cov = TRUE
+    )
+
+    expect_equal(actual$y, c(1L, 0L, 2L, 0L))
+    expect_true(validate(actual))
 })
 
 

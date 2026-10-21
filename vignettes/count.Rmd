@@ -119,12 +119,13 @@ The SAS reference results for the models illustrated below are included as
 a CSV file with the package. We retain the two active-treatment versus placebo
 contrasts, so they can be compared directly with the pooled `rbmi` estimates.
 The assertions below stop vignette precompilation if any relative difference
-from SAS exceeds `0.02` for rate ratios and confidence limits, or `0.15` for
+from SAS exceeds `0.005` for rate ratios and confidence limits, or `0.10` for
 p-values. These tolerances allow for Monte Carlo variation between the two
-implementations and across computing environments. CI builds have differed
-from SAS by approximately 1.35% for the treatment-specific-model rate ratio
-and 10.1% for the shared-model p-value, both for 100mg versus placebo.
-Comparisons use unrounded results.
+implementations and across computing environments.
+Comparisons use unrounded results and match contrasts by name. When a
+comparison fails, inspect the Stan diagnostics before increasing the number
+of imputations: additional draws from a chain that has not converged do not
+resolve the discrepancy.
 
 ```{r}
 sas_results <- read.csv(
@@ -167,7 +168,7 @@ check_rate_ratio_results <- function(x, sas_model) {
     # Match contrasts explicitly because SAS and rbmi may order them differently.
     sas_subset <- sas_subset[match(x$comparison, sas_subset$comparison), ]
     statistics <- c("rate_ratio", "lower_95", "upper_95", "p_value")
-    relative_tolerance <- c(0.02, 0.02, 0.02, 0.15)
+    relative_tolerance <- c(0.005, 0.005, 0.005, 0.10)
     for (i in seq_along(statistics)) {
         actual <- x[[i + 1]]
         expected <- sas_subset[[paste0("sas_", statistics[i])]]
@@ -430,6 +431,7 @@ method_by_arm <- method_bayes(
 ```
 
 ```{r draw-by-arm, time_it = TRUE}
+set.seed(987)
 drawObj_by_arm <- draws(
     outcome = "count",
     data = dat_count_filled,
