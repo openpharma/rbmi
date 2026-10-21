@@ -58,6 +58,23 @@ prepare_stan_data_count <- function(
         msg = "Zero-duration cells cannot have positive counts"
     )
 
+    # The flat prior on regression coefficients requires positive counts in
+    # every period to avoid an improper posterior.
+    periods <- unique(as.character(period))
+    positive_periods <- as.character(period[observed & outcome > 0])
+    invalid_periods <- periods[!periods %in% positive_periods]
+    assert_that(
+        length(invalid_periods) == 0,
+        msg = sprintf(
+            paste(
+                "Count outcomes must include at least one observed positive",
+                "count in every period to avoid an improper posterior.",
+                "Period(s) without positive counts: `%s`"
+            ),
+            paste(invalid_periods, collapse = "`, `")
+        )
+    )
+
     has_observed <- tapply(observed, as.character(subjid), any)
     removed_subjects <- names(has_observed)[!has_observed]
     if (length(removed_subjects) > 0) {

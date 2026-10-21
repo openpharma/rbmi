@@ -187,7 +187,7 @@ test_that("count Stan data supports shared and group-specific dispersion", {
         levels = c("Control", "Active")
     )
     duration <- rep(1, 6)
-    outcome <- c(1, 2, NA, 3, 4, NA)
+    outcome <- c(1, 2, NA, 3, 4, 1)
     design <- cbind(intercept = 1, active = as.integer(group == "Active"))
 
     shared <- prepare_stan_data_count(
@@ -220,13 +220,13 @@ test_that("count Stan data supports shared and group-specific dispersion", {
 
 test_that("count Stan data supports ragged observed cells", {
     subjid <- factor(c("1", "1", "1", "2", "2"))
-    period <- c("1:1", "1:2", "3:2", "1:1", "3:1")
+    period <- c("1", "2", "3", "1", "3")
     group <- factor(
         c("Control", "Control", "Control", "Active", "Active"),
         levels = c("Control", "Active")
     )
     duration <- c(2, 2, 1, 3, 2)
-    outcome <- c(1, 0, NA, 2, NA)
+    outcome <- c(0, 1, NA, 2, 1)
     design <- cbind(intercept = 1, active = as.integer(group == "Active"))
 
     actual <- prepare_stan_data_count(
@@ -240,9 +240,9 @@ test_that("count Stan data supports ragged observed cells", {
     )
 
     expect_equal(actual$N, 2)
-    expect_equal(actual$R, 3)
-    expect_equal(actual$subject, c(1L, 1L, 2L))
-    expect_equal(actual$y, c(1L, 0L, 2L))
+    expect_equal(actual$R, 4)
+    expect_equal(actual$subject, c(1L, 1L, 2L, 2L))
+    expect_equal(actual$y, c(0L, 1L, 2L, 1L))
     expect_equal(actual$group, c(1L, 2L))
     expect_true(validate(actual))
 })
@@ -256,7 +256,7 @@ test_that("count Stan data drops subjects without observed positive-duration cel
         levels = c("Control", "Active")
     )
     duration <- c(1, 1, 1, 1, 0, 0)
-    outcome <- c(1, NA, NA, NA, 0, NA)
+    outcome <- c(1, 2, NA, NA, 0, NA)
     design <- cbind(intercept = 1, active = as.integer(group == "Active"))
 
     expect_message(
@@ -273,11 +273,42 @@ test_that("count Stan data drops subjects without observed positive-duration cel
     )
 
     expect_equal(actual$N, 1)
-    expect_equal(actual$R, 1)
-    expect_equal(actual$subject, 1L)
-    expect_equal(actual$y, 1L)
+    expect_equal(actual$R, 2)
+    expect_equal(actual$subject, c(1L, 1L))
+    expect_equal(actual$y, c(1L, 2L))
     expect_equal(actual$group, 1L)
     expect_true(validate(actual))
+})
+
+
+test_that("count Stan data requires observed positive counts in every period", {
+    periods <- list(
+        c(1, 2, 1, 2),
+        c("1", "2", "1", "2"),
+        factor(c("1", "2", "1", "2"))
+    )
+    outcomes <- list(
+        c(1, 0, 2, 0),
+        c(1, NA, 2, 0),
+        c(1, NA, 2, NA),
+        c(0, 0, 0, 0)
+    )
+    for (period in periods) {
+        for (outcome in outcomes) {
+            expect_error(
+                prepare_stan_data_count(
+                    ddat = matrix(1, nrow = 4, ncol = 1),
+                    subjid = c("1", "1", "2", "2"),
+                    period = period,
+                    duration = rep(1, 4),
+                    outcome = outcome,
+                    group = factor(rep("Control", 4)),
+                    same_cov = TRUE
+                ),
+                "observed positive count in every period.*improper posterior.*`2`"
+            )
+        }
+    }
 })
 
 
