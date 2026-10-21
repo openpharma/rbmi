@@ -12,12 +12,9 @@ set_vars(
   covariates = character(0),
   strata = group,
   strategy = "strategy",
-<<<<<<< HEAD
+  group_contrasts = NULL,
   period = NULL,
   duration = NULL
-=======
-  group_contrasts = NULL
->>>>>>> main
 )
 }
 \arguments{
@@ -37,16 +34,6 @@ sampling. See details.}
 
 \item{strategy}{The name of the "strategy" variable. A length 1 character vector.}
 
-<<<<<<< HEAD
-\item{period}{Alternatively to \code{visit}, the name of the "Period" variable.
-A length 1 character vector. The corresponding data column contains the periods
-which are typically character or factor valued.}
-
-\item{duration}{The name of the "Duration" variable. A length 1 character
-vector or \code{NULL}. If \code{period} is specified, this argument is required. The
-corresponding data column must be numeric, finite, and greater than or equal
-to zero, apart from missing values.}
-=======
 \item{group_contrasts}{Optional specification of the treatment-group contrasts to be
 estimated by \code{\link[=ancova]{ancova()}}. Either \code{NULL} (the default) or a fully named list whose
 elements are one of:
@@ -60,7 +47,15 @@ number of levels (in factor order).
 
 Each element must be named; the name is used as the output \code{parameter} name (and must
 not start with \code{lsm_}, which is reserved for the least-squares means). See details.}
->>>>>>> main
+
+\item{period}{Alternatively to \code{visit}, the name of the "Period" variable.
+A length 1 character vector. The corresponding data column contains the periods
+which are typically character or factor valued.}
+
+\item{duration}{The name of the "Duration" variable. A length 1 character
+vector or \code{NULL}. If \code{period} is specified, this argument is required. The
+corresponding data column must be numeric, finite, and greater than or equal
+to zero, apart from missing values.}
 }
 \value{
 A \code{vars} object; a named list of class \code{ivars} recording the names of the key

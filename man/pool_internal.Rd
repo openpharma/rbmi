@@ -8,14 +8,14 @@
 \alias{pool_internal.rubin}
 \title{Internal Pool Methods}
 \usage{
-<<<<<<< HEAD
 pool_internal(
   results,
   conf.level,
   alternative,
   type,
   D,
-  outcome_type = "continuous"
+  outcome_type = "continuous",
+  ...
 )
 
 \method{pool_internal}{jackknife}(
@@ -24,13 +24,9 @@ pool_internal(
   alternative,
   type,
   D,
-  outcome_type = "continuous"
+  outcome_type = "continuous",
+  ...
 )
-=======
-pool_internal(results, conf.level, alternative, type, D, ...)
-
-\method{pool_internal}{jackknife}(results, conf.level, alternative, type, D, ...)
->>>>>>> main
 
 \method{pool_internal}{bootstrap}(
   results,
@@ -38,8 +34,8 @@ pool_internal(results, conf.level, alternative, type, D, ...)
   alternative,
   type = c("percentile", "normal"),
   D,
-<<<<<<< HEAD
-  outcome_type = "continuous"
+  outcome_type = "continuous",
+  ...
 )
 
 \method{pool_internal}{bmlmi}(
@@ -48,7 +44,8 @@ pool_internal(results, conf.level, alternative, type, D, ...)
   alternative,
   type,
   D,
-  outcome_type = "continuous"
+  outcome_type = "continuous",
+  ...
 )
 
 \method{pool_internal}{rubin}(
@@ -57,16 +54,10 @@ pool_internal(results, conf.level, alternative, type, D, ...)
   alternative,
   type,
   D,
-  outcome_type = "continuous"
-)
-=======
+  rubin_df_method,
+  outcome_type = "continuous",
   ...
 )
-
-\method{pool_internal}{bmlmi}(results, conf.level, alternative, type, D, ...)
-
-\method{pool_internal}{rubin}(results, conf.level, alternative, type, D, rubin_df_method, ...)
->>>>>>> main
 }
 \arguments{
 \item{results}{a list of results i.e. the \code{x$results} element of an
@@ -86,16 +77,14 @@ in the original call to \code{\link[=draws]{draws()}}.}
 
 \item{D}{numeric representing the number of imputations between each bootstrap sample in the BMLMI method.}
 
-<<<<<<< HEAD
 \item{outcome_type}{A character string specifying the endpoint type.}
-=======
+
 \item{...}{not used.}
 
 \item{rubin_df_method}{a character string specifying the degrees-of-freedom
 approximation used when pooling with Rubin's rules. \code{"barnard-rubin"} (default)
 uses the Barnard-Rubin (1999) small-sample adjustment, while \code{"rubin"}
 uses the approximation from Rubin (1987). Ignored for other pooling methods.}
->>>>>>> main
 }
 \value{
 A list containing the pooled results for a single parameter with elements
