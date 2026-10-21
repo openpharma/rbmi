@@ -257,7 +257,8 @@ test_that("count Stan data drops subjects without observed positive-duration cel
     )
     duration <- c(1, 1, 1, 1, 0, 0)
     outcome <- c(1, 2, NA, NA, 0, NA)
-    design <- cbind(intercept = 1, active = as.integer(group == "Active"))
+    # Only Control has observed cells, so a treatment effect is not estimable.
+    design <- matrix(1, nrow = 6, ncol = 1, dimnames = list(NULL, "intercept"))
 
     expect_message(
         actual <- prepare_stan_data_count(
@@ -277,7 +278,40 @@ test_that("count Stan data drops subjects without observed positive-duration cel
     expect_equal(actual$subject, c(1L, 1L))
     expect_equal(actual$y, c(1L, 2L))
     expect_equal(actual$group, 1L)
+    expect_equal(actual$X, design[1:2, , drop = FALSE])
     expect_true(validate(actual))
+})
+
+
+test_that("count Stan data requires full rank in observed positive-duration cells", {
+    subjid <- factor(rep(c("1", "2"), each = 2))
+    period <- rep(c("1", "2"), 2)
+    group <- factor(rep(c("Control", "Active"), each = 2))
+    design <- cbind(intercept = 1, active = as.integer(group == "Active"))
+
+    # The full design has rank two, but Active contributes no likelihood when
+    # its outcomes are missing or its exposure is zero.
+    for (missing_active in c(TRUE, FALSE)) {
+        expect_message(
+            expect_error(
+                prepare_stan_data_count(
+                    ddat = design,
+                    subjid = subjid,
+                    period = period,
+                    duration = if (missing_active) rep(1, 4) else c(1, 1, 0, 0),
+                    outcome = if (missing_active) {
+                        c(1, 2, NA, NA)
+                    } else {
+                        c(1, 2, 0, 0)
+                    },
+                    group = group,
+                    same_cov = TRUE
+                ),
+                "The observed count design matrix must have full column rank"
+            ),
+            "Dropping subject\\(s\\).*: `2`"
+        )
+    }
 })
 
 
