@@ -14,7 +14,7 @@ period_levels(data, vars)
 \value{
 A character vector containing observed period levels. Factor level
 order is retained, numeric periods are sorted numerically, and otherwise
-order of first appearance is used.
+periods are sorted lexicographically.
 }
 \description{
 Get ordered period levels from longitudinal data

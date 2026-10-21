@@ -344,7 +344,7 @@ uses_period <- function(vars) {
 #'
 #' @return A character vector containing observed period levels. Factor level
 #'   order is retained, numeric periods are sorted numerically, and otherwise
-#'   order of first appearance is used.
+#'   periods are sorted lexicographically.
 #'
 #' @keywords internal
 period_levels <- function(data, vars) {
@@ -355,7 +355,7 @@ period_levels <- function(data, vars) {
     } else if (is.numeric(period)) {
         as.character(sort(unique(period)))
     } else {
-        observed
+        sort(observed)
     }
 }
 

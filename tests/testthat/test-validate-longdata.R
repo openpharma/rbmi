@@ -70,7 +70,7 @@ vars_period <- set_vars(
 
 
 test_that("period_levels orders periods according to their type", {
-    period_data <- tibble(period = c(1, 10, 2))
+    period_data <- tibble(period = c(2, 10, 1))
 
     expect_equal(period_levels(period_data, vars_period), c("1", "2", "10"))
 
@@ -82,6 +82,17 @@ test_that("period_levels orders periods according to their type", {
         levels = c("2", "10", "1")
     )
     expect_equal(period_levels(period_data, vars_period), c("2", "10", "1"))
+})
+
+
+test_that("character periods are sorted in ragged data", {
+    period_data <- tibble(
+        subjid = c(1, 1, 2, 2, 2),
+        period = c("1", "3", "1", "2", "3")
+    )
+
+    expect_equal(period_levels(period_data, vars_period), c("1", "2", "3"))
+    expect_equal(visit_levels(period_data, vars_period), c("1", "2", "3"))
 })
 
 
