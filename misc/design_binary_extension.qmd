@@ -260,4 +260,807 @@ its imputation-0 block contains the original binary data, and complete patients'
 latent rows remain zero in the supplied algorithm. Use latent rows only for
 patients with missing outcomes and positive imputation indices.
 
+## Multivariate Probit Draw Model Implemented with Stan
+
+### Scope and statistical target
+
+This is a **draw-step prototype**, kept entirely in this document. The target is
+Section 3.3 of @Cro2025, rather than numerical behavior specific to the supplied
+software. As with `R/mcmc_count.R`, preparation, posterior sampling, and parameter
+extraction are separate operations. There is no call to `rbmi::draws()` and no
+change to the package implementation.
+
+For subject $i$, visit $j$, and randomized arm $a_i$, use
+
+$$
+Z_i \mid \beta,\Omega \sim N_D(\mu_i,\Omega_{a_i}),\qquad
+\mu_{ij}=x_{ij}^{\mathsf T}\beta,\qquad
+Y_{ij}=\mathbf{1}(Z_{ij}>0),\qquad \operatorname{diag}(\Omega_a)=1.
+$$
+
+The default design has one intercept per arm and visit. Thus the default model
+fits the arms independently, with separate unstructured correlation matrices.
+A common correlation matrix (`same_cov = TRUE`) and a supplied covariate design
+are also supported, but are extensions beyond this comparison. Treatment means
+remain separate when `same_cov = TRUE`. Binary observations identify correlations,
+not unrestricted latent variances.
+
+The sign convention here makes $\Pr(Y_{ij}=1)=\Phi(\mu_{ij})$. Cro's code instead
+uses $Y=0$ for a positive latent value. Consequently compare **Stan's $\beta$ with
+minus Cro's $\beta$**, while leaving the correlation matrices unchanged. This is
+a global sign change, not a conversion of correlations to their negatives.
+
+The matching priors are $p(\beta)\propto1$ and $\Omega_a\sim\operatorname{LKJ}(1)$.
+On the space of positive definite matrices with diagonal fixed to one, a uniform
+correlation prior is proper; the paper's description of the covariance prior as
+improper does not require a Jeffreys or inverse-Wishart prior here. In the
+Cholesky parameterization, the LKJ density must still be evaluated even when its
+shape is one. See the [Stan LKJ documentation](https://mc-stan.org/docs/functions-reference/correlation_matrix_distributions.html).
+
+`beta_sd = 0` requests these flat coefficient priors. The preparation function
+allows this only for the saturated arm-by-visit design, with both binary outcomes
+observed in every arm and visit. For a custom design, specify `beta_sd > 0`, giving
+independent $N(0,\texttt{beta\_sd}^2)$ priors. This avoids silently using an improper
+posterior under separation. It is then a different prior from the paper. The
+prototype does not choose a universal prior scale for future package integration.
+
+Let $O_i$ be the observed visits. The fitted likelihood is
+
+$$
+L_i(\beta,\Omega)=
+\int_{\{z:(2Y_{ij}-1)z_j>0,\ j\in O_i\}}
+\phi_{|O_i|}\!\left(z;\mu_{i,O_i},\Omega_{a_i}[O_i,O_i]\right)\,dz.
+$$
+
+Missing visits are integrated out analytically before augmentation. Patients
+with no observed visits contribute one and are omitted from the likelihood,
+while their indices are retained in metadata. Monotone dropout is not required.
+In a later package implementation, the draw-stage data policy must determine
+which post-ICE observations to exclude; this prototype treats exactly the cells
+supplied as observed as its fitting data.
+
+The returned draws contain coefficients and latent correlation matrices only.
+MAR/J2R/CR/CIR/LMCF assumptions belong to the later imputation step and must not
+feed back into this posterior. In particular, the auxiliary variables sampled
+below are computational devices, **not completed outcomes or latent values to
+reuse under a reference-based imputation assumption**. That step will need its
+own conditional latent sampling, respecting the observed binary signs. Agreement
+here does not validate the reference code's subsequent imputation algorithm or
+reproduce its pooled treatment-effect table.
+
+### Stan implementation and parameterization
+
+The [Stan multivariate probit example](https://mc-stan.org/docs/stan-users-guide/regression.html#multivariate-probit-regression)
+augments the likelihood with sign-constrained normal variables. The same model
+can be expressed using uniform variables and conditional normal quantiles. We
+use that equivalent parameterization below: the direct sign-constrained version
+had low E-BFMI and divergences in an initial fit to this example. Changing the
+parameterization does not change the target posterior.
+
+For the observed subvector of a patient, let $L L^{\mathsf T}=\Omega[O_i,O_i]$,
+$s_j=2Y_{ij}-1$, $Z=\mu+Le$, and
+
+$$
+c_j=\mu_j+\sum_{k<j}L_{jk}e_k,\quad
+p_j=\Phi(s_jc_j/L_{jj}),\quad
+u_j\in(0,1),\quad e_j=-s_j\Phi^{-1}(u_jp_j).
+$$
+
+The change of variables from sign-constrained $Z$ to $u$ has Jacobian that
+cancels the conditional normal density except for $p_j$. Hence the augmented
+target contributes $\sum_j\log p_j$, with independent uniform base measures for
+$u$. Integrating out $u$ recovers the orthant probability above. We implement
+$u_j=\Phi(v_j)$ with $v_j\sim N(0,1)$ for unconstrained auxiliary parameters.
+These variables are **parameters sampled jointly with $\beta$ and $\Omega$**, not newly simulated
+numbers inserted into an approximate likelihood. The final uniform for each
+subject has no effect on the weight and is integrated out, leaving
+$\sum_i(|O_i|-1)$ auxiliary parameters. A one-visit patient needs none. The internal
+calculation uses reverse visit order; this changes sampling efficiency, not the
+joint likelihood or the visit labels in the returned matrices.
+
+Patients sharing an observed-visit pattern and a covariance group share a matrix
+factorization. We factor the **principal submatrix of $\Omega$**; simply taking
+the corresponding rows and columns of its full Cholesky factor would generally
+be wrong. Probabilities are computed using `normal_lcdf`, without probability
+clipping or `Phi_approx`. The helper computes normal quantiles from log
+probabilities: it uses symmetry
+and, in the far tail, six Newton updates of the log-CDF equation. This avoids
+exponentiating extremely small probabilities or subtracting them from one.
+Invalid proposals at floating-point singularities are still rejected by Stan.
+This is a prototype for
+moderate-dimensional longitudinal data, not a claim of robust sampling for
+arbitrary rare outcomes, separation, or nearly singular correlations.
+
+All implementation functions below are evaluated when rendering. The expensive
+fits and the isolated rebuild of the reference sampler are opt-in. From the
+repository root, run `RBMI_RUN_PROBIT_VALIDATION=true quarto render
+misc/design_binary_extension.qmd --to html` to recompute them. The recorded
+results later in this section are a fixed validation snapshot, not output from
+the earlier five-imputation illustration. Dependencies are `cmdstanr` with a
+working CmdStan C++ toolchain, `posterior`, `mvtnorm`, and the earlier example's
+R dependencies. Corrected-reference validation also needs access to the jomo
+2.7-6 source archive and an R package compilation toolchain.
+
+```{r}
+#| label: probit-run-settings
+run_probit_validation <- identical(Sys.getenv("RBMI_RUN_PROBIT_VALIDATION"), "true")
+```
+
+
+```{r}
+#| label: probit-stan-source
+probit_stan_code <- r"(
+functions {
+  // Normal quantile from a log probability, without tail clipping.
+  real std_normal_quantile_log(real lp) {
+    real small_lp = lp < log(0.5) ? lp : log1m_exp(lp);
+    real q;
+    if (small_lp > -36) {
+      q = inv_Phi(exp(small_lp));
+    } else {
+      q = -sqrt(-2 * small_lp);
+      for (k in 1:6) {
+        real lcdf = normal_lcdf(q | 0, 1);
+        q -= (lcdf - small_lp) * exp(lcdf - normal_lpdf(q | 0, 1));
+      }
+    }
+    return lp < log(0.5) ? q : -q;
+  }
+}
+data {
+  int<lower=1> D;
+  int<lower=1> P;
+  int<lower=1> G;
+  int<lower=1> R;
+  int<lower=1> B;
+  int<lower=0> U;
+  matrix[R, P] X;
+  vector[R] sign_y;
+  array[B] int<lower=1, upper=D> K;
+  array[B, D] int<lower=1, upper=D> visit;
+  array[B] int<lower=1> n_subject;
+  array[B] int<lower=1, upper=R> start;
+  array[B] int<lower=1, upper=G> cov_group;
+  real<lower=0> beta_sd; // zero selects a flat coefficient prior
+  real<lower=0> lkj_eta;
+}
+parameters {
+  vector[P] beta;
+  array[G] cholesky_factor_corr[D] L_Omega;
+  vector[U] u_raw;
+}
+transformed parameters {
+  array[G] corr_matrix[D] Omega;
+  for (g in 1:G)
+    Omega[g] = multiply_lower_tri_self_transpose(L_Omega[g]);
+}
+model {
+  vector[R] mu = X * beta;
+  int u_pos = 1;
+  u_raw ~ std_normal();
+  if (beta_sd > 0) beta ~ normal(0, beta_sd);
+  for (g in 1:G) L_Omega[g] ~ lkj_corr_cholesky(lkj_eta);
+  for (b in 1:B) {
+    array[K[b]] int v = visit[b, 1:K[b]];
+    matrix[K[b], K[b]] L = cholesky_decompose(
+      Omega[cov_group[b]][v, v]);
+    for (i in 1:n_subject[b]) {
+      vector[K[b] - 1] e;
+      for (j in 1:K[b]) {
+        int r = start[b] + (i - 1) * K[b] + j - 1;
+        real conditional_mu = mu[r];
+        real log_mass;
+        if (j > 1) conditional_mu += L[j, 1:(j - 1)] * head(e, j - 1);
+        log_mass = normal_lcdf(sign_y[r] * conditional_mu / L[j, j] | 0, 1);
+        target += log_mass;
+        if (j < K[b]) {
+          e[j] = -sign_y[r] * std_normal_quantile_log(normal_lcdf(u_raw[u_pos] | 0, 1) + log_mass);
+          u_pos += 1;
+        }
+      }
+    }
+  }
+}
+)"
+```
+
+### R preparation, fitting, and extraction
+
+`X`, when supplied, is an $N\times D\times P$ array: a design row for every
+subject and visit. This permits shared coefficients, arm effects, visit effects,
+and interactions without imposing a formula interface at this stage. Covariates
+must be complete and numeric. `cells` records the mapping from Stan's observed
+rows back to the input matrix; `visit_names` fixes the longitudinal order.
+The default coefficient order is arm first, then visit.
+
+For this strongly correlated example, the fit helper first adapts the NUTS metric,
+then starts sampling from each chain's final state with the learned metric and a
+step size no larger than 0.005. The adaptation-stage iteration is discarded.
+This conservative cap costs runtime but addresses divergences that remained with
+ordinary step-size adaptation. It is a tuning choice, not a modification of the
+model. Final diagnostics still need to be checked on every new dataset. CmdStanR
+is used here for convenient standalone compilation; integration with the package's
+existing RStan infrastructure is deferred.
+
+`extract_probit_draws()` returns a list of coefficient vectors and a paired list
+of covariance-group matrices, analogous to the count prototype's parameter-only
+extraction. It does not construct a package `draws` object. It samples retained
+iterations without replacement; it never samples coefficients and correlations
+independently. Keep the complete fitted chains for convergence diagnostics,
+even when fewer draws are requested for downstream imputation.
+
+```{r}
+#| label: probit-r-functions
+prepare_probit_data <- function(Y, arm, X = NULL, same_cov = FALSE,
+                                beta_sd = 0, lkj_eta = 1) {
+  Y <- as.matrix(Y)
+  stopifnot(is.numeric(Y), length(dim(Y)) == 2L,
+            nrow(Y) > 0L, ncol(Y) > 0L,
+            all(Y[!is.na(Y)] %in% 0:1), length(arm) == nrow(Y),
+            !anyNA(arm), length(same_cov) == 1L, is.logical(same_cov),
+            !is.na(same_cov), length(beta_sd) == 1L,
+            is.finite(beta_sd), beta_sd >= 0,
+            length(lkj_eta) == 1L, is.finite(lkj_eta), lkj_eta > 0)
+  arm <- droplevels(factor(arm))
+  N <- nrow(Y); D <- ncol(Y); A <- nlevels(arm)
+  saturated <- is.null(X)
+  if (saturated) {
+    # X[i, d, p] gives subject i's design row at visit d.
+    X <- array(0, c(N, D, A * D))
+    for (i in seq_len(N)) for (d in seq_len(D))
+      X[i, d, (as.integer(arm[i]) - 1L) * D + d] <- 1
+    coefficient_names <- paste(rep(levels(arm), each = D),
+                               rep(colnames(Y) %||% seq_len(D), A), sep = ":")
+  } else {
+    stopifnot(is.array(X), length(dim(X)) == 3L,
+              identical(dim(X)[1:2], c(N, D)), dim(X)[3] > 0L,
+              is.numeric(X), all(is.finite(X)))
+    coefficient_names <- dimnames(X)[[3]] %||% paste0("beta", seq_len(dim(X)[3]))
+  }
+  if (beta_sd == 0) {
+    if (!saturated) stop("Use a proper beta_sd > 0 with a custom design.")
+    for (a in levels(arm)) for (d in seq_len(D)) {
+      yy <- Y[arm == a, d]
+      if (!all(0:1 %in% yy))
+        stop("Flat priors require both outcomes in every arm and visit.")
+    }
+  }
+  observed <- !is.na(Y)
+  keep <- which(rowSums(observed) > 0L)
+  if (!length(keep)) stop("No observed outcomes.")
+  cg <- if (same_cov) rep(1L, N) else as.integer(arm)
+  # Group patients by covariance group and arbitrary observed-visit pattern.
+  key <- paste(cg, apply(observed, 1, paste0, collapse = ""), sep = ":")
+  blocks <- split(keep, factor(key[keep], levels = unique(key[keep])))
+  K <- vapply(blocks, function(ii) sum(observed[ii[1], ]), integer(1))
+  n_subject <- lengths(blocks)
+  visit <- matrix(1L, length(blocks), D)
+  rows <- lapply(seq_along(blocks), function(b) {
+    ii <- blocks[[b]]
+    # Reverse only the internal integration order; output visit order is unchanged.
+    vv <- rev(which(observed[ii[1], ]))
+    visit[b, seq_along(vv)] <<- vv
+    cbind(subject = rep(ii, each = length(vv)), visit = rep(vv, length(ii)))
+  })
+  cells <- do.call(rbind, rows)
+  P <- dim(X)[3]
+  x_obs <- vapply(seq_len(P), function(p) matrix(X[, , p], N, D)[cells], numeric(nrow(cells)))
+  x_obs <- matrix(x_obs, nrow(cells), P)
+  y_obs <- Y[cells]
+  if (qr(x_obs)$rank < P && beta_sd == 0) stop("Rank-deficient flat-prior design.")
+  data <- list(D = D, P = P, G = if (same_cov) 1L else A,
+               R = length(y_obs), B = length(blocks), U = length(y_obs) - length(keep), X = x_obs,
+               sign_y = 2 * y_obs - 1,
+               K = unname(K), visit = visit, n_subject = unname(n_subject),
+               start = as.integer(cumsum(c(1L, head(K * n_subject, -1L)))),
+               cov_group = vapply(blocks, function(ii) cg[ii[1]], integer(1)),
+               beta_sd = beta_sd, lkj_eta = lkj_eta)
+  list(data = data, coefficient_names = coefficient_names,
+       arm_levels = levels(arm), visit_names = colnames(Y) %||% as.character(seq_len(D)),
+       cells = cells, excluded_subjects = setdiff(seq_len(N), keep),
+       same_cov = same_cov, saturated = saturated)
+}
+
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
+fit_probit_draws <- function(prepared, model, chains = 4L, parallel_chains = chains,
+                            iter_warmup = 1500L, iter_sampling = 2000L,
+                            seed = 20261026L, adapt_delta = 0.99,
+                            step_size_cap = 0.005, ...) {
+  stopifnot(length(step_size_cap) == 1L, is.finite(step_size_cap), step_size_cap > 0)
+  # Adapt the metric, then sample with a conservative fixed step size.
+  warm <- model$sample(data = prepared$data, chains = chains,
+    parallel_chains = parallel_chains, iter_warmup = iter_warmup,
+    iter_sampling = 1L, seed = seed, adapt_delta = adapt_delta,
+    max_treedepth = 12L, step_size = 0.05, refresh = 0, sig_figs = 18, diagnostics = NULL, ...)
+  dat <- prepared$data
+  variables <- c("beta", "L_Omega", if (dat$U > 0L) "u_raw")
+  d <- posterior::as_draws_matrix(warm$draws(variables))
+  initial <- lapply(seq_len(chains), function(ch) list(
+    beta = as.numeric(d[ch, paste0("beta[", seq_len(dat$P), "]")]),
+    L_Omega = lapply(seq_len(dat$G), function(g) {
+      nm <- outer(seq_len(dat$D), seq_len(dat$D), function(j, k)
+        sprintf("L_Omega[%d,%d,%d]", g, j, k))
+      matrix(as.numeric(d[ch, as.vector(nm)]), dat$D, dat$D)
+    }),
+    u_raw = if (dat$U > 0L) as.numeric(d[ch, paste0("u_raw[", seq_len(dat$U), "]")]) else numeric()
+  ))
+  fit <- model$sample(data = dat, chains = chains, parallel_chains = parallel_chains,
+    iter_warmup = 0L, iter_sampling = iter_sampling, seed = seed + 1L,
+    init = initial, metric = "diag_e", inv_metric = warm$inv_metric(matrix = FALSE),
+    adapt_engaged = FALSE,
+    step_size = pmin(step_size_cap, warm$metadata()$step_size_adaptation),
+    max_treedepth = 12L, refresh = 0)
+  structure(list(fit = fit, warmup_fit = warm, prepared = prepared), class = "probit_draw_fit")
+}
+
+extract_probit_draws <- function(object, n_samples = NULL, seed = 123L) {
+  # Select paired beta/Omega rows; retain full chains in object$fit for diagnostics.
+  d <- posterior::as_draws_matrix(object$fit$draws(c("beta", "Omega")))
+  if (is.null(n_samples)) n_samples <- nrow(d)
+  stopifnot(length(n_samples) == 1L, is.finite(n_samples), n_samples >= 1L,
+            n_samples == as.integer(n_samples), n_samples <= nrow(d))
+  set.seed(seed)
+  take <- sample.int(nrow(d), n_samples, replace = FALSE)
+  dat <- object$prepared$data
+  beta <- lapply(take, function(i) setNames(
+    as.numeric(d[i, paste0("beta[", seq_len(dat$P), "]")]),
+    object$prepared$coefficient_names))
+  sigma <- lapply(take, function(i) lapply(seq_len(dat$G), function(g) {
+    nm <- outer(seq_len(dat$D), seq_len(dat$D), function(j, k)
+      sprintf("Omega[%d,%d,%d]", g, j, k))
+    matrix(as.numeric(d[i, as.vector(nm)]), dat$D, dat$D,
+           dimnames = rep(list(object$prepared$visit_names), 2))
+  }))
+  list(beta = beta, sigma = sigma, metadata = object$prepared[
+    c("coefficient_names", "arm_levels", "visit_names", "same_cov")])
+}
+```
+
+```{r}
+#| label: fit-probit-trial
+#| eval: !expr run_probit_validation
+probit_model <- cmdstanr::cmdstan_model(cmdstanr::write_stan_file(probit_stan_code))
+probit_input <- prepare_probit_data(Ycat, treat1, same_cov = FALSE)
+stopifnot(probit_input$data$R == 831L, probit_input$data$U == 631L)
+probit_fit <- fit_probit_draws(probit_input, probit_model, init = 0)
+probit_fit$fit$diagnostic_summary()
+probit_fit$fit$summary(c("beta", "Omega"))
+probit_parameters <- extract_probit_draws(probit_fit, n_samples = 1000L)
+stopifnot(length(probit_parameters$beta) == 1000L,
+          length(probit_parameters$sigma[[1]]) == 2L)
+```
+
+### Audit of the reference draw sampler
+
+The comparison calls `jomo::jomo1cat.MCMCchain()` separately by arm, exactly as
+in the draw-stage calls inside `cro_latent_mvn()`. It skips the subsequent
+imputation loops. Thus the short J2R run above is not used to assess posterior
+agreement. Both methods use the same **strict >50% response threshold**, the same
+200 patients, and the same observed visits.
+
+The [jomo 2.7-6 source](https://cran.r-project.org/src/contrib/Archive/jomo/jomo_2.7-6.tar.gz),
+`src/jomo1C.c`, reveals two departures from the intended binary sampler:
+
+1. Observed latent proposals must lie in $(-3,4)$ as well as satisfy their sign.
+   These finite bounds change the augmentation target; they are not in the
+   paper's probit model. Under our opposite sign convention the bounds would be
+   $(-4,3)$. The limit of 10,000 rejection attempts is also unnecessary for a
+   binary truncated normal.
+2. A correlation proposal is repeatedly redrawn until the matrix is positive
+   definite (up to 100 tries), then accepted using only a likelihood ratio.
+   Conditioning a symmetric normal proposal on this feasible interval makes
+   its normalization depend on the current correlation. The missing proposal
+   ratio can therefore change the stationary distribution.
+
+The second point follows directly from the proposal construction. If the
+feasible interval for a correlation is $(l,h)$ and the proposal scale is $s$,
+its acceptance probability must account for
+$A(r)=\Phi((h-r)/s)-\Phi((l-r)/s)$. Retrying until feasible gives
+$q(r'\mid r)=\phi((r'-r)/s)/(sA(r))$, requiring an additional
+$A(r)/A(r')$ in the Metropolis ratio. Instead, the patch below uses one symmetric
+proposal and rejects it immediately if invalid. For binary observations it
+also draws the exact one-sided conditional normal using log-tail quantiles.
+Neither correction changes the intended flat priors. The categorical covariance
+update uses no inverse-Wishart term from `l1cov.prior`; supplying that argument
+is not a substitute for specifying the correlation prior here.
+
+These corrections are deliberately limited to the binary draw model. They are
+not a general repair of jomo's mixed-outcome samplers. The original reference
+files and the installed jomo package are preserved: the helper builds a patched
+copy in a temporary library and runs it in a separate R process. The patch checks
+the source version and expected edit locations and fails if they do not match.
+
+```{r}
+#| label: patch-binary-reference
+patch_jomo_binary <- function(source_dir) {
+  path <- file.path(source_dir, "src", "jomo1C.c")
+  lines <- readLines(path)
+  stopifnot(read.dcf(file.path(source_dir, "DESCRIPTION"))[1, "Version"] == "2.7-6")
+  # For binary categories only, exact one-sided conditional normal draws.
+  first <- grep("if (REAL(Y)[t+(ncon+j)*IY]==INTEGER(Y_numcat)[j])", lines, fixed=TRUE)
+  last <- grep("//Updating beta", lines, fixed=TRUE)
+  stopifnot(length(first)==1L, length(last)==1L, last > first)
+  end <- first + which(trimws(lines[(first+1L):(last-1L)]) == "flag=0;")[1]
+  old <- lines[first:(end-1L)]
+  replacement <- c(
+    "if (currncat == 1) {",
+    "  int lower_tail = (REAL(Y)[t+(ncon+j)*IY] == 2);",
+    "  double sd = sqrt(omegadrawmiss[0]);",
+    "  double lp = pnorm5(0, mumiss[0], sd, lower_tail, 1);",
+    "  imp[t+pos*IY] = qnorm5(log(unif_rand()) + lp, mumiss[0], sd, lower_tail, 1);",
+    "} else {", old, "}")
+  lines <- c(lines[seq_len(first-1L)], replacement, lines[end:length(lines)])
+  # One symmetric proposal. Reject invalid matrices before factorization.
+  first <- grep("while ((flag==0)&(kk<100))", lines, fixed=TRUE)
+  stopifnot(length(first)==1L)
+  end <- first + which(trimws(lines[(first+1L):length(lines)]) == "}")[1]
+  replacement <- c(
+    "newomega[j+JY*k] = r8_normal_sample(meanom,sdom,0);",
+    "newomega[k+JY*j] = newomega[j+JY*k];",
+    "flag = checkposdef(JY,newomega,help,help5);",
+    "if (flag == 0) {",
+    "  newomega[j+JY*k] = REAL(omega)[j+JY*k];",
+    "  newomega[k+JY*j] = REAL(omega)[k+JY*j];",
+    "  continue;",
+    "}")
+  lines <- c(lines[seq_len(first-1L)], replacement, lines[(end+1L):length(lines)])
+  writeLines(lines, path)
+  invisible(path)
+}
+```
+
+```{r}
+#| label: reference-draw-functions
+run_reference_chain <- function(chain, input) {
+  set.seed(input$seed + chain)
+  lapply(seq_len(nlevels(factor(input$arm))), function(a) {
+    yy <- as.data.frame(input$Y[as.integer(factor(input$arm)) == a, , drop = FALSE])
+    yy[] <- lapply(yy, factor, levels = 0:1)
+    # Mirrors Cro's two draw-stage jomo calls; no reference-based imputation.
+    f <- jomo::jomo1cat.MCMCchain(
+      Y.cat = yy, Y.numcat = rep(2L, ncol(yy)),
+      nburn = input$warmup + input$iterations, output = 0
+    )
+    take <- seq.int(input$warmup + input$thin,
+                    input$warmup + input$iterations, by = input$thin)
+    list(beta = f$collectbeta[, , take, drop = FALSE],
+         omega = f$collectomega[, , take, drop = FALSE])
+  })
+}
+
+run_reference_draws <- function(Y, arm, library = NULL, chains = 4L,
+                                warmup = 100000L, iterations = 1000000L,
+                                thin = 100L, seed = 123435L) {
+  stopifnot(ncol(Y) >= 2L, length(arm) == nrow(Y), !anyNA(arm),
+            all(Y[!is.na(Y)] %in% 0:1), chains >= 1L,
+            warmup >= 1L, iterations >= thin, thin >= 1L)
+  # This comparison adapter deliberately stays within Cro's example scope.
+  for (a in unique(arm)) {
+    yy <- Y[arm == a, , drop = FALSE]
+    stopifnot(anyNA(yy), all(rowSums(!is.na(yy)) > 0L),
+              all(vapply(seq_len(ncol(yy)), function(j)
+                all(0:1 %in% yy[, j]), logical(1))))
+  }
+  work <- tempfile("probit-reference-")
+  dir.create(work)
+  on.exit(unlink(work, recursive = TRUE), add = TRUE)
+  input <- list(Y = Y, arm = arm, library = library, chains = chains,
+                warmup = warmup, iterations = iterations, thin = thin, seed = seed)
+  input_path <- file.path(work, "input.rds")
+  output_path <- file.path(work, "output.rds")
+  script_path <- file.path(work, "run.R")
+  log_path <- file.path(work, "run.log")
+  saveRDS(input, input_path)
+  writeLines(c("run_chain <-", deparse(run_reference_chain),
+    "args <- commandArgs(trailingOnly = TRUE)",
+    "input <- readRDS(args[1])",
+    "if (!is.null(input$library)) .libPaths(c(input$library, .libPaths()))",
+    "stopifnot(as.character(utils::packageVersion('jomo')) == '2.7.6')",
+    "cores <- if (.Platform$OS.type == 'windows') 1L else input$chains",
+    "out <- parallel::mclapply(seq_len(input$chains), run_chain, input = input, mc.cores = cores)",
+    "if (any(vapply(out, inherits, logical(1), 'try-error'))) stop('Reference chain failed')",
+    "saveRDS(out, args[2])"), script_path)
+  status <- system2(file.path(R.home("bin"), "Rscript"),
+                    shQuote(c(script_path, input_path, output_path)),
+                    stdout = log_path, stderr = log_path)
+  if (status != 0L) stop(paste(readLines(log_path), collapse = "\n"))
+  readRDS(output_path)
+}
+
+build_corrected_jomo <- function(archive = NULL) {
+  work <- tempfile("jomo-binary-audit-")
+  dir.create(work)
+  if (is.null(archive)) {
+    archive <- file.path(work, "jomo_2.7-6.tar.gz")
+    urls <- c(
+      "https://cran.r-project.org/src/contrib/jomo_2.7-6.tar.gz",
+      "https://cran.r-project.org/src/contrib/Archive/jomo/jomo_2.7-6.tar.gz")
+    downloaded <- FALSE
+    for (url in urls) {
+      status <- try(suppressWarnings(utils::download.file(
+        url, archive, mode = "wb", quiet = TRUE)), silent = TRUE)
+      if (!inherits(status, "try-error") && status == 0L) {
+        downloaded <- TRUE
+        break
+      }
+    }
+    if (!downloaded) stop("Supply the jomo 2.7-6 source archive locally.")
+  }
+  utils::untar(archive, exdir = work)
+  src <- file.path(work, "jomo")
+  patch_jomo_binary(src)
+  lib <- file.path(work, "library")
+  dir.create(lib)
+  log <- file.path(work, "install.log")
+  status <- system2(file.path(R.home("bin"), "R"),
+                    c("CMD", "INSTALL", "-l", shQuote(lib), shQuote(src)),
+                    stdout = log, stderr = log)
+  if (status != 0L) stop(paste(readLines(log), collapse = "\n"))
+  lib
+}
+```
+
+The reference runner discards 100,000 sweeps and retains every 100th sweep from
+one million subsequent sweeps, for each of four independent chains per arm.
+This thinning limits storage; it does not establish independence. Correlation
+mixing, rather than coefficient mixing, determines how long these runs need to
+be. All signs, parameter ordering, MCSEs, and diagnostics are harmonized below.
+The comparison includes all ten coefficients and twenty distinct correlations;
+constant diagonal entries and duplicated upper triangles are excluded.
+
+```{r}
+#| label: compare-probit-functions
+jomo_array <- function(chains) {
+  S <- dim(chains[[1]][[1]]$beta)[3]
+  A <- length(chains[[1]])
+  D <- dim(chains[[1]][[1]]$omega)[1]
+  pair <- which(lower.tri(matrix(0,D,D)),arr.ind=TRUE)
+  nm <- c(paste0("beta[",seq_len(A*D),"]"), unlist(lapply(seq_len(A),function(a)
+    sprintf("Omega[%d,%d,%d]",a,pair[,1],pair[,2]))))
+  arr <- array(NA_real_,c(S,length(chains),length(nm)),dimnames=list(NULL,NULL,nm))
+  for (ch in seq_along(chains)) {
+    values <- c(lapply(seq_len(A),function(a) -t(chains[[ch]][[a]]$beta[1,,])),
+                lapply(seq_len(A),function(a) t(vapply(seq_len(S), function(s)
+                  chains[[ch]][[a]]$omega[,,s][pair], numeric(nrow(pair))))))
+    arr[,ch,] <- do.call(cbind,values)
+  }
+  posterior::as_draws_array(arr)
+}
+summarize_parameters <- function(draws) {
+  as.data.frame(posterior::summarise_draws(draws, mean=mean, sd=sd,
+    q025=function(x) unname(quantile(x,.025)),
+    q975=function(x) unname(quantile(x,.975)),
+    mcse=posterior::mcse_mean, rhat=posterior::rhat,
+    ess_bulk=posterior::ess_bulk, ess_tail=posterior::ess_tail))
+}
+compare_parameters <- function(stan, reference) {
+  a <- summarize_parameters(stan)
+  b <- summarize_parameters(reference)
+  z <- merge(a,b,by="variable",suffixes=c("_stan","_reference"),sort=FALSE)
+  z$difference <- z$mean_stan-z$mean_reference
+  z$combined_mcse <- sqrt(z$mcse_stan^2+z$mcse_reference^2)
+  z$mcse_units <- z$difference/z$combined_mcse
+  z$sd_units <- z$difference/z$sd_stan
+  z
+}
+```
+
+```{r}
+#| label: compare-probit-reference
+#| eval: !expr run_probit_validation
+reference_original <- run_reference_draws(Ycat, treat1)
+# Supply a local source archive to build_corrected_jomo() to avoid downloading.
+corrected_library <- build_corrected_jomo()
+reference_corrected <- run_reference_draws(Ycat, treat1, library = corrected_library)
+comparison_original <- compare_parameters(
+  probit_fit$fit$draws(c("beta", "Omega")), jomo_array(reference_original))
+comparison_corrected <- compare_parameters(
+  probit_fit$fit$draws(c("beta", "Omega")), jomo_array(reference_corrected))
+knitr::kable(comparison_corrected[, c("variable", "mean_stan", "mean_reference",
+                                    "difference", "combined_mcse", "mcse_units")],
+             digits = 4)
+# Also inspect posterior SDs, interval endpoints, R-hat, and both ESS estimates:
+comparison_corrected
+```
+
+### Recorded comparison (26 October 2026)
+
+This snapshot used R 4.6.1, CmdStanR 0.9.0, CmdStan 2.39.0, posterior 1.7.0,
+and jomo 2.7-6. Stan used four chains, 1,500 warmup iterations per chain,
+and 2,000 retained sampling iterations per chain after the step-size cap;
+its warmup seed was 20261026 and sampling seed 20261027. Both reference
+runs used four chains per arm with seeds 123436 through 123439, 100,000
+burn-in sweeps, and one million further sweeps, retaining every 100th.
+
+**The corrected reference agrees with the paper-targeted Stan model:** the largest
+absolute posterior-mean difference was 2.09 combined MCSEs across all 30 parameters.
+The maximum absolute differences were 0.0036 for coefficients and 0.0062 for correlations.
+Posterior SDs differed by at most 2.4%, and the largest difference between
+corresponding 95% interval endpoints was 0.150 Stan posterior SDs.
+These are Monte Carlo comparisons, not a proof of equality of the two algorithms.
+
+The unmodified reference differs systematically: the placebo Week 1 coefficient
+is -1.742 versus -1.956 in Stan (83.0 combined MCSEs). The corrected value is -1.952.
+The two source-level corrections were applied together; this experiment does not
+attribute every discrepancy separately to one correction or the other.
+
+|Sampler        | Maximum R-hat| Minimum bulk ESS| Minimum tail ESS|
+|:--------------|-------------:|----------------:|----------------:|
+|Stan           |        1.0017|             3441|             4816|
+|Corrected jomo |        1.0072|             1320|             1987|
+|Original jomo  |        1.0016|             2252|             3399|
+
+Stan had **0 divergent transitions**, 0 maximum-treedepth hits, and E-BFMI
+between 0.925 and 0.971 in the retained chains. R-hat and ESS above summarize
+only the ten coefficients and twenty distinct correlations. Initial warmup
+rejections are not counted as retained-chain divergences. These diagnostics
+support this example; they do not guarantee adequate sampling on a new dataset.
+
+All reference coefficients in the following tables have been sign-reversed.
+“Difference / MCSE” is $(\bar\theta_{\mathrm{Stan}}-\bar\theta_{\mathrm{corrected}})/
+\sqrt{\mathrm{MCSE}_{\mathrm{Stan}}^2+\mathrm{MCSE}_{\mathrm{corrected}}^2}$.
+The interval columns describe the Stan posterior, not a Monte Carlo confidence interval.
+
+|Arm     | Week| Original jomo|   Stan|Stan 95% CrI     | Corrected jomo| Difference / MCSE|
+|:-------|----:|-------------:|------:|:----------------|--------------:|-----------------:|
+|Placebo |    1|        -1.742| -1.956|[-2.504, -1.488] |         -1.952|            -1.230|
+|Placebo |    2|        -0.911| -0.937|[-1.239, -0.645] |         -0.936|            -0.114|
+|Placebo |    4|        -0.673| -0.678|[-0.971, -0.389] |         -0.678|             0.301|
+|Placebo |    6|        -0.422| -0.423|[-0.724, -0.127] |         -0.425|             1.166|
+|Placebo |    8|        -0.376| -0.384|[-0.696, -0.072] |         -0.385|             0.753|
+|Active  |    1|        -1.434| -1.497|[-1.875, -1.147] |         -1.498|             0.355|
+|Active  |    2|        -0.861| -0.875|[-1.185, -0.578] |         -0.875|             0.046|
+|Active  |    4|        -0.469| -0.472|[-0.753, -0.196] |         -0.472|             0.252|
+|Active  |    6|        -0.244| -0.241|[-0.525, 0.045]  |         -0.242|             0.403|
+|Active  |    8|        -0.003|  0.005|[-0.290, 0.298]  |          0.005|            -0.140|
+
+|Arm     |Weeks | Original jomo|  Stan|Stan 95% CrI    | Corrected jomo| Difference / MCSE|
+|:-------|:-----|-------------:|-----:|:---------------|--------------:|-----------------:|
+|Placebo |2 / 1 |         0.580| 0.599|[0.182, 0.897]  |          0.602|            -0.617|
+|Placebo |4 / 1 |         0.107| 0.124|[-0.327, 0.545] |          0.123|             0.123|
+|Placebo |6 / 1 |         0.052| 0.072|[-0.364, 0.487] |          0.073|            -0.150|
+|Placebo |8 / 1 |         0.358| 0.381|[-0.075, 0.753] |          0.382|            -0.094|
+|Placebo |4 / 2 |         0.534| 0.545|[0.245, 0.785]  |          0.546|            -0.212|
+|Placebo |6 / 2 |         0.414| 0.424|[0.084, 0.710]  |          0.418|             1.537|
+|Placebo |8 / 2 |         0.678| 0.687|[0.389, 0.885]  |          0.684|             0.835|
+|Placebo |6 / 4 |         0.604| 0.610|[0.325, 0.826]  |          0.609|             0.150|
+|Placebo |8 / 4 |         0.634| 0.642|[0.357, 0.850]  |          0.644|            -0.587|
+|Placebo |8 / 6 |         0.813| 0.826|[0.636, 0.945]  |          0.822|             2.091|
+|Active  |2 / 1 |         0.657| 0.665|[0.348, 0.889]  |          0.662|             0.880|
+|Active  |4 / 1 |         0.629| 0.646|[0.250, 0.922]  |          0.648|            -0.209|
+|Active  |6 / 1 |         0.609| 0.636|[0.220, 0.929]  |          0.637|            -0.230|
+|Active  |8 / 1 |         0.501| 0.521|[0.055, 0.891]  |          0.527|            -1.060|
+|Active  |4 / 2 |         0.695| 0.694|[0.425, 0.883]  |          0.695|            -0.278|
+|Active  |6 / 2 |         0.717| 0.724|[0.446, 0.905]  |          0.725|            -0.446|
+|Active  |8 / 2 |         0.694| 0.706|[0.369, 0.928]  |          0.710|            -1.228|
+|Active  |6 / 4 |         0.839| 0.847|[0.679, 0.951]  |          0.846|             0.565|
+|Active  |8 / 4 |         0.463| 0.461|[0.157, 0.713]  |          0.464|            -0.658|
+|Active  |8 / 6 |         0.664| 0.668|[0.417, 0.851]  |          0.671|            -0.870|
+
+The independent bivariate identity check had maximum absolute error 3e-15.
+For the one-visit example (7 responses among 20 patients), the numerical posterior
+mean was -0.392807 versus -0.382052 in Stan (MCSE 0.006725); posterior SDs were 0.289319 and 0.285921.
+The log-quantile comparison with R had maximum absolute error 7.1e-15 over log
+probabilities from $-10^{-16}$ to $-10^6$. Both the one-visit fit and the
+covariate/intermittent-missingness fit had zero divergences and zero treedepth
+hits; all seven simulated coefficients were inside their 95% posterior intervals.
+
+Before package integration, the remaining work is an imputation-step design and
+validation, an adapter to the package design matrices and draw objects, and
+broader checks for rare outcomes, larger visit counts, and prior sensitivity.
+The fixed integration order and conservative sampler tuning here are prototype
+choices, not universal defaults for the package.
+
+
+
+### Independent validation checks
+
+Agreement between two samplers is not sufficient on its own. The checks below
+also verify the bivariate orthant identity, the one-visit posterior against
+numerical integration, and the data mapping for a covariate-adjusted model with
+intermittent missingness and an entirely missing subject. The simulation uses a
+shared correlation matrix and checks coverage of the known coefficient vector;
+it is a small implementation check, not a simulation study of operating
+characteristics. Rejection of flat priors for separated cells or custom designs,
+and preservation of matrix dimensions during extraction, are also checked.
+
+```{r}
+#| label: validate-probit-independent
+#| eval: !expr run_probit_validation
+model <- probit_model
+
+# Deterministic two-visit orthant check, including all four sign patterns.
+mu <- c(-.7, .3)
+Omega <- matrix(c(1,.6,.6,1),2)
+L <- t(chol(Omega))
+signs <- as.matrix(expand.grid(c(-1,1),c(-1,1)))
+err <- apply(signs,1,function(s) {
+  p1 <- pnorm(s[1]*mu[1])
+  value <- integrate(function(u) {
+    e1 <- -s[1]*qnorm(u*p1)
+    p1*pnorm(s[2]*(mu[2]+L[2,1]*e1)/L[2,2])
+  },0,1,rel.tol=1e-10)$value
+  truth <- as.numeric(mvtnorm::pmvnorm(lower=c(0,0),
+    upper=c(Inf,Inf),mean=s*mu,sigma=Omega*outer(s,s),algorithm=mvtnorm::TVPACK()))
+  value-truth
+})
+stopifnot(max(abs(err)) < 1e-8)
+
+# One visit: no augmentation variables; compare against numerical quadrature.
+y <- matrix(c(rep(1,7),rep(0,13)),ncol=1)
+p <- prepare_probit_data(y,rep(1,nrow(y)))
+stopifnot(p$data$U==0L,p$data$R==20L,p$data$P==1L)
+f <- fit_probit_draws(p,model,chains=4,iter_warmup=500,iter_sampling=2000,seed=883L)
+sm <- summarize_parameters(f$fit$draws("beta"))
+density <- function(b) exp(7*pnorm(b,log.p=TRUE)+13*pnorm(-b,log.p=TRUE))
+constant <- integrate(density,-Inf,Inf)$value
+exact_mean <- integrate(function(b) b*density(b),-Inf,Inf)$value/constant
+exact_sd <- sqrt(integrate(function(b) (b-exact_mean)^2*density(b),-Inf,Inf)$value/constant)
+stopifnot(abs(sm$mean-exact_mean) < 4*sm$mcse,
+          abs(sm$sd-exact_sd) < .02)
+ex <- extract_probit_draws(f,10)
+stopifnot(length(ex$beta)==10L,length(ex$sigma)==10L,
+          identical(dim(ex$sigma[[1]][[1]]),c(1L,1L)),
+          ex$sigma[[1]][[1]][1,1]==1)
+
+# Data preparation: arbitrary missing patterns, all-missing subjects, custom X.
+set.seed(443)
+N <- 180L; D <- 3L
+arm <- rep(1:2,each=N/2)
+x <- rnorm(N)
+X <- array(0,c(N,D,7L))
+for (i in seq_len(N)) for (j in seq_len(D)) {
+  X[i,j,j] <- 1
+  X[i,j,3+j] <- arm[i]==2
+  X[i,j,7] <- x[i]
+}
+truth <- c(-.6,-.3,.1,.4,.5,.6,.3)
+Sigma <- matrix(c(1,.55,.3,.55,1,.4,.3,.4,1),3)
+eta <- matrix(matrix(X,N*D,7L)%*%truth,N,D)
+Z <- eta + matrix(rnorm(N*D),N,D)%*%chol(Sigma)
+Y <- 1L*(Z>0)
+Y[matrix(runif(N*D)<.2,N,D)] <- NA
+Y[1,] <- NA
+p2 <- prepare_probit_data(Y,arm,X,same_cov=TRUE,beta_sd=2)
+stopifnot(1L %in% p2$excluded_subjects,p2$data$G==1L,
+  all(p2$data$sign_y==2*Y[p2$cells]-1),
+  isTRUE(all.equal(p2$data$X,
+    sapply(1:7,function(k) matrix(X[,,k],N,D)[p2$cells]),check.attributes=FALSE)))
+stopifnot(inherits(try(prepare_probit_data(Y,arm,X,beta_sd=0),silent=TRUE),"try-error"),
+  inherits(try(prepare_probit_data(matrix(0,10,2),rep(1,10)),silent=TRUE),"try-error"))
+f2 <- fit_probit_draws(p2,model,chains=4,iter_warmup=1000,iter_sampling=1500,seed=884L)
+sm2 <- summarize_parameters(f2$fit$draws("beta"))
+stopifnot(all(sm2$rhat < 1.01),all(sm2$ess_bulk > 400),
+  all(truth > sm2$q025 & truth < sm2$q975))
+
+list(bivariate_errors = err, univariate = cbind(sm, exact_mean, exact_sd),
+     synthetic = cbind(sm2, truth))
+f$fit$diagnostic_summary()
+f2$fit$diagnostic_summary()
+```
+
+The log-quantile helper is checked separately against R's tail-aware `qnorm`,
+including probabilities whose ordinary floating-point representation underflows.
+Writing Stan's output at 18 significant figures is necessary for this numerical
+check; rounding CSV output must not be mistaken for function error.
+
+```{r}
+#| label: validate-probit-log-quantile
+#| eval: !expr run_probit_validation
+code <- strsplit(probit_stan_code, "\n", fixed = TRUE)[[1]]
+code <- code[seq_len(which(code=="data {")[1]-1L)]
+code <- c(code,"data { int<lower=1> N; vector[N] lp; }",
+          "generated quantities { vector[N] q; for (i in 1:N) q[i] = std_normal_quantile_log(lp[i]); }")
+m <- cmdstanr::cmdstan_model(cmdstanr::write_stan_file(code))
+lp <- c(-1e-16,-1e-10,-.1,log(.5),-2,-36+1e-8,-36-1e-8,-50,-100,-700,-1000,-1e6)
+f <- m$sample(data=list(N=length(lp),lp=lp),fixed_param=TRUE,chains=1,iter_sampling=1,refresh=0,sig_figs=18)
+q <- as.numeric(posterior::as_draws_matrix(f$draws('q'))[1,])
+truth <- qnorm(lp,log.p=TRUE)
+z <- data.frame(lp,q,truth,error=q-truth)
+print(z)
+stopifnot(max(abs(z$error))<1e-9)
+
+```
+
 ## References
