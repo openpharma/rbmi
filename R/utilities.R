@@ -69,6 +69,37 @@ as_simple_formula <- function(outcome, covars) {
 }
 
 
+#' Check whether a variable participates in a formula interaction
+#'
+#' @param formula A model formula.
+#' @param variable Character, the name of the variable to check.
+#' @return A single logical value indicating whether an interaction term involves
+#'   `variable`, including through a transformation such as `factor(variable)`.
+#' @details Uses expanded model terms, so interactions removed with `-` do not
+#'   count. Arithmetic inside `I()` is not treated as a formula interaction.
+#' @keywords internal
+formula_has_interaction <- function(formula, variable) {
+    model_terms <- stats::terms(formula)
+    assert_that(assertthat::is.string(variable))
+
+    interaction_terms <- attr(model_terms, "order") > 1
+    if (!any(interaction_terms)) {
+        return(FALSE)
+    }
+
+    # Each row of the factors matrix corresponds to a model variable expression.
+    # Inspect the expressions to also recognise variables inside transformations.
+    expressions <- as.list(attr(model_terms, "variables"))[-1L]
+    involves_variable <- vapply(
+        expressions,
+        function(x) variable %in% all.vars(x),
+        logical(1)
+    )
+    term_factors <- attr(model_terms, "factors")
+    any(term_factors[involves_variable, interaction_terms, drop = FALSE] > 0)
+}
+
+
 #' Expand `data.frame` into a design matrix
 #'
 #' Expands out a `data.frame` using a formula to create a design matrix.
@@ -360,6 +391,18 @@ sort_by <- function(df, vars = NULL, decreasing = FALSE) {
 #'
 #' @param strategy The name of the "strategy" variable. A length 1 character vector.
 #'
+#' @param group_contrasts Optional specification of the treatment-group contrasts to be
+#' estimated by [ancova()]. Either `NULL` (the default) or a fully named list whose
+#' elements are one of:
+#' * a length-2 character vector `c(minuend, subtrahend)` giving a pairwise contrast
+#'   `minuend - subtrahend` between two levels of `group`; or
+#' * a numeric weight vector over the group levels (summing to zero), either named by
+#'   the levels of `group` (unlisted levels default to `0`) or of the same length as the
+#'   number of levels (in factor order).
+#'
+#' Each element must be named; the name is used as the output `parameter` name (and must
+#' not start with `lsm_`, which is reserved for the least-squares means). See details.
+#'
 #' @details
 #'
 #' In both [draws()] and [ancova()] the `covariates` argument can be specified to indicate
@@ -367,6 +410,18 @@ sort_by <- function(df, vars = NULL, decreasing = FALSE) {
 #' to include interaction terms these need to be manually specified i.e.
 #' `covariates = c("group*visit", "age*sex")`. Please note that the use of the [I()] function to
 #' inhibit the interpretation/conversion of objects is not supported.
+#'
+#' The `group_contrasts` argument is only used by [ancova()]. If `NULL` (default) a
+#' treatment effect is estimated for every non-reference group versus the reference group
+#' (the first factor level of `group`). Alternatively a bespoke set of contrasts can be
+#' requested. Pairwise contrasts are given as length-2 character vectors, e.g.
+#' `group_contrasts = list(c("A", "Placebo"), c("B", "Placebo"))` requests the contrasts
+#' `A - Placebo` and `B - Placebo`. More general linear contrasts are given as named
+#' numeric weight vectors over the group levels, e.g.
+#' `group_contrasts = list(pooled_vs_pbo = c(Placebo = -1, A = 0.5, B = 0.5))` contrasts
+#' the average of `A` and `B` against `Placebo`. List names are carried through to the
+#' `contrast_label` column of the [pool()] output; weight-vector contrasts must be named.
+#' See [ancova()] for the resulting `parameter` naming scheme.
 #'
 #' Currently `strata` is only used by [draws()] in combination with `method_condmean(type = "bootstrap")`
 #' and `method_approxbayes()` in order to allow for the specification of stratified bootstrap sampling.
@@ -407,7 +462,8 @@ set_vars <- function(
     group = "group",
     covariates = character(0),
     strata = group,
-    strategy = "strategy"
+    strategy = "strategy",
+    group_contrasts = NULL
 ) {
     x <- list(
         subjid = subjid,
@@ -416,7 +472,8 @@ set_vars <- function(
         group = group,
         covariates = covariates,
         strata = strata,
-        strategy = strategy
+        strategy = strategy,
+        group_contrasts = group_contrasts
     )
     class(x) <- c("ivars", "list")
     validate(x)
@@ -468,6 +525,35 @@ validate.ivars <- function(x, ...) {
         is.character(x$strata) | is.null(x$strata),
         msg = "`vars$strata` should be a character vector or NULL"
     )
+
+    assert_that(
+        is.null(x$group_contrasts) || is.list(x$group_contrasts),
+        msg = "`vars$group_contrasts` should be NULL or a list"
+    )
+    if (is.list(x$group_contrasts)) {
+        gc <- x$group_contrasts
+        nms <- names(gc)
+        assert_that(
+            length(gc) >= 1,
+            !is.null(nms) && !anyNA(nms) && all(nzchar(nms)),
+            msg = "`vars$group_contrasts` should be a non-empty, fully named list"
+        )
+        ok <- vapply(
+            gc,
+            function(el) {
+                (is.character(el) && length(el) == 2) ||
+                    (is.numeric(el) && length(el) >= 2)
+            },
+            logical(1)
+        )
+        assert_that(
+            all(ok),
+            msg = paste(
+                "each `vars$group_contrasts` element should be a length-2 character",
+                "vector or a numeric weight vector of length >= 2"
+            )
+        )
+    }
     return(invisible(TRUE))
 }
 
@@ -924,4 +1010,47 @@ set_options <- function() {
             options(rbmi_opts[opt])
         }
     }
+}
+
+
+#' Recursively find and replace symbols in a language object
+#'
+#' This function traverses a language object (such as an expression or call)
+#' and recursively replaces all occurrences of a specified symbol with another symbol.
+#'
+#' @param expr A language object (e.g., call, expression, or list of calls) to search and modify.
+#' @param find_sym A symbol (as a name) to find within \code{expr}.
+#' @param replace_sym A symbol (as a name) to replace \code{find_sym} with.
+#'
+#' @return The modified language object with all instances of \code{find_sym} replaced by \code{replace_sym}.
+#'
+#' @details
+#' Replacement happens for symbols found within calls (recursively). A `expr` that is
+#' itself a bare symbol equal to `find_sym` is returned unchanged; this is not reachable
+#' from the `ancova()` call site because the input is always a formula (a call).
+#'
+#' @examples
+#' \dontrun{
+#' expr <- quote(a + b * c)
+#' frm_find_and_replace(expr, as.name("b"), as.name("x"))
+#' # Returns: a + x * c
+#' }
+#' @keywords internal
+frm_find_and_replace <- function(expr, find_sym, replace_sym) {
+    if (is.call(expr)) {
+        # expr[[1]] is the function or operator name, so leave it unchanged.
+        if (length(expr) > 1L) {
+            for (i in 2:length(expr)) {
+                expr[[i]] <- frm_find_and_replace(
+                    expr[[i]],
+                    find_sym,
+                    replace_sym
+                )
+            }
+        }
+    } else if (is.name(expr) && identical(expr, find_sym)) {
+        expr <- replace_sym
+    }
+
+    expr
 }

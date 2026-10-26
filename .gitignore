@@ -65,3 +65,12 @@ local/
 
 cspell.json
 revdep/
+
+
+
+
+.Rprofile
+rproject.toml
+rv.lock
+rv/*
+CRAN-SUBMISSION
