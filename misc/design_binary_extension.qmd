@@ -1,0 +1,182 @@
+---
+bibliography: ../vignettes/references.bib
+---
+
+# Design for the Binary Outcomes Extension
+
+## Example Data
+
+### Case study and target estimand
+
+@Cro2025 use an eight-week depression trial originally reported by
+@Goldstein2004. The trial compared placebo, once-daily paroxetine, and two doses of
+twice-daily duloxetine. Their public example combines 100 placebo patients with
+100 patients randomly selected from the three non-placebo arms. Thus, the
+example's active group pools treatments; although their Table 2 calls the
+comparison duloxetine versus placebo, it should not be interpreted as a pure
+duloxetine comparison in these pooled data.
+
+The endpoint is a reduction of **more than 50%** from baseline HAMD17 at Week 8,
+with earlier outcomes at Weeks 1, 2, 4, and 6. Their Table 2 targets the odds of
+response on active treatment relative to placebo among trial-eligible patients
+with depression, using a treatment policy strategy for early treatment cessation
+(regardless of whether all assigned doses were received). The paper reports that
+follow-up ceased with early treatment cessation, with 70/100 active and 61/100
+placebo patients completing treatment. Table 3 gives cumulative off-treatment
+percentages, which coincide with missing outcome percentages in that case study.
+
+The data used below are the high-dropout example from the
+[LSHTM Missing Data website](https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data).
+LSHTM describes these as modified demonstration data: the active group was
+sampled from the non-placebo arms, and the placebo group was expanded to 100
+by resampling patients, assigning new IDs, and perturbing their outcomes.
+
+### Import the local archive
+
+The code below reads `high_low_datasets.zip` beside this document, extracting
+only the high-dropout dataset, `high1.sas7bdat`, into a temporary directory.
+The low-dropout dataset, `low1.sas7bdat`, is not used. It also supports execution from the
+repository root. It requires the R packages `haven` and `knitr`.
+
+```{r}
+#| label: import-antidepressant-data
+archive <- if (file.exists("high_low_datasets.zip")) {
+  "high_low_datasets.zip"
+} else {
+  file.path("misc", "high_low_datasets.zip")
+}
+stopifnot(file.exists(archive))
+extraction_dir <- tempfile("antidepressant-")
+dir.create(extraction_dir)
+sas_file <- unzip(
+  archive,
+  files = "high1.sas7bdat",
+  exdir = extraction_dir
+)
+antidepressant_raw <- haven::read_sas(sas_file)
+unlink(extraction_dir, recursive = TRUE)
+
+# Keep the original fields and derive the binary response without imputation.
+antidepressant <- as.data.frame(antidepressant_raw)
+antidepressant$arm <- factor(
+  antidepressant$TRT,
+  levels = c("1", "2"),
+  labels = c("Placebo", "Active")
+)
+antidepressant$response <- with(
+  antidepressant,
+  as.integer(-change / basval > 0.5)
+)
+stopifnot(
+  !anyDuplicated(antidepressant[c("PATIENT", "week")]),
+  !anyNA(antidepressant$arm),
+  all(antidepressant$basval > 0)
+)
+```
+
+The archive contains **`r nrow(antidepressant)` observed patient-visit records for
+`r length(unique(antidepressant$PATIENT))` patients**:
+`r length(unique(antidepressant$PATIENT[antidepressant$arm == "Placebo"]))` placebo
+and `r length(unique(antidepressant$PATIENT[antidepressant$arm == "Active"]))`
+active. `PATIENT` identifies patients; `TRT` codes placebo as `1` and active
+as `2`; `week` gives scheduled follow-up week; `basval` is baseline HAMD17;
+`change` is follow-up minus baseline HAMD17; and `POOLINV` identifies the pooled
+investigator. Follow-up HAMD17 can be reconstructed as `basval + change`.
+The derived binary `response` uses a strict >50% reduction from baseline,
+as specified in Table 2.
+
+```{r}
+#| label: archive-summary
+patients <- unique(antidepressant[c("PATIENT", "arm")])
+knitr::kable(
+  as.data.frame(table(patients$arm), responseName = "Patients"),
+  col.names = c("Arm", "Patients")
+)
+visit_weeks <- sort(unique(antidepressant$week))
+```
+
+The scheduled follow-up weeks are `r knitr::combine_words(visit_weeks)`.
+There are `r sum(is.na(antidepressant$change))` missing change scores in the
+stored rows; missing follow-up assessments are represented by absent rows.
+We use the full patient roster when calculating missingness at each visit.
+The file has no separate treatment cessation indicator, so interpreting
+missingness as off-treatment status relies on the case-study description in
+@Cro2025.
+
+### Check against Cro et al. Table 3
+
+The comparison below counts observed change scores at each scheduled week,
+uses the number of unique patients in each arm as the denominator, and compares
+the resulting missing percentages with the published values.
+
+```{r}
+#| label: compare-table-3
+comparison <- data.frame(Week = c(1, 2, 4, 6, 8))
+for (arm in c("Placebo", "Active")) {
+  n_arm <- sum(patients$arm == arm)
+  observed <- vapply(comparison$Week, function(w) {
+    sum(antidepressant$arm == arm & antidepressant$week == w &
+          !is.na(antidepressant$change))
+  }, integer(1))
+  comparison[[paste(arm, "observed n")]] <- observed
+  comparison[[paste(arm, "missing %")]] <- 100 * (n_arm - observed) / n_arm
+}
+comparison[["Placebo published %"]] <- c(0, 8, 15, 27, 39)
+comparison[["Active published %"]] <- c(0, 10, 15, 25, 30)
+stopifnot(
+  all(comparison[["Placebo missing %"]] == comparison[["Placebo published %"]]),
+  all(comparison[["Active missing %"]] == comparison[["Active published %"]])
+)
+knitr::kable(comparison, caption = "High-dropout data versus Cro et al. Table 3")
+```
+
+**All entries in Table 3 are reproduced exactly.** The missing percentages are
+`r knitr::combine_words(comparison[["Placebo missing %"]])` for placebo and
+`r knitr::combine_words(comparison[["Active missing %"]])` for active.
+At Week 8, observed outcomes remain for
+`r comparison[["Placebo observed n"]][comparison$Week == 8]`/
+`r sum(patients$arm == "Placebo")` placebo patients and
+`r comparison[["Active observed n"]][comparison$Week == 8]`/
+`r sum(patients$arm == "Active")` active patients, matching the reported
+completion counts.
+
+### Response threshold discrepancy in the paper
+
+Table 2 of @Cro2025 specifies a reduction of **more than 50%**, whereas the
+Discussion describes **50% or more**. The published Week 8 responder counts
+(25 placebo and 39 active) agree with the inclusive threshold in these data.
+The following comparison makes the distinction explicit; `response` above
+retains the strict threshold from Table 2.
+
+```{r}
+#| label: compare-response-thresholds
+week8 <- subset(antidepressant, week == 8)
+threshold_comparison <- data.frame(Arm = levels(antidepressant$arm))
+threshold_comparison[["Reduction >50%"]] <- vapply(
+  threshold_comparison$Arm,
+  function(a) sum(week8$response[week8$arm == a], na.rm = TRUE),
+  integer(1)
+)
+threshold_comparison[["Reduction >=50%"]] <- vapply(
+  threshold_comparison$Arm,
+  function(a) {
+    with(subset(week8, arm == a), sum(-change / basval >= 0.5, na.rm = TRUE))
+  },
+  integer(1)
+)
+threshold_comparison[["Published responders"]] <- c(25, 39)
+stopifnot(
+  all(threshold_comparison[["Reduction >=50%"]] ==
+        threshold_comparison[["Published responders"]])
+)
+knitr::kable(threshold_comparison, caption = "Week 8 responders by threshold")
+```
+
+The strict threshold yields
+`r threshold_comparison[["Reduction >50%"]][threshold_comparison$Arm == "Placebo"]`
+placebo and
+`r threshold_comparison[["Reduction >50%"]][threshold_comparison$Arm == "Active"]`
+active responders. Replicating the paper's reported responder counts requires
+the inclusive threshold.
+
+## References
