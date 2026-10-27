@@ -1,1 +1,5 @@
 rbmi-binary-prototype
+*_files/
+*.html
+.quarto/
+*.pdf
