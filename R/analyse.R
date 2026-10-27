@@ -425,6 +425,31 @@ extract_imputed_df <- function(imputation, ld, delta = NULL, idmap = FALSE) {
 }
 
 
+#' Select the pooling rule for an imputation method
+#'
+#' Maps a method object to the pooling rule used by `as_analysis()` and
+#' `validate.analysis()`. The private `unknown` method, used for imported
+#' imputations with unspecified provenance, uses Rubin's rules.
+#'
+#' @param method A `method` object, including the private `unknown` method.
+#' @return One of `"rubin"`, `"bootstrap"`, `"jackknife"`, or `"bmlmi"`.
+#' @keywords internal
+pooling_method <- function(method) {
+    if (inherits(method, "unknown") ||
+        inherits(method, "bayes") ||
+        inherits(method, "approxbayes")) {
+        return("rubin")
+    }
+    if (inherits(method, "condmean")) {
+        return(if (method$type == "jackknife") "jackknife" else "bootstrap")
+    }
+    if (inherits(method, "bmlmi")) {
+        return("bmlmi")
+    }
+    stop("Unsupported method object")
+}
+
+
 #' Construct an `analysis` object
 #'
 #' @description
@@ -450,17 +475,7 @@ as_analysis <- function(
     fun_name = NULL,
     par_meta = NULL
 ) {
-    next_class <- switch(
-        class(method)[[2]],
-        bayes = "rubin",
-        approxbayes = "rubin",
-        condmean = ifelse(
-            method$type == "jackknife",
-            "jackknife",
-            "bootstrap"
-        ),
-        bmlmi = "bmlmi"
-    )
+    next_class <- pooling_method(method)
 
     assert_that(
         is.list(results),
@@ -527,6 +542,10 @@ validate.analysis <- function(x, ...) {
     assert_that(
         next_class %in% c("jackknife", "bootstrap", "rubin", "bmlmi"),
         msg = "`results` must be of class 'jackknife', 'bootstrap', 'rubin' or 'bmlmi'"
+    )
+    assert_that(
+        identical(next_class, pooling_method(x$method)),
+        msg = "`results` pooling class must match `method`"
     )
 
     if (next_class %in% c("bootstrap", "rubin")) {
