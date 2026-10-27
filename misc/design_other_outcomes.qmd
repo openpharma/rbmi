@@ -32,7 +32,7 @@ Time to recurrent events can also be analyzed with Andersen-Gill models, but we 
   - For the imputation they distinguish the different assumptions:
     - censored at random (CAR): just use the conditional distribution of the survival time given the covariates and censoring time as well as the parameters drawn from the draw step
     - jump to reference (J2R): the hazard changes after the censoring time immediately to that of the control group. The authors mention that this corresponds to "copy reference" (CR) from longitudinal modeling but I don't really see that ...
-    - copy increment from reference (CIR): the the hazard ratio is taken from the censoring time and then multiplied with reference hazard to obtain the hazard after the censoring time. So this is additive on the log hazard scale.
+    - copy increment from reference (CIR): the hazard ratio is taken from the censoring time and then multiplied with reference hazard to obtain the hazard after the censoring time. So this is additive on the log hazard scale.
     - delta method: the hazard after the censoring time is multiplied with a factor $\delta$, given by the user.
   - The analysis model is again the same Weibull PH model as for the draw step, but now fit to the imputed data sets, and then combined with Rubin's rules.
 - @hartley2022 extend the idea from the neg bin/count imputation using on/off treatment periods from @roger2019 to survival outcomes:
