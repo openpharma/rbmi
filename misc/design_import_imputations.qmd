@@ -85,7 +85,7 @@ import <- function(
     original = NULL, # optional original incomplete data set
     data_ice = NULL, # optional ICE metadata
     references = NULL, # optional reference-arm mapping
-    source_id = NULL, # optional source ID for conditional-mean method
+    source_id = NULL, # required for conditional-mean and BMLMI resampled layouts
     ...
 ) {
     UseMethod("import", method)
@@ -110,7 +110,7 @@ they enable truthful original-missingness and ICE metadata for
 default to an identity mapping, because that would claim knowledge about how
 the external values were generated. 
 
-`source_id` is only used in `import.condmean()`, where it names the
+`source_id` is required by both `import.condmean()` and `import.bmlmi()`, where it names the
 column that maps resampled subject occurrences back to subjects in `original`.
 
 The implementation should require:
@@ -156,7 +156,7 @@ original complete sample; every following data set in the list represents a boot
 can contain the same source subject more than once. Within each completed data
 set, `data[[vars$subjid]]` must identify *occurrences* uniquely. For example,
 two selections of subject `101` could have occurrence IDs `b03_017` and
-`b03_029`. The column named by `source_id` (only used in the `import.condmean()` method) contains `101` for both occurrences.
+`b03_029`. The column named by `source_id` (required by both `import.condmean()` and `import.bmlmi()`) contains `101` for both occurrences.
 This explicit mapping avoids trying to infer bootstrap identity from duplicated
 rows, and it supplies the `idmap` needed by existing delta handling.
 
@@ -310,7 +310,7 @@ If `data_ice` is also supplied, it records strategy and post-ICE metadata using 
 Without these inputs, the corresponding metadata are unknowable and must be
 represented as unavailable, not guessed.
 
-For resampled data, the invariance check is performed after joining each
+For both conditional-mean and BMLMI resampled data, the invariance check is performed after joining each
 occurrence to `original` through `source_id`. The occurrence IDs are used only
 inside the completed data set; delta templates and provenance remain keyed by
 the source subject. This mirrors the ID scrambling and `idmap` behaviour of
