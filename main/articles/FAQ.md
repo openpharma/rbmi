@@ -47,14 +47,14 @@ MMRM analyses for clinical trials with longitudinal endpoints.
   under a range of different missing data assumptions including standard
   missing-at-random (MAR), extended MAR (via inclusion of time-varying
   covariates), reference-based missingness, and not
-  missing-not-at-random (MNAR; via \\\delta\\-adjustments). In contrast,
-  the standard MMRM model is only valid under a standard MAR assumption
-  which is not always plausible. For example, the standard MAR
-  assumption is rather implausible for implementing a treatment policy
-  strategy for the intercurrent event “treatment discontinuation” if a
-  substantial proportion of subjects are lost-to-follow-up after
+  missing-not-at-random (MNAR; via \\(\delta\\)-adjustments). In
+  contrast, the standard MMRM model is only valid under a standard MAR
+  assumption which is not always plausible. For example, the standard
+  MAR assumption is rather implausible for implementing a treatment
+  policy strategy for the intercurrent event “treatment discontinuation”
+  if a substantial proportion of subjects are lost-to-follow-up after
   discontinuation.
-- The \\\delta\\-adjustment methods implemented in `rbmi` can be used
+- The \\(\delta\\)-adjustment methods implemented in `rbmi` can be used
   for sensitivity analyses of a primary MMRM- or rbmi-type analysis.
 
 **Weaknesses** of `rbmi` compared to the standard MMRM model are:

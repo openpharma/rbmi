@@ -570,7 +570,7 @@ multiple imputation using Rubin’s rules for which a standard error of
 e.g. in Wolbers et al. ([2022](#ref-Wolbers2021)), hypothesis testing
 based on the information-anchored inference is very conservative,
 i.e. the actual type I error is much lower than the nominal value.
-Hence, confidence intervals and \\p\\-values based on
+Hence, confidence intervals and \\(p\\)-values based on
 information-anchored inference should be interpreted with caution.
 
 ## References

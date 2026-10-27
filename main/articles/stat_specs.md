@@ -105,12 +105,12 @@ and remained under follow-up. However, in some situations, it may be
 more reasonable to assume that missingness is “informative” and
 indicates a systematically better or worse outcome than in observed
 subjects. In such situations, MNAR imputation with a
-\\\delta\\-adjustment could be explored as a sensitivity analysis.
-\\\delta\\-adjustments add a fixed or random quantity to the imputations
-in order to make the imputed outcomes systematically worse or better
-than those observed as described in Cro et al.
+\\(\delta\\)-adjustment could be explored as a sensitivity analysis.
+\\(\delta\\)-adjustments add a fixed or random quantity to the
+imputations in order to make the imputed outcomes systematically worse
+or better than those observed as described in Cro et al.
 ([2020](#ref-CroEtAlTutorial2020)). In `rbmi` only fixed
-\\\delta\\-adjustments are implemented.
+\\(\delta\\)-adjustments are implemented.
 
 #### 2.2.3 Implementation of the treatment policy strategy
 
@@ -192,8 +192,8 @@ The composite strategy is typically applied to binary or time-to-event
 outcomes but it can also be used for continuous outcomes by ascribing a
 suitably unfavourable value to patients who experience ICEs for which a
 composite strategy has been defined. One possibility to implement this
-is to use MI with a \\\delta\\-adjustment for post-ICE data as described
-in Darken et al. ([2020](#ref-Darken2020)).
+is to use MI with a \\(\delta\\)-adjustment for post-ICE data as
+described in Darken et al. ([2020](#ref-Darken2020)).
 
 ## 3 Statistical methodology
 
@@ -202,7 +202,7 @@ in Darken et al. ([2020](#ref-Darken2020)).
 Analyses of datasets with missing data always rely on missing data
 assumptions. The methods described here can be used to produce valid
 imputations under a MAR assumption or under reference-based imputation
-assumptions. MNAR imputation based on fixed \\\delta\\-adjustments as
+assumptions. MNAR imputation based on fixed \\(\delta\\)-adjustments as
 typically used in sensitivity analyses such as tipping-point analyses
 are also supported.
 
@@ -233,11 +233,11 @@ Conventional MI approaches include the following steps:
 - Fit a Bayesian multivariate normal mixed model for repeated measures
   (MMRM) to the observed longitudinal outcomes after exclusion of data
   after ICEs for which reference-based missing data imputation is
-  desired (Section [3.3.3](#sec:imputationModelBayes)). Draw \\M\\
+  desired (Section [3.3.3](#sec:imputationModelBayes)). Draw \\(M\\)
   posterior samples of the estimated parameters (regression coefficients
   and covariance matrices) from this model.
 
-- Alternatively, \\M\\ approximate posterior draws from the posterior
+- Alternatively, \\(M\\) approximate posterior draws from the posterior
   distribution can be sampled by repeatedly applying conventional
   restricted maximum-likelihood (REML) parameter estimation of the MMRM
   model to nonparametric bootstrap samples from the original dataset
@@ -245,8 +245,8 @@ Conventional MI approaches include the following steps:
 
 2.  **Imputation step** (Section [3.4](#sec:imputationStep))
 
-- Take a single sample \\m\\ (\\m\in 1,\ldots, M)\\ from the posterior
-  distribution of the imputation model parameters.
+- Take a single sample \\(m\\) (\\(m\in 1,\ldots, M)\\) from the
+  posterior distribution of the imputation model parameters.
 
 - For each subject, use the sampled parameters and the defined
   imputation strategy to determine the mean and covariance matrix
@@ -262,7 +262,7 @@ Conventional MI approaches include the following steps:
   distribution to impute their missing outcomes leading to a complete
   imputed dataset.
 
-- For sensitivity analyses, a pre-defined \\\delta\\-adjustment may be
+- For sensitivity analyses, a pre-defined \\(\delta\\)-adjustment may be
   applied to the imputed data prior to the analysis step. (Section
   [3.5](#sec:deltaAdjustment)).
 
@@ -274,13 +274,13 @@ Conventional MI approaches include the following steps:
 
 4.  **Pooling step for inference** (Section [3.7](#sec:pooling))
 
-- Repeat steps 2. and 3. for each posterior sample \\m\\, resulting in
-  \\M\\ complete datasets, \\M\\ point estimates of the treatment
-  effect, and \\M\\ standard errors (with corresponding degrees of
-  freedom). Pool the \\M\\ treatment effect estimates, standard errors,
-  and degrees of freedom using the rules by Barnard and Rubin to obtain
-  the final pooled treatment effect estimator, standard error, and
-  degrees of freedom.
+- Repeat steps 2. and 3. for each posterior sample \\(m\\), resulting in
+  \\(M\\) complete datasets, \\(M\\) point estimates of the treatment
+  effect, and \\(M\\) standard errors (with corresponding degrees of
+  freedom). Pool the \\(M\\) treatment effect estimates, standard
+  errors, and degrees of freedom using the rules by Barnard and Rubin to
+  obtain the final pooled treatment effect estimator, standard error,
+  and degrees of freedom.
 
 #### 3.1.2 Conditional mean imputation
 
@@ -306,7 +306,7 @@ The conditional mean imputation approach includes the following steps:
   mean of this conditional distribution leading to a complete imputed
   dataset.
 
-- For sensitivity analyses, a pre-defined \\\delta\\-adjustment may be
+- For sensitivity analyses, a pre-defined \\(\delta\\)-adjustment may be
   applied to the imputed data prior to the analysis step. (Section
   [3.5](#sec:deltaAdjustment)).
 
@@ -332,14 +332,14 @@ The bootstrapped MI approach includes the following steps:
     [3.3](#sec:imputationModel))
 
 - Apply conventional restricted maximum-likelihood (REML) parameter
-  estimation of the MMRM model to \\B\\ nonparametric bootstrap samples
-  from the original dataset using the observed longitudinal outcomes
-  after exclusion of data after ICEs for which reference-based missing
-  data imputation is desired.
+  estimation of the MMRM model to \\(B\\) nonparametric bootstrap
+  samples from the original dataset using the observed longitudinal
+  outcomes after exclusion of data after ICEs for which reference-based
+  missing data imputation is desired.
 
 2.  **Imputation step** (Section [3.4](#sec:imputationStep))
 
-- Take a bootstrapped dataset \\b\\ (\\b\in 1,\ldots, B)\\ and its
+- Take a bootstrapped dataset \\(b\\) (\\(b\in 1,\ldots, B)\\) and its
   corresponding imputation model parameter estimates.
 
 - For each subject (from the bootstrapped dataset), use the parameter
@@ -353,66 +353,69 @@ The bootstrapped MI approach includes the following steps:
   given their observed outcomes (including observed outcomes after ICEs
   for which reference-based missing data imputation is desired).
 
-- For each subject (from the bootstrapped dataset), draw \\D\\ samples
+- For each subject (from the bootstrapped dataset), draw \\(D\\) samples
   from this conditional distributions to impute their missing outcomes
-  leading to \\D\\ complete imputed dataset for bootstrap sample \\b\\.
+  leading to \\(D\\) complete imputed dataset for bootstrap sample
+  \\(b\\).
 
-- For sensitivity analyses, a pre-defined \\\delta\\-adjustment may be
+- For sensitivity analyses, a pre-defined \\(\delta\\)-adjustment may be
   applied to the imputed data prior to the analysis step. (Section
   [3.5](#sec:deltaAdjustment)).
 
 3.  **Analysis step** (Section [3.6](#sec:analysis))
 
-- Analyse each of the \\B\times D\\ imputed datasets using an analysis
-  model (e.g. ANCOVA) resulting in \\B\times D\\ point estimates of the
-  treatment effect.
+- Analyse each of the \\(B\times D\\) imputed datasets using an analysis
+  model (e.g. ANCOVA) resulting in \\(B\times D\\) point estimates of
+  the treatment effect.
 
 4.  **Pooling step for inference** (Section [3.9](#sec:poolbmlmi))
 
-- Pool the \\B\times D\\ treatment effect estimates as described in von
-  Hippel and Bartlett ([2021](#ref-vonHippelBartlett2021)) to obtain the
-  final pooled treatment effect estimate, standard error, and degrees of
-  freedom.
+- Pool the \\(B\times D\\) treatment effect estimates as described in
+  von Hippel and Bartlett ([2021](#ref-vonHippelBartlett2021)) to obtain
+  the final pooled treatment effect estimate, standard error, and
+  degrees of freedom.
 
 ### 3.2 Setting, notation, and missing data assumptions
 
-Assume that the data are from a study with \\n\\ subjects in total and
-that each subject \\i\\ (\\i=1,\ldots,n\\) has \\J\\ scheduled follow-up
-visits at which the outcome of interest is assessed. In most
+Assume that the data are from a study with \\(n\\) subjects in total and
+that each subject \\(i\\) (\\(i=1,\ldots,n\\)) has \\(J\\) scheduled
+follow-up visits at which the outcome of interest is assessed. In most
 applications, the data will be from a randomized trial of an
 intervention vs a control group and the treatment effect of interest is
 a comparison in outcomes at a specific visit between these randomized
 groups. However, single-arm trials or multi-arm trials are in principle
 also supported by the `rbmi` implementation.
 
-Denote the observed outcome vector of length \\J\\ for subject \\i\\ by
-\\Y_i\\ (with missing assessments coded as NA (not available)) and its
-non-missing and missing components by \\Y\_{i!}\\ and \\Y\_{i?}\\,
-respectively. By default, imputation of missing outcomes in \\Y\_{i}\\
-is performed under a MAR assumption in `rbmi`. Therefore, if missing
-data following an ICE are to be handled using MAR imputation, this is
-compatible with the default assumption. As discussed in Section
-[2](#sec:intro), the MAR assumption is often a good starting point for
-implementing a hypothetical strategy. But also note that observed
-outcome data after an ICE handled using a hypothetical strategy is not
-compatible with this strategy. Therefore, we assume that all post-ICE
-data after ICEs handled using a hypothetical strategy are already set to
-NA in \\Y_i\\ prior calling any `rbmi` functions. However, any observed
-outcomes after ICEs handled using a treatment policy strategy should be
-included in \\Y_i\\ as they are compatible with this strategy.
+Denote the observed outcome vector of length \\(J\\) for subject \\(i\\)
+by \\(Y_i\\) (with missing assessments coded as NA (not available)) and
+its non-missing and missing components by \\(Y\_{i!}\\) and
+\\(Y\_{i?}\\), respectively. By default, imputation of missing outcomes
+in \\(Y\_{i}\\) is performed under a MAR assumption in `rbmi`.
+Therefore, if missing data following an ICE are to be handled using MAR
+imputation, this is compatible with the default assumption. As discussed
+in Section [2](#sec:intro), the MAR assumption is often a good starting
+point for implementing a hypothetical strategy. But also note that
+observed outcome data after an ICE handled using a hypothetical strategy
+is not compatible with this strategy. Therefore, we assume that all
+post-ICE data after ICEs handled using a hypothetical strategy are
+already set to NA in \\(Y_i\\) prior calling any `rbmi` functions.
+However, any observed outcomes after ICEs handled using a treatment
+policy strategy should be included in \\(Y_i\\) as they are compatible
+with this strategy.
 
 Subjects may also experience up to one ICE after which missing data
 imputation according to a reference-based imputation method is foreseen.
-For a subject \\i\\ with such an ICE, denote their first visit which is
-affected by the ICE by \\\tilde{t}\_i \in \\1,\ldots,J\\\\. For all
-other subjects, set \\\tilde{t}\_i=\infty\\. A subject’s outcome vector
-after setting observed outcomes from visit \\\tilde{t}\_i\\ onwards to
-missing (i.e. NA) is denoted as \\Y'\_i\\ and the corresponding data
-vector after removal of NA elements as \\Y'\_{i!}\\.
+For a subject \\(i\\) with such an ICE, denote their first visit which
+is affected by the ICE by \\(\tilde{t}\_i \in \\{1,\ldots,J\\}\\). For
+all other subjects, set \\(\tilde{t}\_i=\infty\\). A subject’s outcome
+vector after setting observed outcomes from visit \\(\tilde{t}\_i\\)
+onwards to missing (i.e. NA) is denoted as \\(Y'\_i\\) and the
+corresponding data vector after removal of NA elements as
+\\(Y'\_{i!}\\).
 
-MNAR \\\delta\\-adjustments are added to the imputed datasets after the
-formal imputation steps. This is covered in a separate section (Section
-[3.5](#sec:deltaAdjustment)).
+MNAR \\(\delta\\)-adjustments are added to the imputed datasets after
+the formal imputation steps. This is covered in a separate section
+(Section [3.5](#sec:deltaAdjustment)).
 
 ### 3.3 The base imputation model
 
@@ -434,9 +437,9 @@ purpose only. For example, if a patient has an ICE addressed with a
 reference-based method but outcomes after the ICE are collected, these
 post-ICE outcomes will be excluded when fitting the base imputation
 model (but they will be included again in the following steps). That is,
-the base imputation model is fitted to \\Y'\_{i!}\\ and not to
-\\Y\_{i!}\\. If we did not exclude these data, then the imputation model
-would mistakenly estimate mean trajectories based on a mixture of
+the base imputation model is fitted to \\(Y'\_{i!}\\) and not to
+\\(Y\_{i!}\\). If we did not exclude these data, then the imputation
+model would mistakenly estimate mean trajectories based on a mixture of
 observed pre- and post-ICE data which are not relevant for
 reference-based imputations.
 
@@ -452,8 +455,8 @@ group in the base imputation model. This can be implemented by
 specifying a `MAR` strategy for the ICE in the control group and a
 reference-based strategy for the same ICE in the intervention group.
 
-The base imputation model of the longitudinal outcomes \\Y'\_i\\ assumes
-that the mean structure is a linear function of covariates. Full
+The base imputation model of the longitudinal outcomes \\(Y'\_i\\)
+assumes that the mean structure is a linear function of covariates. Full
 flexibility for the specification of the linear predictor of the model
 is supported. At a minimum the covariates should include the treatment
 group, the (categorical) visit, and treatment-by-visit interactions.
@@ -467,21 +470,21 @@ This means that the values of time-varying covariates must be
 non-missing at every visit regardless of whether the outcome is measured
 or missing.
 
-Denote the \\J\times p\\ design matrix for subject \\i\\ corresponding
-to the mean structure model by \\X_i\\ and the same matrix after removal
-of rows corresponding to missing outcomes in \\Y'\_{i!}\\ by
-\\X'\_{i!}\\. Here \\p\\ is the number of parameters in the mean
-structure of the model for the elements of \\Y'\_{i!}\\. The base
-imputation model for the observed outcomes is defined as: \\ Y'\_{i!} =
-X'\_{i!}\beta + \epsilon\_{i!} \mbox{ with } \epsilon\_{i!}\sim
-N(0,\Sigma\_{i!!})\\ where \\\beta\\ is the vector of regression
-coefficients and \\\Sigma\_{i!!}\\ is a covariance matrix which is
-obtained from the complete-data \\J\times J\\-covariance matrix
-\\\Sigma\\ by omitting rows and columns corresponding to missing outcome
-assessments for subject \\i\\.
+Denote the \\(J\times p\\) design matrix for subject \\(i\\)
+corresponding to the mean structure model by \\(X_i\\) and the same
+matrix after removal of rows corresponding to missing outcomes in
+\\(Y'\_{i!}\\) by \\(X'\_{i!}\\). Here \\(p\\) is the number of
+parameters in the mean structure of the model for the elements of
+\\(Y'\_{i!}\\). The base imputation model for the observed outcomes is
+defined as: \\\[Y'\_{i!} = X'\_{i!}\beta + \epsilon\_{i!} \mbox{ with }
+\epsilon\_{i!}\sim N(0,\Sigma\_{i!!})\\\] where \\(\beta\\) is the
+vector of regression coefficients and \\(\Sigma\_{i!!}\\) is a
+covariance matrix which is obtained from the complete-data \\(J\times
+J\\)-covariance matrix \\(\Sigma\\) by omitting rows and columns
+corresponding to missing outcome assessments for subject \\(i\\).
 
 Typically, a common unstructured covariance matrix for all subjects is
-assumed for \\\Sigma\\ but separate covariate matrices per treatment
+assumed for \\(\Sigma\\) but separate covariate matrices per treatment
 group are also supported. Indeed, the implementation also supports the
 specification of separate covariate matrices according to an arbitrarily
 defined categorical variable which groups the subjects into disjoint
@@ -530,19 +533,20 @@ By default, the same prior distributions as in the SAS implementation of
 the “five macros” are used (Roger ([2021](#ref-FiveMacros))), i.e. an
 improper flat priors for the regression coefficients and a weakly
 informative inverse Wishart prior for the covariance matrix (or
-matrices). Specifically, let \\S \in \mathbb{R}^{J \times J}\\ be a
-symmetric positive definite matrix and \\\nu \in (J-1, \infty)\\. Then
-the symmetric positive definite matrix \\x \in \mathbb{R}^{J \times J}\\
-has density: \\ \text{InvWish}(x \vert \nu, S) = \frac{1}{2^{\nu J/2}}
-\frac{1}{\Gamma_J(\frac{\nu}{2})} \vert S \vert^{\nu/2} \vert x \vert
-^{-(\nu + J + 1)/2} \text{exp}\left(-\frac{1}{2} \text{tr}(S
-x^{-1})\right). \\ For \\\nu \> J+1\\ the mean is given by: \\ E\[x\] =
-\frac{S}{\nu - J - 1}. \\ We choose \\S\\ equal to the estimated
-covariance matrix from the frequentist REML fit and \\\nu = J+2\\ as
-these are the lowest degrees of freedom that guarantee a finite mean.
-Setting the degrees of freedom with such a low \\\nu\\ ensures that the
-prior has little impact on the posterior. Moreover, this choice allows
-to interpret the parameter \\S\\ as the mean of the prior distribution.
+matrices). Specifically, let \\(S \in \mathbb{R}^{J \times J}\\) be a
+symmetric positive definite matrix and \\(\nu \in (J-1, \infty)\\). Then
+the symmetric positive definite matrix \\(x \in \mathbb{R}^{J \times
+J}\\) has density: \\\[\text{InvWish}(x \vert \nu, S) = \frac{1}{2^{\nu
+J/2}} \frac{1}{\Gamma_J(\frac{\nu}{2})} \vert S \vert^{\nu/2} \vert x
+\vert ^{-(\nu + J + 1)/2} \text{exp}\left(-\frac{1}{2} \text{tr}(S
+x^{-1})\right).\\\] For \\(\nu \> J+1\\) the mean is given by:
+\\\[E\[x\] = \frac{S}{\nu - J - 1}.\\\] We choose \\(S\\) equal to the
+estimated covariance matrix from the frequentist REML fit and \\(\nu =
+J+2\\) as these are the lowest degrees of freedom that guarantee a
+finite mean. Setting the degrees of freedom with such a low \\(\nu\\)
+ensures that the prior has little impact on the posterior. Moreover,
+this choice allows to interpret the parameter \\(S\\) as the mean of the
+prior distribution.
 
 ##### 3.3.3.2 LKJ and scaled inverse chi-squared priors for unstructured covariance matrix
 
@@ -552,58 +556,58 @@ inverse chi-squared priors for the variances. The LKJ prior has density
 proportional to 1, i.e. it is a uniform prior on the space of
 correlation matrices.
 
-For a single variance \\y\\, we use a scaled inverse chi-square prior
+For a single variance \\(y\\), we use a scaled inverse chi-square prior
 with density given by:
 
-\\ \text{ScaledInvChiSquare}(y \vert \nu,\sigma) = \frac{(\nu /
-2)^{1\nu/2}}{\Gamma(\nu / 2)} \\ \sigma^\nu \\ y^{-(\nu/2 + 1)} \\ \exp
-\\ \left( \\ - \\ \frac{1}{2} \\ \nu\\ \sigma^2 \\ \frac{1}{y} \right)
-\\
+\\\[\text{ScaledInvChiSquare}(y \vert \nu,\sigma) = \frac{(\nu /
+2)^{1\nu/2}}{\Gamma(\nu / 2)} \\, \sigma^\nu \\, y^{-(\nu/2 + 1)} \\,
+\exp \\! \left( \\! - \\, \frac{1}{2} \\, \nu\\, \sigma^2 \\,
+\frac{1}{y} \right)\\\]
 
 This distribution is a special case of the inverse-Wishart distribution
 for a univariate random variable. Similarly as above, also here we use
-\\\nu = 3\\ degrees of freedom to guarantee a finite mean. The scale
-parameter \\\sigma\\ is set to the estimated standard deviation from the
-frequentist REML fit, which leads to the prior mean for the variance
-\\y\\ to be equal to the estimated variance from the frequentist REML
+\\(\nu = 3\\) degrees of freedom to guarantee a finite mean. The scale
+parameter \\(\sigma\\) is set to the estimated standard deviation from
+the frequentist REML fit, which leads to the prior mean for the variance
+\\(y\\) to be equal to the estimated variance from the frequentist REML
 fit.
 
 ##### 3.3.3.3 Autoregressive order 1 covariance structure
 
 For the time-homogeneous version of the AR(1) covariance structure (see
 [here](https://openpharma.github.io/mmrm/latest-tag/articles/covariance.html#homogeneous-ar1-and-heterogeneous-ar1h-autoregressive)),
-we use a uniform prior on the correlation parameter \\\rho\\ and a
-scaled inverse chi-square prior for the variance parameter \\\sigma^2\\,
-as described above. For the time-heterogeneous version, we simply use
-independent scaled inverse chi-square priors for the time-point specific
-variances, which are centred around the respective estimated variances
-from the frequentist REML fit.
+we use a uniform prior on the correlation parameter \\(\rho\\) and a
+scaled inverse chi-square prior for the variance parameter
+\\(\sigma^2\\), as described above. For the time-heterogeneous version,
+we simply use independent scaled inverse chi-square priors for the
+time-point specific variances, which are centred around the respective
+estimated variances from the frequentist REML fit.
 
 ##### 3.3.3.4 Compound symmetry covariance structure
 
 For the compound symmetry covariance structure (see
 [here](https://openpharma.github.io/mmrm/latest-tag/articles/covariance.html#homogeneous-cs-and-heterogeneous-csh-compound-symmetry)),
-we use a uniform prior on the correlation parameter \\\rho\\ in the
-allowed range \\(-1/(J-1), 1)\\. This is because for \\\rho\\ smaller
-than the lower boundary, the correlation matrix would not be positive
-definite any longer. For the variance parameter(s), we use again scaled
-inverse chi-square priors as described above.
+we use a uniform prior on the correlation parameter \\(\rho\\) in the
+allowed range \\((-1/(J-1), 1)\\). This is because for \\(\rho\\)
+smaller than the lower boundary, the correlation matrix would not be
+positive definite any longer. For the variance parameter(s), we use
+again scaled inverse chi-square priors as described above.
 
 ##### 3.3.3.5 Antedependence covariance structure
 
 For the antedependence covariance structure (see
 [here](https://openpharma.github.io/mmrm/latest-tag/articles/covariance.html#homogeneous-ad-and-heterogeneous-ante-dependence-adh)),
-we use uniform priors on the \\J-1\\ correlation parameters \\\rho\_{1},
-\dotsc, \rho\_{J-1}\\ in the full range \\(-1, 1)\\. For the variance
-parameter(s), we use again scaled inverse chi-square priors as described
-above.
+we use uniform priors on the \\(J-1\\) correlation parameters
+\\(\rho\_{1}, \dotsc, \rho\_{J-1}\\) in the full range \\((-1, 1)\\).
+For the variance parameter(s), we use again scaled inverse chi-square
+priors as described above.
 
 ##### 3.3.3.6 Toeplitz covariance structure
 
 For the Toeplitz covariance structure (see
 [here](https://openpharma.github.io/mmrm/latest-tag/articles/covariance.html#homogeneous-toep-and-heterogeneous-toeplitz-toeph)),
-we use a uniform prior on the correlation parameters \\\rho\_{1},
-\dotsc, \rho\_{J-1}\\ in the full range \\(-1, 1)\\. For the variance
+we use a uniform prior on the correlation parameters \\(\rho\_{1},
+\dotsc, \rho\_{J-1}\\) in the full range \\((-1, 1)\\). For the variance
 parameter(s), we use again scaled inverse chi-square priors as described
 above.
 
@@ -650,99 +654,100 @@ in the `rbmi` implementation.
 
 #### 3.4.1 Marginal imputation distribution for a subject - MAR case
 
-For each subject \\i\\, the marginal distribution of the complete
-\\J\\-dimensional outcome vector from all assessment visits according to
-the imputation model is a multivariate normal distribution. Its mean
-\\\tilde{\mu}\_i\\ is given by the predicted mean from the imputation
+For each subject \\(i\\), the marginal distribution of the complete
+\\(J\\)-dimensional outcome vector from all assessment visits according
+to the imputation model is a multivariate normal distribution. Its mean
+\\(\tilde{\mu}\_i\\) is given by the predicted mean from the imputation
 model conditional on the subject’s baseline characteristics, group, and,
 optionally, time-varying covariates. Its covariance matrix
-\\\tilde{\Sigma}\_i\\ is given by the overall estimated covariance
+\\(\tilde{\Sigma}\_i\\) is given by the overall estimated covariance
 matrix or, if different covariance matrices are assumed for different
-groups, the covariance matrix corresponding to subject \\i\\’s group.
+groups, the covariance matrix corresponding to subject \\(i\\)’s group.
 
 #### 3.4.2 Marginal imputation distribution for a subject - reference-based imputation methods
 
-For each subject \\i\\, we calculate the mean and covariance matrix of
-the complete \\J\\-dimensional outcome vector from all assessment visits
-as for the MAR case and denote them by \\\mu_i\\ and \\\Sigma_i\\. For
-reference-based imputation methods, a corresponding reference group is
-also required for each group. Typically, the reference group for the
-intervention group will be the control group. The reference mean
-\\\mu\_{ref,i}\\ is defined as the predicted mean from the imputation
-model conditional on the reference group (rather than the actual group
-subject \\i\\ belongs to) and the subject’s baseline characteristics.
-The reference covariance matrix \\\Sigma\_{ref,i}\\ is the overall
-estimated covariance matrix or, if different covariance matrices are
-assumed for different groups, the estimated covariance matrix
-corresponding to the reference group. In principle, time-varying
-covariates could also be included in reference-based imputation methods.
-However, this is only sensible for external time-varying covariates
-(e.g. calendar time of the visit) and not for internal time-varying
-covariates (e.g. treatment discontinuation) because the latter likely
-depend on the actual treatment group and it is typically not sensible to
-assume the same trajectory of the time-varying covariate for the
-reference group.
+For each subject \\(i\\), we calculate the mean and covariance matrix of
+the complete \\(J\\)-dimensional outcome vector from all assessment
+visits as for the MAR case and denote them by \\(\mu_i\\) and
+\\(\Sigma_i\\). For reference-based imputation methods, a corresponding
+reference group is also required for each group. Typically, the
+reference group for the intervention group will be the control group.
+The reference mean \\(\mu\_{ref,i}\\) is defined as the predicted mean
+from the imputation model conditional on the reference group (rather
+than the actual group subject \\(i\\) belongs to) and the subject’s
+baseline characteristics. The reference covariance matrix
+\\(\Sigma\_{ref,i}\\) is the overall estimated covariance matrix or, if
+different covariance matrices are assumed for different groups, the
+estimated covariance matrix corresponding to the reference group. In
+principle, time-varying covariates could also be included in
+reference-based imputation methods. However, this is only sensible for
+external time-varying covariates (e.g. calendar time of the visit) and
+not for internal time-varying covariates (e.g. treatment
+discontinuation) because the latter likely depend on the actual
+treatment group and it is typically not sensible to assume the same
+trajectory of the time-varying covariate for the reference group.
 
 Based on these means and covariance matrices, the subject’s marginal
 imputation distribution for the reference-based imputation methods is
 then calculated as detailed in Carpenter et al. ([2013, sec.
 4.3](#ref-CarpenterEtAl2013)). Denote the mean and covariance matrix of
-this marginal imputation distribution by \\\tilde{\mu}\_i\\ and
-\\\tilde{\Sigma}\_i\\. Recall that the subject’s first visit which is
-affected by the ICE is denoted by \\\tilde{t}\_i \in \\1,\ldots,J\\\\
-(and visit \\\tilde{t}\_i-1\\ is the last visit unaffected by the ICE).
-The marginal distribution for the patient \\i\\ is then built according
-to the specific assumption for the data up to and post the ICE as
-follows:
+this marginal imputation distribution by \\(\tilde{\mu}\_i\\) and
+\\(\tilde{\Sigma}\_i\\). Recall that the subject’s first visit which is
+affected by the ICE is denoted by \\(\tilde{t}\_i \in
+\\{1,\ldots,J\\}\\) (and visit \\(\tilde{t}\_i-1\\) is the last visit
+unaffected by the ICE). The marginal distribution for the patient
+\\(i\\) is then built according to the specific assumption for the data
+up to and post the ICE as follows:
 
 1.  Jump to reference (JR): the patient’s outcome distribution is
-    normally distributed with the following mean: \\\tilde{\mu}\_i =
+    normally distributed with the following mean: \\\[\tilde{\mu}\_i =
     (\mu_i\[1\], \dots, \mu_i\[\tilde{t}\_i-1\],
-    \mu\_{ref,i}\[\tilde{t}\_i\], \dots, \mu\_{ref,i}\[J\])^T.\\ The
+    \mu\_{ref,i}\[\tilde{t}\_i\], \dots, \mu\_{ref,i}\[J\])^T.\\\] The
     covariance matrix is constructed as follows. First, we partition the
-    covariance matrices \\\Sigma_i\\ and \\\Sigma\_{ref,i}\\ in blocks
-    according to the time of the ICE \\\tilde{t}\_i\\: \\ \Sigma\_{i} =
-    \begin{bmatrix} \Sigma\_{i, 11} & \Sigma\_{i, 12} \\ \Sigma\_{i, 21}
-    & \Sigma\_{i,22} \\ \end{bmatrix} \\ \\ \Sigma\_{ref,i} =
-    \begin{bmatrix} \Sigma\_{ref, i, 11} & \Sigma\_{ref, i, 12} \\
-    \Sigma\_{ref, i, 21} & \Sigma\_{ref, i,22} \\ \end{bmatrix}. \\ We
-    want the covariance matrix \\\tilde{\Sigma}\_i\\ to match
-    \\\Sigma_i\\ for the pre-deviation measurements, and
-    \\\Sigma\_{ref,i}\\ for the conditional components for the
-    post-deviation given the pre-deviation measurements. The solution is
-    derived in Carpenter et al. ([2013, sec.
-    4.3](#ref-CarpenterEtAl2013)) and is given by: \\ \begin{matrix}
-    \tilde{\Sigma}\_{i,11} = \Sigma\_{i, 11} \\ \tilde{\Sigma}\_{i, 21}
-    = \Sigma\_{ref,i, 21} \Sigma^{-1}\_{ref,i, 11} \Sigma\_{i, 11} \\
-    \tilde{\Sigma}\_{i, 22} = \Sigma\_{ref, i, 22} - \Sigma\_{ref,i, 21}
-    \Sigma^{-1}\_{ref,i, 11} (\Sigma\_{ref,i, 11} - \Sigma\_{i,11})
-    \Sigma^{-1}\_{ref,i, 11} \Sigma\_{ref,i, 12}. \end{matrix} \\
+    covariance matrices \\(\Sigma_i\\) and \\(\Sigma\_{ref,i}\\) in
+    blocks according to the time of the ICE \\(\tilde{t}\_i\\):
+    \\\[\Sigma\_{i} = \begin{bmatrix} \Sigma\_{i, 11} & \Sigma\_{i, 12}
+    \\\\ \Sigma\_{i, 21} & \Sigma\_{i,22} \\\\ \end{bmatrix}\\\]
+    \\\[\Sigma\_{ref,i} = \begin{bmatrix} \Sigma\_{ref, i, 11} &
+    \Sigma\_{ref, i, 12} \\\\ \Sigma\_{ref, i, 21} & \Sigma\_{ref, i,22}
+    \\\\ \end{bmatrix}.\\\] We want the covariance matrix
+    \\(\tilde{\Sigma}\_i\\) to match \\(\Sigma_i\\) for the
+    pre-deviation measurements, and \\(\Sigma\_{ref,i}\\) for the
+    conditional components for the post-deviation given the
+    pre-deviation measurements. The solution is derived in Carpenter et
+    al. ([2013, sec. 4.3](#ref-CarpenterEtAl2013)) and is given by:
+    \\\[\begin{matrix} \tilde{\Sigma}\_{i,11} = \Sigma\_{i, 11} \\\\
+    \tilde{\Sigma}\_{i, 21} = \Sigma\_{ref,i, 21} \Sigma^{-1}\_{ref,i,
+    11} \Sigma\_{i, 11} \\\\ \tilde{\Sigma}\_{i, 22} = \Sigma\_{ref, i,
+    22} - \Sigma\_{ref,i, 21} \Sigma^{-1}\_{ref,i, 11} (\Sigma\_{ref,i,
+    11} - \Sigma\_{i,11}) \Sigma^{-1}\_{ref,i, 11} \Sigma\_{ref,i, 12}.
+    \end{matrix}\\\]
 
 2.  Copy increments in reference (CIR): the patient’s outcome
-    distribution is normally distributed with the following mean: \\
-    \begin{split} \tilde{\mu}\_i =& (\mu_i\[1\], \dots,
+    distribution is normally distributed with the following mean:
+    \\\[\begin{split} \tilde{\mu}\_i =& (\mu_i\[1\], \dots,
     \mu_i\[\tilde{t}\_i-1\], \mu_i\[\tilde{t}\_i-1\] +
     (\mu\_{ref,i}\[\tilde{t}\_i\] - \mu\_{ref,i}\[\tilde{t}\_i-1\]),
-    \dots,\\ & \mu_i\[\tilde{t}\_i-1\]+(\mu\_{ref,i}\[J\] -
-    \mu\_{ref,i}\[\tilde{t}\_i-1\]))^T. \end{split} \\ The covariance
+    \dots,\\\\ & \mu_i\[\tilde{t}\_i-1\]+(\mu\_{ref,i}\[J\] -
+    \mu\_{ref,i}\[\tilde{t}\_i-1\]))^T. \end{split}\\\] The covariance
     matrix is derived as for the JR method.
 
 3.  Copy reference (CR): the patient’s outcome distribution is normally
     distributed with mean and covariance matrix taken from the reference
-    group: \\ \tilde{\mu}\_i = \mu\_{ref,i} \\ \\ \tilde{\Sigma}\_i =
-    \Sigma\_{ref,i}. \\
+    group: \\\[\tilde{\mu}\_i = \mu\_{ref,i}\\\] \\\[\tilde{\Sigma}\_i =
+    \Sigma\_{ref,i}.\\\]
 
 4.  Last mean carried forward (LMCF): the patient’s outcome distribution
-    is normally distributed with the following mean: \\ \tilde{\mu}\_i =
-    (\mu_i\[1\], \dots, \mu_i\[\tilde{t}\_i-1\],
-    \mu_i\[\tilde{t}\_i-1\], \dots, \mu_i\[\tilde{t}\_i-1\])'\\ and
-    covariance matrix: \\ \tilde{\Sigma}\_i = \Sigma_i.\\
+    is normally distributed with the following mean: \\\[\tilde{\mu}\_i
+    = (\mu_i\[1\], \dots, \mu_i\[\tilde{t}\_i-1\],
+    \mu_i\[\tilde{t}\_i-1\], \dots, \mu_i\[\tilde{t}\_i-1\])'\\\] and
+    covariance matrix: \\\[\tilde{\Sigma}\_i = \Sigma_i.\\\]
 
 #### 3.4.3 Imputation of missing outcome data
 
 The joint marginal multivariate normal imputation distribution of
-subject \\i\\’s observed and missing outcome data has mean
-\\\tilde{\mu}\_i\\ and covariance matrix \\\tilde{\Sigma}\_i\\ as
+subject \\(i\\)’s observed and missing outcome data has mean
+\\(\tilde{\mu}\_i\\) and covariance matrix \\(\tilde{\Sigma}\_i\\) as
 defined above. The actual imputation of the missing outcome data is
 obtained by conditioning this marginal distribution on the subject’s
 observed outcome data. Of note, this approach is valid regardless
@@ -752,40 +757,41 @@ The conditional distribution used for the imputation is again a
 multivariate normal distribution and explicit formulas for the
 conditional mean and covariance are readily available. For completeness,
 we report them here with the notation and terminology of our setting.
-The marginal distribution for the outcome of patient \\i\\ is \\Y_i \sim
-N(\tilde{\mu}\_i, \tilde{\Sigma}\_i)\\ and the outcome \\Y_i\\ can be
-decomposed in the observed (\\Y\_{i,!}\\) and the unobserved
-(\\Y\_{i,?}\\) components. Analogously the mean \\\tilde{\mu}\_i\\ can
-be decomposed as \\(\tilde{\mu}\_{i,!},\tilde{\mu}\_{i,?})\\ and the
-covariance \\\tilde{\Sigma}\_i\\ as: \\ \tilde{\Sigma}\_i =
-\begin{bmatrix} \tilde{\Sigma}\_{i, !!} & \tilde{\Sigma}\_{i,!?} \\
-\tilde{\Sigma}\_{i, ?!} & \tilde{\Sigma}\_{i, ??} \end{bmatrix}. \\ The
-conditional distribution of \\Y\_{i,?}\\ conditional on \\Y\_{i,!}\\ is
-then a multivariate normal distribution with expectation \\ E(Y\_{i,?}
-\vert Y\_{i,!})= \tilde{\mu}\_{i,?} + \tilde{\Sigma}\_{i, ?!}
-\tilde{\Sigma}\_{i,!!}^{-1} (Y\_{i,!} - \tilde{\mu}\_{i,!}) \\ and
-covariance matrix \\ Cov(Y\_{i,?} \vert Y\_{i,!}) =
+The marginal distribution for the outcome of patient \\(i\\) is \\(Y_i
+\sim N(\tilde{\mu}\_i, \tilde{\Sigma}\_i)\\) and the outcome \\(Y_i\\)
+can be decomposed in the observed (\\(Y\_{i,!}\\)) and the unobserved
+(\\(Y\_{i,?}\\)) components. Analogously the mean \\(\tilde{\mu}\_i\\)
+can be decomposed as \\((\tilde{\mu}\_{i,!},\tilde{\mu}\_{i,?})\\) and
+the covariance \\(\tilde{\Sigma}\_i\\) as: \\\[\tilde{\Sigma}\_i =
+\begin{bmatrix} \tilde{\Sigma}\_{i, !!} & \tilde{\Sigma}\_{i,!?} \\\\
+\tilde{\Sigma}\_{i, ?!} & \tilde{\Sigma}\_{i, ??} \end{bmatrix}.\\\] The
+conditional distribution of \\(Y\_{i,?}\\) conditional on \\(Y\_{i,!}\\)
+is then a multivariate normal distribution with expectation
+\\\[E(Y\_{i,?} \vert Y\_{i,!})= \tilde{\mu}\_{i,?} + \tilde{\Sigma}\_{i,
+?!} \tilde{\Sigma}\_{i,!!}^{-1} (Y\_{i,!} - \tilde{\mu}\_{i,!})\\\] and
+covariance matrix \\\[Cov(Y\_{i,?} \vert Y\_{i,!}) =
 \tilde{\Sigma}\_{i,??} - \tilde{\Sigma}\_{i,?!}
-\tilde{\Sigma}\_{i,!!}^{-1} \tilde{\Sigma}\_{i,!?}. \\
+\tilde{\Sigma}\_{i,!!}^{-1} \tilde{\Sigma}\_{i,!?}.\\\]
 
 Conventional random imputation consists in sampling from this
 conditional multivariate normal distribution. Conditional mean
 imputation imputes missing values with the deterministic conditional
-expectation \\E(Y\_{i,?} \vert Y\_{i,!})\\.
+expectation \\(E(Y\_{i,?} \vert Y\_{i,!})\\).
 
-### 3.5 \\\delta\\-adjustment
+### 3.5 \\(\delta\\)-adjustment
 
-A *marginal* \\\delta\\-adjustment approach similar to the “five macros”
-in SAS is implemented (Roger ([2021](#ref-FiveMacros))), i.e. fixed
-non-stochastic values are added after the multivariate normal imputation
-step and prior to the analysis. This is relevant for sensitivity
-analyses in order to make imputed data systematically worse or better,
-respectively, than observed data. In addition, some authors have
-suggested \\\delta\\-type adjustments to implement a composite strategy
-for continuous outcomes (Darken et al. ([2020](#ref-Darken2020))).
+A *marginal* \\(\delta\\)-adjustment approach similar to the “five
+macros” in SAS is implemented (Roger ([2021](#ref-FiveMacros))),
+i.e. fixed non-stochastic values are added after the multivariate normal
+imputation step and prior to the analysis. This is relevant for
+sensitivity analyses in order to make imputed data systematically worse
+or better, respectively, than observed data. In addition, some authors
+have suggested \\(\delta\\)-type adjustments to implement a composite
+strategy for continuous outcomes (Darken et al.
+([2020](#ref-Darken2020))).
 
 The implementation provides full flexibility regarding the specific
-implementation of the \\\delta\\-adjustment, i.e. the value that is
+implementation of the \\(\delta\\)-adjustment, i.e. the value that is
 added may depend on the randomized treatment group, the timing of the
 subject’s ICE, and other factors. For suggestions and case studies
 regarding this topic, we refer to Cro et al.
@@ -804,55 +810,56 @@ baseline covariates as for the imputation model.
 
 ### 3.7 Pooling step for inference of (approximate) Bayesian MI and Rubin’s rules
 
-Assume that the analysis model has been applied to \\M\\ multiple
-imputed random datasets which resulted in \\m\\ treatment effect
-estimates \\\hat{\theta}\_m\\ (\\m=1,\ldots,M\\) with corresponding
-standard error \\SE_m\\ and (if available) degrees of freedom
-\\\nu\_{com}\\. If degrees of freedom are not available for an analysis
-model, set \\\nu\_{com}=\infty\\ for inference based on the normal
-distribution.
+Assume that the analysis model has been applied to \\(M\\) multiple
+imputed random datasets which resulted in \\(m\\) treatment effect
+estimates \\(\hat{\theta}\_m\\) (\\(m=1,\ldots,M\\)) with corresponding
+standard error \\(SE_m\\) and (if available) degrees of freedom
+\\(\nu\_{com}\\). If degrees of freedom are not available for an
+analysis model, set \\(\nu\_{com}=\infty\\) for inference based on the
+normal distribution.
 
 Rubin’s rules are used for pooling the treatment effect estimates and
 corresponding variances estimates from the analysis steps across the
-\\M\\ multiple imputed datasets. According to Rubin’s rules, the final
+\\(M\\) multiple imputed datasets. According to Rubin’s rules, the final
 estimate of the treatment effect is calculated as the sample mean over
-the \\M\\ treatment effect estimates: \\ \hat{\theta} = \frac{1}{M}
-\sum\_{m = 1}^M \hat{\theta}\_m. \\ The pooled variance is based on two
+the \\(M\\) treatment effect estimates: \\\[\hat{\theta} = \frac{1}{M}
+\sum\_{m = 1}^M \hat{\theta}\_m.\\\] The pooled variance is based on two
 components that reflect the within and the between variance of the
-treatment effects across the multiple imputed datasets: \\
-V(\hat{\theta}) = V_W(\hat{\theta}) + (1 + \frac{1}{M})
-V_B(\hat{\theta}) \\ where \\V_W(\hat{\theta}) = \frac{1}{M}\sum\_{m =
-1}^M SE^2_m\\ is the within-variance and \\V_B(\hat{\theta}) =
-\frac{1}{M-1} \sum\_{m = 1}^M (\hat{\theta}\_m - \hat{\theta})^2\\ is
+treatment effects across the multiple imputed datasets:
+\\\[V(\hat{\theta}) = V_W(\hat{\theta}) + (1 + \frac{1}{M})
+V_B(\hat{\theta})\\\] where \\(V_W(\hat{\theta}) = \frac{1}{M}\sum\_{m =
+1}^M SE^2_m\\) is the within-variance and \\(V_B(\hat{\theta}) =
+\frac{1}{M-1} \sum\_{m = 1}^M (\hat{\theta}\_m - \hat{\theta})^2\\) is
 the between-variance.
 
-Confidence intervals and tests of the null hypothesis \\H_0:
-\theta=\theta_0\\ are based on the \\t\\-statistics \\T\\:
+Confidence intervals and tests of the null hypothesis \\(H_0:
+\theta=\theta_0\\) are based on the \\(t\\)-statistics \\(T\\):
 
-\\ T= (\hat{\theta}-\theta_0)/\sqrt{V(\hat{\theta})}. \\ Under the null
-hypothesis, \\T\\ has an approximate \\t\\-distribution with \\\nu\\
-degrees of freedom. By default,
-`pool(rubin_df_method = "barnard-rubin")` calculates \\\nu\\ according
+\\\[T= (\hat{\theta}-\theta_0)/\sqrt{V(\hat{\theta})}.\\\] Under the
+null hypothesis, \\(T\\) has an approximate \\(t\\)-distribution with
+\\(\nu\\) degrees of freedom. By default,
+`pool(rubin_df_method = "barnard-rubin")` calculates \\(\nu\\) according
 to the Barnard and Rubin approximation, see Barnard and Rubin
 ([1999](#ref-Barnard1999)) (formula 3) or Little and Rubin
 ([2002](#ref-LittleRubin1992)) (formula (5.24), page 87):
 
-\\ \nu = \frac{\nu\_{old}\* \nu\_{obs}}{\nu\_{old} + \nu\_{obs}} \\ with
-\\ \nu\_{old} = \frac{M-1}{\lambda^2} \quad\mbox{and}\quad \nu\_{obs} =
-\frac{\nu\_{com} + 1}{\nu\_{com} + 3} \nu\_{com} (1 - \lambda) \\ where
-\\\lambda = \frac{(1 + \frac{1}{M})V_B(\hat{\theta})}{V(\hat{\theta})}\\
-is the fraction of missing information.
+\\\[\nu = \frac{\nu\_{old}\* \nu\_{obs}}{\nu\_{old} + \nu\_{obs}}\\\]
+with \\\[\nu\_{old} = \frac{M-1}{\lambda^2} \quad\mbox{and}\quad
+\nu\_{obs} = \frac{\nu\_{com} + 1}{\nu\_{com} + 3} \nu\_{com} (1 -
+\lambda)\\\] where \\(\lambda = \frac{(1 +
+\frac{1}{M})V_B(\hat{\theta})}{V(\hat{\theta})}\\) is the fraction of
+missing information.
 
 Alternatively, `pool(rubin_df_method = "rubin")` uses the original
 degrees-of-freedom approximation from Rubin ([1987](#ref-Rubin1987))
-(equation 3.1.6): \\ \nu = (M - 1)\left(1 + \frac{1}{r}\right)^2, \\
-where \\ r = \frac{(1 +
-\frac{1}{M})V_B(\hat{\theta})}{V_W(\hat{\theta})} \\ is the relative
+(equation 3.1.6): \\\[\nu = (M - 1)\left(1 + \frac{1}{r}\right)^2,\\\]
+where \\\[r = \frac{(1 +
+\frac{1}{M})V_B(\hat{\theta})}{V_W(\hat{\theta})}\\\] is the relative
 increase in variance due to nonresponse. Unlike the Barnard and Rubin
 approximation, the original approximation does not account for the
-complete-data degrees of freedom \\\nu\_{com}\\ and can therefore give
+complete-data degrees of freedom \\(\nu\_{com}\\) and can therefore give
 overly large degrees of freedom in small samples. Both approximations
-give \\\nu=\infty\\ when \\V_B(\hat{\theta})=0\\.
+give \\(\nu=\infty\\) when \\(V_B(\hat{\theta})=0\\).
 
 #### 3.7.1 Monte Carlo standard error
 
@@ -861,27 +868,27 @@ results. The precision of the MC algorithm can be quantified through the
 MC standard error (MCSE). Such quantification is important for judging
 the scientific reproducibility of the results, e.g., when computational
 parameters such as the seed are changed. For the treatment effect
-estimates \\\hat{\theta}\\ obtained through Rubin’s rule as described
+estimates \\(\hat{\theta}\\) obtained through Rubin’s rule as described
 above, a closed-form expression for the MCSE exists ([Royston et al.
 2009](#ref-Royston2009)):
 
-\\ \text{MCSE}(\hat{\theta}) = \sqrt{V_B(\hat{\theta}) / M} \\
+\\\[\text{MCSE}(\hat{\theta}) = \sqrt{V_B(\hat{\theta}) / M}\\\]
 
 However, since decisions are generally based not just on the treatment
 effect estimate but also on the p-value, it is important to calculate
 the corresponding MCSE. No closed-form expression exists for the MCSE of
 the p-value, but as argued by Royston et al. ([2009](#ref-Royston2009)),
 the jackknife method could be used to estimate the MCSE ([Efron and Gong
-1983](#ref-EfronGong1983)). Let \\\theta\\ be the parameter of interest
-(e.g. the p-value) and let \\\hat{\theta}\_{(-m)}\\ be the jackknife
-parameter estimate, obtained from the \\M-1\\ imputed datasets after
-removing the \\m\\-th imputed dataset. Also let
-\\\overline{\theta}\_{(\cdot)} = \sum\_{m = 1}^{M} \hat{\theta}\_{(-m)}
-/ M\\ be the average of the jackknife parameter estimates. The MCSE of
-the overall estimate \\\hat{\theta}\\ is then given by:
+1983](#ref-EfronGong1983)). Let \\(\theta\\) be the parameter of
+interest (e.g. the p-value) and let \\(\hat{\theta}\_{(-m)}\\) be the
+jackknife parameter estimate, obtained from the \\(M-1\\) imputed
+datasets after removing the \\(m\\)-th imputed dataset. Also let
+\\(\overline{\theta}\_{(\cdot)} = \sum\_{m = 1}^{M} \hat{\theta}\_{(-m)}
+/ M\\) be the average of the jackknife parameter estimates. The MCSE of
+the overall estimate \\(\hat{\theta}\\) is then given by:
 
-\\ \text{MCSE}(\hat{\theta}) = \sqrt{\frac{M - 1}{M} \sum\_{m=1}^{M}
-\left(\hat{\theta}\_{(-m)} - \overline{\theta}\_{(\cdot)}\right)^2} \\
+\\\[\text{MCSE}(\hat{\theta}) = \sqrt{\frac{M - 1}{M} \sum\_{m=1}^{M}
+\left(\hat{\theta}\_{(-m)} - \overline{\theta}\_{(\cdot)}\right)^2}\\\]
 
 For simplicity, only the latter MCSE formula is implemented for all
 parameters.
@@ -895,7 +902,7 @@ The point estimator is obtained by applying the analysis model (Section
 missing data (see Section [3.4.3](#sec:imputationRandomConditionalMean))
 based on the REML estimator of the parameters of the imputation model
 (see Section [3.3.2](#sec:imputationModelREML)). We denote this
-treatment effect estimator by \\\hat{\theta}\\.
+treatment effect estimator by \\(\hat{\theta}\\).
 
 As demonstrated in Wolbers et al. ([2022](#ref-Wolbers2021)) (Section
 2.4), this treatment effect estimator is valid if the analysis model is
@@ -912,26 +919,27 @@ justified.
 
 #### 3.8.2 Jackknife standard errors, confidence intervals (CI) and tests for the treatment effect
 
-For a dataset containing \\n\\ subjects, the jackknife standard error
-depends on treatment effect estimates \\\hat{\theta}\_{(-b)}\\
-(\\b=1,\ldots,n\\) from samples of the original dataset which leave out
-the observation from subject \\b\\. As described previously, to obtain
-treatment effect estimates for leave-one-subject-out datasets, all steps
-of the imputation procedure (i.e. imputation, conditional mean
+For a dataset containing \\(n\\) subjects, the jackknife standard error
+depends on treatment effect estimates \\(\hat{\theta}\_{(-b)}\\)
+(\\(b=1,\ldots,n\\)) from samples of the original dataset which leave
+out the observation from subject \\(b\\). As described previously, to
+obtain treatment effect estimates for leave-one-subject-out datasets,
+all steps of the imputation procedure (i.e. imputation, conditional mean
 imputation, and analysis steps) need to be repeated on this new dataset.
 
 Then, the *jackknife standard error* is defined as
-\\\hat{se}\_{jack}=\[\frac{(n-1)}{n}\cdot\sum\_{b=1}^{n}
-(\hat{\theta}\_{(-b)}-\bar{\theta}\_{(.)})^2\]^{1/2}\\ where
-\\\bar{\theta}\_{(.)}\\ denotes the mean of all jackknife estimates
+\\\[\hat{se}\_{jack}=\[\frac{(n-1)}{n}\cdot\sum\_{b=1}^{n}
+(\hat{\theta}\_{(-b)}-\bar{\theta}\_{(.)})^2\]^{1/2}\\\] where
+\\(\bar{\theta}\_{(.)}\\) denotes the mean of all jackknife estimates
 (Efron and Tibshirani ([1994](#ref-EfronTibs1994)), chapter 10). (Note
 that this is the same formula as it is used for the MCSE above.) The
-corresponding two-sided normal approximation \\1-\alpha\\ CI is defined
-as \\\hat{\theta}\pm z^{1-\alpha/2}\cdot \hat{se}\_{jack}\\ where
-\\\hat{\theta}\\ is the treatment effect estimate from the original
-dataset. Tests of the null hypothesis \\H_0: \theta=\theta_0\\ are then
-based on the \\Z\\-score \\Z=(\hat{\theta}-\theta_0)/\hat{se}\_{jack}\\
-using a standard normal approximation.
+corresponding two-sided normal approximation \\(1-\alpha\\) CI is
+defined as \\(\hat{\theta}\pm z^{1-\alpha/2}\cdot \hat{se}\_{jack}\\)
+where \\(\hat{\theta}\\) is the treatment effect estimate from the
+original dataset. Tests of the null hypothesis \\(H_0:
+\theta=\theta_0\\) are then based on the \\(Z\\)-score
+\\(Z=(\hat{\theta}-\theta_0)/\hat{se}\_{jack}\\) using a standard normal
+approximation.
 
 A simulation study reported in Wolbers et al. ([2022](#ref-Wolbers2021))
 demonstrated exact protection of the type I error for jackknife-based
@@ -948,65 +956,66 @@ implemented in `rbmi` (Efron and Tibshirani
 Two different bootstrap methods are implemented in `rbmi`: Methods based
 on the *bootstrap standard error and the normal approximation* and
 *percentile bootstrap methods*. Denote the treatment effect estimates
-from \\B\\ bootstrap samples by \\\hat{\theta}^\*\_b\\
-(\\b=1,\ldots,B\\). The *bootstrap standard error* \\\hat{se}\_{boot}\\
-is defined as the empirical standard deviation of the bootstrapped
-treatment effect estimates. Confidence intervals and tests based on the
-bootstrap standard error can then be constructed in the same way as for
-the jackknife. Confidence intervals using the *percentile bootstrap* are
-based on empirical quantiles of the bootstrap distribution and
-corresponding statistical tests are implemented in `rbmi` via inversion
-of the confidence interval. Explicit formulas for bootstrap inference as
-implemented in the `rbmi` package and some considerations regarding the
-required number of bootstrap samples are included in the Appendix of
-Wolbers et al. ([2022](#ref-Wolbers2021)).
+from \\(B\\) bootstrap samples by \\(\hat{\theta}^\*\_b\\)
+(\\(b=1,\ldots,B\\)). The *bootstrap standard error*
+\\(\hat{se}\_{boot}\\) is defined as the empirical standard deviation of
+the bootstrapped treatment effect estimates. Confidence intervals and
+tests based on the bootstrap standard error can then be constructed in
+the same way as for the jackknife. Confidence intervals using the
+*percentile bootstrap* are based on empirical quantiles of the bootstrap
+distribution and corresponding statistical tests are implemented in
+`rbmi` via inversion of the confidence interval. Explicit formulas for
+bootstrap inference as implemented in the `rbmi` package and some
+considerations regarding the required number of bootstrap samples are
+included in the Appendix of Wolbers et al. ([2022](#ref-Wolbers2021)).
 
 A simulation study reported in Wolbers et al. ([2022](#ref-Wolbers2021))
 demonstrated a small inflation of the type I error rate for inference
-based on the bootstrap standard error (up to \\5.3\\\\ for a nominal
-type I error rate of \\5\\\\) for a sample size of n = 100 per group and
-a substantial amount of missing data (\>25% of subjects with an ICE).
-Based on this simulations, we recommend the jackknife over the bootstrap
-for inference because it performed better in our simulation study and is
-typically much faster to compute than the bootstrap.
+based on the bootstrap standard error (up to \\(5.3\\%\\) for a nominal
+type I error rate of \\(5\\%\\)) for a sample size of n = 100 per group
+and a substantial amount of missing data (\>25% of subjects with an
+ICE). Based on this simulations, we recommend the jackknife over the
+bootstrap for inference because it performed better in our simulation
+study and is typically much faster to compute than the bootstrap.
 
 ### 3.9 Pooling step for inference of the bootstrapped MI methods
 
-Assume that the analysis model has been applied to \\B\times D\\
-multiple imputed random datasets which resulted in \\B\times D\\
-treatment effect estimates \\\hat{\theta}\_{bd}\\ (\\b=1,\ldots,B\\;
-\\d=1,\ldots,D\\).
+Assume that the analysis model has been applied to \\(B\times D\\)
+multiple imputed random datasets which resulted in \\(B\times D\\)
+treatment effect estimates \\(\hat{\theta}\_{bd}\\) (\\(b=1,\ldots,B\\);
+\\(d=1,\ldots,D\\)).
 
 The final estimate of the treatment effect is calculated as the sample
-mean over the \\B\*D\\ treatment effect estimates: \\ \hat{\theta} =
-\frac{1}{BD} \sum\_{b = 1}^B \sum\_{d = 1}^D \hat{\theta}\_{bd}. \\ The
+mean over the \\(B\*D\\) treatment effect estimates: \\\[\hat{\theta} =
+\frac{1}{BD} \sum\_{b = 1}^B \sum\_{d = 1}^D \hat{\theta}\_{bd}.\\\] The
 pooled variance is based on two components that reflect the variability
 within and between imputed bootstrap samples (von Hippel and Bartlett
-([2021](#ref-vonHippelBartlett2021)), formula 8.4): \\ V(\hat{\theta}) =
-(1 + \frac{1}{B})\frac{MSB - MSW}{D} + \frac{MSW}{BD} \\
+([2021](#ref-vonHippelBartlett2021)), formula 8.4): \\\[V(\hat{\theta})
+= (1 + \frac{1}{B})\frac{MSB - MSW}{D} + \frac{MSW}{BD}\\\]
 
-where \\MSB\\ is the mean square between the bootstrapped datasets, and
-\\MSW\\ is the mean square within the bootstrapped datasets and between
-the imputed datasets:
+where \\(MSB\\) is the mean square between the bootstrapped datasets,
+and \\(MSW\\) is the mean square within the bootstrapped datasets and
+between the imputed datasets:
 
-\\ \begin{align\*} MSB &= \frac{D}{B-1} \sum\_{b = 1}^B
-(\bar{\theta\_{b}} - \hat{\theta})^2 \\ MSW &= \frac{1}{B(D-1)} \sum\_{b
-= 1}^B \sum\_{d = 1}^D (\theta\_{bd} - \bar{\theta_b})^2 \end{align\*}
-\\ where \\\bar{\theta\_{b}}\\ is the mean across the \\D\\ estimates
-obtained from random imputation of the \\b\\-th bootstrap sample.
+\\\[\begin{align\*} MSB &= \frac{D}{B-1} \sum\_{b = 1}^B
+(\bar{\theta\_{b}} - \hat{\theta})^2 \\\\ MSW &= \frac{1}{B(D-1)}
+\sum\_{b = 1}^B \sum\_{d = 1}^D (\theta\_{bd} - \bar{\theta_b})^2
+\end{align\*}\\\] where \\(\bar{\theta\_{b}}\\) is the mean across the
+\\(D\\) estimates obtained from random imputation of the \\(b\\)-th
+bootstrap sample.
 
 The degrees of freedom are estimated with the following formula (von
 Hippel and Bartlett ([2021](#ref-vonHippelBartlett2021)), formula 8.6):
 
-\\ \nu = \frac{(MSB\cdot (B+1) - MSW\cdot B)^2}{\frac{MSB^2\cdot
-(B+1)^2}{B-1} + \frac{MSW^2\cdot B}{D-1}} \\
+\\\[\nu = \frac{(MSB\cdot (B+1) - MSW\cdot B)^2}{\frac{MSB^2\cdot
+(B+1)^2}{B-1} + \frac{MSW^2\cdot B}{D-1}}\\\]
 
-Confidence intervals and tests of the null hypothesis \\H_0:
-\theta=\theta_0\\ are based on the \\t\\-statistics \\T\\:
+Confidence intervals and tests of the null hypothesis \\(H_0:
+\theta=\theta_0\\) are based on the \\(t\\)-statistics \\(T\\):
 
-\\ T= (\hat{\theta}-\theta_0)/\sqrt{V(\hat{\theta})}. \\ Under the null
-hypothesis, \\T\\ has an approximate \\t\\-distribution with \\\nu\\
-degrees of freedom.
+\\\[T= (\hat{\theta}-\theta_0)/\sqrt{V(\hat{\theta})}.\\\] Under the
+null hypothesis, \\(T\\) has an approximate \\(t\\)-distribution with
+\\(\nu\\) degrees of freedom.
 
 ### 3.10 Comparison between the implemented approaches
 
@@ -1074,7 +1083,7 @@ and bootstrapped likelihood-based multiple methods
 hence target the frequentist variance (Wolbers et al.
 ([2022](#ref-Wolbers2021)), von Hippel and Bartlett
 ([2021](#ref-vonHippelBartlett2021))). For finite samples, simulations
-for a sample size of \\n=100\\ per group reported in Wolbers et al.
+for a sample size of \\(n=100\\) per group reported in Wolbers et al.
 ([2022](#ref-Wolbers2021)) demonstrated that conditional mean imputation
 combined with the jackknife (`method_condmean(type = "jackknife")`)
 provided exact protection of the type one error rate whereas the
@@ -1117,9 +1126,9 @@ analyses are conducted to stress-test these assumptions.
 
 Conditional mean imputation combined with the jackknife is the only
 method which leads to deterministic standard error estimates and,
-consequently, confidence intervals and \\p\\-values are also
+consequently, confidence intervals and \\(p\\)-values are also
 deterministic. This is particularly important in a regulatory setting
-where it is important to ascertain whether a calculated \\p\\-value
+where it is important to ascertain whether a calculated \\(p\\)-value
 which is close to the critical boundary of 5% is truly below or above
 that threshold rather than being uncertain about this because of Monte
 Carlo error.
@@ -1129,9 +1138,9 @@ Carlo error.
 Bayesian MI methods rely on the specification of prior distributions and
 the usage of Markov chain Monte Carlo (MCMC) methods. All other methods
 based on multiple imputation or bootstrapping require no other tuning
-parameters than the specification of the number of imputations \\M\\ or
-bootstrap samples \\B\\ and rely on numerical optimization for fitting
-the MMRM imputation models via REML. Conditional mean imputation
+parameters than the specification of the number of imputations \\(M\\)
+or bootstrap samples \\(B\\) and rely on numerical optimization for
+fitting the MMRM imputation models via REML. Conditional mean imputation
 combined with the jackknife has no tuning parameters.
 
 In our `rbmi` implementation, the fitting of the MMRM imputation model
@@ -1176,8 +1185,8 @@ imputation procedure are mapped to `rbmi` functions:
     for the original dataset and bootstrapped datasets are obtained via
     argument `method = method_condmean(type = "bootstrap")`.
   - Bootstrapped MI methods are obtained via argument
-    `method = method_bmlmi(B=B, D=D)` where \\B\\ refers to the number
-    of bootstrap samples and \\D\\ to the number of random imputations
+    `method = method_bmlmi(B=B, D=D)` where \\(B\\) refers to the number
+    of bootstrap samples and \\(D\\) to the number of random imputations
     for each bootstrap sample.
 - The imputation step using random imputation or deterministic
   conditional mean imputation, respectively, is implemented in function
@@ -1194,7 +1203,7 @@ imputation procedure are mapped to `rbmi` functions:
   function but alternative analysis functions can also be provided by
   the user. The
   [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
-  function also allows for \\\delta\\-adjustments to the imputed
+  function also allows for \\(\delta\\)-adjustments to the imputed
   datasets prior to the analysis via argument `delta`.
 - The inference step is implemented in function
   [`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) which

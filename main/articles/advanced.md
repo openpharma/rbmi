@@ -505,7 +505,7 @@ by looking at function
 `#>     pars <- list(mu = mu, sigma = sigma)`\
 `#>     return(pars)`\
 `#> }`\
-`#> <bytecode: 0x559450f77e40>`\
+`#> <bytecode: 0x55b43cb42168>`\
 `#> <environment: namespace:rbmi>`
 
 To further illustrate this for a simple example, assume that a new
@@ -835,7 +835,7 @@ delta-adjustments by less then -5 points or by more than +15 points are
 considered implausible from a clinical perspective. Therefore, we vary
 the delta-values in each group between -5 to +15 points to investigate
 which delta combinations lead to a “tipping” of the primary analysis
-result, defined here as an analysis p-value \\\geq 0.05\\.
+result, defined here as an analysis p-value \\(\geq 0.05\\).
 
 \
 \
