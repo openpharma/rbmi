@@ -80,7 +80,7 @@ For our purposes, for survival outcomes we are going to:
     - OITS - same but with additional time since discontinuation as covariate same as OICS but with additional pattern indicators (ordinal covariate)
     - FULL - as reference also fitted full model on all observed data
   - OICS seems most promising based on simulation study results - distinction needs to be made between the pre-and post-IE data and this should be reflected appropriately in MI models to impute the missing data 
-  - They propose to use a pragmatic step-down process when the rate of intercurrent events and missing data are is not clear before the study, i.e. start with the most complex imputation model and only if that fails use the next less complex one etc.
+  - They propose to use a pragmatic step-down process when the rates of intercurrent events and missing data are not clear before the study, i.e. start with the most complex imputation model and only if that fails use the next less complex one etc.
   - They mention perfect prediction / linear separation issue with logistic regression. In order to tackle this we will support Firth regression as an option for the analysis model.
 
 
