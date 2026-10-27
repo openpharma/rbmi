@@ -336,9 +336,8 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <li><a href="#draws" id="toc-draws"><span class="toc-section-number">3</span> Draws</a></li>
 <li><a href="#impute" id="toc-impute"><span class="toc-section-number">4</span> Impute</a></li>
 <li><a href="#analyse" id="toc-analyse"><span class="toc-section-number">5</span> Analyse</a></li>
-<li><a href="#see-the-documentation-for-ancova-and-set_vars-for-more-details." id="toc-see-the-documentation-for-ancova-and-set_vars-for-more-details."><span class="toc-section-number">6</span> See the documentation for <code>ancova()</code> and <code>set_vars()</code> for more details.</a></li>
-<li><a href="#pool" id="toc-pool"><span class="toc-section-number">7</span> Pool</a></li>
-<li><a href="#code" id="toc-code"><span class="toc-section-number">8</span> Code</a></li>
+<li><a href="#pool" id="toc-pool"><span class="toc-section-number">6</span> Pool</a></li>
+<li><a href="#code" id="toc-code"><span class="toc-section-number">7</span> Code</a></li>
 </ul>
 </div>
 
@@ -361,17 +360,9 @@ requires the installation of the suggested package <a href="https://CRAN.R-proje
 <p>We use a publicly available example dataset from an antidepressant clinical trial of an active drug versus placebo. The relevant endpoint is the Hamilton 17-item depression rating scale (HAMD17) which was assessed at baseline and at weeks 1, 2, 4, and 6. Study drug discontinuation occurred in 24% of subjects from the active drug and 26% of subjects from placebo. All data after study drug discontinuation are missing and there is a single additional intermittent missing observation.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(rbmi)</span>
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt; Attaching package: &#39;dplyr&#39;</span></span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from &#39;package:stats&#39;:</span></span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt;     filter, lag</span></span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from &#39;package:base&#39;:</span></span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt;     intersect, setdiff, setequal, union</span></span>
-<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a></span>
-<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="fu">data</span>(<span class="st">&quot;antidepressant_data&quot;</span>)</span>
-<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>dat <span class="ot">&lt;-</span> antidepressant_data</span></code></pre></div>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="fu">data</span>(<span class="st">&quot;antidepressant_data&quot;</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>dat <span class="ot">&lt;-</span> antidepressant_data</span></code></pre></div>
 <p>We consider an imputation model with the mean change from baseline in the HAMD17 score as the outcome (variable <code>CHANGE</code> in the dataset). The following covariates are included in the imputation model: the treatment group (<code>THERAPY</code>), the (categorical) visit (<code>VISIT</code>), treatment-by-visit interactions, the baseline HAMD17 score (<code>BASVAL</code>), and baseline HAMD17 score-by-visit interactions. A common unstructured covariance matrix structure is assumed for both groups. The analysis model is an ANCOVA model with the treatment group as the primary factor and adjustment for the baseline HAMD17 score.</p>
 <p><code>rbmi</code> expects its input dataset to be complete; that is, there must be one row per subject for each visit. Missing outcome values should be coded as <code>NA</code>, while missing covariate values are not allowed. If the dataset is incomplete, then the <code>expand_locf()</code> helper function can be used to add any missing rows, using LOCF imputation to carry forward the observed baseline covariate values to visits with missing outcomes. Rows corresponding to missing outcomes are not present in the antidepressant trial dataset. To address this we will therefore use the <code>expand_locf()</code> function as follows:</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a></span>
@@ -606,8 +597,7 @@ effect estimate and corresponding least square means for each group per visit.</
 function which determines the names of the key variables within the data and the covariates
 (in addition to the treatment group) for which the analysis model will be adjusted.</p>
 <p>Please also note that the names of the analysis estimates contain <code>ref</code> and <code>alt</code> to refer to the two treatment arms. In particular <code>ref</code> refers to the first factor level of <code>vars$group</code> which does not necessarily
-coincide with the control arm. In this example, since <code>levels(dat[[vars$group]]) = c(&quot;DRUG&quot;, PLACEBO</code>), the results associated with <code>ref</code> correspond to the intervention arm, while those associated with <code>alt</code> correspond to the control arm.
-&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</p>
+coincide with the control arm. In this example, since <code>levels(dat[[vars$group]]) = c(&quot;DRUG&quot;, PLACEBO</code>), the results associated with <code>ref</code> correspond to the intervention arm, while those associated with <code>alt</code> correspond to the control arm.</p>
 <p>Note that <code>ancova()</code> supports the analysis of two or more treatment arms. For more than
 two arms the <code>ref</code> / <code>alt</code> naming scheme is extended so that <code>alt2</code>, <code>alt3</code>, … represent
 the third, fourth, … factor levels; e.g. the resulting list will contain entries such as
@@ -644,24 +634,7 @@ carried through to the <code>contrast_label</code> column of the <code>pool()</c
 <span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>    )</span>
 <span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>)</span>
 <span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a>anaObj <span class="ot">&lt;-</span> <span class="fu">analyse</span>(imputeObj, ancova, <span class="at">vars =</span> vars)</span></code></pre></div>
-</div>
-<div id="see-the-documentation-for-ancova-and-set_vars-for-more-details." class="section level1" number="6">
-<h1><span class="header-section-number">6</span> See the documentation for <code>ancova()</code> and <code>set_vars()</code> for more details.</h1>
-<blockquote>
-<blockquote>
-<blockquote>
-<blockquote>
-<blockquote>
-<blockquote>
-<blockquote>
-<p>origin/main</p>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
+<p>See the documentation for <code>ancova()</code> and <code>set_vars()</code> for more details.</p>
 <p>Additionally, we can use the <code>delta</code> argument of <code>analyse()</code> to perform a delta adjustments of the imputed datasets prior to the analysis.
 In brief, this is implemented by specifying a data.frame that contains the amount
 of adjustment to be added to each longitudinal outcome for each subject and visit, i.e. 
@@ -724,8 +697,8 @@ which were missing in the original dataset) in the drug arm. That could then be 
 <span id="cb10-49"><a href="#cb10-49" tabindex="-1"></a>    )</span>
 <span id="cb10-50"><a href="#cb10-50" tabindex="-1"></a>)</span></code></pre></div>
 </div>
-<div id="pool" class="section level1" number="7">
-<h1><span class="header-section-number">7</span> Pool</h1>
+<div id="pool" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Pool</h1>
 <p>Finally, the <code>pool()</code> function can be used to summarise the analysis results across multiple
 imputed datasets to provide an overall statistic with a standard error, confidence intervals and a p-value for
 the hypothesis test of the null hypothesis that the effect is equal to 0.</p>
@@ -802,8 +775,8 @@ in the original call to <code>draws()</code>:</p>
 2.166 (95% CI -0.045 to 4.376)
 between the two groups at the last visit with an associated p-value of 0.055.</p>
 </div>
-<div id="code" class="section level1" number="8">
-<h1><span class="header-section-number">8</span> Code</h1>
+<div id="code" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Code</h1>
 <p>We report below all the code presented in this vignette.</p>
 <div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="fu">library</span>(rbmi)</span>
 <span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>

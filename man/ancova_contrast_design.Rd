@@ -19,8 +19,11 @@ A numeric model matrix with one row per \code{rbmiGroup} level.
 }
 \description{
 Creates one complete model-matrix row per treatment-group level. Numeric
-covariates are set to zero, logical covariates to \code{FALSE}, and factor covariates
+covariates are set to their means in \code{data}, excluding missing values, logical
+covariates to \code{FALSE}, and factor covariates
 to their first level. The fitted model's contrast coding is retained so that
 differences between rows include all required interaction coefficients.
+Means are calculated on the raw covariate scale before applying formula
+transformations, using all non-missing values in the supplied visit data.
 }
 \keyword{internal}
