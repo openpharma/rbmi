@@ -1,5 +1,8 @@
 ---
 bibliography: ../vignettes/references.bib
+format:
+  html:
+    embed-resources: true
 ---
 
 # Design for the Binary Outcomes Extension
