@@ -456,25 +456,33 @@ moderate-dimensional longitudinal data, not a claim of robust sampling for
 arbitrary rare outcomes, separation, or nearly singular correlations.
 
 All implementation functions below are evaluated when rendering. The expensive
-fits and the isolated rebuild of the reference sampler are opt-in. From the
-repository root, run 
+fits are opt-in. The corrected reference sampler is maintained in the
+[rpact-com/jomo fork](https://github.com/rpact-com/jomo). Install that fork into
+a separate library to compare it with the original CRAN package. With the fork
+cloned beside rbmi, run from the rbmi repository root:
 
 ```bash
-RBMI_RUN_PROBIT_VALIDATION=true quarto render misc/design_binary_extension.qmd --to html
+mkdir -p /tmp/rbmi-jomo-fork-library
+R CMD INSTALL --library=/tmp/rbmi-jomo-fork-library ../jomo
+RBMI_JOMO_FORK_LIBRARY=/tmp/rbmi-jomo-fork-library RBMI_RUN_PROBIT_VALIDATION=true quarto render misc/design_binary_extension.qmd --to html
 ```
 
-to recompute them. The recorded
-results later in this section are a fixed validation snapshot, not output from
-the earlier five-imputation illustration. Dependencies are `cmdstanr` with a
+The recorded results later in this section are a fixed validation snapshot,
+not output from the earlier five-imputation illustration. Dependencies are `cmdstanr` with a
 working CmdStan C++ toolchain, `posterior`, `mvtnorm`, and the earlier example's
-R dependencies. Corrected-reference validation also needs access to the jomo
-2.7-6 source archive and an R package compilation toolchain.
+R dependencies. Install the original CRAN jomo 2.7-6 in the default R library
+and the corrected fork (2.7.6.9000) in the separate library above. Building the
+fork requires an R package compilation toolchain.
 
 First let's check whether we want to run the probit validation:
 
 ```{r}
 #| label: probit-run-settings
 run_probit_validation <- identical(Sys.getenv("RBMI_RUN_PROBIT_VALIDATION"), "true")
+corrected_library <- Sys.getenv("RBMI_JOMO_FORK_LIBRARY")
+if (run_probit_validation && !dir.exists(file.path(corrected_library, "jomo"))) {
+  stop("Set RBMI_JOMO_FORK_LIBRARY to the library containing the installed jomo fork.")
+}
 ```
 
 Here comes the Stan source code for the probit model:
@@ -735,7 +743,7 @@ stopifnot(length(probit_parameters$beta) == 1000L,
           length(probit_parameters$sigma[[1]]) == 2L)
 ```
 
-### Audit of the reference draw sampler
+### Reference draw sampler
 
 The comparison calls `jomo::jomo1cat.MCMCchain()` separately by arm, exactly as
 in the draw-stage calls inside `cro_latent_mvn()`. It skips the subsequent
@@ -743,105 +751,14 @@ imputation loops. Thus the short J2R run above is not used to assess posterior
 agreement. Both methods use the same strict >50% response threshold, the same
 200 patients, and the same observed visits.
 
-#### Which covariance prior does the reference code use?
-
-In `cro_latent_mvn_reference.R`, the two `jomo1cat.MCMCchain()` calls pass
-`l1cov.start` but do not pass `l1cov.prior`, although the script defines that
-object. `l1cov.start` initializes the matrix; it does not specify a prior.
-The [jomo R wrapper](https://github.com/Matteo21Q/jomo/blob/master/R/jomo1cat.MCMCchain.R)
-defaults `l1cov.prior` to the identity and passes it to C as `Sp`. However, in
-the [jomo C source](https://github.com/Matteo21Q/jomo/blob/master/src/jomo1C.c),
-`Sp` enters only the `ncat == 0` covariance-update branch. Binary outcomes use
-the categorical branch, where the diagonal is fixed to one and the acceptance
-ratio uses only the augmented normal likelihood,
-
-$$
-\ell(\Omega_t)=-\frac{n_t}{2}\log|\Omega_t|
--\frac12\sum_i (z_{t,i}-\mu_{t,i})^{\mathsf T}
-\Omega_t^{-1}(z_{t,i}-\mu_{t,i}).
-$$
-
-There is no additional Jeffreys determinant term or inverse-Wishart prior term.
-The determinant term shown here belongs to the likelihood, not the prior.
-Our source-level interpretation is that the intended binary prior is flat in
-the free correlations, consistent with Section 3.3 and LKJ(1). Passing a different
-`l1cov.prior` does not change this binary covariance update. This conclusion
-concerns the intended prior, rather than correctness of the complete sampler:
-the implementation has the two issues below.
-
-#### Departures from the intended binary sampler
-
-The jomo 2.7-6 source, corresponding to
-[`src/jomo1C.c` in the jomo repository](https://github.com/Matteo21Q/jomo/blob/master/src/jomo1C.c),
-reveals two departures from the intended binary sampler:
-
-1. Observed latent proposals must lie in $(-3,4)$ as well as satisfy their sign.
-   These finite bounds change the augmentation target; they are not in the
-   paper's probit model. Under our opposite sign convention the bounds would be
-   $(-4,3)$. The limit of 10,000 rejection attempts is also unnecessary for a
-   binary truncated normal.
-2. A correlation proposal is repeatedly redrawn until the matrix is positive
-   definite (up to 100 tries), then accepted using only a likelihood ratio.
-   Conditioning a symmetric normal proposal on this feasible interval makes
-   its normalization depend on the current correlation. The missing proposal
-   ratio can therefore change the stationary distribution.
-
-The second point follows directly from the proposal construction. If the
-feasible interval for a correlation is $(l,h)$ and the proposal scale is $s$,
-its acceptance probability must account for
-$A(r)=\Phi((h-r)/s)-\Phi((l-r)/s)$. Retrying until feasible gives
-$q(r'\mid r)=\phi((r'-r)/s)/(sA(r))$, requiring an additional
-$A(r)/A(r')$ in the Metropolis ratio. Instead, the patch below uses one symmetric
-proposal and rejects it immediately if invalid. For binary observations it
-also draws the exact one-sided conditional normal using log-tail quantiles.
-Neither correction changes the intended flat priors. The categorical covariance
-update uses no inverse-Wishart term from `l1cov.prior`; supplying that argument
-is not a substitute for specifying the correlation prior here.
-
-These corrections are deliberately limited to the binary draw model. They are
-not a general repair of jomo's mixed-outcome samplers. The original reference
-files and the installed jomo package are preserved: the helper builds a patched
-copy in a temporary library and runs it in a separate R process. The patch checks
-the source version and expected edit locations and fails if they do not match.
-
-```{r}
-#| label: patch-binary-reference
-patch_jomo_binary <- function(source_dir) {
-  path <- file.path(source_dir, "src", "jomo1C.c")
-  lines <- readLines(path)
-  stopifnot(read.dcf(file.path(source_dir, "DESCRIPTION"))[1, "Version"] == "2.7-6")
-  # For binary categories only, exact one-sided conditional normal draws.
-  first <- grep("if (REAL(Y)[t+(ncon+j)*IY]==INTEGER(Y_numcat)[j])", lines, fixed=TRUE)
-  last <- grep("//Updating beta", lines, fixed=TRUE)
-  stopifnot(length(first)==1L, length(last)==1L, last > first)
-  end <- first + which(trimws(lines[(first+1L):(last-1L)]) == "flag=0;")[1]
-  old <- lines[first:(end-1L)]
-  replacement <- c(
-    "if (currncat == 1) {",
-    "  int lower_tail = (REAL(Y)[t+(ncon+j)*IY] == 2);",
-    "  double sd = sqrt(omegadrawmiss[0]);",
-    "  double lp = pnorm5(0, mumiss[0], sd, lower_tail, 1);",
-    "  imp[t+pos*IY] = qnorm5(log(unif_rand()) + lp, mumiss[0], sd, lower_tail, 1);",
-    "} else {", old, "}")
-  lines <- c(lines[seq_len(first-1L)], replacement, lines[end:length(lines)])
-  # One symmetric proposal. Reject invalid matrices before factorization.
-  first <- grep("while ((flag==0)&(kk<100))", lines, fixed=TRUE)
-  stopifnot(length(first)==1L)
-  end <- first + which(trimws(lines[(first+1L):length(lines)]) == "}")[1]
-  replacement <- c(
-    "newomega[j+JY*k] = r8_normal_sample(meanom,sdom,0);",
-    "newomega[k+JY*j] = newomega[j+JY*k];",
-    "flag = checkposdef(JY,newomega,help,help5);",
-    "if (flag == 0) {",
-    "  newomega[j+JY*k] = REAL(omega)[j+JY*k];",
-    "  newomega[k+JY*j] = REAL(omega)[k+JY*j];",
-    "  continue;",
-    "}")
-  lines <- c(lines[seq_len(first-1L)], replacement, lines[(end+1L):length(lines)])
-  writeLines(lines, path)
-  invisible(path)
-}
-```
+The [rpact-com/jomo fork](https://github.com/rpact-com/jomo) contains the
+corrections used for the binary reference comparison. Their rationale, scope,
+and regression tests are documented in the fork's
+[changelog](https://github.com/rpact-com/jomo/blob/master/CHANGELOG.md).
+The intended binary model uses a flat mean prior and a flat prior on the free
+correlations, consistent with Section 3.3 and LKJ(1). The fork preserves those
+priors. This document uses the fork as a package dependency; each reference
+run loads its selected package in a separate R process.
 
 ```{r}
 #| label: reference-draw-functions
@@ -878,7 +795,9 @@ run_reference_draws <- function(Y, arm, library = NULL, chains = 4L,
   work <- tempfile("probit-reference-")
   dir.create(work)
   on.exit(unlink(work, recursive = TRUE), add = TRUE)
-  input <- list(Y = Y, arm = arm, library = library, chains = chains,
+  expected_version <- if (is.null(library)) "2.7.6" else "2.7.6.9000"
+  input <- list(Y = Y, arm = arm, library = library, version = expected_version,
+                chains = chains,
                 warmup = warmup, iterations = iterations, thin = thin, seed = seed)
   input_path <- file.path(work, "input.rds")
   output_path <- file.path(work, "output.rds")
@@ -889,7 +808,7 @@ run_reference_draws <- function(Y, arm, library = NULL, chains = 4L,
     "args <- commandArgs(trailingOnly = TRUE)",
     "input <- readRDS(args[1])",
     "if (!is.null(input$library)) .libPaths(c(input$library, .libPaths()))",
-    "stopifnot(as.character(utils::packageVersion('jomo')) == '2.7.6')",
+    "stopifnot(as.character(utils::packageVersion('jomo')) == input$version)",
     "cores <- if (.Platform$OS.type == 'windows') 1L else input$chains",
     "out <- parallel::mclapply(seq_len(input$chains), run_chain, input = input, mc.cores = cores)",
     "if (any(vapply(out, inherits, logical(1), 'try-error'))) stop('Reference chain failed')",
@@ -899,38 +818,6 @@ run_reference_draws <- function(Y, arm, library = NULL, chains = 4L,
                     stdout = log_path, stderr = log_path)
   if (status != 0L) stop(paste(readLines(log_path), collapse = "\n"))
   readRDS(output_path)
-}
-
-build_corrected_jomo <- function(archive = NULL) {
-  work <- tempfile("jomo-binary-audit-")
-  dir.create(work)
-  if (is.null(archive)) {
-    archive <- file.path(work, "jomo_2.7-6.tar.gz")
-    urls <- c(
-      "https://cran.r-project.org/src/contrib/jomo_2.7-6.tar.gz",
-      "https://cran.r-project.org/src/contrib/Archive/jomo/jomo_2.7-6.tar.gz")
-    downloaded <- FALSE
-    for (url in urls) {
-      status <- try(suppressWarnings(utils::download.file(
-        url, archive, mode = "wb", quiet = TRUE)), silent = TRUE)
-      if (!inherits(status, "try-error") && status == 0L) {
-        downloaded <- TRUE
-        break
-      }
-    }
-    if (!downloaded) stop("Supply the jomo 2.7-6 source archive locally.")
-  }
-  utils::untar(archive, exdir = work)
-  src <- file.path(work, "jomo")
-  patch_jomo_binary(src)
-  lib <- file.path(work, "library")
-  dir.create(lib)
-  log <- file.path(work, "install.log")
-  status <- system2(file.path(R.home("bin"), "R"),
-                    c("CMD", "INSTALL", "-l", shQuote(lib), shQuote(src)),
-                    stdout = log, stderr = log)
-  if (status != 0L) stop(paste(readLines(log), collapse = "\n"))
-  lib
 }
 ```
 
@@ -983,8 +870,6 @@ compare_parameters <- function(stan, reference) {
 #| label: compare-probit-reference
 #| eval: !expr run_probit_validation
 reference_original <- run_reference_draws(Ycat, treat1)
-# Supply a local source archive to build_corrected_jomo() to avoid downloading.
-corrected_library <- build_corrected_jomo()
 reference_corrected <- run_reference_draws(Ycat, treat1, library = corrected_library)
 comparison_original <- compare_parameters(
   probit_fit$fit$draws(c("beta", "Omega")), jomo_array(reference_original))
@@ -1000,7 +885,10 @@ comparison_corrected
 ### Recorded comparison (26 October 2026)
 
 This snapshot used R 4.6.1, CmdStanR 0.9.0, CmdStan 2.39.0, posterior 1.7.0,
-and jomo 2.7-6. Stan used four chains, 1,500 warmup iterations per chain,
+and jomo 2.7-6 with the two corrections now maintained in the
+[rpact-com/jomo fork](https://github.com/rpact-com/jomo). These recorded results
+predate the fork's development version; they have not been recomputed for this
+source migration. Stan used four chains, 1,500 warmup iterations per chain,
 and 2,000 retained sampling iterations per chain after the step-size cap;
 its warmup seed was 20261026 and sampling seed 20261027. Both reference
 runs used four chains per arm with seeds 123436 through 123439, 100,000
@@ -1015,8 +903,8 @@ These are Monte Carlo comparisons, not a proof of equality of the two algorithms
 
 The unmodified reference differs systematically: the placebo Week 1 coefficient
 is -1.742 versus -1.956 in Stan (83.0 combined MCSEs). The corrected value is -1.952.
-The two source-level corrections were applied together; this experiment does not
-attribute every discrepancy separately to one correction or the other.
+The two corrections described in the fork's changelog were applied together;
+this experiment does not attribute every discrepancy separately to either one.
 
 |Sampler        | Maximum R-hat| Minimum bulk ESS| Minimum tail ESS|
 |:--------------|-------------:|----------------:|----------------:|
