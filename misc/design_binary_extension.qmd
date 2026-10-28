@@ -367,8 +367,7 @@ matrices. This prior is proper because $\mathcal C_D$ has finite volume. The
 paper's description of the latent covariance prior as improper is therefore
 imprecise once the diagonal is fixed; the flat mean prior remains improper.
 
-
-`beta_sd = 0` requests these flat coefficient priors. The preparation function
+`beta_sd = 0` requests flat coefficient priors. The preparation function
 allows this only for the saturated arm-by-visit design, with both binary outcomes
 observed in every arm and visit. For a custom design, specify `beta_sd > 0`, giving
 independent $N(0,\texttt{beta\_sd}^2)$ priors. This avoids silently using an improper
@@ -377,12 +376,13 @@ prototype does not choose a universal prior scale for future package integration
 
 ### Observed-data likelihood and returned draws
 
-Let $O_i$ be the observed visits. The fitted likelihood is
+Let $O_i$ be the observed visits. The fitted likelihood is the probability that
+the latent signs match the observed outcomes:
 
 $$
 L_i(\beta,\Omega)=
-\int_{\{z:(2Y_{ij}-1)z_j>0,\ j\in O_i\}}
-\phi_{|O_i|}\!\left(z;\mu_{i,O_i},\Omega_{a_i}[O_i,O_i]\right)\,dz.
+\Pr\!\left((2Y_{ij}-1)Z_{ij}>0\text{ for all }j\in O_i
+\mid\beta,\Omega\right).
 $$
 
 Missing visits are integrated out analytically before augmentation. Patients
