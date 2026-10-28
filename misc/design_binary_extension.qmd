@@ -276,25 +276,73 @@ Section 3.3 of @Cro2025, rather than numerical behavior specific to the supplied
 R code. Preparation, posterior sampling, and parameter
 extraction are separate operations to stay within the `rbmi` framework.
 
-For subject $i$, visit $j$, and randomized arm $a_i$, use
+To connect with Section 3.3, let a superscript $\mathrm{P}$ distinguish the
+paper's latent variables and parameters from those used below. The paper indexes
+arm by $t\in\{a,r\}$ and writes the model componentwise as
 
 $$
-Z_i \mid \beta,\Omega \sim N_D(\mu_i,\Omega_{a_i}),\qquad
-\mu_{ij}=x_{ij}^{\mathsf T}\beta,\qquad
-Y_{ij}=\mathbf{1}(Z_{ij}>0),\qquad \operatorname{diag}(\Omega_a)=1.
+\begin{aligned}
+Z^{\mathrm{P}}_{t,i,j}&=\mu^{\mathrm{P}}_{t,j}+e^{\mathrm{P}}_{t,i,j},&
+e^{\mathrm{P}}_{t,i}&\sim N_D(0,\Omega^{\mathrm{P}}_t),\\
+Y_{t,i,j}&=\mathbf{1}(Z^{\mathrm{P}}_{t,i,j}\leq 0),&
+\operatorname{diag}(\Omega^{\mathrm{P}}_t)&=\mathbf{1}.
+\end{aligned}
 $$
 
-The default design has one intercept per arm and visit. Thus the default model
-fits the arms independently, with separate unstructured correlation matrices.
+Equivalently, the subject's latent vector has distribution
+$Z^{\mathrm{P}}_{t,i}\sim N_D(\mu^{\mathrm{P}}_t,\Omega^{\mathrm{P}}_t)$.
+Section 3.3 also uses $\Sigma_t$ for this same latent covariance matrix;
+we consistently use $\Omega$. With unit diagonal it is also a correlation matrix.
+Here $D$ counts the modeled binary visits: it corresponds to the paper's $J+1$
+when the same visits are included. The paper includes a baseline response in
+that indexing; the example here models only the five follow-up binary responses,
+so $D=5$, with baseline HAMD17 available as a separate covariate.
+
+For the implementation, index subjects across arms and let $a_i$ denote subject
+$i$'s randomized arm (the paper's $t$). Conditional on the supplied design rows
+$x_{ij}$, use
+
+$$
+\begin{aligned}
+Z_i \mid \beta,\Omega&\sim N_D(\mu_i,\Omega_{a_i}),&
+\mu_{ij}&=x_{ij}^{\mathsf T}\beta,\\
+Y_{ij}&=\mathbf{1}(Z_{ij}>0),&
+\operatorname{diag}(\Omega_t)&=\mathbf{1}.
+\end{aligned}
+$$
+
+For the arm-by-visit model, the two formulations are related by the global sign change
+
+$$
+Z_{ij}=-Z^{\mathrm{P}}_{a_i,i,j},\qquad
+\mu_{ij}=-\mu^{\mathrm{P}}_{a_i,j},\qquad
+\Omega_t=\Omega^{\mathrm{P}}_t.
+$$
+
+The binary outcomes are unchanged (the boundary $Z=0$ has probability zero).
+Thus $\Pr(Y_{ij}=1\mid\beta)=\Phi(\mu_{ij}) =\Phi(-\mu^{\mathrm{P}}_{a_i,j})$, where $\Phi$ is the standard normal CDF.
+Negating every latent component preserves all covariances and correlations.
+
+The default design has one intercept per arm and visit: $x_{ij}$ selects
+coefficient $\beta_{a_i,j}$ from the vector $\beta$, which stacks one block per arm,
+where
+$\beta_t=(\beta_{t,1},\ldots,\beta_{t,D})^{\mathsf T}$. Consequently
+$\mu_{ij}=\beta_{a_i,j}=-\mu^{\mathrm{P}}_{a_i,j}$ in this design.
+Writing a single $\beta$ therefore still gives separate arm-specific means;
+with the independent priors below, the default posterior factors by arm, just
+as in the paper, with separate unstructured correlation matrices.
 A common correlation matrix (`same_cov = TRUE`) and a supplied covariate design
-are also supported, but are extensions beyond this comparison. Treatment means
-remain separate when `same_cov = TRUE`. Binary observations identify correlations,
+are also supported. Covariates enter through $x_{ij}^{\mathsf T}\beta$;
+arm-by-visit interactions allow the separate visit-specific covariate effects
+described in the paper, while shared coefficients impose additional assumptions.
+The default design includes no baseline covariate. A common correlation matrix
+is an extension beyond the paper's separate-arm model; treatment means remain
+separate when `same_cov = TRUE`. Binary observations identify correlations,
 not unrestricted latent variances.
 
-The sign convention here makes $\Pr(Y_{ij}=1)=\Phi(\mu_{ij})$. Cro's code instead
-uses $Y=0$ for a positive latent value. Consequently compare **Stan's $\beta$ with
-minus Cro's $\beta$**, while leaving the correlation matrices unchanged. This is
-a global sign change, not a conversion of correlations to their negatives.
+The supplementary code follows the paper's sign convention. Consequently compare
+**Stan's $\beta$ with minus Cro's $\beta$**, after matching the design and
+coefficient order, while leaving the correlation matrices unchanged.
 
 The matching priors are $p(\beta)\propto1$ and $\Omega_a\sim\operatorname{LKJ}(1)$.
 On the space of positive definite matrices with diagonal fixed to one, a uniform
