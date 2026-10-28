@@ -556,7 +556,7 @@ model {
 )"
 ```
 
-### R preparation, fitting, and extraction
+### R side preparation, fitting, and extraction
 
 `X`, when supplied, is an $N\times D\times P$ array: a design row for every
 subject and visit. This permits shared coefficients, arm effects, visit effects,
@@ -565,24 +565,15 @@ must be complete and numeric. `cells` records the mapping from Stan's observed
 rows back to the input matrix; `visit_names` fixes the longitudinal order.
 The default coefficient order is arm first, then visit.
 
-For this strongly correlated example, the fit helper first adapts the NUTS metric,
-then starts sampling from each chain's final state with the learned metric and a
-step size no larger than 0.005. The adaptation-stage iteration is discarded.
-This conservative cap costs runtime but addresses divergences that remained with
-ordinary step-size adaptation. It is a tuning choice, not a modification of the
-model. Final diagnostics still need to be checked on every new dataset. CmdStanR
-is used here for convenient standalone compilation; integration with the package's
-existing RStan infrastructure is deferred.
-
-`extract_probit_draws()` returns a list of coefficient vectors and a paired list
-of covariance-group matrices, analogous to the count prototype's parameter-only
-extraction. It does not construct a package `draws` object. It samples retained
-iterations without replacement; it never samples coefficients and correlations
-independently. Keep the complete fitted chains for convergence diagnostics,
-even when fewer draws are requested for downstream imputation.
-
 ```{r}
 #| label: probit-r-functions
+
+# Y: Binary response matrix of size N x D, where N is the number of subjects and D is the number of visits. Each entry should be 0 or 1.
+# arm: Factor or integer vector indicating the treatment arm for each subject.
+# X: Optional design array of size N x D x P, where P is the number of predictors. If NULL, a saturated design is used.
+# same_cov: Logical indicating whether all arms share the same covariance matrix.
+# beta_sd: Standard deviation for the normal prior on regression coefficients. Must be non-negative.
+# lkj_eta: Shape parameter for the LKJ prior on correlation matrices. Must be positive.
 prepare_probit_data <- function(Y, arm, X = NULL, same_cov = FALSE,
                                 beta_sd = 0, lkj_eta = 1) {
   Y <- as.matrix(Y)
@@ -652,7 +643,19 @@ prepare_probit_data <- function(Y, arm, X = NULL, same_cov = FALSE,
        cells = cells, excluded_subjects = setdiff(seq_len(N), keep),
        same_cov = same_cov, saturated = saturated)
 }
+```
 
+For this strongly correlated example, the fit helper first adapts the NUTS metric,
+then starts sampling from each chain's final state with the learned metric and a
+step size no larger than 0.005. The adaptation-stage iteration is discarded.
+This conservative cap costs runtime but addresses divergences that remained with
+ordinary step-size adaptation. It is a tuning choice, not a modification of the
+model. Final diagnostics still need to be checked on every new dataset. `cmdstanr`
+is used here for convenient standalone compilation; integration with the package's
+existing `rstan` infrastructure is deferred.
+
+```{r}
+#| label: probit_draws
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
 fit_probit_draws <- function(prepared, model, chains = 4L, parallel_chains = chains,
@@ -685,7 +688,14 @@ fit_probit_draws <- function(prepared, model, chains = 4L, parallel_chains = cha
     max_treedepth = 12L, refresh = 0)
   structure(list(fit = fit, warmup_fit = warm, prepared = prepared), class = "probit_draw_fit")
 }
+```
 
+`extract_probit_draws()` returns a list of coefficient vectors and a paired list
+of covariance-group matrices, analogous to the count prototype's parameter-only
+extraction:
+
+```{r}
+#| label: extract-probit-draws
 extract_probit_draws <- function(object, n_samples = NULL, seed = 123L) {
   # Select paired beta/Omega rows; retain full chains in object$fit for diagnostics.
   d <- posterior::as_draws_matrix(object$fit$draws(c("beta", "Omega")))
@@ -709,6 +719,8 @@ extract_probit_draws <- function(object, n_samples = NULL, seed = 123L) {
 }
 ```
 
+Now we can fit the probit model and extract posterior draws for the coefficients and covariance matrices:
+
 ```{r}
 #| label: fit-probit-trial
 #| eval: !expr run_probit_validation
@@ -728,7 +740,7 @@ stopifnot(length(probit_parameters$beta) == 1000L,
 The comparison calls `jomo::jomo1cat.MCMCchain()` separately by arm, exactly as
 in the draw-stage calls inside `cro_latent_mvn()`. It skips the subsequent
 imputation loops. Thus the short J2R run above is not used to assess posterior
-agreement. Both methods use the same **strict >50% response threshold**, the same
+agreement. Both methods use the same strict >50% response threshold, the same
 200 patients, and the same observed visits.
 
 #### Which covariance prior does the reference code use?
@@ -750,7 +762,7 @@ $$
 $$
 
 There is no additional Jeffreys determinant term or inverse-Wishart prior term.
-The determinant term shown here belongs to the **likelihood**, not the prior.
+The determinant term shown here belongs to the likelihood, not the prior.
 Our source-level interpretation is that the intended binary prior is flat in
 the free correlations, consistent with Section 3.3 and LKJ(1). Passing a different
 `l1cov.prior` does not change this binary covariance update. This conclusion
