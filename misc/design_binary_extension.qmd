@@ -12,11 +12,9 @@ bibliography: ../vignettes/references.bib
 @Goldstein2004. The trial compared placebo, once-daily paroxetine, and two doses of
 twice-daily duloxetine. Their public example combines 100 placebo patients with
 100 patients randomly selected from the three non-placebo arms. Thus, the
-example's active group pools treatments; although their Table 2 calls the
-comparison duloxetine versus placebo, it should not be interpreted as a pure
-duloxetine comparison in these pooled data.
+example's active group pools treatments.
 
-The endpoint is a reduction of **more than 50%** from baseline HAMD17 at Week 8,
+The endpoint is a reduction of more than 50% from baseline HAMD17 at Week 8,
 with earlier outcomes at Weeks 1, 2, 4, and 6. Their Table 2 targets the odds of
 response on active treatment relative to placebo among trial-eligible patients
 with depression, using a treatment policy strategy for early treatment cessation
@@ -26,17 +24,15 @@ placebo patients completing treatment. Table 3 gives cumulative off-treatment
 percentages, which coincide with missing outcome percentages in that case study.
 
 The data used below are the high-dropout example from the
-[LSHTM Missing Data website](https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data).
-LSHTM describes these as modified demonstration data: the active group was
-sampled from the non-placebo arms, and the placebo group was expanded to 100
+[LSHTM Missing Data website](https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data), which describes these as modified demonstration data: 
+the active group was sampled from the non-placebo arms, and the placebo group was expanded to 100
 by resampling patients, assigning new IDs, and perturbing their outcomes.
 
-### Import the local archive
+### Import the data
 
 The code below reads `high_low_datasets.zip` beside this document, extracting
 only the high-dropout dataset, `high1.sas7bdat`, into a temporary directory.
-The low-dropout dataset, `low1.sas7bdat`, is not used. It also supports execution from the
-repository root. It requires the R packages `haven` and `knitr`.
+The low-dropout dataset, `low1.sas7bdat`, is not used here.
 
 ```{r}
 #| label: import-antidepressant-data
@@ -57,7 +53,7 @@ antidepressant_raw <- haven::read_sas(sas_file)
 unlink(extraction_dir, recursive = TRUE)
 
 # Keep the original fields and derive the binary response without imputation.
-antidepressant <- as.data.frame(antidepressant_raw)
+antidepressant <- antidepressant_raw
 antidepressant$arm <- factor(
   antidepressant$TRT,
   levels = c("1", "2"),
@@ -72,32 +68,43 @@ stopifnot(
   !anyNA(antidepressant$arm),
   all(antidepressant$basval > 0)
 )
+patients <- unique(antidepressant[c("PATIENT", "arm")])
+visit_weeks <- sort(unique(antidepressant$week))
+visit_weeks
 ```
 
-The archive contains **`r nrow(antidepressant)` observed patient-visit records for
-`r length(unique(antidepressant$PATIENT))` patients**:
-`r length(unique(antidepressant$PATIENT[antidepressant$arm == "Placebo"]))` placebo
-and `r length(unique(antidepressant$PATIENT[antidepressant$arm == "Active"]))`
-active. `PATIENT` identifies patients; `TRT` codes placebo as `1` and active
-as `2`; `week` gives scheduled follow-up week; `basval` is baseline HAMD17;
-`change` is follow-up minus baseline HAMD17; and `POOLINV` identifies the pooled
-investigator. Follow-up HAMD17 can be reconstructed as `basval + change`.
-The derived binary `response` uses a strict >50% reduction from baseline,
-as specified in Table 2.
+The data set contains `r nrow(antidepressant)` observed patient-visit records for
+`r length(unique(antidepressant$PATIENT))` patients, and the scheduled follow-up weeks are `r knitr::combine_words(visit_weeks)`.
 
 ```{r}
-#| label: archive-summary
-patients <- unique(antidepressant[c("PATIENT", "arm")])
-knitr::kable(
-  as.data.frame(table(patients$arm), responseName = "Patients"),
-  col.names = c("Arm", "Patients")
-)
-visit_weeks <- sort(unique(antidepressant$week))
+head(antidepressant)
 ```
 
-The scheduled follow-up weeks are `r knitr::combine_words(visit_weeks)`.
-There are `r sum(is.na(antidepressant$change))` missing change scores in the
-stored rows; missing follow-up assessments are represented by absent rows.
+- `r length(unique(antidepressant$PATIENT[antidepressant$arm == "Placebo"]))` placebo
+and `r length(unique(antidepressant$PATIENT[antidepressant$arm == "Active"]))`
+active
+- `PATIENT` identifies patients; 
+- `TRT` codes placebo as `1` and active as `2`; 
+- `week` gives scheduled follow-up week; 
+- `basval` is baseline HAMD17;
+- `change` is follow-up minus baseline HAMD17; 
+- `POOLINV` identifies the pooled investigator. 
+
+Follow-up HAMD17 can be reconstructed as `basval + change`.
+The derived binary `response` uses a strict >50% reduction from baseline,
+as specified in Table 2:
+
+```{r}
+with(antidepressant, stopifnot(all(as.integer(change < -0.5 * basval) == response)))
+```
+
+There are no missing change scores in the
+stored rows; missing follow-up assessments are represented by absent rows:
+
+```{r}
+stopifnot(!anyNA(antidepressant$change))
+```
+
 We use the full patient roster when calculating missingness at each visit.
 The file has no separate treatment cessation indicator, so interpreting
 missingness as off-treatment status relies on the case-study description in
@@ -130,7 +137,7 @@ stopifnot(
 knitr::kable(comparison, caption = "High-dropout data versus Cro et al. Table 3")
 ```
 
-**All entries in Table 3 are reproduced exactly.** The missing percentages are
+All entries in Table 3 are reproduced exactly. The missing percentages are
 `r knitr::combine_words(comparison[["Placebo missing %"]])` for placebo and
 `r knitr::combine_words(comparison[["Active missing %"]])` for active.
 At Week 8, observed outcomes remain for
@@ -150,21 +157,15 @@ retains the strict threshold from Table 2.
 
 ```{r}
 #| label: compare-response-thresholds
-week8 <- subset(antidepressant, week == 8)
-threshold_comparison <- data.frame(Arm = levels(antidepressant$arm))
-threshold_comparison[["Reduction >50%"]] <- vapply(
-  threshold_comparison$Arm,
-  function(a) sum(week8$response[week8$arm == a], na.rm = TRUE),
-  integer(1)
-)
-threshold_comparison[["Reduction >=50%"]] <- vapply(
-  threshold_comparison$Arm,
-  function(a) {
-    with(subset(week8, arm == a), sum(-change / basval >= 0.5, na.rm = TRUE))
-  },
-  integer(1)
-)
-threshold_comparison[["Published responders"]] <- c(25, 39)
+threshold_comparison <- antidepressant |> 
+  dplyr::filter(week == 8) |>
+  dplyr::group_by(arm) |>
+  dplyr::summarise(
+    `Reduction >50%` = sum(response, na.rm = TRUE),
+    `Reduction >=50%` = sum(-change / basval >= 0.5, na.rm = TRUE)
+  ) |>
+  dplyr::rename(Arm = arm) |>
+  dplyr::mutate(`Published responders` = c(25L, 39L))
 stopifnot(
   all(threshold_comparison[["Reduction >=50%"]] ==
         threshold_comparison[["Published responders"]])
@@ -172,20 +173,15 @@ stopifnot(
 knitr::kable(threshold_comparison, caption = "Week 8 responders by threshold")
 ```
 
-The strict threshold yields
-`r threshold_comparison[["Reduction >50%"]][threshold_comparison$Arm == "Placebo"]`
-placebo and
-`r threshold_comparison[["Reduction >50%"]][threshold_comparison$Arm == "Active"]`
-active responders. Replicating the paper's reported responder counts requires
+So we see that replicating the paper's reported responder counts requires
 the inclusive threshold.
 
 ## Cro et al. latent multivariate probit reference implementation
 
-`cro_latent_mvn_reference.R` preserves the supplied supplementary code, with
-introductory prose commented and PDF page numbers removed. It includes the
-original trial-specific analysis and is retained for reference; source the
-lightly wrapped `cro_latent_mvn.R` below to run the imputation algorithm.
-The wrapper requires `jomo`, `mice`, and `gear` from CRAN. It exposes the original
+The separate file `cro_latent_mvn_reference.R` preserves the supplied supplementary code from @Cro2025. 
+It includes the original trial-specific analysis and is retained for reference; source the
+lightly edited file `cro_latent_mvn.R`, which includes an R function, to run the imputation algorithm.
+The wrapper requires the `jomo`, `mice`, and `gear` packages from CRAN. It exposes the original
 settings as arguments and returns the binary imputations (`imp`), latent draws
 (`impZ`), and retained arm-specific regression and covariance draws (`beta` and
 `omega`). It omits the final trial-specific pooled GLM. The wrapper converts `Ycat` to
@@ -205,8 +201,13 @@ inclusive-threshold responder counts.
 cro_script <- file.path(dirname(archive), "cro_latent_mvn.R")
 source(cro_script)
 Ycat <- matrix(
-  NA_integer_, nrow = nrow(patients), ncol = length(visit_weeks),
-  dimnames = list(as.character(patients$PATIENT), paste0("week", visit_weeks))
+  NA_integer_, 
+  nrow = nrow(patients), 
+  ncol = length(visit_weeks),
+  dimnames = list(
+    as.character(patients$PATIENT), 
+    paste0("week", visit_weeks)
+  )
 )
 Ycat[cbind(
   match(antidepressant$PATIENT, patients$PATIENT),
@@ -222,7 +223,7 @@ stopifnot(
 
 ### Run a short example
 
-This short J2R run demonstrates execution only; its chain is too short for
+This short J2R run demonstrates successful execution only; its chain is too short for
 inference. For the supplementary settings use `nburn = 500`, `nbetween = 500`,
 and `nimp = 1000`. The original internal seed is exposed as `seed`, retaining
 its default of 123435. The supplementary code uses the latent sign convention
@@ -234,8 +235,14 @@ reference arm 1. It has not been generalized to other input configurations.
 ```{r}
 #| label: run-cro-probit-example
 cro_draws <- cro_latent_mvn(
-  Ycat = Ycat, treat1 = treat1, Method = "J2R", Reference = 1,
-  nburn = 100, nbetween = 10, nimp = 5, seed = 123435
+  Ycat = Ycat, 
+  treat1 = treat1, 
+  Method = "J2R", 
+  Reference = 1,
+  nburn = 100, 
+  nbetween = 10, 
+  nimp = 5, 
+  seed = 123435
 )
 # Imputation 0 contains the original data; positive indices are completed data.
 cro_completed <- subset(cro_draws$imp, Imputation == 1)
@@ -264,11 +271,10 @@ patients with missing outcomes and positive imputation indices.
 
 ### Scope and statistical target
 
-This is a **draw-step prototype**, kept entirely in this document. The target is
+This is a draw-step prototype for binary outcomes. The target is
 Section 3.3 of @Cro2025, rather than numerical behavior specific to the supplied
-software. As with `R/mcmc_count.R`, preparation, posterior sampling, and parameter
-extraction are separate operations. There is no call to `rbmi::draws()` and no
-change to the package implementation.
+R code. Preparation, posterior sampling, and parameter
+extraction are separate operations to stay within the `rbmi` framework.
 
 For subject $i$, visit $j$, and randomized arm $a_i$, use
 
