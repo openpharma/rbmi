@@ -344,16 +344,14 @@ The supplementary code follows the paper's sign convention. Consequently compare
 **Stan's $\beta$ with minus Cro's $\beta$**, after matching the design and
 coefficient order, while leaving the correlation matrices unchanged.
 
-### Priors: flat latent correlations versus Jeffreys covariance
-
-The priors matching the **latent model in Section 3.3** are
+The priors matching the latent model in Section 3.3 are
 $p(\beta)\propto1$ and $\Omega_t\sim\operatorname{LKJ}(1)$, independently by arm.
 The paper describes flat priors for that model and fixes every latent variance
-to one. The **Jeffreys covariance prior occurs in Section 3.2**, which instead
+to one. The Jeffreys covariance prior occurs in Section 3.2, which instead
 fits an unrestricted MVN model directly to the binary outcomes as if they were
 continuous, followed by adaptive rounding. These are different models and prior
 specifications; the Jeffreys choice in Section 3.2 is not the covariance prior
-specified for the latent probit method. See [Cro et al., Sections 3.2 and 3.3](https://pmc.ncbi.nlm.nih.gov/articles/PMC11758479/).
+specified for the latent probit method.
 
 To make the equivalence with the Section 3.3 flat prior explicit, let
 $\mathcal C_D$ be the space of positive definite $D\times D$ matrices with unit
@@ -368,10 +366,7 @@ Thus $\eta=1$ is exactly a constant density on the admissible correlation
 matrices. This prior is proper because $\mathcal C_D$ has finite volume. The
 paper's description of the latent covariance prior as improper is therefore
 imprecise once the diagonal is fixed; the flat mean prior remains improper.
-Uniformity here refers to the joint density on matrices, not independent
-uniform distributions for each correlation. For $D>2$, the marginal correlation
-distributions concentrate toward zero as dimension increases. See the
-[Stan discussion of LKJ priors](https://mc-stan.org/docs/stan-users-guide/regression.html#multivariate-priors-for-hierarchical-models).
+
 
 `beta_sd = 0` requests these flat coefficient priors. The preparation function
 allows this only for the saturated arm-by-visit design, with both binary outcomes
