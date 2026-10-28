@@ -475,7 +475,7 @@ RBMI_JOMO_ORIGINAL_LIBRARY=/tmp/rbmi-jomo-original-library RBMI_RUN_PROBIT_VALID
 
 The recorded results later in this section are a fixed validation snapshot,
 not output from the earlier five-imputation illustration. Dependencies are `cmdstanr` with a
-working CmdStan C++ toolchain, `posterior`, `mvtnorm`, and the earlier example's
+working CmdStan C++ toolchain, `posterior`, `mvtnorm`, `callr`, and the earlier example's
 R dependencies, including `remotes` for installation. The comparison uses original
 CRAN jomo 2.7-6 and the corrected fork (2.7.6.9000). Building the packages
 requires an R package compilation toolchain.
@@ -798,32 +798,21 @@ run_reference_draws <- function(Y, arm, library = NULL, chains = 4L,
               all(vapply(seq_len(ncol(yy)), function(j)
                 all(0:1 %in% yy[, j]), logical(1))))
   }
-  work <- tempfile("probit-reference-")
-  dir.create(work)
-  on.exit(unlink(work, recursive = TRUE), add = TRUE)
   expected_version <- if (is.null(library)) "2.7.6.9000" else "2.7.6"
   input <- list(Y = Y, arm = arm, library = library, version = expected_version,
                 chains = chains,
                 warmup = warmup, iterations = iterations, thin = thin, seed = seed)
-  input_path <- file.path(work, "input.rds")
-  output_path <- file.path(work, "output.rds")
-  script_path <- file.path(work, "run.R")
-  log_path <- file.path(work, "run.log")
-  saveRDS(input, input_path)
-  writeLines(c("run_chain <-", deparse(run_reference_chain),
-    "args <- commandArgs(trailingOnly = TRUE)",
-    "input <- readRDS(args[1])",
-    "if (!is.null(input$library)) .libPaths(c(input$library, .libPaths()))",
-    "stopifnot(as.character(utils::packageVersion('jomo')) == input$version)",
-    "cores <- if (.Platform$OS.type == 'windows') 1L else input$chains",
-    "out <- parallel::mclapply(seq_len(input$chains), run_chain, input = input, mc.cores = cores)",
-    "if (any(vapply(out, inherits, logical(1), 'try-error'))) stop('Reference chain failed')",
-    "saveRDS(out, args[2])"), script_path)
-  status <- system2(file.path(R.home("bin"), "Rscript"),
-                    shQuote(c(script_path, input_path, output_path)),
-                    stdout = log_path, stderr = log_path)
-  if (status != 0L) stop(paste(readLines(log_path), collapse = "\n"))
-  readRDS(output_path)
+  callr::r(function(input, run_chain) {
+    if (!is.null(input$library)) .libPaths(c(input$library, .libPaths()))
+    stopifnot(as.character(utils::packageVersion("jomo")) == input$version)
+    cores <- if (.Platform$OS.type == "windows") 1L else input$chains
+    out <- parallel::mclapply(seq_len(input$chains), run_chain,
+                              input = input, mc.cores = cores)
+    if (any(vapply(out, inherits, logical(1), "try-error"))) {
+      stop("Reference chain failed")
+    }
+    out
+  }, args = list(input = input, run_chain = run_reference_chain))
 }
 ```
 
