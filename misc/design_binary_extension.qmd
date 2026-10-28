@@ -749,6 +749,23 @@ stopifnot(length(probit_parameters$beta) == 1000L,
           length(probit_parameters$sigma[[1]]) == 2L)
 ```
 
+Note that the MCMC sampling takes about 7 minutes here for the used number of warm up and sampling iterations.
+
+The diagnostics are really good:
+
+````
+$num_divergent
+[1] 0 0 0 0
+
+$num_max_treedepth
+[1] 0 0 0 0
+
+$ebfmi
+[1] 0.9247542 0.9446987 0.9683167 0.9708581
+````
+
+So in practice one could go down a bit even further with the number of warm up and sampling iterations without compromising the diagnostics.
+
 ### Reference draw sampler
 
 The comparison calls `jomo::jomo1cat.MCMCchain()` separately by arm, exactly as
