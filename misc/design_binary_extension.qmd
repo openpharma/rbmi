@@ -979,6 +979,37 @@ probabilities from $-10^{-16}$ to $-10^6$. Both the one-visit fit and the
 covariate/intermittent-missingness fit had zero divergences and zero treedepth
 hits; all seven simulated coefficients were inside their 95% posterior intervals.
 
+### Performance considerations
+
+The current implementation parallelizes chains. Further optimizations could be
+benchmarked without changing the statistical target:
+
+- **Within-chain parallelism.** The block log-likelihood contributions can be
+  summed with Stan's [`reduce_sum`](https://mc-stan.org/docs/stan-users-guide/parallelization.html).
+  Replace the running `u_pos` counter with fixed block offsets so each task reads
+  the correct auxiliary parameters independently. Visits within a subject must
+  remain sequential because their conditional calculations depend on earlier
+  values. Compile with `cpp_options = list(stan_threads = TRUE)` and pass
+  `threads_per_chain` explicitly to both sampling calls in `fit_probit_draws()`;
+  its current `...` reaches only the adaptation stage. Budget cores across
+  `parallel_chains * threads_per_chain`.
+- **Balance the work.** This example has 11 blocks, but the two largest contain
+  61 and 69 complete patients, accounting for 650 of 831 observations. Splitting
+  large blocks into smaller subject batches may therefore scale better than
+  assigning whole blocks to tasks. Preserve one covariance factorization per
+  block and share it across batches, or benchmark the simpler alternative of
+  repeating the small factorization within each batch.
+- **Reduce serial work and improve sampling efficiency.** For the default
+  saturated design, direct coefficient indexing could replace the dense
+  `X * beta` multiplication. Alternative visit orders and less conservative
+  step-size caps may improve effective samples per second, but require renewed
+  divergence, treedepth, E-BFMI, and convergence checks before adoption.
+- **Measure before adopting.** Profile the likelihood and benchmark elapsed time
+  and effective samples per second with 1, 2, and 4 threads per chain. Start with
+  `grainsize = 1`, then tune batch size and grainsize if useful. At this example's
+  size, scheduling and automatic-differentiation overhead may outweigh threading
+  gains; larger datasets offer more opportunity.
+
 ### Next steps
 
 Before package integration, the remaining work is an imputation-step design and
