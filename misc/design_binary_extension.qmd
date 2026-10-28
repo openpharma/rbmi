@@ -405,10 +405,20 @@ reproduce its pooled treatment-effect table.
 
 The [Stan multivariate probit example](https://mc-stan.org/docs/stan-users-guide/regression.html#multivariate-probit-regression)
 augments the likelihood with sign-constrained normal variables. The same model
-can be expressed using uniform variables and conditional normal quantiles. We
-use that equivalent parameterization below, because the direct sign-constrained version
-had low E-BFMI and divergences in an initial fit to this example. We can do this because changing the
-parameterization does not change the target posterior.
+can be expressed using uniform variables and conditional normal quantiles. The
+underlying transformation of multivariate normal probabilities to integrals over
+the unit cube is described by @Genz1992. For multivariate probit specifically,
+@Goodrich2016 implemented this parameterization in Stan's `probit-multi-good.stan`
+example. His [accompanying explanation](https://groups.google.com/g/stan-users/c/G3HAQ3dp1f8)
+describes the sequential quantile transformation and its Jacobian adjustment,
+also motivated by low BFMI in the sign-constrained formulation. A published
+extension to dichotomous and ordinal diagnostic tests builds on Goodrich's code
+[@Cerullo2022, Section 3.5 and Supplementary Material 5].
+
+We use this equivalent parameterization below because the direct sign-constrained
+version had low E-BFMI and divergences in an initial fit to this example. With the
+change-of-variables adjustment included, it preserves the marginal posterior for
+$\beta$ and $\Omega$.
 
 For the observed subvector of a patient, let $L L^{\mathsf T}=\Omega[O_i,O_i]$,
 where $O_i = \{j: Y_{ij} \text{ is observed}\}$, as well as
