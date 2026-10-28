@@ -457,31 +457,37 @@ arbitrary rare outcomes, separation, or nearly singular correlations.
 
 All implementation functions below are evaluated when rendering. The expensive
 fits are opt-in. The corrected reference sampler is maintained in the
-[rpact-com/jomo fork](https://github.com/rpact-com/jomo). Install that fork into
-a separate library to compare it with the original CRAN package. With the fork
-cloned beside rbmi, run from the rbmi repository root:
+[rpact-com/jomo fork](https://github.com/rpact-com/jomo). Install the fork in
+the default R library and the original CRAN version in a separate library for
+comparison:
+
+```r
+remotes::install_github("rpact-com/jomo")
+dir.create("/tmp/rbmi-jomo-original-library", recursive = TRUE, showWarnings = FALSE)
+remotes::install_version("jomo", version = "2.7-6", lib = "/tmp/rbmi-jomo-original-library")
+```
+
+Then run from the rbmi repository root:
 
 ```bash
-mkdir -p /tmp/rbmi-jomo-fork-library
-R CMD INSTALL --library=/tmp/rbmi-jomo-fork-library ../jomo
-RBMI_JOMO_FORK_LIBRARY=/tmp/rbmi-jomo-fork-library RBMI_RUN_PROBIT_VALIDATION=true quarto render misc/design_binary_extension.qmd --to html
+RBMI_JOMO_ORIGINAL_LIBRARY=/tmp/rbmi-jomo-original-library RBMI_RUN_PROBIT_VALIDATION=true quarto render misc/design_binary_extension.qmd --to html
 ```
 
 The recorded results later in this section are a fixed validation snapshot,
 not output from the earlier five-imputation illustration. Dependencies are `cmdstanr` with a
 working CmdStan C++ toolchain, `posterior`, `mvtnorm`, and the earlier example's
-R dependencies. Install the original CRAN jomo 2.7-6 in the default R library
-and the corrected fork (2.7.6.9000) in the separate library above. Building the
-fork requires an R package compilation toolchain.
+R dependencies, including `remotes` for installation. The comparison uses original
+CRAN jomo 2.7-6 and the corrected fork (2.7.6.9000). Building the packages
+requires an R package compilation toolchain.
 
 First let's check whether we want to run the probit validation:
 
 ```{r}
 #| label: probit-run-settings
 run_probit_validation <- identical(Sys.getenv("RBMI_RUN_PROBIT_VALIDATION"), "true")
-corrected_library <- Sys.getenv("RBMI_JOMO_FORK_LIBRARY")
-if (run_probit_validation && !dir.exists(file.path(corrected_library, "jomo"))) {
-  stop("Set RBMI_JOMO_FORK_LIBRARY to the library containing the installed jomo fork.")
+original_library <- Sys.getenv("RBMI_JOMO_ORIGINAL_LIBRARY")
+if (run_probit_validation && !dir.exists(file.path(original_library, "jomo"))) {
+  stop("Set RBMI_JOMO_ORIGINAL_LIBRARY to the library containing original jomo.")
 }
 ```
 
@@ -795,7 +801,7 @@ run_reference_draws <- function(Y, arm, library = NULL, chains = 4L,
   work <- tempfile("probit-reference-")
   dir.create(work)
   on.exit(unlink(work, recursive = TRUE), add = TRUE)
-  expected_version <- if (is.null(library)) "2.7.6" else "2.7.6.9000"
+  expected_version <- if (is.null(library)) "2.7.6.9000" else "2.7.6"
   input <- list(Y = Y, arm = arm, library = library, version = expected_version,
                 chains = chains,
                 warmup = warmup, iterations = iterations, thin = thin, seed = seed)
@@ -869,8 +875,8 @@ compare_parameters <- function(stan, reference) {
 ```{r}
 #| label: compare-probit-reference
 #| eval: !expr run_probit_validation
-reference_original <- run_reference_draws(Ycat, treat1)
-reference_corrected <- run_reference_draws(Ycat, treat1, library = corrected_library)
+reference_original <- run_reference_draws(Ycat, treat1, library = original_library)
+reference_corrected <- run_reference_draws(Ycat, treat1)
 comparison_original <- compare_parameters(
   probit_fit$fit$draws(c("beta", "Omega")), jomo_array(reference_original))
 comparison_corrected <- compare_parameters(
