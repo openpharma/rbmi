@@ -962,6 +962,8 @@ probabilities from $-10^{-16}$ to $-10^6$. Both the one-visit fit and the
 covariate/intermittent-missingness fit had zero divergences and zero treedepth
 hits; all seven simulated coefficients were inside their 95% posterior intervals.
 
+### Next steps
+
 Before package integration, the remaining work is an imputation-step design and
 validation, an adapter to the package design matrices and draw objects, and
 broader checks for rare outcomes, larger visit counts, and prior sensitivity.
@@ -1076,7 +1078,6 @@ truth <- qnorm(lp,log.p=TRUE)
 z <- data.frame(lp,q,truth,error=q-truth)
 print(z)
 stopifnot(max(abs(z$error))<1e-9)
-
 ```
 
 ## References
