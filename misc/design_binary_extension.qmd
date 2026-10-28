@@ -406,11 +406,12 @@ reproduce its pooled treatment-effect table.
 The [Stan multivariate probit example](https://mc-stan.org/docs/stan-users-guide/regression.html#multivariate-probit-regression)
 augments the likelihood with sign-constrained normal variables. The same model
 can be expressed using uniform variables and conditional normal quantiles. We
-use that equivalent parameterization below: the direct sign-constrained version
-had low E-BFMI and divergences in an initial fit to this example. Changing the
+use that equivalent parameterization below, because the direct sign-constrained version
+had low E-BFMI and divergences in an initial fit to this example. We can do this because changing the
 parameterization does not change the target posterior.
 
 For the observed subvector of a patient, let $L L^{\mathsf T}=\Omega[O_i,O_i]$,
+where $O_i = \{j: Y_{ij} \text{ is observed}\}$, as well as
 $s_j=2Y_{ij}-1$, $Z=\mu+Le$, and
 
 $$
@@ -422,9 +423,9 @@ $$
 The change of variables from sign-constrained $Z$ to $u$ has Jacobian that
 cancels the conditional normal density except for $p_j$. Hence the augmented
 target contributes $\sum_j\log p_j$, with independent uniform base measures for
-$u$. Integrating out $u$ recovers the orthant probability above. We implement
+$u$. Integrating out $u$ recovers the likelihood above. We implement
 $u_j=\Phi(v_j)$ with $v_j\sim N(0,1)$ for unconstrained auxiliary parameters.
-These variables are **parameters sampled jointly with $\beta$ and $\Omega$**, not newly simulated
+These variables are parameters sampled jointly with $\beta$ and $\Omega$, not newly simulated
 numbers inserted into an approximate likelihood. The final uniform for each
 subject has no effect on the weight and is integrated out, leaving
 $\sum_i(|O_i|-1)$ auxiliary parameters. A one-visit patient needs none. The internal
@@ -432,7 +433,7 @@ calculation uses reverse visit order; this changes sampling efficiency, not the
 joint likelihood or the visit labels in the returned matrices.
 
 Patients sharing an observed-visit pattern and a covariance group share a matrix
-factorization. We factor the **principal submatrix of $\Omega$**; simply taking
+factorization. We factor the principal submatrix of $\Omega$; simply taking
 the corresponding rows and columns of its full Cholesky factor would generally
 be wrong. Probabilities are computed using `normal_lcdf`, without probability
 clipping or `Phi_approx`. The helper computes normal quantiles from log
@@ -446,19 +447,27 @@ arbitrary rare outcomes, separation, or nearly singular correlations.
 
 All implementation functions below are evaluated when rendering. The expensive
 fits and the isolated rebuild of the reference sampler are opt-in. From the
-repository root, run `RBMI_RUN_PROBIT_VALIDATION=true quarto render
-misc/design_binary_extension.qmd --to html` to recompute them. The recorded
+repository root, run 
+
+```bash
+RBMI_RUN_PROBIT_VALIDATION=true quarto render misc/design_binary_extension.qmd --to html
+```
+
+to recompute them. The recorded
 results later in this section are a fixed validation snapshot, not output from
 the earlier five-imputation illustration. Dependencies are `cmdstanr` with a
 working CmdStan C++ toolchain, `posterior`, `mvtnorm`, and the earlier example's
 R dependencies. Corrected-reference validation also needs access to the jomo
 2.7-6 source archive and an R package compilation toolchain.
 
+First let's check whether we want to run the probit validation:
+
 ```{r}
 #| label: probit-run-settings
 run_probit_validation <- identical(Sys.getenv("RBMI_RUN_PROBIT_VALIDATION"), "true")
 ```
 
+Here comes the Stan source code for the probit model:
 
 ```{r}
 #| label: probit-stan-source
@@ -481,54 +490,54 @@ functions {
   }
 }
 data {
-  int<lower=1> D;
-  int<lower=1> P;
-  int<lower=1> G;
-  int<lower=1> R;
-  int<lower=1> B;
-  int<lower=0> U;
-  matrix[R, P] X;
-  vector[R] sign_y;
-  array[B] int<lower=1, upper=D> K;
-  array[B, D] int<lower=1, upper=D> visit;
-  array[B] int<lower=1> n_subject;
-  array[B] int<lower=1, upper=R> start;
-  array[B] int<lower=1, upper=G> cov_group;
+  int<lower=1> D; // number of visits
+  int<lower=1> P; // number of predictors
+  int<lower=1> G; // number of covariance groups
+  int<lower=1> R; // number of rows in the design matrix
+  int<lower=1> B; // number of blocks
+  int<lower=0> U; // number of auxiliary variables
+  matrix[R, P] X; // design matrix
+  vector[R] sign_y; // observed signs of the response
+  array[B] int<lower=1, upper=D> K; // number of visits per block
+  array[B, D] int<lower=1, upper=D> visit; // visit indices for each block
+  array[B] int<lower=1> n_subject; // number of subjects per block
+  array[B] int<lower=1, upper=R> start; // starting row index for each block
+  array[B] int<lower=1, upper=G> cov_group; // covariance group for each block
   real<lower=0> beta_sd; // zero selects a flat coefficient prior
-  real<lower=0> lkj_eta;
+  real<lower=0> lkj_eta; // LKJ correlation prior parameter
 }
 parameters {
-  vector[P] beta;
-  array[G] cholesky_factor_corr[D] L_Omega;
-  vector[U] u_raw;
+  vector[P] beta; // regression coefficients
+  array[G] cholesky_factor_corr[D] L_Omega; // Cholesky factors of correlation matrices
+  vector[U] u_raw; // auxiliary variables
 }
 transformed parameters {
-  array[G] corr_matrix[D] Omega;
-  for (g in 1:G)
+  array[G] corr_matrix[D] Omega; // correlation matrices for each group
+  for (g in 1:G) // compute correlation matrix for each group from its Cholesky factor
     Omega[g] = multiply_lower_tri_self_transpose(L_Omega[g]);
 }
 model {
-  vector[R] mu = X * beta;
-  int u_pos = 1;
-  u_raw ~ std_normal();
-  if (beta_sd > 0) beta ~ normal(0, beta_sd);
-  for (g in 1:G) L_Omega[g] ~ lkj_corr_cholesky(lkj_eta);
-  for (b in 1:B) {
-    array[K[b]] int v = visit[b, 1:K[b]];
-    matrix[K[b], K[b]] L = cholesky_decompose(
+  vector[R] mu = X * beta; // linear predictor for each row
+  int u_pos = 1; // initialize position index for auxiliary variables in u_raw
+  u_raw ~ std_normal(); // prior for auxiliary variables
+  if (beta_sd > 0) beta ~ normal(0, beta_sd); // prior for regression coefficients
+  for (g in 1:G) L_Omega[g] ~ lkj_corr_cholesky(lkj_eta); // prior for Cholesky factors of correlation matrices
+  for (b in 1:B) { // loop over blocks
+    array[K[b]] int v = visit[b, 1:K[b]]; // visit indices for this block
+    matrix[K[b], K[b]] L = cholesky_decompose( // Cholesky factor for this block's covariance submatrix
       Omega[cov_group[b]][v, v]);
-    for (i in 1:n_subject[b]) {
-      vector[K[b] - 1] e;
-      for (j in 1:K[b]) {
-        int r = start[b] + (i - 1) * K[b] + j - 1;
-        real conditional_mu = mu[r];
-        real log_mass;
-        if (j > 1) conditional_mu += L[j, 1:(j - 1)] * head(e, j - 1);
-        log_mass = normal_lcdf(sign_y[r] * conditional_mu / L[j, j] | 0, 1);
-        target += log_mass;
-        if (j < K[b]) {
+    for (i in 1:n_subject[b]) { // loop over subjects within this block
+      vector[K[b] - 1] e; // auxiliary vector for conditional calculations
+      for (j in 1:K[b]) { // loop over visits within this subject
+        int r = start[b] + (i - 1) * K[b] + j - 1; // row index for this observation
+        real conditional_mu = mu[r]; // conditional mean for this observation
+        real log_mass; // log CDF mass for this observation
+        if (j > 1) conditional_mu += L[j, 1:(j - 1)] * head(e, j - 1); // update conditional mean
+        log_mass = normal_lcdf(sign_y[r] * conditional_mu / L[j, j] | 0, 1); // compute log CDF
+        target += log_mass; // increment target with log mass
+        if (j < K[b]) { // update auxiliary vector for next step if not the last visit
           e[j] = -sign_y[r] * std_normal_quantile_log(normal_lcdf(u_raw[u_pos] | 0, 1) + log_mass);
-          u_pos += 1;
+          u_pos += 1; // move to next auxiliary variable
         }
       }
     }
