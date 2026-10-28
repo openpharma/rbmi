@@ -748,9 +748,9 @@ agreement. Both methods use the same strict >50% response threshold, the same
 In `cro_latent_mvn_reference.R`, the two `jomo1cat.MCMCchain()` calls pass
 `l1cov.start` but do not pass `l1cov.prior`, although the script defines that
 object. `l1cov.start` initializes the matrix; it does not specify a prior.
-The [jomo R wrapper](https://github.com/cran/jomo/blob/2.7-6/R/jomo1cat.MCMCchain.R)
+The [jomo R wrapper](https://github.com/Matteo21Q/jomo/blob/master/R/jomo1cat.MCMCchain.R)
 defaults `l1cov.prior` to the identity and passes it to C as `Sp`. However, in
-the [jomo 2.7-6 C source](https://github.com/cran/jomo/blob/2.7-6/src/jomo1C.c),
+the [jomo C source](https://github.com/Matteo21Q/jomo/blob/master/src/jomo1C.c),
 `Sp` enters only the `ncat == 0` covariance-update branch. Binary outcomes use
 the categorical branch, where the diagonal is fixed to one and the acceptance
 ratio uses only the augmented normal likelihood,
@@ -771,8 +771,9 @@ the implementation has the two issues below.
 
 #### Departures from the intended binary sampler
 
-The [jomo 2.7-6 source](https://cran.r-project.org/src/contrib/Archive/jomo/jomo_2.7-6.tar.gz),
-`src/jomo1C.c`, reveals two departures from the intended binary sampler:
+The jomo 2.7-6 source, corresponding to
+[`src/jomo1C.c` in the jomo repository](https://github.com/Matteo21Q/jomo/blob/master/src/jomo1C.c),
+reveals two departures from the intended binary sampler:
 
 1. Observed latent proposals must lie in $(-3,4)$ as well as satisfy their sign.
    These finite bounds change the augmentation target; they are not in the
