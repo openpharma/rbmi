@@ -49,8 +49,8 @@ test_that("Rubin's rules", {
         rubin_rules(ests, ses, v_com, method = "barnard-rubin"),
         list(
             est_point = mean(ests),
-            var_t = NA,
-            df = NA
+            var_t = NA_real_,
+            df = NA_real_
         )
     )
 })
@@ -288,7 +288,8 @@ test_that("Pool (Rubin) works as expected when se = NA in analysis model", {
             est = real_mu,
             ci = as.numeric(c(NA, NA)),
             se = as.numeric(NA),
-            pvalue = as.numeric(NA)
+            pvalue = as.numeric(NA),
+            df = as.numeric(NA)
         ),
         tolerance = 1e-2
     )
@@ -299,7 +300,8 @@ test_that("Pool (Rubin) works as expected when se = NA in analysis model", {
             est = real_mu,
             ci = as.numeric(c(NA, NA)),
             se = as.numeric(NA),
-            pvalue = as.numeric(NA)
+            pvalue = as.numeric(NA),
+            df = as.numeric(NA)
         ),
         tolerance = 1e-2
     )
@@ -310,7 +312,8 @@ test_that("Pool (Rubin) works as expected when se = NA in analysis model", {
             est = real_mu,
             ci = as.numeric(c(NA, NA)),
             se = as.numeric(NA),
-            pvalue = as.numeric(NA)
+            pvalue = as.numeric(NA),
+            df = as.numeric(NA)
         ),
         tolerance = 1e-2
     )
@@ -336,7 +339,8 @@ test_that("Pool (Rubin) works as expected when se = NA in analysis model", {
             est = real_mu,
             ci = as.numeric(c(NA, NA)),
             se = as.numeric(NA),
-            pvalue = as.numeric(NA)
+            pvalue = as.numeric(NA),
+            df = as.numeric(NA)
         ),
         tolerance = 1e-2
     )
@@ -347,7 +351,8 @@ test_that("Pool (Rubin) works as expected when se = NA in analysis model", {
             est = real_mu,
             ci = as.numeric(c(NA, NA)),
             se = as.numeric(NA),
-            pvalue = as.numeric(NA)
+            pvalue = as.numeric(NA),
+            df = as.numeric(NA)
         ),
         tolerance = 1e-2
     )
@@ -358,7 +363,8 @@ test_that("Pool (Rubin) works as expected when se = NA in analysis model", {
             est = real_mu,
             ci = as.numeric(c(NA, NA)),
             se = as.numeric(NA),
-            pvalue = as.numeric(NA)
+            pvalue = as.numeric(NA),
+            df = as.numeric(NA)
         ),
         tolerance = 1e-2
     )
@@ -570,7 +576,8 @@ test_that("Can recover known jackknife with  H0 < 0 & H0 > 0", {
         est = 7,
         ci = 7 + c(-1, Inf) * qnorm(0.9) * jest_se,
         se = jest_se,
-        pvalue = pnorm(7, sd = jest_se, lower.tail = TRUE)
+        pvalue = pnorm(7, sd = jest_se, lower.tail = TRUE),
+        df = NA_real_
     )
     observed <- pool_internal.jackknife(
         list(est = jest),
@@ -588,7 +595,8 @@ test_that("Can recover known jackknife with  H0 < 0 & H0 > 0", {
         est = 7,
         ci = 7 + c(-Inf, 1) * qnorm(0.9) * jest_se,
         se = jest_se,
-        pvalue = pnorm(7, sd = jest_se, lower.tail = FALSE)
+        pvalue = pnorm(7, sd = jest_se, lower.tail = FALSE),
+        df = NA_real_
     )
     expect_equal(observed, expected)
 
@@ -601,7 +609,8 @@ test_that("Can recover known jackknife with  H0 < 0 & H0 > 0", {
         est = 7,
         ci = 7 + c(-1, 1) * qnorm(0.95) * jest_se,
         se = jest_se,
-        pvalue = pnorm(7, sd = jest_se, lower.tail = FALSE) * 2
+        pvalue = pnorm(7, sd = jest_se, lower.tail = FALSE) * 2,
+        df = NA_real_
     )
     expect_equal(observed, expected)
 })
@@ -617,7 +626,8 @@ test_that("Can recover known values using bootstrap percentiles", {
         est = best[1],
         ci = c(-Inf, x),
         se = NA,
-        pvalue = pval
+        pvalue = pval,
+        df = NA_real_
     )
     observed <- pool_internal.bootstrap(
         list(est = best),
@@ -634,7 +644,8 @@ test_that("Can recover known values using bootstrap percentiles", {
         est = best[1],
         ci = c(x, Inf),
         se = NA,
-        pvalue = pval
+        pvalue = pval,
+        df = NA_real_
     )
     observed <- pool_internal.bootstrap(
         list(est = best),
@@ -652,7 +663,8 @@ test_that("Can recover known values using bootstrap percentiles", {
         est = best[1],
         ci = c(x1, x2),
         se = NA,
-        pvalue = min(pval) * 2
+        pvalue = min(pval) * 2,
+        df = NA_real_
     )
     observed <- pool_internal.bootstrap(
         list(est = best),
@@ -670,7 +682,8 @@ test_that("Results of bootstrap percentiles when n_samples = 0 or 1", {
         est = best[1],
         ci = c(NA, NA),
         se = NA,
-        pvalue = NA
+        pvalue = NA,
+        df = NA_real_
     )
     observed <- pool_internal.bootstrap(
         list(est = best),
@@ -701,7 +714,8 @@ test_that("Results of bootstrap percentiles when n_samples = 0 or 1", {
         est = best[1],
         ci = c(-Inf, 3),
         se = NA,
-        pvalue = 0
+        pvalue = 0,
+        df = NA_real_
     )
     observed <- pool_internal.bootstrap(
         list(est = best),
@@ -715,7 +729,8 @@ test_that("Results of bootstrap percentiles when n_samples = 0 or 1", {
         est = best[1],
         ci = c(3, Inf),
         se = NA,
-        pvalue = 1
+        pvalue = 1,
+        df = NA_real_
     )
     observed <- pool_internal.bootstrap(
         list(est = best),
@@ -729,7 +744,8 @@ test_that("Results of bootstrap percentiles when n_samples = 0 or 1", {
         est = best[1],
         ci = c(3, 3),
         se = NA,
-        pvalue = 0
+        pvalue = 0,
+        df = NA_real_
     )
     observed <- pool_internal.bootstrap(
         list(est = best),
@@ -749,7 +765,8 @@ test_that("Bootstrap percentile does not return two-sided p-value larger than 1 
         est = best[1],
         ci = c(x1, x2),
         se = NA,
-        pvalue = 1
+        pvalue = 1,
+        df = NA_real_
     )
     observed <- pool_internal.bootstrap(
         list(est = best),
@@ -769,7 +786,8 @@ test_that("Can recover known values using bootstrap Normal", {
         est = best[1],
         ci = best[1] + c(-1, 1) * qnorm(0.96) * se,
         se = se,
-        pvalue = pnorm(best[1], sd = se, lower.tail = FALSE) * 2
+        pvalue = pnorm(best[1], sd = se, lower.tail = FALSE) * 2,
+        df = NA_real_
     )
     observed <- pool_internal.bootstrap(
         list(est = best),
@@ -783,7 +801,8 @@ test_that("Can recover known values using bootstrap Normal", {
         est = best[1],
         ci = best[1] + c(-1, Inf) * qnorm(0.92) * se,
         se = se,
-        pvalue = pnorm(best[1], sd = se, lower.tail = TRUE)
+        pvalue = pnorm(best[1], sd = se, lower.tail = TRUE),
+        df = NA_real_
     )
     observed <- pool_internal.bootstrap(
         list(est = best),
@@ -797,7 +816,8 @@ test_that("Can recover known values using bootstrap Normal", {
         est = best[1],
         ci = best[1] + c(-Inf, 1) * qnorm(0.92) * se,
         se = se,
-        pvalue = pnorm(best[1], sd = se, lower.tail = FALSE)
+        pvalue = pnorm(best[1], sd = se, lower.tail = FALSE),
+        df = NA_real_
     )
     observed <- pool_internal.bootstrap(
         list(est = best),
@@ -815,7 +835,8 @@ test_that("Results of bootstrap Normal when n_samples = 0 or 1", {
         est = best[1],
         ci = as.numeric(c(NA, NA)),
         se = as.numeric(NA),
-        pvalue = as.numeric(NA)
+        pvalue = as.numeric(NA),
+        df = as.numeric(NA)
     )
     observed <- pool_internal.bootstrap(
         list(est = best),
