@@ -266,7 +266,16 @@ pool_internal.jackknife <- function(
     mean_jack <- mean(ests_jack)
     N_jack <- length(ests_jack)
     se_jack <- sqrt(((N_jack - 1) / N_jack) * sum((ests_jack - mean_jack)^2))
-    ret <- parametric_ci(est_point, se_jack, alpha, alternative, qnorm, pnorm)
+    ret <- parametric_ci(
+        point = est_point,
+        se = se_jack,
+        alpha = alpha,
+        alternative = alternative,
+        qfun = function(p) est_point + se_jack * qnorm(p),
+        pfun = function(q, lower.tail = TRUE) {
+            pnorm((q - est_point) / se_jack, lower.tail = lower.tail)
+        }
+    )
     return(ret)
 }
 
@@ -308,15 +317,21 @@ pool_internal.bmlmi <- function(
     alpha <- 1 - conf.level
 
     pooled_est <- get_ests_bmlmi(ests, D)
+    se <- sqrt(pooled_est$est_var)
 
     ret <- parametric_ci(
         point = pooled_est$est_point,
-        se = sqrt(pooled_est$est_var),
+        se = se,
         alpha = alpha,
         alternative = alternative,
-        qfun = qt,
-        pfun = pt,
-        df = pooled_est$df
+        qfun = function(p) pooled_est$est_point + se * qt(p, df = pooled_est$df),
+        pfun = function(q, lower.tail = TRUE) {
+            pt(
+                (q - pooled_est$est_point) / se,
+                df = pooled_est$df,
+                lower.tail = lower.tail
+            )
+        }
     )
 
     return(ret)
@@ -412,15 +427,21 @@ pool_internal.rubin <- function(
         v_com = v_com,
         method = rubin_df_method
     )
+    se <- sqrt(res_rubin$var_t)
 
     ret <- parametric_ci(
         point = res_rubin$est_point,
-        se = sqrt(res_rubin$var_t),
+        se = se,
         alpha = alpha,
         alternative = alternative,
-        qfun = qt,
-        pfun = pt,
-        df = res_rubin$df
+        qfun = function(p) res_rubin$est_point + se * qt(p, df = res_rubin$df),
+        pfun = function(q, lower.tail = TRUE) {
+            pt(
+                (q - res_rubin$est_point) / se,
+                df = res_rubin$df,
+                lower.tail = lower.tail
+            )
+        }
     )
 
     return(ret)
@@ -734,7 +755,16 @@ pool_bootstrap_normal <- function(est, conf.level, alternative) {
     est <- est[-1]
     alpha <- 1 - conf.level
     se <- sd(est)
-    ret <- parametric_ci(est_orig, se, alpha, alternative, qnorm, pnorm)
+    ret <- parametric_ci(
+        point = est_orig,
+        se = se,
+        alpha = alpha,
+        alternative = alternative,
+        qfun = function(p) est_orig + se * qnorm(p),
+        pfun = function(q, lower.tail = TRUE) {
+            pnorm((q - est_orig) / se, lower.tail = lower.tail)
+        }
+    )
     return(ret)
 }
 
