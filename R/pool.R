@@ -271,10 +271,10 @@ pool_internal.jackknife <- function(
         se = se_jack,
         alpha = alpha,
         alternative = alternative,
-        qfun = function(p) est_point + se_jack * qnorm(p),
-        pfun = function(q, lower.tail = TRUE) {
-            pnorm((q - est_point) / se_jack, lower.tail = lower.tail)
-        }
+        qfun = qnorm,
+        pfun = pnorm,
+        mean = est_point,
+        sd = se_jack
     )
     return(ret)
 }
@@ -324,14 +324,11 @@ pool_internal.bmlmi <- function(
         se = se,
         alpha = alpha,
         alternative = alternative,
-        qfun = function(p) pooled_est$est_point + se * qt(p, df = pooled_est$df),
-        pfun = function(q, lower.tail = TRUE) {
-            pt(
-                (q - pooled_est$est_point) / se,
-                df = pooled_est$df,
-                lower.tail = lower.tail
-            )
-        }
+        qfun = qstudent,
+        pfun = pstudent,
+        mean = pooled_est$est_point,
+        scale = se,
+        df = pooled_est$df
     )
 
     return(ret)
@@ -434,14 +431,11 @@ pool_internal.rubin <- function(
         se = se,
         alpha = alpha,
         alternative = alternative,
-        qfun = function(p) res_rubin$est_point + se * qt(p, df = res_rubin$df),
-        pfun = function(q, lower.tail = TRUE) {
-            pt(
-                (q - res_rubin$est_point) / se,
-                df = res_rubin$df,
-                lower.tail = lower.tail
-            )
-        }
+        qfun = qstudent,
+        pfun = pstudent,
+        mean = res_rubin$est_point,
+        scale = se,
+        df = res_rubin$df
     )
 
     return(ret)
@@ -760,10 +754,10 @@ pool_bootstrap_normal <- function(est, conf.level, alternative) {
         se = se,
         alpha = alpha,
         alternative = alternative,
-        qfun = function(p) est_orig + se * qnorm(p),
-        pfun = function(q, lower.tail = TRUE) {
-            pnorm((q - est_orig) / se, lower.tail = lower.tail)
-        }
+        qfun = qnorm,
+        pfun = pnorm,
+        mean = est_orig,
+        sd = se
     )
     return(ret)
 }
@@ -793,10 +787,15 @@ pool_bootstrap_normal <- function(est, conf.level, alternative) {
 #'
 #' @param null The parameter value under the null hypothesis. Defaults to zero.
 #'
+#' @param ... Distribution parameters passed to both `qfun` and `pfun`, such as
+#' `mean`, `sd`, `scale` or `df`. The helper requires lower-tail quantiles and
+#' ordinary probabilities; do not supply `lower.tail` or `log.p` through `...`.
+#'
 #' @details
 #' The supplied functions must describe the same continuous confidence
-#' distribution, with location, scale and any other parameters already captured
-#' in their environments. The distribution need not be symmetric about zero.
+#' distribution, with location, scale and any other parameters supplied through
+#' `...` or captured in their environments. The distribution need not be symmetric
+#' about zero.
 #' Supplying an arbitrary sampling distribution does not in itself guarantee
 #' valid confidence intervals or p-values.
 #'
@@ -817,20 +816,17 @@ pool_bootstrap_normal <- function(est, conf.level, alternative) {
 #' @examples
 #' point <- -5
 #' se <- 2
-#' qfun <- function(p) qnorm(p, mean = point, sd = se)
-#' pfun <- function(q, lower.tail = TRUE) {
-#'     pnorm(q, mean = point, sd = se, lower.tail = lower.tail)
-#' }
-#' rbmi:::parametric_ci(point, se, 0.05, "two.sided", qfun, pfun, null = -1)
+#' rbmi:::parametric_ci(
+#'     point, se, 0.05, "two.sided", qnorm, pnorm,
+#'     null = -1, mean = point, sd = se
+#' )
 #'
-#' df <- 20
-#' qfun <- function(p) point + se * qt(p, df = df)
-#' pfun <- function(q, lower.tail = TRUE) {
-#'     pt((q - point) / se, df = df, lower.tail = lower.tail)
-#' }
-#' rbmi:::parametric_ci(point, se, 0.05, "two.sided", qfun, pfun)
+#' rbmi:::parametric_ci(
+#'     point, se, 0.05, "two.sided", rbmi:::qstudent, rbmi:::pstudent,
+#'     mean = point, scale = se, df = 20
+#' )
 #' @keywords internal
-parametric_ci <- function(point, se, alpha, alternative, qfun, pfun, null = 0) {
+parametric_ci <- function(point, se, alpha, alternative, qfun, pfun, null = 0, ...) {
     probs <- switch(
         alternative,
         two.sided = c(alpha / 2, 1 - alpha / 2),
@@ -838,11 +834,11 @@ parametric_ci <- function(point, se, alpha, alternative, qfun, pfun, null = 0) {
         less = c(alpha, 1)
     )
 
-    ci <- qfun(probs)
+    ci <- qfun(probs, ...)
 
     pvals <- c(
-        pfun(null, lower.tail = TRUE),
-        pfun(null, lower.tail = FALSE)
+        pfun(null, lower.tail = TRUE, ...),
+        pfun(null, lower.tail = FALSE, ...)
     )
 
     index <- switch(

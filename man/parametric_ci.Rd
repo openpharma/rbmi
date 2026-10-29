@@ -4,7 +4,7 @@
 \alias{parametric_ci}
 \title{Calculate parametric confidence intervals}
 \usage{
-parametric_ci(point, se, alpha, alternative, qfun, pfun, null = 0)
+parametric_ci(point, se, alpha, alternative, qfun, pfun, null = 0, ...)
 }
 \arguments{
 \item{point}{The point estimate.}
@@ -24,6 +24,10 @@ probabilities and returning quantiles on the parameter scale.}
 \code{lower.tail} argument. Both tails should be calculated directly for precision.}
 
 \item{null}{The parameter value under the null hypothesis. Defaults to zero.}
+
+\item{...}{Distribution parameters passed to both \code{qfun} and \code{pfun}, such as
+\code{mean}, \code{sd}, \code{scale} or \code{df}. The helper requires lower-tail quantiles and
+ordinary probabilities; do not supply \code{lower.tail} or \code{log.p} through \code{...}.}
 }
 \value{
 A list with elements \code{est} (the supplied point estimate), \code{ci} (the
@@ -36,8 +40,9 @@ confidence distribution on the parameter scale.
 }
 \details{
 The supplied functions must describe the same continuous confidence
-distribution, with location, scale and any other parameters already captured
-in their environments. The distribution need not be symmetric about zero.
+distribution, with location, scale and any other parameters supplied through
+\code{...} or captured in their environments. The distribution need not be symmetric
+about zero.
 Supplying an arbitrary sampling distribution does not in itself guarantee
 valid confidence intervals or p-values.
 
@@ -54,17 +59,14 @@ opposite to the usual one-sided confidence interval convention.
 \examples{
 point <- -5
 se <- 2
-qfun <- function(p) qnorm(p, mean = point, sd = se)
-pfun <- function(q, lower.tail = TRUE) {
-    pnorm(q, mean = point, sd = se, lower.tail = lower.tail)
-}
-rbmi:::parametric_ci(point, se, 0.05, "two.sided", qfun, pfun, null = -1)
+rbmi:::parametric_ci(
+    point, se, 0.05, "two.sided", qnorm, pnorm,
+    null = -1, mean = point, sd = se
+)
 
-df <- 20
-qfun <- function(p) point + se * qt(p, df = df)
-pfun <- function(q, lower.tail = TRUE) {
-    pt((q - point) / se, df = df, lower.tail = lower.tail)
-}
-rbmi:::parametric_ci(point, se, 0.05, "two.sided", qfun, pfun)
+rbmi:::parametric_ci(
+    point, se, 0.05, "two.sided", rbmi:::qstudent, rbmi:::pstudent,
+    mean = point, scale = se, df = 20
+)
 }
 \keyword{internal}

@@ -1,14 +1,10 @@
-test_that("normal confidence functions use the parameter scale and retain metadata", {
+test_that("shared normal parameters use the parameter scale and retain metadata", {
     point <- -5
     scale <- 2
-    qfun <- function(p) qnorm(p, mean = point, sd = scale)
-    pfun <- function(q, lower.tail = TRUE) {
-        pnorm(q, mean = point, sd = scale, lower.tail = lower.tail)
-    }
-
     for (alternative in c("two.sided", "greater", "less")) {
         observed <- parametric_ci(
-            point, NA_real_, 0.05, alternative, qfun, pfun, null = 1
+            point, NA_real_, 0.05, alternative, qnorm, pnorm,
+            null = 1, mean = point, sd = scale
         )
         expected_ci <- switch(
             alternative,
@@ -39,15 +35,11 @@ test_that("t confidence functions agree with t.test for zero and nonzero nulls",
     point <- mean(x)
     se <- sd(x) / sqrt(length(x))
     df <- length(x) - 1
-    qfun <- function(p) point + se * qt(p, df = df)
-    pfun <- function(q, lower.tail = TRUE) {
-        pt((q - point) / se, df = df, lower.tail = lower.tail)
-    }
-
     for (null in c(0, -4, point)) {
         for (alternative in c("two.sided", "greater", "less")) {
             observed <- parametric_ci(
-                point, se, 0.05, alternative, qfun, pfun, null = null
+                point, se, 0.05, alternative, qstudent, pstudent,
+                null = null, mean = point, scale = se, df = df
             )
             reference <- t.test(x, mu = null, alternative = alternative)
 
@@ -66,21 +58,22 @@ test_that("t confidence functions agree with t.test for zero and nonzero nulls",
     }
 
     expect_equal(
-        parametric_ci(point, se, 0.05, "two.sided", qfun, pfun),
-        parametric_ci(point, se, 0.05, "two.sided", qfun, pfun, null = 0)
+        parametric_ci(
+            point, se, 0.05, "two.sided", qstudent, pstudent,
+            mean = point, scale = se, df = df
+        ),
+        parametric_ci(
+            point, se, 0.05, "two.sided", qstudent, pstudent,
+            null = 0, mean = point, scale = se, df = df
+        )
     )
 })
 
 
 test_that("confidence functions need not be symmetric or have unbounded support", {
-    qfun <- function(p) qexp(p, rate = 2)
-    pfun <- function(q, lower.tail = TRUE) {
-        pexp(q, rate = 2, lower.tail = lower.tail)
-    }
-
     for (alternative in c("two.sided", "greater", "less")) {
         observed <- parametric_ci(
-            0.5, 0.5, 0.05, alternative, qfun, pfun, null = 0.25
+            0.5, 0.5, 0.05, alternative, qexp, pexp, null = 0.25, rate = 2
         )
         expected_ci <- switch(
             alternative,
@@ -103,13 +96,13 @@ test_that("confidence functions need not be symmetric or have unbounded support"
 
 test_that("small p-values retain precision in both tails", {
     for (point in c(-20, 20)) {
-        qfun <- function(p) qnorm(p, mean = point)
-        pfun <- function(q, lower.tail = TRUE) {
-            pnorm(q, mean = point, lower.tail = lower.tail)
-        }
         alternative <- if (point > 0) "greater" else "less"
-        one_sided <- parametric_ci(point, 1, 0.05, alternative, qfun, pfun)
-        two_sided <- parametric_ci(point, 1, 0.05, "two.sided", qfun, pfun)
+        one_sided <- parametric_ci(
+            point, 1, 0.05, alternative, qnorm, pnorm, mean = point
+        )
+        two_sided <- parametric_ci(
+            point, 1, 0.05, "two.sided", qnorm, pnorm, mean = point
+        )
         expected <- pnorm(-20)
 
         expect_gt(one_sided$pvalue, 0)
@@ -119,10 +112,10 @@ test_that("small p-values retain precision in both tails", {
 })
 
 
-test_that("normal pooling preserves undefined results when the SE is zero", {
+test_that("normal pooling follows qnorm and pnorm when the SE is zero", {
     for (point in c(-1, 0, 1)) {
         ests <- c(point, 1, 1, 1)
-        p_less <- if (point == 0) NaN else as.numeric(point > 0)
+        p_greater <- as.numeric(point <= 0)
 
         for (alternative in c("two.sided", "greater", "less")) {
             expected <- list(
@@ -130,15 +123,15 @@ test_that("normal pooling preserves undefined results when the SE is zero", {
                 ci = switch(
                     alternative,
                     two.sided = c(point, point),
-                    greater = c(NaN, point),
-                    less = c(point, NaN)
+                    greater = c(-Inf, point),
+                    less = c(point, Inf)
                 ),
                 se = 0,
                 pvalue = switch(
                     alternative,
-                    two.sided = if (point == 0) NaN else 0,
-                    greater = 1 - p_less,
-                    less = p_less
+                    two.sided = 0,
+                    greater = p_greater,
+                    less = 1 - p_greater
                 )
             )
             bootstrap <- pool_bootstrap_normal(ests, 0.95, alternative)
@@ -148,6 +141,27 @@ test_that("normal pooling preserves undefined results when the SE is zero", {
 
             expect_identical(bootstrap, expected)
             expect_identical(jackknife, expected)
+        }
+    }
+})
+
+
+test_that("Student t functions forward tail and log probability arguments", {
+    probabilities <- c(0.001, 0.25, 0.75, 0.999)
+
+    for (lower_tail in c(TRUE, FALSE)) {
+        for (log_p in c(TRUE, FALSE)) {
+            p <- if (log_p) log(probabilities) else probabilities
+            quantiles <- qstudent(
+                p, df = 7, mean = -5, scale = 2,
+                lower.tail = lower_tail, log.p = log_p
+            )
+            observed <- pstudent(
+                quantiles, df = 7, mean = -5, scale = 2,
+                lower.tail = lower_tail, log.p = log_p
+            )
+
+            expect_equal(observed, p)
         }
     }
 })
