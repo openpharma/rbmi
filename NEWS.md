@@ -1,5 +1,10 @@
 # rbmi (development version)
 
+* Refactored the internal `parametric_ci()` helper to accept confidence
+  distribution functions on the parameter scale and an explicit null value.
+  Pooling results, including the existing one-sided confidence bound convention,
+  are preserved. (#512)
+
 # rbmi 1.7.0
 
 ## New Features

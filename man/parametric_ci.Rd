@@ -4,26 +4,67 @@
 \alias{parametric_ci}
 \title{Calculate parametric confidence intervals}
 \usage{
-parametric_ci(point, se, alpha, alternative, qfun, pfun, ...)
+parametric_ci(point, se, alpha, alternative, qfun, pfun, null = 0)
 }
 \arguments{
 \item{point}{The point estimate.}
 
-\item{se}{The standard error of the point estimate. If using a non-"normal"
-distribution this should be set to 1.}
+\item{se}{The standard error of the point estimate, returned unchanged for
+reporting. It is not used to rescale the quantiles or CDF arguments.}
 
 \item{alpha}{The type 1 error rate, should be a value between 0 and 1.}
 
 \item{alternative}{a character string specifying the alternative hypothesis,
-must be one of "two.sided" (default), "greater" or "less".}
+must be one of \code{"two.sided"}, \code{"greater"} or \code{"less"}.}
 
-\item{qfun}{The quantile function for the assumed distribution i.e. \code{qnorm}.}
+\item{qfun}{An increasing quantile function accepting a numeric vector of
+probabilities and returning quantiles on the parameter scale.}
 
-\item{pfun}{The CDF function for the assumed distribution i.e. \code{pnorm}.}
+\item{pfun}{The matching CDF, accepting a value on the parameter scale and a
+\code{lower.tail} argument. Both tails should be calculated directly for precision.}
 
-\item{...}{additional arguments passed on \code{qfun} and \code{pfun} i.e. \code{df = 102}.}
+\item{null}{The parameter value under the null hypothesis. Defaults to zero.}
+}
+\value{
+A list with elements \code{est} (the supplied point estimate), \code{ci} (the
+ordered lower and upper confidence limits), \code{se} (the supplied standard error)
+and \code{pvalue} (the p-value for the specified null and alternative hypotheses).
 }
 \description{
-Calculates confidence intervals based upon a parametric
-distribution.
+Calculates confidence intervals and p-values from a continuous parametric
+confidence distribution on the parameter scale.
 }
+\details{
+The supplied functions must describe the same continuous confidence
+distribution, with location, scale and any other parameters already captured
+in their environments. The distribution need not be symmetric about zero.
+Supplying an arbitrary sampling distribution does not in itself guarantee
+valid confidence intervals or p-values.
+
+The p-value for \code{"greater"} is \code{pfun(null, lower.tail = TRUE)} and for \code{"less"}
+it is \code{pfun(null, lower.tail = FALSE)}. The two-sided p-value is twice the
+smaller tail probability, capped at one. Here the CDF is evaluated at the null
+value under the confidence distribution, rather than at the observed estimate
+under a null-centred sampling distribution.
+
+For compatibility, \code{"greater"} returns an upper confidence bound and \code{"less"}
+returns a lower confidence bound. This is the existing pooling convention,
+opposite to the usual one-sided confidence interval convention.
+}
+\examples{
+point <- -5
+se <- 2
+qfun <- function(p) qnorm(p, mean = point, sd = se)
+pfun <- function(q, lower.tail = TRUE) {
+    pnorm(q, mean = point, sd = se, lower.tail = lower.tail)
+}
+rbmi:::parametric_ci(point, se, 0.05, "two.sided", qfun, pfun, null = -1)
+
+df <- 20
+qfun <- function(p) point + se * qt(p, df = df)
+pfun <- function(q, lower.tail = TRUE) {
+    pt((q - point) / se, df = df, lower.tail = lower.tail)
+}
+rbmi:::parametric_ci(point, se, 0.05, "two.sided", qfun, pfun)
+}
+\keyword{internal}

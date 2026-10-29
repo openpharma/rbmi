@@ -800,10 +800,36 @@ pool_bootstrap_normal <- function(est, conf.level, alternative) {
 #' Supplying an arbitrary sampling distribution does not in itself guarantee
 #' valid confidence intervals or p-values.
 #'
+#' The p-value for `"greater"` is `pfun(null, lower.tail = TRUE)` and for `"less"`
+#' it is `pfun(null, lower.tail = FALSE)`. The two-sided p-value is twice the
+#' smaller tail probability, capped at one. Here the CDF is evaluated at the null
+#' value under the confidence distribution, rather than at the observed estimate
+#' under a null-centred sampling distribution.
+#'
 #' For compatibility, `"greater"` returns an upper confidence bound and `"less"`
 #' returns a lower confidence bound. This is the existing pooling convention,
 #' opposite to the usual one-sided confidence interval convention.
 #'
+#' @return A list with elements `est` (the supplied point estimate), `ci` (the
+#' ordered lower and upper confidence limits), `se` (the supplied standard error)
+#' and `pvalue` (the p-value for the specified null and alternative hypotheses).
+#'
+#' @examples
+#' point <- -5
+#' se <- 2
+#' qfun <- function(p) qnorm(p, mean = point, sd = se)
+#' pfun <- function(q, lower.tail = TRUE) {
+#'     pnorm(q, mean = point, sd = se, lower.tail = lower.tail)
+#' }
+#' rbmi:::parametric_ci(point, se, 0.05, "two.sided", qfun, pfun, null = -1)
+#'
+#' df <- 20
+#' qfun <- function(p) point + se * qt(p, df = df)
+#' pfun <- function(q, lower.tail = TRUE) {
+#'     pt((q - point) / se, df = df, lower.tail = lower.tail)
+#' }
+#' rbmi:::parametric_ci(point, se, 0.05, "two.sided", qfun, pfun)
+#' @keywords internal
 parametric_ci <- function(point, se, alpha, alternative, qfun, pfun, null = 0) {
     probs <- switch(
         alternative,
