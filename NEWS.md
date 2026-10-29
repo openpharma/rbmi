@@ -19,6 +19,9 @@
   `estimate_type`, `group`, `group_level_1`, `group_level_2`, `contrast_label` and `visit`
   columns when the analysis was performed with `ancova()`. The existing `parameter` column
   is retained for backwards compatibility. (#520)
+* `ancova()` and `ancova_single()` gain an `include_variance` argument. When `TRUE`,
+  a `var` entry containing the residual variance estimate, its approximate standard
+  error and the residual degrees of freedom is appended to the results. (#566)
 
 
 # rbmi 1.6.1
@@ -26,7 +29,6 @@
 ## New Features
 * rbmi now uses the `lifecycle` package 
 * Added en-GB spell-check and a corresponding test to the package
-* `ancova_single()` now return residual variance.
 
 ## Bug Fixes
 * Added en-GB spell-check and a corresponding test to the package
