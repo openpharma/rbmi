@@ -1415,3 +1415,39 @@ test_that("ancova - named contrasts populate the contrast_label metadata", {
     expect_true("contrast_label" %in% names(df))
     expect_equal(df$contrast_label[df$parameter == "pooled_v1"], "pooled")
 })
+
+
+test_that("ancova - include_variance returns correct residual variance", {
+    set.seed(901)
+
+    n <- 200
+    dat <- tibble(
+        visit = "v1",
+        age = rnorm(n),
+        grp = factor(sample(c("A", "B"), size = n, replace = TRUE)),
+        out = rnorm(n, mean = 50 + 3 * f2n(grp) + 2 * age, sd = 10)
+    )
+
+    # Default (FALSE) — no var entry
+    res_default <- ancova(
+        dat,
+        list(outcome = "out", group = "grp", covariates = "age", visit = "visit")
+    )
+    expect_false(any(grepl("^var_", names(res_default))))
+
+    # include_variance = TRUE — var entry with correct values
+    res_var <- ancova(
+        dat,
+        list(outcome = "out", group = "grp", covariates = "age", visit = "visit"),
+        include_variance = TRUE
+    )
+
+    mod <- lm(out ~ age + grp, data = dat)
+    expected_sigma2 <- sigma(mod)^2
+    expected_df <- df.residual(mod)
+
+    expect_true("var_v1" %in% names(res_var))
+    expect_equal(res_var$var_v1$est, expected_sigma2)
+    expect_equal(res_var$var_v1$se, expected_sigma2 * sqrt(2 / expected_df))
+    expect_equal(res_var$var_v1$df, expected_df)
+})
