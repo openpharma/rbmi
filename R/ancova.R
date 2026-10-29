@@ -426,6 +426,21 @@ ancova_single <- function(
 
     res <- append(trt, lsm)
 
+    # Optionally append residual variance estimate
+    if (include_variance) {
+        sigma2 <- sigma(mod)^2
+        res <- c(
+            list(
+                var = list(
+                    est = sigma2,
+                    se = sigma2 * sqrt(2 / df_res),
+                    df = df_res
+                )
+            ),
+            res
+        )
+    }
+
     # Parameter metadata (uses the actual group level labels, not ref/alt)
     meta_trt <- data.frame(
         parameter = names(trt),
@@ -793,15 +808,4 @@ ancova_linear_contrast <- function(
         se = sqrt(drop(t(lvec) %*% vcov_required %*% lvec)),
         df = df_res
     )
-    if (include_variance) {
-        x <- c(
-            list(var = list(
-                est = summary(mod)$sigma^2,
-                se = summary(mod)$sigma^2 / sqrt(df.residual(mod) / 2),
-                df = df.residual(mod)
-            )),
-            x
-        )
-    }
-    return(x)
 }
