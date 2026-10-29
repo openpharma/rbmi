@@ -10,7 +10,7 @@ ancova_single(
   group,
   covariates,
   weights = c("counterfactual", "equal", "proportional_em", "proportional"),
-  include_variance = FALSE
+  include_variance = FALSE,
   group_contrasts = NULL
 )
 }
@@ -33,6 +33,7 @@ See the weighting section for more details.}
 the results containing the residual variance estimate (\code{sigma^2}), its
 approximate standard error, and the residual degrees of freedom.
 Defaults to \code{FALSE}.}
+
 \item{group_contrasts}{Optional list specifying bespoke treatment-group contrasts.
 See \code{\link[=set_vars]{set_vars()}} and \code{\link[=ancova]{ancova()}} for details. If \code{NULL} (default) a contrast of each
 non-reference group versus the reference group is calculated.}
