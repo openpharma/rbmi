@@ -742,24 +742,35 @@ pool_bootstrap_normal <- function(est, conf.level, alternative) {
 #' Calculate parametric confidence intervals
 #'
 #' @description
-#' Calculates confidence intervals based upon a parametric
-#' distribution.
+#' Calculates confidence intervals and p-values from a continuous parametric
+#' confidence distribution on the parameter scale.
 #'
 #' @param point The point estimate.
 #'
-#' @param se The standard error of the point estimate. If using a non-"normal"
-#' distribution this should be set to 1.
+#' @param se The standard error of the point estimate, returned unchanged for
+#' reporting. It is not used to rescale the quantiles or CDF arguments.
 #'
 #' @param alpha The type 1 error rate, should be a value between 0 and 1.
 #'
 #' @param alternative a character string specifying the alternative hypothesis,
-#' must be one of "two.sided" (default), "greater" or "less".
+#' must be one of `"two.sided"`, `"greater"` or `"less"`.
 #'
-#' @param qfun The quantile function for the assumed distribution i.e. `qnorm`.
+#' @param qfun An increasing quantile function accepting a numeric vector of
+#' probabilities and returning quantiles on the parameter scale.
 #'
-#' @param pfun The CDF function for the assumed distribution i.e. `pnorm`.
+#' @param pfun The matching CDF, accepting a value on the parameter scale and a
+#' `lower.tail` argument. Both tails should be calculated directly for precision.
 #'
-#' @param ... additional arguments passed on `qfun` and `pfun` i.e. `df = 102`.
+#' @details
+#' The supplied functions must describe the same continuous confidence
+#' distribution, with location, scale and any other parameters already captured
+#' in their environments. The distribution need not be symmetric about zero.
+#' Supplying an arbitrary sampling distribution does not in itself guarantee
+#' valid confidence intervals or p-values.
+#'
+#' For compatibility, `"greater"` returns an upper confidence bound and `"less"`
+#' returns a lower confidence bound. This is the existing pooling convention,
+#' opposite to the usual one-sided confidence interval convention.
 #'
 parametric_ci <- function(point, se, alpha, alternative, qfun, pfun, ...) {
     ci <- switch(
