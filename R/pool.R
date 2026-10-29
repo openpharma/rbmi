@@ -266,7 +266,16 @@ pool_internal.jackknife <- function(
     mean_jack <- mean(ests_jack)
     N_jack <- length(ests_jack)
     se_jack <- sqrt(((N_jack - 1) / N_jack) * sum((ests_jack - mean_jack)^2))
-    ret <- parametric_ci(est_point, se_jack, alpha, alternative, qnorm, pnorm)
+    ret <- parametric_ci(
+        point = est_point,
+        se = se_jack,
+        alpha = alpha,
+        alternative = alternative,
+        qfun = qnorm,
+        pfun = pnorm,
+        mean = est_point,
+        sd = se_jack
+    )
     return(ret)
 }
 
@@ -308,14 +317,17 @@ pool_internal.bmlmi <- function(
     alpha <- 1 - conf.level
 
     pooled_est <- get_ests_bmlmi(ests, D)
+    se <- sqrt(pooled_est$est_var)
 
     ret <- parametric_ci(
         point = pooled_est$est_point,
-        se = sqrt(pooled_est$est_var),
+        se = se,
         alpha = alpha,
         alternative = alternative,
-        qfun = qt,
-        pfun = pt,
+        qfun = qstudent,
+        pfun = pstudent,
+        mean = pooled_est$est_point,
+        scale = se,
         df = pooled_est$df
     )
 
@@ -412,14 +424,17 @@ pool_internal.rubin <- function(
         v_com = v_com,
         method = rubin_df_method
     )
+    se <- sqrt(res_rubin$var_t)
 
     ret <- parametric_ci(
         point = res_rubin$est_point,
-        se = sqrt(res_rubin$var_t),
+        se = se,
         alpha = alpha,
         alternative = alternative,
-        qfun = qt,
-        pfun = pt,
+        qfun = qstudent,
+        pfun = pstudent,
+        mean = res_rubin$est_point,
+        scale = se,
         df = res_rubin$df
     )
 
@@ -734,7 +749,16 @@ pool_bootstrap_normal <- function(est, conf.level, alternative) {
     est <- est[-1]
     alpha <- 1 - conf.level
     se <- sd(est)
-    ret <- parametric_ci(est_orig, se, alpha, alternative, qnorm, pnorm)
+    ret <- parametric_ci(
+        point = est_orig,
+        se = se,
+        alpha = alpha,
+        alternative = alternative,
+        qfun = qnorm,
+        pfun = pnorm,
+        mean = est_orig,
+        sd = se
+    )
     return(ret)
 }
 
@@ -742,52 +766,93 @@ pool_bootstrap_normal <- function(est, conf.level, alternative) {
 #' Calculate parametric confidence intervals
 #'
 #' @description
-#' Calculates confidence intervals based upon a parametric
-#' distribution.
+#' Calculates confidence intervals and p-values from a continuous parametric
+#' confidence distribution on the parameter scale.
 #'
 #' @param point The point estimate.
 #'
-#' @param se The standard error of the point estimate. If using a non-"normal"
-#' distribution this should be set to 1.
+#' @param se The standard error of the point estimate, returned unchanged for
+#' reporting. It is not used to rescale the quantiles or CDF arguments.
 #'
 #' @param alpha The type 1 error rate, should be a value between 0 and 1.
 #'
 #' @param alternative a character string specifying the alternative hypothesis,
-#' must be one of "two.sided" (default), "greater" or "less".
+#' must be one of `"two.sided"`, `"greater"` or `"less"`.
 #'
-#' @param qfun The quantile function for the assumed distribution i.e. `qnorm`.
+#' @param qfun An increasing quantile function accepting a numeric vector of
+#' probabilities and returning quantiles on the parameter scale.
 #'
-#' @param pfun The CDF function for the assumed distribution i.e. `pnorm`.
+#' @param pfun The matching CDF, accepting a value on the parameter scale and a
+#' `lower.tail` argument. Both tails should be calculated directly for precision.
 #'
-#' @param ... additional arguments passed on `qfun` and `pfun` i.e. `df = 102`.
+#' @param null The parameter value under the null hypothesis. Defaults to zero.
 #'
-parametric_ci <- function(point, se, alpha, alternative, qfun, pfun, ...) {
-    ci <- switch(
+#' @param ... Distribution parameters passed to both `qfun` and `pfun`, such as
+#' `mean`, `sd`, `scale` or `df`. The helper requires lower-tail quantiles and
+#' ordinary probabilities; do not supply `lower.tail` or `log.p` through `...`.
+#'
+#' @details
+#' The supplied functions must describe the same continuous confidence
+#' distribution, with location, scale and any other parameters supplied through
+#' `...` or captured in their environments. The distribution need not be symmetric
+#' about zero.
+#' Supplying an arbitrary sampling distribution does not in itself guarantee
+#' valid confidence intervals or p-values.
+#'
+#' The p-value for `"greater"` is `pfun(null, lower.tail = TRUE)` and for `"less"`
+#' it is `pfun(null, lower.tail = FALSE)`. The two-sided p-value is twice the
+#' smaller tail probability, capped at one. Here the CDF is evaluated at the null
+#' value under the confidence distribution, rather than at the observed estimate
+#' under a null-centred sampling distribution.
+#'
+#' For compatibility, `"greater"` returns an upper confidence bound and `"less"`
+#' returns a lower confidence bound. This is the existing pooling convention,
+#' opposite to the usual one-sided confidence interval convention.
+#'
+#' @return A list with elements `est` (the supplied point estimate), `ci` (the
+#' ordered lower and upper confidence limits), `se` (the supplied standard error)
+#' and `pvalue` (the p-value for the specified null and alternative hypotheses).
+#'
+#' @examples
+#' point <- -5
+#' se <- 2
+#' rbmi:::parametric_ci(
+#'     point, se, 0.05, "two.sided", qnorm, pnorm,
+#'     null = -1, mean = point, sd = se
+#' )
+#'
+#' rbmi:::parametric_ci(
+#'     point, se, 0.05, "two.sided", rbmi:::qstudent, rbmi:::pstudent,
+#'     mean = point, scale = se, df = 20
+#' )
+#' @keywords internal
+parametric_ci <- function(point, se, alpha, alternative, qfun, pfun, null = 0, ...) {
+    probs <- switch(
         alternative,
-        two.sided = c(-1, 1) * qfun(1 - alpha / 2, ...),
-        greater = c(-Inf, 1) * qfun(1 - alpha, ...),
-        less = c(-1, Inf) * qfun(1 - alpha, ...)
-    ) *
-        se +
-        point
+        two.sided = c(alpha / 2, 1 - alpha / 2),
+        greater = c(0, 1 - alpha),
+        less = c(alpha, 1)
+    )
+
+    ci <- qfun(probs, ...)
 
     pvals <- c(
-        pfun(point / se, lower.tail = TRUE, ...),
-        pfun(point / se, lower.tail = FALSE, ...)
+        pfun(null, lower.tail = TRUE, ...),
+        pfun(null, lower.tail = FALSE, ...)
     )
 
     index <- switch(
         alternative,
         two.sided = c(1, 2),
-        greater = 2,
-        less = 1
+        greater = 1,
+        less = 2
     )
 
     ret <- list(
         est = point,
         ci = ci,
         se = se,
-        pvalue = min(pvals[index]) * length(pvals[index])
+        pvalue = min(1, min(pvals[index]) * length(pvals[index]))
     )
     return(ret)
 }

@@ -1,5 +1,12 @@
 # rbmi (development version)
 
+* Refactored the internal `parametric_ci()` helper to accept confidence
+  distribution functions on the parameter scale, shared distribution parameters
+  through `...`, and an explicit null value. Added internal location-scale
+  Student t distribution functions. Pooling retains the existing one-sided
+  confidence bound convention; normal pooling with a zero standard error now
+  follows `qnorm()` and `pnorm()` directly. (#512)
+
 # rbmi 1.7.0
 
 ## New Features
