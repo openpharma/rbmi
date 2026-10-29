@@ -169,7 +169,8 @@ ancova <- function(
         data = data,
         vars = vars,
         visits = visits,
-        weights = weights
+        weights = weights,
+        include_variance = include_variance
     )
 }
 
@@ -188,7 +189,8 @@ ancova_core <- function(
     data,
     vars,
     visits = NULL,
-    weights = c("counterfactual", "equal", "proportional_em", "proportional")
+    weights = c("counterfactual", "equal", "proportional_em", "proportional"),
+    include_variance = FALSE
 ) {
     outcome <- vars[["outcome"]]
     group <- vars[["group"]]
@@ -260,16 +262,13 @@ ancova_core <- function(
         visits,
         function(x) {
             data2 <- data[data[[visit]] == x, ]
-            res <- ancova_single(data2, outcome, group, covariates, weights,
-                                 include_variance = include_variance)
-            names(res) <- paste0(names(res), "_", x)
-            return(res)
             fit <- ancova_single(
                 data2,
                 outcome,
                 group,
                 covariates,
                 weights,
+                include_variance = include_variance,
                 group_contrasts
             )
             meta <- attr(fit, "rbmi_par_meta")
