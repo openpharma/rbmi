@@ -761,6 +761,8 @@ pool_bootstrap_normal <- function(est, conf.level, alternative) {
 #' @param pfun The matching CDF, accepting a value on the parameter scale and a
 #' `lower.tail` argument. Both tails should be calculated directly for precision.
 #'
+#' @param null The parameter value under the null hypothesis. Defaults to zero.
+#'
 #' @details
 #' The supplied functions must describe the same continuous confidence
 #' distribution, with location, scale and any other parameters already captured
@@ -772,33 +774,33 @@ pool_bootstrap_normal <- function(est, conf.level, alternative) {
 #' returns a lower confidence bound. This is the existing pooling convention,
 #' opposite to the usual one-sided confidence interval convention.
 #'
-parametric_ci <- function(point, se, alpha, alternative, qfun, pfun, ...) {
-    ci <- switch(
+parametric_ci <- function(point, se, alpha, alternative, qfun, pfun, null = 0) {
+    probs <- switch(
         alternative,
-        two.sided = c(-1, 1) * qfun(1 - alpha / 2, ...),
-        greater = c(-Inf, 1) * qfun(1 - alpha, ...),
-        less = c(-1, Inf) * qfun(1 - alpha, ...)
-    ) *
-        se +
-        point
+        two.sided = c(alpha / 2, 1 - alpha / 2),
+        greater = c(0, 1 - alpha),
+        less = c(alpha, 1)
+    )
+
+    ci <- qfun(probs)
 
     pvals <- c(
-        pfun(point / se, lower.tail = TRUE, ...),
-        pfun(point / se, lower.tail = FALSE, ...)
+        pfun(null, lower.tail = TRUE),
+        pfun(null, lower.tail = FALSE)
     )
 
     index <- switch(
         alternative,
         two.sided = c(1, 2),
-        greater = 2,
-        less = 1
+        greater = 1,
+        less = 2
     )
 
     ret <- list(
         est = point,
         ci = ci,
         se = se,
-        pvalue = min(pvals[index]) * length(pvals[index])
+        pvalue = min(1, min(pvals[index]) * length(pvals[index]))
     )
     return(ret)
 }
