@@ -95,7 +95,7 @@ test_that("negative binomial regression accepts more than two treatment groups",
 })
 
 
-test_that("negative binomial regression coefficients pool with normal inference", {
+test_that("negative binomial regression coefficients pool with t inference", {
     data <- make_count_analysis_data()
     vars <- set_vars(
         subjid = "subject",
@@ -139,17 +139,18 @@ test_that("negative binomial regression coefficients pool with normal inference"
             Inf,
             method = "barnard-rubin"
         )
+        expect_true(is.finite(rubin$df))
         expected_se <- sqrt(rubin$var_t)
 
         expect_equal(observed$pars[[coefficient]]$est, rubin$est_point)
         expect_equal(observed$pars[[coefficient]]$se, expected_se)
         expect_equal(
             observed$pars[[coefficient]]$ci,
-            rubin$est_point + c(-1, 1) * qnorm(0.975) * expected_se
+            rubin$est_point + c(-1, 1) * qt(0.975, df = rubin$df) * expected_se
         )
         expect_equal(
             observed$pars[[coefficient]]$pvalue,
-            2 * pnorm(-abs(rubin$est_point / expected_se))
+            2 * pt(-abs(rubin$est_point / expected_se), df = rubin$df)
         )
     }
 })

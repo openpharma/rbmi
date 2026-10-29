@@ -88,68 +88,59 @@ test_that("rubin_orig_df gives expected error about incompatible inputs", {
     )
 })
 
-test_that("Rubin pooling uses t inference for continuous outcomes with infinite complete-data df", {
-    results <- structure(
-        list(
-            est = c(0.2, 0.7, 1.1, 0.5),
-            se = c(0.20, 0.25, 0.22, 0.24),
-            df = rep(Inf, 4)
-        ),
-        class = "rubin"
-    )
-    rubin <- rubin_rules(results$est, results$se, Inf, method = "barnard-rubin")
-    expected_se <- sqrt(rubin$var_t)
-    expected <- list(
-        est = rubin$est_point,
-        ci = rubin$est_point + c(-1, 1) * qt(0.975, rubin$df) * expected_se,
-        se = expected_se,
-        pvalue = 2 * pt(-abs(rubin$est_point / expected_se), df = rubin$df)
-    )
+test_that("Rubin pooling uses pooled t inference for count and continuous outcomes", {
+    estimates <- c(0.2, 0.7, 1.1, 0.5)
+    standard_errors <- c(0.20, 0.25, 0.22, 0.24)
+    analysis_results <- lapply(seq_along(estimates), function(i) {
+        list(trt = list(est = estimates[i], se = standard_errors[i], df = Inf))
+    })
 
-    observed <- pool_internal(
-        results,
-        conf.level = 0.95,
-        alternative = "two.sided",
-        type = "percentile",
-        D = NULL,
-        rubin_df_method = "barnard-rubin",
-        outcome_type = "continuous"
-    )
+    for (df_method in c("barnard-rubin", "rubin")) {
+        rubin <- rubin_rules(estimates, standard_errors, Inf, method = df_method)
+        expect_true(is.finite(rubin$df))
+        expected_se <- sqrt(rubin$var_t)
+        expected <- list(
+            est = rubin$est_point,
+            ci = rubin$est_point + c(-1, 1) * qt(0.975, rubin$df) * expected_se,
+            se = expected_se,
+            pvalue = 2 * pt(-abs(rubin$est_point / expected_se), df = rubin$df)
+        )
 
-    expect_equal(observed, expected)
-    expect_false(is.infinite(rubin$df))
+        for (outcome_type in c("count", "continuous")) {
+            analysis <- as_analysis(
+                results = analysis_results,
+                method = method_bayes(n_samples = length(analysis_results)),
+                outcome_type = outcome_type
+            )
+            observed <- pool(analysis, rubin_df_method = df_method)
+
+            expect_equal(observed$pars$trt, expected)
+        }
+    }
 })
 
 
-test_that("Rubin pooling uses normal inference for non-continuous outcomes with infinite complete-data df", {
-    results <- structure(
-        list(
-            est = c(0.2, 0.7, 1.1, 0.5),
-            se = c(0.20, 0.25, 0.22, 0.24),
-            df = rep(Inf, 4)
-        ),
-        class = "rubin"
-    )
-    rubin <- rubin_rules(results$est, results$se, Inf, method = "barnard-rubin")
-    expected_se <- sqrt(rubin$var_t)
+test_that("Rubin pooling has the normal limit when pooled df is infinite", {
+    analysis_results <- rep(list(list(trt = list(est = 0.5, se = 0.2, df = Inf))), 4)
     expected <- list(
-        est = rubin$est_point,
-        ci = rubin$est_point + c(-1, 1) * qnorm(0.975) * expected_se,
-        se = expected_se,
-        pvalue = 2 * pnorm(-abs(rubin$est_point / expected_se))
+        est = 0.5,
+        ci = 0.5 + c(-1, 1) * qnorm(0.975) * 0.2,
+        se = 0.2,
+        pvalue = 2 * pnorm(-abs(0.5 / 0.2))
     )
 
-    observed <- pool_internal(
-        results,
-        conf.level = 0.95,
-        alternative = "two.sided",
-        type = "percentile",
-        D = NULL,
-        rubin_df_method = "barnard-rubin",
-        outcome_type = "count"
-    )
+    for (df_method in c("barnard-rubin", "rubin")) {
+        for (outcome_type in c("count", "continuous")) {
+            analysis <- as_analysis(
+                results = analysis_results,
+                method = method_bayes(n_samples = length(analysis_results)),
+                outcome_type = outcome_type
+            )
+            observed <- pool(analysis, rubin_df_method = df_method)
 
-    expect_equal(observed, expected)
+            expect_equal(observed$pars$trt, expected)
+        }
+    }
 })
 
 

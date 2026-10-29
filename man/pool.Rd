@@ -113,13 +113,13 @@ confidence interval depends upon the method specified in the original
 call to \code{\link[=draws]{draws()}}; In particular:
 \itemize{
 \item \code{method_approxbayes()} & \code{method_bayes()} both use Rubin's rules to pool estimates
-and variances across multiple imputed datasets. Analyses with finite complete-data
-degrees of freedom, and continuous outcomes with infinite complete-data degrees
-of freedom, use a t distribution. By default, the Barnard-Rubin (1999)
+and variances across multiple imputed datasets. Confidence intervals and p-values
+use a t distribution with the pooled degrees of freedom for all outcome types,
+including when the complete-data degrees of freedom are infinite.
+By default, the Barnard-Rubin (1999)
 rule is used to pool the degrees of freedom for the t distribution;
 set \code{rubin_df_method = "rubin"} to use the original approximation from Rubin (1987).
-See Little & Rubin (2002) for more details. Non-continuous outcomes with infinite
-complete-data degrees of freedom use the standard normal distribution.
+See Little & Rubin (2002) for more details.
 Here, the \code{mcse()} function can compute the Monte Carlo standard error (MCSE) of the
 pooled estimates, via a Jackknife variance estimator for all parameters; see
 Efron & Gong (1983) and Royston, Carlin & White (2009).
