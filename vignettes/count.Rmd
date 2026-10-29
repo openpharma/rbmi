@@ -115,9 +115,10 @@ dat_count_filled <- dat_count %>%
     )
 ```
 
-The SAS reference results for the models illustrated below are included as
-a CSV file with the package. We retain the two active-treatment versus placebo
-contrasts, so they can be compared directly with the pooled `rbmi` estimates.
+SAS reference results for the models illustrated below were computed with the 
+SAS macros `NM_Reg22.sas` and `NM_Rand13.sas` by James H. Roger (2021). Note
+that these can be downloaded can be downloaded as part of the archive `NegMult20210313` [here](https://lshtm.sharepoint.com/:u:/s/MissingDataPublicFiles/EVXl7TLAirxPvKQsdKoU25YBiG3enVCAOZm_8TOBq0DYAA?e=abaKGl) available under "Imputation of Recurrent event data for partial observed off-treatment data" on the [DIA Missing Data website](https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data).
+The results are included as a CSV file with the package. We retain the two active-treatment versus placebo contrasts, so they can be compared directly with the pooled `rbmi` estimates.
 The assertions below stop vignette precompilation if any relative difference
 from SAS exceeds `0.005` for rate ratios and confidence limits, or `0.10` for
 p-values. These tolerances allow for Monte Carlo variation between the two
