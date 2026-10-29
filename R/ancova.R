@@ -319,6 +319,10 @@ ancova_core <- function(
 #' to be included in the model as well as any interaction terms.
 #'
 #' @inheritParams ancova
+#' @param include_variance Logical. If `TRUE`, a `var` entry is prepended to
+#'   the results containing the residual variance estimate (`sigma^2`), its
+#'   approximate standard error, and the residual degrees of freedom.
+#'   Defaults to `FALSE`.
 #' @inheritSection lsmeans Weighting
 #'
 #' @param group_contrasts Optional list specifying bespoke treatment-group contrasts.

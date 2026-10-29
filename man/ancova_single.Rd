@@ -29,7 +29,7 @@ to be included in the model as well as any interaction terms.}
 Specifies the weighting strategy to be used when calculating the lsmeans.
 See the weighting section for more details.}
 
-\item{include_variance}{Logical. If \code{TRUE}, a \verb{var_<visit>} entry is added to
+\item{include_variance}{Logical. If \code{TRUE}, a \code{var} entry is prepended to
 the results containing the residual variance estimate (\code{sigma^2}), its
 approximate standard error, and the residual degrees of freedom.
 Defaults to \code{FALSE}.}
