@@ -353,7 +353,7 @@ ancova_single <- function(
     group,
     covariates,
     weights = c("counterfactual", "equal", "proportional_em", "proportional"),
-    include_variance = FALSE
+    include_variance = FALSE,
     group_contrasts = NULL
 ) {
     weights <- match.arg(weights)
