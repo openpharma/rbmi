@@ -328,8 +328,8 @@ anaObj <- analyse(
 
 Finally we can pool all regression coefficients across the multiple
 imputations. Pooling is performed on the log-rate scale using Rubin's rules,
-with confidence intervals and p-values based on the standard normal
-distribution.
+with confidence intervals and p-values based on a t distribution with the
+pooled degrees of freedom.
 
 ```{r pool-shared, time_it = TRUE}
 poolObj <- pool(

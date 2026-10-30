@@ -35,13 +35,13 @@
 #' call to [draws()]; In particular:
 #'
 #' - `method_approxbayes()` & `method_bayes()` both use Rubin's rules to pool estimates
-#'  and variances across multiple imputed datasets. Analyses with finite complete-data
-#'  degrees of freedom, and continuous outcomes with infinite complete-data degrees
-#'  of freedom, use a t distribution. By default, the Barnard-Rubin (1999)
+#'  and variances across multiple imputed datasets. Confidence intervals and p-values
+#'  use a t distribution with the pooled degrees of freedom for all outcome types,
+#'  including when the complete-data degrees of freedom are infinite.
+#'  By default, the Barnard-Rubin (1999)
 #'  rule is used to pool the degrees of freedom for the t distribution;
 #'  set `rubin_df_method = "rubin"` to use the original approximation from Rubin (1987).
-#'  See Little & Rubin (2002) for more details. Non-continuous outcomes with infinite
-#'  complete-data degrees of freedom use the standard normal distribution.
+#'  See Little & Rubin (2002) for more details.
 #'  Here, the `mcse()` function can compute the Monte Carlo standard error (MCSE) of the
 #'  pooled estimates, via a Jackknife variance estimator for all parameters; see
 #'  Efron & Gong (1983) and Royston, Carlin & White (2009).
@@ -525,7 +525,7 @@ get_ests_bmlmi <- function(ests, D) {
     return(ret_obj)
 }
 
-#' @importFrom stats qnorm pnorm qt pt
+#' @importFrom stats qt pt
 #' @rdname pool_internal
 #' @export
 pool_internal.rubin <- function(
@@ -557,28 +557,15 @@ pool_internal.rubin <- function(
         method = rubin_df_method
     )
 
-    if (outcome_type != "continuous" && is.infinite(v_com)) {
-        ret <- parametric_ci(
-            point = res_rubin$est_point,
-            se = sqrt(res_rubin$var_t),
-            alpha = alpha,
-            alternative = alternative,
-            qfun = qnorm,
-            pfun = pnorm
-        )
-    } else {
-        ret <- parametric_ci(
-            point = res_rubin$est_point,
-            se = sqrt(res_rubin$var_t),
-            alpha = alpha,
-            alternative = alternative,
-            qfun = qt,
-            pfun = pt,
-            df = res_rubin$df
-        )
-    }
-
-    return(ret)
+    parametric_ci(
+        point = res_rubin$est_point,
+        se = sqrt(res_rubin$var_t),
+        alpha = alpha,
+        alternative = alternative,
+        qfun = qt,
+        pfun = pt,
+        df = res_rubin$df
+    )
 }
 
 
@@ -1131,7 +1118,11 @@ print.pool <- function(
         if (x$method == "rubin") {
             sprintf(
                 "Rubin df method: %s",
-                if (is.null(x$rubin_df_method)) "barnard-rubin" else x$rubin_df_method
+                if (is.null(x$rubin_df_method)) {
+                    "barnard-rubin"
+                } else {
+                    x$rubin_df_method
+                }
             )
         },
         sprintf("Confidence Level: %s", x$conf.level),
