@@ -201,6 +201,32 @@ test_that("ancova", {
         )
     )
 
+    # include_variance = TRUE adds var_* entries
+    result_with_var <- ancova(
+        dat,
+        list(
+            outcome = "out",
+            group = "grp",
+            covariates = c("age1", "age2"),
+            visit = "vis"
+        ),
+        visits = c("visit 1", "visit 2"),
+        include_variance = TRUE
+    )
+    expect_equal(
+        names(result_with_var),
+        c(
+            "var_visit 1",
+            "trt_visit 1",
+            "lsm_ref_visit 1",
+            "lsm_alt_visit 1",
+            "var_visit 2",
+            "trt_visit 2",
+            "lsm_ref_visit 2",
+            "lsm_alt_visit 2"
+        )
+    )
+
     ##################
     #
     # Visit variable handling
@@ -1414,4 +1440,40 @@ test_that("ancova supports log covariates with positive observed values", {
     dat$log_age <- log(dat$age)
     vars$covariates <- "log_age"
     expect_equal(res, ancova(dat, vars))
+})
+
+
+test_that("ancova - include_variance returns correct residual variance", {
+    set.seed(901)
+
+    n <- 200
+    dat <- tibble(
+        visit = "v1",
+        age = rnorm(n),
+        grp = factor(sample(c("A", "B"), size = n, replace = TRUE)),
+        out = rnorm(n, mean = 50 + 3 * f2n(grp) + 2 * age, sd = 10)
+    )
+
+    # Default (FALSE) — no var entry
+    res_default <- ancova(
+        dat,
+        list(outcome = "out", group = "grp", covariates = "age", visit = "visit")
+    )
+    expect_false(any(grepl("^var_", names(res_default))))
+
+    # include_variance = TRUE — var entry with correct values
+    res_var <- ancova(
+        dat,
+        list(outcome = "out", group = "grp", covariates = "age", visit = "visit"),
+        include_variance = TRUE
+    )
+
+    mod <- lm(out ~ age + grp, data = dat)
+    expected_sigma2 <- sigma(mod)^2
+    expected_df <- df.residual(mod)
+
+    expect_true("var_v1" %in% names(res_var))
+    expect_equal(res_var$var_v1$est, expected_sigma2)
+    expect_equal(res_var$var_v1$se, expected_sigma2 * sqrt(2 / expected_df))
+    expect_equal(res_var$var_v1$df, expected_df)
 })

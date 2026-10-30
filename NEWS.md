@@ -21,6 +21,9 @@
   `estimate_type`, `group`, `group_level_1`, `group_level_2`, `contrast_label` and `visit`
   columns when the analysis was performed with `ancova()`. The existing `parameter` column
   is retained for backwards compatibility. (#520)
+* `ancova()` and `ancova_single()` gain an `include_variance` argument. When `TRUE`,
+  a `var` entry containing the residual variance estimate, its approximate standard
+  error and the residual degrees of freedom is appended to the results. (#566)
 
 ## Bug Fixes
 
@@ -34,36 +37,15 @@
 * rbmi now uses the `lifecycle` package 
 * Added en-GB spell-check and a corresponding test to the package
 
-## Documentation
-* Documented the return value (`@return`) of all exported functions and marked
-  internal helpers with `@keywords internal` (#567).
-* Added executable `@examples` to the exported user-facing functions that were
-  missing them, and marked the internal-only `has_class()`, `validate()` and
-  `longDataConstructor` with `@keywords internal` (#570).
-
 ## Bug Fixes
-* The vignette on retrieved dropout methods is now correctly embedded.
+* Added en-GB spell-check and a corresponding test to the package
 * Fixed numerous spelling errors and standardised nomenclature for missing not
   at random to `MNAR` (rather than a mix of `NMAR` and `MNAR`)
+* rbmi now uses the `lifecycle` package 
 * Deprecated `nmar.rm` argument of `longdata$get_data` in favour of `mnar.rm` 
   for nomenclature consistency.
-* Fixed a misleading error message in `imputation_list_single()` where a failure of
-  the imputation-count-divisible-by-`D` check incorrectly reported that "multiple
-  `ids` were detected" (#574)
-* Improved CI/CD scripts to reliably fail GitHub CI/CD in case of failing tests.
-* Fixed error message for `mu$visit` in `simulate_test_data()` to refer to 
-  `visit` instead of `trt` (#578)
-* Fixed a bug where each non-ignorable Stan warning from the Bayesian sampler
-  was reported multiple times instead of once. (#572)
-* Fixed the error message in `apply_delta()` to correctly refer to `data`
-  instead of `dat` (#576)
-* Fixed the broken GitHub badge in `README.md` (#548)
-
-
-## Miscellaneous
-* Replaced deprecated `structure()` special name `.Dim` with `dim` in unit tests
-  to resolve an `R CMD check` NOTE (#581)
-* Updated Marcel Wolbers' e-mail address (#583)
+* Vignette on retrieved dropout methods is now correctly embedded.
+* Improve CI/CD scripts to reliably fail GitHub CI/CD in case of failing tests.
 
 # rbmi 1.6.0
 
