@@ -1,10 +1,12 @@
 # rbmi (development version)
 
+# rbmi 1.7.0
+
 ## New Features
 
 * `pool()` gains a `rubin_df_method` argument. The default `"barnard-rubin"` uses the
   Barnard-Rubin small-sample degrees-of-freedom adjustment, while `"rubin"`
-  uses the original approximation from Rubin (1987).
+  uses the original approximation from Rubin (1987). (#587)
 * `ancova()` now supports the analysis of two or more treatment groups. For more than two
   groups the `ref` / `alt` naming scheme is extended with `alt2`, `alt3`, etc. based on the
   factor levels of `vars$group`; the two-group output is unchanged (`trt`, `lsm_ref`,
@@ -23,6 +25,11 @@
   a `var` entry containing the residual variance estimate, its approximate standard
   error and the residual degrees of freedom is appended to the results. (#566)
 
+## Bug Fixes
+
+* `ancova()` now rejects interactions involving the treatment group in
+  `vars$covariates`, avoiding treatment contrasts that depend on the reference
+  values of interacting covariates. (#595)
 
 # rbmi 1.6.1
 

@@ -105,15 +105,21 @@ weight vector over the group levels).
 
 If you want to include interaction terms in your model this can be done
 by providing them to the \code{covariates} argument of \code{\link[=set_vars]{set_vars()}}
-e.g. \code{set_vars(covariates = c("sex*age"))}.
+e.g. \code{set_vars(covariates = c("sex*age"))}. Interactions involving the treatment
+group (\code{vars$group}) are not supported and will result in an error, because the
+treatment contrasts would depend on the reference values of the interacting
+covariates.
 
 Note that the treatment effects (\code{trt}, \code{trt_alt2}, ...) are the relevant linear
-combinations of the model coefficients, i.e. the group main-effect contrasts evaluated
-at the reference level of any covariates. The least square means (\verb{lsm_*}) are instead
-computed according to the requested \code{weights}. When \code{group} interacts with a covariate
-these two quantities differ, so \code{trt} is not in general equal to \code{lsm_alt - lsm_ref}.
-This matches the behaviour of the original two-group implementation, where \code{trt} has
-always been the model coefficient.
+combinations of the group main-effect coefficients. The least square means (\verb{lsm_*})
+are computed according to the requested \code{weights}.
+
+For treatment contrasts, numeric covariates are set to their observed means
+within each visit, excluding missing values, before formula transformations
+are applied (e.g. \code{log(mean(age, na.rm = TRUE))} for \code{log(age)}). Factor
+covariates are set to their first level and logical covariates to \code{FALSE}.
+With treatment-group interactions excluded, these reference values do not
+affect the treatment contrasts, provided the transformed values are finite.
 }
 \section{Weighting}{
 

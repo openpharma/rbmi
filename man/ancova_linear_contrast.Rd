@@ -29,10 +29,12 @@ rows evaluated at the covariate reference point, so interactions are included an
 the result is independent of the active \code{contrasts} coding.
 }
 \details{
-The contrast is evaluated at the covariate reference (covariate = 0): covariate
-main-effect and interaction columns receive zero weight and cancel for a
-sum-to-zero contrast. Group-by-covariate interaction columns are included when they
-are non-zero at that reference point. A required coefficient that is missing,
+The contrast is evaluated at the reference values defined by
+\code{\link[=ancova_contrast_design]{ancova_contrast_design()}}. Finite columns involving only non-group covariates
+are identical across group rows and cancel for a sum-to-zero contrast.
+Group-by-covariate interaction columns are included when they are non-zero at
+that reference point, although \code{\link[=ancova]{ancova()}} currently rejects such interactions.
+A required coefficient that is missing,
 aliased (\code{NA}) or absent from the
 variance-covariance matrix indicates a rank-deficient design and triggers an error
 rather than a silently dropped term.
