@@ -7,7 +7,13 @@
 \alias{mcse_combine_all_pars}
 \title{Internal MCSE Computations}
 \usage{
-mcse_jackknife(results, omit_index, conf.level, alternative)
+mcse_jackknife(
+  results,
+  omit_index,
+  conf.level,
+  alternative,
+  rubin_df_method = "barnard-rubin"
+)
 
 jackknife_se(pars_jackknife)
 
@@ -23,6 +29,11 @@ Must be a single number between 0 and 1. Default is 0.95.}
 
 \item{alternative}{a character string specifying the alternative hypothesis,
 must be one of \code{"two.sided"} (default), \code{"greater"} or \code{"less"}.}
+
+\item{rubin_df_method}{a character string specifying the degrees-of-freedom
+approximation used when pooling with Rubin's rules. \code{"barnard-rubin"} (default)
+uses the Barnard-Rubin (1999) small-sample adjustment, while \code{"rubin"}
+uses the approximation from Rubin (1987). Ignored for other pooling methods.}
 
 \item{pars_jackknife}{the numeric vector of the jackknife results.}
 

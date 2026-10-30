@@ -82,6 +82,20 @@
 #' this provides utility variables such as `is_missing` which can be used to identify
 #' exactly which visits have been imputed.
 #'
+#' The optional `transform` argument specifies a transformation to apply to all
+#' pooled parameters for reporting. It defaults to the `"transform"` attribute
+#' of `fun`, so an analysis function can declare its usual reporting scale.
+#' Use `use_transform()` to create the specification from an expression in `x`.
+#' A specification is a list with `transform` and `derivative` functions and
+#' a `scale` string naming the reporting scale in printed results.
+#' The analysis estimates are always retained and pooled on their original
+#' scale. After pooling, the transformation is applied to the pooled estimate
+#' and confidence limits; its derivative is used to obtain the transformed
+#' standard error by the delta method. Transformations must be monotone over
+#' each pooled confidence interval; this is checked from the supplied derivative
+#' before transformed results are reported. The original p-values are retained.
+#' See [pool()] for extracting transformed results.
+#'
 #' @seealso [extract_imputed_dfs()] for manually extracting imputed
 #' datasets.
 #' @seealso [delta_template()] for creating delta data.frames.
@@ -91,6 +105,9 @@
 #' @param fun An analysis function to be applied to each imputed dataset. See details.
 #' @param delta A `data.frame` containing the delta transformation to be applied to the imputed
 #' datasets prior to running `fun`. See details.
+#' @param transform Either `NULL` or a transformation specification created by
+#' `use_transform()`. Defaults to `attr(fun, "transform")`, if present. The
+#' transformation is common to every pooled parameter. See details.
 #' @param ... Additional arguments passed onto `fun`.
 #' @param ncores The number of parallel processes to use when running this function. Can also be a
 #' cluster object created by [`make_rbmi_cluster()`]. See the parallelisation section below.
@@ -188,12 +205,14 @@
 #' `results` (one entry per imputed dataset, each a named list of parameter
 #' estimates), the name of the analysis function (`fun_name`), the applied
 #' `delta` data.frame, the analysis function (`fun`) and the imputation `method`.
+#' If supplied, the reporting-scale `transform` specification is also retained.
 #' This object is normally passed on to [pool()].
 #' @export
 analyse <- function(
     imputations,
     fun = ancova,
     delta = NULL,
+    transform = attr(fun, "transform"),
     ...,
     ncores = 1,
     .validate = TRUE
@@ -211,6 +230,7 @@ analyse <- function(
         is.null(delta) | is.data.frame(delta),
         msg = "`delta` must be NULL or a data.frame"
     )
+    validate_transform(transform)
 
     vars <- imputations$data$vars
 
@@ -321,9 +341,15 @@ analyse <- function(
         results = results,
         fun_name = fun_name,
         delta = delta,
+        transform = transform,
         fun = fun,
         method = imputations$method,
-        par_meta = par_meta
+        par_meta = par_meta,
+        outcome_type = if (has_class(imputations, "imputation_count")) {
+            "count"
+        } else {
+            "continuous"
+        }
     )
     validate(ret)
     return(ret)
@@ -436,20 +462,26 @@ extract_imputed_df <- function(imputation, ld, delta = NULL, idmap = FALSE) {
 #' @param method The method object as specified in [draws()].
 #' @param delta The delta dataset used. See [analyse()] for details on how this
 #' should be specified.
+#' @param transform The reporting-scale transformation specification used. See
+#' [analyse()] for details.
 #' @param fun The analysis function that was used.
 #' @param fun_name The character name of the analysis function (used for printing)
 #' purposes.
 #' @param par_meta Optional `data.frame` of per-parameter metadata (e.g. the group
 #' levels and visit associated with each analysis parameter) as attached by the
 #' analysis function. May be `NULL`.
+#' @param outcome_type The endpoint type used to produce the imputations.
 as_analysis <- function(
     results,
     method,
     delta = NULL,
+    transform = NULL,
     fun = NULL,
     fun_name = NULL,
-    par_meta = NULL
+    par_meta = NULL,
+    outcome_type = c("continuous", "count")
 ) {
+    outcome_type <- match.arg(outcome_type)
     next_class <- switch(
         class(method)[[2]],
         bayes = "rubin",
@@ -472,12 +504,13 @@ as_analysis <- function(
     x <- list(
         results = as_class(results, c(next_class, "list")),
         delta = delta,
+        transform = transform,
         fun = fun,
         fun_name = fun_name,
         method = method,
         par_meta = par_meta
     )
-    class(x) <- c("analysis", "list")
+    class(x) <- c(paste0("analysis_", outcome_type), "analysis", "list")
     validate(x)
     return(x)
 }
@@ -543,11 +576,108 @@ validate.analysis <- function(x, ...) {
     assert_that(
         is.list(x$results),
         is.null(x$delta) | is.data.frame(x$delta),
+        validate_transform(x$transform),
         is.null(x$fun) | is.function(x$fun),
         is.null(x$fun_name) | is.character(x$fun_name)
     )
 
     validate(x$results)
+}
+
+
+#' Validate pooled-result transformation specification
+#'
+#' @param transform Either `NULL` or a list specifying a transformation and
+#' its derivative.
+#' @return `TRUE` (invisibly) if `transform` is `NULL` or has the expected structure;
+#' otherwise an error is thrown.
+#' @keywords internal
+#' @noRd
+validate_transform <- function(transform) {
+    if (is.null(transform)) {
+        return(invisible(TRUE))
+    }
+
+    assert_that(
+        is.list(transform),
+        length(transform) == 3L,
+        all(c("transform", "derivative", "scale") %in% names(transform)),
+        all(names(transform) %in% c("transform", "derivative", "scale")),
+        !anyDuplicated(names(transform)),
+        is.function(transform$transform),
+        is.function(transform$derivative),
+        msg = paste(
+            "`transform` must be a list with functions named",
+            "`transform` and `derivative`, and a `scale` string"
+        )
+    )
+    assert_that(
+        is.character(transform$scale) &&
+            length(transform$scale) == 1L &&
+            !is.na(transform$scale) &&
+            nzchar(trimws(transform$scale)),
+        msg = "`transform$scale` must be a single non-empty string"
+    )
+    invisible(TRUE)
+}
+
+
+#' Create a pooled-parameter transformation
+#'
+#' @description
+#' Creates the transformation specification used by [analyse()] from an
+#' expression in `x`. The expression is evaluated on the pooled estimate and
+#' confidence limits; its symbolic derivative, obtained with [D()], is used to
+#' calculate the transformed standard error by the delta method. The
+#' transformation must be monotone over every pooled confidence interval.
+#'
+#' @param expression An expression in `x` defining a vectorized
+#' transformation, for example `exp(x)`.
+#' @param scale Single non-empty string naming the transformed scale,
+#' for example `"rate"`. Used when printing pooled results and their Monte Carlo
+#' standard errors. Defaults to the deparsed transformation expression.
+#' @return A list containing `transform` and `derivative` functions and the
+#' `scale` label, suitable for the `transform` argument of [analyse()].
+#' @examples
+#' use_transform(exp(x), scale = "rate")
+#' use_transform(-x)
+#' @export
+use_transform <- function(
+    expression,
+    scale = paste(deparse(substitute(expression)), collapse = " ")
+) {
+    transform_expression <- substitute(expression)
+    assert_that(
+        is.language(transform_expression),
+        all(all.vars(transform_expression) %in% "x"),
+        msg = "`expression` must be an expression in `x`"
+    )
+    derivative_expression <- stats::D(transform_expression, "x")
+
+    transform <- list(
+        scale = scale,
+        transform = function(x) {
+            eval(
+                transform_expression,
+                envir = list(x = x),
+                enclos = environment()
+            )
+        },
+        derivative = function(x) {
+            value <- eval(
+                derivative_expression,
+                envir = list(x = x),
+                enclos = environment()
+            )
+            if (length(value) == 1) {
+                rep(value, length(x))
+            } else {
+                value
+            }
+        }
+    )
+    validate_transform(transform)
+    transform
 }
 
 
