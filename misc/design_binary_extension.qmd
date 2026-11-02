@@ -1630,6 +1630,115 @@ Note that this is fast compared to the MCMC sampling above, it only took `r runt
 `r nrow(Ycat)`-by-`r ncol(Ycat)` response matrices, with
 patient IDs and visit names retained. 
 
+#### Reusing covariance and missingness calculations
+
+`impute_cir_fast()` retains the original version above. Within each posterior
+draw, it computes the mean and covariance once per arm/discontinuation group,
+and checks positive definiteness once per group. Bounds and missing indices
+are prepared once per observed response pattern, including the observed signs.
+Covariances must still be recomputed for each new posterior draw; missingness
+alone does not determine them. Patient order and the individual sampler calls
+are unchanged, allowing an exact comparison with the same seed.
+
+```{r}
+#| label: cir-fast-function
+impute_cir_fast <- function(Y, arm, last_on, parameters, seed = 20261103) {
+  D <- ncol(Y)
+  stopifnot(length(arm) == nrow(Y), all(arm %in% 1:2),
+            length(last_on) == nrow(Y), all(last_on %in% seq_len(D)),
+            all(Y[!is.na(Y)] %in% 0:1),
+            identical(parameters$metadata$arm_levels, c("1", "2")),
+            !parameters$metadata$same_cov,
+            length(parameters$beta[[1]]) == 2L * D)
+  set.seed(seed)
+  incomplete <- which(rowSums(is.na(Y)) > 0L)
+
+  # Placebo patients share one distribution regardless of discontinuation time.
+  group_key <- paste(arm[incomplete], ifelse(arm[incomplete] == 1L, D,
+                                            last_on[incomplete]), sep = ":")
+  group <- match(group_key, unique(group_key))
+  representatives <- incomplete[!duplicated(group_key)]
+  pattern_key <- apply(Y[incomplete, , drop = FALSE], 1, paste, collapse = ":")
+  pattern <- match(pattern_key, unique(pattern_key))
+  bounds <- lapply(incomplete[!duplicated(pattern_key)], function(i) {
+    y <- Y[i, ]
+    lower <- rep(-Inf, D)
+    upper <- rep(Inf, D)
+    lower[which(y == 1)] <- 0
+    upper[which(y == 0)] <- 0
+    list(lower = lower, upper = upper, missing = which(is.na(y)))
+  })
+
+  lapply(seq_along(parameters$beta), function(m) {
+    means <- matrix(parameters$beta[[m]], nrow = D, ncol = 2)
+    R <- parameters$sigma[[m]][[1]]
+    A <- parameters$sigma[[m]][[2]]
+    distributions <- lapply(representatives, function(i) {
+      mu <- means[, arm[i]]
+      Sigma <- parameters$sigma[[m]][[arm[i]]]
+      d <- last_on[i]
+      if (arm[i] == 2L && d < D) {
+        pre <- seq_len(d)
+        post <- seq.int(d + 1L, D)
+        mu[post] <- means[d, 2] + means[post, 1] - means[d, 1]
+        B <- R[post, pre, drop = FALSE] %*% solve(R[pre, pre, drop = FALSE])
+        V <- R[post, post, drop = FALSE] - B %*% R[pre, post, drop = FALSE]
+        cross <- B %*% A[pre, pre, drop = FALSE]
+        Sigma[post, pre] <- cross
+        Sigma[pre, post] <- t(cross)
+        Sigma[post, post] <- V + cross %*% t(B)
+      }
+      Sigma <- (Sigma + t(Sigma)) / 2
+      # These are rtmvnorm's covariance checks, done once per group.
+      stopifnot(isSymmetric(Sigma), all(diag(Sigma) > 0),
+                all(eigen(Sigma, only.values = TRUE)$values > 0))
+      list(mu = mu, Sigma = Sigma)
+    })
+    completed <- Y
+    for (k in seq_along(incomplete)) {
+      i <- incomplete[k]
+      distribution <- distributions[[group[k]]]
+      b <- bounds[[pattern[k]]]
+      z <- withCallingHandlers(
+        as.numeric(TruncatedNormal::rtmvnorm(
+          n = 1, mu = distribution$mu, sigma = distribution$Sigma,
+          lb = b$lower, ub = b$upper, check = FALSE
+        )),
+        warning = function(w) stop(conditionMessage(w), call. = FALSE)
+      )
+      stopifnot(length(z) == D, all(is.finite(z)), all(z >= b$lower & z <= b$upper))
+      completed[i, b$missing] <- as.integer(z[b$missing] > 0)
+    }
+    completed
+  })
+}
+```
+
+The following comparison times both implementations on the same posterior draws
+and checks exact equality of all completed datasets and the final RNG state.
+The sampler still performs its own tilting setup for each patient; this version
+uses the public package API and avoids copying package internals.
+
+```{r}
+#| label: cir-speed-comparison
+cir_time_original <- system.time(
+  cir_original_check <- impute_cir(Ycat, treat1, last_on, cir_parameters)
+)[["elapsed"]]
+cir_rng_original <- .Random.seed
+cir_time_fast <- system.time(
+  cir_completed_fast <- impute_cir_fast(Ycat, treat1, last_on, cir_parameters)
+)[["elapsed"]]
+stopifnot(identical(cir_original_check, cir_completed_fast),
+          identical(cir_rng_original, .Random.seed),
+          identical(cir_completed, cir_completed_fast))
+```
+
+For `r length(cir_completed_fast)` imputations, the original took
+`r sprintf("%.2f", cir_time_original)` seconds and the cached version took
+`r sprintf("%.2f", cir_time_fast)` seconds
+(a `r sprintf("%.2f", cir_time_original / cir_time_fast)`-fold speedup).
+All completed datasets and the final RNG states were identical.
+
 ### Analysis and Pooling
 
 Analyze Week 8 using an unadjusted logistic
