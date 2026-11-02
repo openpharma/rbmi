@@ -1,5 +1,5 @@
 ---
-bibliography: ../vignettes/references.bib
+bibliography: misc/references.bib
 format:
   html:
     embed-resources: true
@@ -1136,12 +1136,58 @@ print(z)
 stopifnot(max(abs(z$error))<1e-9)
 ```
 
-## Next steps
+## Imputation method and prototype implementation
 
-Before package integration, the remaining work is an imputation-step design and
-validation, an adapter to the package design matrices and draw objects, and
-broader checks for rare outcomes, larger visit counts, and prior sensitivity.
-The fixed integration order and conservative sampler tuning here are prototype
-choices, not universal defaults for the package.
+Now let's have a look at the imputation methodology. We follow again @Cro2025 but want to account for the @Rehal2026 situation with retrieved dropout models, where post-intercurrent
+event, the observed data can be used to multiply impute the missing post-intercurrent
+event data.
+
+### Hybrid covariance definition
+
+
+
+
+### Original imputation algorithm
+
+The imputation algorithm proceeds as follows (following Section 3.3 of @Cro2025):
+
+0. Depending on which reference assumption is made:
+
+   - Missing at random (MAR)
+   - Jump to reference (J2R)
+   - Last mean carried forward (LMCF)
+   - Copy increments in reference (CIR)
+   - Copy reference (CR)
+
+   adjust the design vectors $x_{ij}$ for the patient $i$ at time point $j$ with a missing observation accordingly. Analogously for the case with treatment arm specific covariance matrices take the corresponding covariance structure into account when imputing the missing values.
+1. Start with time point $j = 1$, at which patient $i$ has been observed its outcome $y_{t,i,1}$ .
+   - Draw the latent variable $Z^{\text{ref}}_{t,i,1}$ from the truncated univariate normal distribution with mean $\mu^{\text{ref}}_{t,i,1}$ and variance 1. The truncation is determined by the observed outcome $y_{t,i,1}$, i.e., truncated to positive values if $y_{t,i,1}=1$ and truncated to negative values if $y_{t,i,1}=0$. (@Cro2025 describe this with a rejection sampling scheme but we can directly sample from the truncated normal distribution.)
+  - In order to calculate the mean vector here and below we use the coefficient vector $\beta$ sample from the MCMC chain from the multivariate probit model fitted above.
+  - Note that only for the CR assumption the mean $\mu^{\text{ref}}_{t,i,1}$ is adjusted according to the reference arm, otherwise it is just the original mean $\mu_{t,i,1}$.
+2. Now for time point $j = 2$, first determine the conditional normal distribution of $Z^{\text{ref}}_{t,i,2}$ given the previously sampled latent variable $Z^{\text{ref}}_{t,i,1}$. 
+  - The mean and variance of this conditional distribution are obtained from the multivariate normal distribution implied by the probit model. In this case it is simpler because there was just one previous time point:
+  $$
+  Z^{\text{ref}}_{t,i,2} \mid Z^{\text{ref}}_{t,i,1} \sim \mathcal{N}\left(
+    \mu^{\text{ref}}_{t,i,2} + (Z^{\text{ref}}_{t,i,1} - \mu^{\text{ref}}_{t,i,1}) 
+    \sigma^{\text{ref}}_{t,12} / \sigma^{\text{ref}}_{t,11},
+    1 - (\sigma^{\text{ref}}_{t,12})^2 / \sigma^{\text{ref}}_{t,11}
+  \right)
+  $$
+  where $\sigma^{\text{ref}}_{t,11}$ and $\sigma^{\text{ref}}_{t,12}$ are the elements of the covariance matrix implied by the probit model and the reference assumption.
+  - If $y_{t,i,2}$ is missing, just draw $Z^{\text{ref}}_{t,i,2}$ from the conditional normal distribution specified above. If it is observed, draw $Z^{\text{ref}}_{t,i,2}$ from the truncated conditional normal distribution, truncated to positive values if $y_{t,i,2}=1$ and truncated to negative values if $y_{t,i,2}=0$.
+3. Similarly for $j > 2$, determine the conditional normal distribution of $Z^{\text{ref}}_{t,i,j}$ given the previously sampled latent variables $Z^{\text{ref}}_{t,i,1}, \dots, Z^{\text{ref}}_{t,i,j-1}$.
+  - The mean and variance of this conditional distribution are obtained from the multivariate normal distribution implied by the probit model:
+  $$
+  Z^{\text{ref}}_{t,i,j} \mid Z^{\text{ref}}_{t,i,1}, \dots, Z^{\text{ref}}_{t,i,j-1} \sim \mathcal{N}\left(
+    \mu^{\text{ref}}_{t,i,j} + \Sigma^{\text{ref}}_{t,j,1:(j-1)} (\Sigma^{\text{ref}}_{t,1:(j-1),1:(j-1)})^{-1} (Z^{\text{ref}}_{t,i,1:(j-1)} - \mu^{\text{ref}}_{t,i,1:(j-1)}),
+    \Sigma^{\text{ref}}_{t,j,j} - \Sigma^{\text{ref}}_{t,j,1:(j-1)} (\Sigma^{\text{ref}}_{t,1:(j-1),1:(j-1)})^{-1} \Sigma^{\text{ref}}_{t,1:(j-1),j}
+  \right)
+  $$
+  - If $y_{t,i,j}$ is missing, just draw $Z^{\text{ref}}_{t,i,j}$ from the conditional normal distribution specified above. If it is observed, draw $Z^{\text{ref}}_{t,i,j}$ from the truncated conditional normal distribution, truncated to positive values if $y_{t,i,j}=1$ and truncated to negative values if $y_{t,i,j}=0$.
+  - Repeat this process for all subsequent time points $j = 3, 4, \dots$ until the last time point for patient $i$.
+
+In principle it would be possible to use a single joint sample from the appropriately truncated multivariate normal distribution for all time points simultaneously, rather than sampling sequentially as described above: For those time points $j$ where the outcome $y_{t,i,j}$ is observed, there would be the corresponding truncation, while for the time points with missing outcomes, the distribution would be unconstrained. However the corresponding sampling algorithms typically either need to use rejection sampling or more sophisticated techniques such as the Gibbs sampler for truncated multivariate normal distributions, as implemented in the `tmvtnorm` package in R (@Wilhelm2010).
+
+The algorithm above can be used independent of the location of the missing values among the time points for each patient. As such, we can also use it in the situation described by @Rehal2026 where observations are partially available after a treatment discontinuation.
 
 ## References
