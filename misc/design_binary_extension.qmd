@@ -1553,6 +1553,7 @@ Sampler warnings stop execution rather than silently accepting a questionable dr
 
 ```{r}
 #| label: cir-imputation-function
+#| time_it: true
 impute_cir <- function(Y, arm, last_on, parameters, seed = 20261103) {
   D <- ncol(Y)
   stopifnot(length(arm) == nrow(Y), all(arm %in% 1:2),
@@ -1639,6 +1640,7 @@ note, so it is not a replication of the paper's inclusive-threshold analysis.
 
 ```{r}
 #| label: cir-week8-analysis
+#| time_it: true
 week8_fits <- lapply(cir_completed, function(y) {
   fit <- glm(response ~ active, family = binomial(), data = data.frame(
     response = y[, "week8"], active = as.integer(treat1 == 2L)
