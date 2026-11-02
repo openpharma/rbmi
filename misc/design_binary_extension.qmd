@@ -1,4 +1,5 @@
 ---
+title: Design for the Binary Outcomes Extension
 bibliography:
   - ../vignettes/references.bib
   - references.bib
@@ -8,8 +9,6 @@ format:
     toc: true
     toc-depth: 2
 ---
-
-# Design for the Binary Outcomes Extension
 
 ## Overview
 
@@ -1147,7 +1146,7 @@ event data.
 ### Means and hybrid covariance definition {#sec-binary-reference-distribution}
 
 For one joint posterior draw of $\beta$ and the arm-specific correlation
-matrices, write $m_{t,ij}=x_{t,ij}^{\mathsf T}\beta$ for patient $i$'s latent
+matrices, write $\mu_{t,ij}=x_{t,ij}^{\mathsf T}\beta$ for patient $i$'s latent
 mean at visit $j$ under arm $t\in\{a,r\}$. Here $x_{t,ij}$ uses the patient's
 baseline covariates with the arm set to $t$. We retain the implementation's
 convention $Y_{ij}=\mathbf{1}(Z_{ij}>0)$, which reverses the latent means in
@@ -1162,18 +1161,18 @@ mean vector is defined componentwise as follows, following Section 3.2.1 of
 
 | Assumption | $j\leq d_i$ | $j>d_i$ |
 |:-----------|:------------|:---------|
-| MAR | $m_{a,ij}$ | $m_{a,ij}$ |
-| J2R | $m_{a,ij}$ | $m_{r,ij}$ |
-| LMCF | $m_{a,ij}$ | $m_{a,i d_i}$ |
-| CIR | $m_{a,ij}$ | $m_{a,i d_i}+m_{r,ij}-m_{r,i d_i}$ |
-| CR | $m_{r,ij}$ | $m_{r,ij}$ |
+| MAR | $\mu_{a,ij}$ | $\mu_{a,ij}$ |
+| J2R | $\mu_{a,ij}$ | $\mu_{r,ij}$ |
+| LMCF | $\mu_{a,ij}$ | $\mu_{a,i d_i}$ |
+| CIR | $\mu_{a,ij}$ | $\mu_{a,i d_i}+\mu_{r,ij}-\mu_{r,i d_i}$ |
+| CR | $\mu_{r,ij}$ | $\mu_{r,ij}$ |
 
 These means apply to observed as well as missing visits when constructing the
 joint distribution; observed binary values are preserved by conditioning on
 their signs. In particular, CR changes the pre-discontinuation means too.
 CIR and LMCF operate on the latent mean scale, not directly on response
-probabilities. For a reference-arm patient, MAR/J2R/CIR/CR all use $m_{r,ij}$;
-LMCF carries forward $m_{r,i d_i}$ after discontinuation if assigned to that arm.
+probabilities. For a reference-arm patient, MAR/J2R/CIR/CR all use $\mu_{r,ij}$;
+LMCF carries forward $\mu_{r,i d_i}$ after discontinuation if assigned to that arm.
 
 For the covariance, partition the posterior arm matrices $A=\Omega_a$ and
 $R=\Omega_r$ by $P_i,Q_i$, suppressing the patient index on the blocks. Define
