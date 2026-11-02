@@ -10,6 +10,31 @@ format:
     toc-depth: 3
 ---
 
+```{r}
+#| include: false
+
+# Record chunk runtimes using the R Markdown Cookbook timing hook recipe:
+# https://pkg.yihui.org/rmarkdown-cookbook/time-chunk
+chunk_times <- list()
+knitr::knit_hooks$set(time_it = local({
+    start <- NULL
+    function(before, options) {
+        if (before) {
+            start <<- Sys.time()
+        } else {
+            chunk_times[[options$label]] <<- as.numeric(
+                difftime(Sys.time(), start, units = "secs")
+            )
+        }
+        invisible(NULL)
+    }
+}))
+
+runtime_seconds <- function(label) {
+    sprintf("%.2f", chunk_times[[label]])
+}
+```
+
 ## Overview
 
 This design doc works through the binary outcomes reference based multiple imputation approach, following @Cro2025 for the multivariate probit model and extending it to the situation in @Rehal2026, which treats the more general case where a part of the patients is still observed after treatment discontinuation.
@@ -1483,5 +1508,179 @@ reference assumptions or priors supply information when off-treatment data are
 sparse. The joint sampler can then use the resulting patient-specific mean and
 covariance; the binary extension of that fitting model remains to be developed
 and validated rather than being established by the sampler alone.
+
+### Prototype and example
+
+This prototype uses the saturated arm-by-visit model above, with placebo as
+reference and CIR for active patients. We infer discontinuation after the last
+observed visit because no cessation dates are supplied. Intermittent
+missing visits are therefore imputed under the on-treatment model; this convention
+would need replacing by recorded cessation times in a real analysis.
+
+First obtain paired posterior draws. The saved `stan_release.rds` contains
+the draws with the diagnostics reported above; if unavailable, refit.
+No latent variables from the fitting stage are reused.
+
+```{r}
+#| label: cir-posterior-draws
+n_imp <- 500L
+probit_input <- prepare_probit_data(Ycat, treat1, same_cov = FALSE)
+if (!exists("probit_fit")) {
+  saved_fit <- file.path(dirname(archive), "rbmi-binary-prototype", "stan_release.rds")
+  if (file.exists(saved_fit)) {
+    saved <- readRDS(saved_fit)
+    saved_data <- readRDS(file.path(dirname(saved_fit), "data.rds"))
+    stopifnot(identical(Ycat, saved_data$Y), identical(treat1, saved_data$arm))
+    # Supply the same draw interface used by extract_probit_draws().
+    probit_fit <- list(prepared = probit_input, fit = list(
+      draws = function(variables) posterior::subset_draws(saved$draws, variable = variables)
+    ))
+  } else {
+    probit_model <- cmdstanr::cmdstan_model(cmdstanr::write_stan_file(probit_stan_code))
+    probit_fit <- fit_probit_draws(probit_input, probit_model, init = 0)
+    print(probit_fit$fit$diagnostic_summary())
+  }
+}
+cir_parameters <- extract_probit_draws(probit_fit, n_samples = n_imp, seed = 20261102)
+```
+
+The helper below implements the corrected full-vector sampler using
+[`TruncatedNormal::rtmvnorm`](https://lbelzile.github.io/TruncatedNormal/reference/rtmvnorm.html).
+It accepts missing visits and observed post-discontinuation visits in any order;
+`last_on` must be supplied separately from the observed/missing pattern.
+CIR needs an anchor visit, so this small prototype requires `last_on >= 1`.
+Sampler warnings stop execution rather than silently accepting a questionable draw.
+
+```{r}
+#| label: cir-imputation-function
+impute_cir <- function(Y, arm, last_on, parameters, seed = 20261103) {
+  D <- ncol(Y)
+  stopifnot(length(arm) == nrow(Y), all(arm %in% 1:2),
+            length(last_on) == nrow(Y), all(last_on %in% seq_len(D)),
+            all(Y[!is.na(Y)] %in% 0:1),
+            identical(parameters$metadata$arm_levels, c("1", "2")),
+            !parameters$metadata$same_cov,
+            length(parameters$beta[[1]]) == 2L * D)
+  set.seed(seed)
+  incomplete <- which(rowSums(is.na(Y)) > 0L)
+  lapply(seq_along(parameters$beta), function(m) {
+    # Each completed dataset shares ONE joint parameter draw across patients.
+    means <- matrix(parameters$beta[[m]], nrow = D, ncol = 2)
+    # The covariance matrix for arm 1:
+    R <- parameters$sigma[[m]][[1]]
+    # Covariance for arm 2:
+    A <- parameters$sigma[[m]][[2]]
+    completed <- Y
+    for (i in incomplete) {
+      mu <- means[, arm[i]]
+      Sigma <- parameters$sigma[[m]][[arm[i]]]
+      d <- last_on[i]
+      if (arm[i] == 2L && d < D) {
+        pre <- seq_len(d)
+        post <- seq.int(d + 1L, D)
+        # Here we use the copy increments approach to adjust the mean vector
+        # for the post-discontinuation visits based on the last observed visit.
+        mu[post] <- means[d, 2] + means[post, 1] - means[d, 1]
+        # Compute the conditional covariance for the post-discontinuation visits.
+        B <- R[post, pre, drop = FALSE] %*% solve(R[pre, pre, drop = FALSE])
+        V <- R[post, post, drop = FALSE] - B %*% R[pre, post, drop = FALSE]
+        cross <- B %*% A[pre, pre, drop = FALSE]
+        Sigma[post, pre] <- cross
+        Sigma[pre, post] <- t(cross)
+        Sigma[post, post] <- V + cross %*% t(B)
+      }
+      Sigma <- (Sigma + t(Sigma)) / 2 # Remove floating-point asymmetry only.
+      y <- Y[i, ]
+      # Joint truncated multivariate normal sampling of the latent variables
+      # corresponding to the observed binary responses.
+      lower <- rep(-Inf, D)
+      upper <- rep(Inf, D)
+      lower[which(y == 1)] <- 0
+      upper[which(y == 0)] <- 0
+      z <- withCallingHandlers(
+        as.numeric(TruncatedNormal::rtmvnorm(
+          n = 1, mu = mu, sigma = Sigma, lb = lower, ub = upper
+        )),
+        warning = function(w) stop(conditionMessage(w), call. = FALSE)
+      )
+      stopifnot(length(z) == D, all(is.finite(z)), all(z >= lower & z <= upper))
+      # Impute the missing binary responses based on the sampled latent variables.
+      missing <- is.na(y)
+      completed[i, missing] <- as.integer(z[missing] > 0)
+    }
+    completed
+  })
+}
+
+last_on <- apply(Ycat, 1, function(y) max(which(!is.na(y))))
+cir_completed <- impute_cir(Ycat, treat1, last_on, cir_parameters)
+
+stopifnot(length(cir_completed) == n_imp,
+          all(vapply(cir_completed, function(y) {
+            !anyNA(y) && all(y %in% 0:1) &&
+              all(y[!is.na(Ycat)] == Ycat[!is.na(Ycat)])
+          }, logical(1))))
+```
+
+Note that this is fast compared to the MCMC sampling above, it only took `r runtime_seconds("cir-imputation-function")` seconds.
+
+
+`cir_completed` is a list of `r length(cir_completed)` completed
+`r nrow(Ycat)`-by-`r ncol(Ycat)` response matrices, with
+patient IDs and visit names retained. 
+
+### Analysis and Pooling
+
+Analyze Week 8 using an unadjusted logistic
+regression in each dataset, then pool the log odds ratios and their variances
+with Rubin's rules (`mice::pool.scalar`, including its finite-sample degrees of
+freedom). This retains the strict >50% response definition used throughout this
+note, so it is not a replication of the paper's inclusive-threshold analysis.
+
+```{r}
+#| label: cir-week8-analysis
+week8_fits <- lapply(cir_completed, function(y) {
+  fit <- glm(response ~ active, family = binomial(), data = data.frame(
+    response = y[, "week8"], active = as.integer(treat1 == 2L)
+  ))
+  c(estimate = unname(coef(fit)["active"]), variance = vcov(fit)["active", "active"])
+})
+week8_fits <- do.call(rbind, week8_fits)
+pooled <- mice::pool.scalar(week8_fits[, "estimate"], week8_fits[, "variance"],
+                           n = nrow(Ycat), k = 2)
+se <- sqrt(pooled$t)
+ci <- pooled$qbar + c(-1, 1) * qt(0.975, pooled$df) * se
+cir_result <- data.frame(
+  Imputations = n_imp, Odds_ratio = exp(pooled$qbar),
+  Lower_95 = exp(ci[1]), Upper_95 = exp(ci[2]),
+  P_value = 2 * pt(-abs(pooled$qbar / se), pooled$df)
+)
+knitr::kable(cir_result, digits = 3)
+
+# Descriptive MI-averaged response proportions (not pooled confidence intervals).
+cir_rates <- rowMeans(vapply(cir_completed, function(y) {
+  c(Placebo = mean(y[treat1 == 1L, "week8"]),
+    Active = mean(y[treat1 == 2L, "week8"]))
+}, numeric(2)))
+knitr::kable(data.frame(Arm = names(cir_rates), Response = cir_rates), digits = 3)
+saveRDS(list(completed = cir_completed, last_on = last_on,
+             parameters = cir_parameters, result = cir_result, rates = cir_rates),
+        file.path(dirname(archive), "cir_example.rds"))
+```
+
+This takes a little bit of time only: `r runtime_seconds("cir-week8-analysis")` seconds.
+
+With the posterior draws and seeds above, using `TruncatedNormal`
+`r as.character(utils::packageVersion("TruncatedNormal"))`,
+the `r length(cir_completed)` imputations give a Week 8 active/placebo odds ratio
+of **`r sprintf("%.3f", cir_result$Odds_ratio)`
+(95% CI `r sprintf("%.3f", cir_result$Lower_95)`–`r sprintf("%.3f", cir_result$Upper_95)`;
+p = `r sprintf("%.3f", cir_result$P_value)`)**. The MI-averaged response proportions
+are **`r sprintf("%.1f%%", 100 * cir_rates["Placebo"])` placebo and
+`r sprintf("%.1f%%", 100 * cir_rates["Active"])` active**.
+All `r sum(!is.na(Ycat))` observed responses were preserved
+in every dataset; all `r sum(is.na(Ycat))` missing responses were imputed. The completed datasets,
+selected parameter draws, and summaries are saved in `cir_example.rds` beside
+this document. These results depend on CIR and the inferred cessation times.
 
 ## References
