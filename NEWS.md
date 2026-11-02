@@ -21,6 +21,9 @@
   `estimate_type`, `group`, `group_level_1`, `group_level_2`, `contrast_label` and `visit`
   columns when the analysis was performed with `ancova()`. The existing `parameter` column
   is retained for backwards compatibility. (#520)
+* `ancova()` and `ancova_single()` gain an `include_variance` argument. When `TRUE`,
+  a `var` entry containing the residual variance estimate, its approximate standard
+  error and the residual degrees of freedom is appended to the results. (#566)
 
 ## Bug Fixes
 
