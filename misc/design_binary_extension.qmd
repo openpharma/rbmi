@@ -1142,7 +1142,7 @@ Now let's have a look at the imputation methodology. We follow again @Cro2025 bu
 event, the observed data can be used to multiply impute the missing post-intercurrent
 event data.
 
-### Hybrid covariance definition
+### Means and hybrid covariance definition
 
 
 
@@ -1186,8 +1186,10 @@ The imputation algorithm proceeds as follows (following Section 3.3 of @Cro2025)
   - If $y_{t,i,j}$ is missing, just draw $Z^{\text{ref}}_{t,i,j}$ from the conditional normal distribution specified above. If it is observed, draw $Z^{\text{ref}}_{t,i,j}$ from the truncated conditional normal distribution, truncated to positive values if $y_{t,i,j}=1$ and truncated to negative values if $y_{t,i,j}=0$.
   - Repeat this process for all subsequent time points $j = 3, 4, \dots$ until the last time point for patient $i$.
 
-In principle it would be possible to use a single joint sample from the appropriately truncated multivariate normal distribution for all time points simultaneously, rather than sampling sequentially as described above: For those time points $j$ where the outcome $y_{t,i,j}$ is observed, there would be the corresponding truncation, while for the time points with missing outcomes, the distribution would be unconstrained. However the corresponding sampling algorithms typically either need to use rejection sampling or more sophisticated techniques such as the Gibbs sampler for truncated multivariate normal distributions, as implemented in the `tmvtnorm` package in R (@Wilhelm2010).
-
 The algorithm above can be used independent of the location of the missing values among the time points for each patient. As such, we can also use it in the situation described by @Rehal2026 where observations are partially available after a treatment discontinuation.
+
+### Corrected imputation algorithm
+
+In principle it would be possible to use a single joint sample from the appropriately truncated multivariate normal distribution for all time points simultaneously, rather than sampling sequentially as described above: For those time points $j$ where the outcome $y_{t,i,j}$ is observed, there would be the corresponding truncation, while for the time points with missing outcomes, the distribution would be unconstrained. However the corresponding sampling algorithms typically either need to use rejection sampling or more sophisticated techniques such as the Gibbs sampler for truncated multivariate normal distributions, as implemented in the `tmvtnorm` package in R (@Wilhelm2010).
 
 ## References
