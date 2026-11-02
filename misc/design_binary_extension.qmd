@@ -3,9 +3,23 @@ bibliography: ../vignettes/references.bib
 format:
   html:
     embed-resources: true
+    toc: true
+    toc-depth: 2
 ---
 
 # Design for the Binary Outcomes Extension
+
+## Overview
+
+This design doc works through the binary outcomes reference based multiple imputation approach, following @Cro2025 for the multivariate probit model and extending it to the situation in @rehal2026, which treats the more general case where a part of the patients is still observed after treatment discontinuation.
+
+The design doc has the following structure:
+
+1. Example data introduction 
+2. Multivariate probit model implementation in Stan and comparison with @Cro2025 code
+3. Imputation method and prototype implementation
+4. `rbmi` integration prototype
+5. Example data analysis
 
 ## Example Data
 
@@ -178,97 +192,6 @@ knitr::kable(threshold_comparison, caption = "Week 8 responders by threshold")
 
 So we see that replicating the paper's reported responder counts requires
 the inclusive threshold.
-
-## Cro et al. latent multivariate probit reference implementation
-
-The separate file `cro_latent_mvn_reference.R` preserves the supplied supplementary code from @Cro2025. 
-It includes the original trial-specific analysis and is retained for reference; source the
-lightly edited file `cro_latent_mvn.R`, which includes an R function, to run the imputation algorithm.
-The wrapper requires the `jomo`, `mice`, and `gear` packages from CRAN. It exposes the original
-settings as arguments and returns the binary imputations (`imp`), latent draws
-(`impZ`), and retained arm-specific regression and covariance draws (`beta` and
-`omega`). It omits the final trial-specific pooled GLM. The wrapper converts `Ycat` to
-a data frame before the original factor-conversion loop so that factor levels
-are retained when the caller supplies a matrix.
-
-### Prepare the longitudinal binary outcomes
-
-Create one row per patient and one column per scheduled visit, leaving absent
-visits as `NA`. Treatment is coded 1 for placebo (reference) and 2 for active.
-We retain the strict response threshold defined above. This prepares inputs for
-a future implementation comparison, rather than reproducing the paper's
-inclusive-threshold responder counts.
-
-```{r}
-#| label: prepare-cro-probit-inputs
-cro_script <- file.path(dirname(archive), "cro_latent_mvn.R")
-source(cro_script)
-Ycat <- matrix(
-  NA_integer_, 
-  nrow = nrow(patients), 
-  ncol = length(visit_weeks),
-  dimnames = list(
-    as.character(patients$PATIENT), 
-    paste0("week", visit_weeks)
-  )
-)
-Ycat[cbind(
-  match(antidepressant$PATIENT, patients$PATIENT),
-  match(antidepressant$week, visit_weeks)
-)] <- antidepressant$response
-treat1 <- as.integer(patients$arm)
-stopifnot(
-  all(treat1 %in% 1:2),
-  all(Ycat[!is.na(Ycat)] %in% 0:1),
-  all(colSums(is.na(Ycat)) == c(0, 18, 30, 52, 69))
-)
-```
-
-### Run a short example
-
-This short J2R run demonstrates successful execution only; its chain is too short for
-inference. For the supplementary settings use `nburn = 500`, `nbetween = 500`,
-and `nimp = 1000`. The original internal seed is exposed as `seed`, retaining
-its default of 123435. The supplementary code uses the latent sign convention
-**Y = 0 when Z > 0**, which must be accounted for in future comparisons.
-The algorithm is retained as supplied, including its intercept-only imputation
-step and reference-group handling; the example uses monotone dropout and
-reference arm 1. It has not been generalized to other input configurations.
-
-```{r}
-#| label: run-cro-probit-example
-cro_draws <- cro_latent_mvn(
-  Ycat = Ycat, 
-  treat1 = treat1, 
-  Method = "J2R", 
-  Reference = 1,
-  nburn = 100, 
-  nbetween = 10, 
-  nimp = 5, 
-  seed = 123435
-)
-# Imputation 0 contains the original data; positive indices are completed data.
-cro_completed <- subset(cro_draws$imp, Imputation == 1)
-stopifnot(
-  nrow(cro_completed) == nrow(Ycat),
-  !anyNA(cro_completed[colnames(Ycat)]),
-  all(as.matrix(cro_completed[colnames(Ycat)])[!is.na(Ycat)] ==
-        Ycat[!is.na(Ycat)])
-)
-knitr::kable(
-  aggregate(week8 ~ Imputation + Treat, data = cro_draws$imp,
-            FUN = mean, subset = Imputation > 0),
-  caption = "Week 8 response proportions in the short J2R example"
-)
-# Retained parameter draws for the subsequent rbmi comparison:
-dim(cro_draws$beta$reference)
-dim(cro_draws$omega$active)
-```
-
-For incomplete patients, `impZ` contains sequential latent draws at all visits;
-its imputation-0 block contains the original binary data, and complete patients'
-latent rows remain zero in the supplied algorithm. Use latent rows only for
-patients with missing outcomes and positive imputation indices.
 
 ## Multivariate Probit Draw Model Implemented with Stan
 
@@ -769,7 +692,99 @@ $ebfmi
 
 So in practice one could go down a bit even further with the number of warm up and sampling iterations without compromising the diagnostics.
 
-### Reference draw sampler
+### Cro et al. latent multivariate probit reference implementation
+
+The separate file `cro_latent_mvn_reference.R` preserves the supplied supplementary code from @Cro2025. 
+It includes the original trial-specific analysis and is retained for reference; source the
+lightly edited file `cro_latent_mvn.R`, which includes an R function, to run the imputation algorithm.
+The wrapper requires the `jomo`, `mice`, and `gear` packages from CRAN. It exposes the original
+settings as arguments and returns the binary imputations (`imp`), latent draws
+(`impZ`), and retained arm-specific regression and covariance draws (`beta` and
+`omega`). It omits the final trial-specific pooled GLM. The wrapper converts `Ycat` to
+a data frame before the original factor-conversion loop so that factor levels
+are retained when the caller supplies a matrix.
+
+#### Prepare the longitudinal binary outcomes
+
+Create one row per patient and one column per scheduled visit, leaving absent
+visits as `NA`. Treatment is coded 1 for placebo (reference) and 2 for active.
+We retain the strict response threshold defined above. This prepares inputs for
+a future implementation comparison, rather than reproducing the paper's
+inclusive-threshold responder counts.
+
+```{r}
+#| label: prepare-cro-probit-inputs
+cro_script <- file.path(dirname(archive), "cro_latent_mvn.R")
+source(cro_script)
+Ycat <- matrix(
+  NA_integer_, 
+  nrow = nrow(patients), 
+  ncol = length(visit_weeks),
+  dimnames = list(
+    as.character(patients$PATIENT), 
+    paste0("week", visit_weeks)
+  )
+)
+Ycat[cbind(
+  match(antidepressant$PATIENT, patients$PATIENT),
+  match(antidepressant$week, visit_weeks)
+)] <- antidepressant$response
+treat1 <- as.integer(patients$arm)
+stopifnot(
+  all(treat1 %in% 1:2),
+  all(Ycat[!is.na(Ycat)] %in% 0:1),
+  all(colSums(is.na(Ycat)) == c(0, 18, 30, 52, 69))
+)
+```
+
+#### Run a short example
+
+This short J2R run demonstrates successful execution only; its chain is too short for
+inference. For the supplementary settings use `nburn = 500`, `nbetween = 500`,
+and `nimp = 1000`. The original internal seed is exposed as `seed`, retaining
+its default of 123435. The supplementary code uses the latent sign convention
+**Y = 0 when Z > 0**, which must be accounted for in future comparisons.
+The algorithm is retained as supplied, including its intercept-only imputation
+step and reference-group handling; the example uses monotone dropout and
+reference arm 1. It has not been generalized to other input configurations.
+
+```{r}
+#| label: run-cro-probit-example
+cro_draws <- cro_latent_mvn(
+  Ycat = Ycat, 
+  treat1 = treat1, 
+  Method = "J2R", 
+  Reference = 1,
+  nburn = 100, 
+  nbetween = 10, 
+  nimp = 5, 
+  seed = 123435
+)
+# Imputation 0 contains the original data; positive indices are completed data.
+cro_completed <- subset(cro_draws$imp, Imputation == 1)
+stopifnot(
+  nrow(cro_completed) == nrow(Ycat),
+  !anyNA(cro_completed[colnames(Ycat)]),
+  all(as.matrix(cro_completed[colnames(Ycat)])[!is.na(Ycat)] ==
+        Ycat[!is.na(Ycat)])
+)
+knitr::kable(
+  aggregate(week8 ~ Imputation + Treat, data = cro_draws$imp,
+            FUN = mean, subset = Imputation > 0),
+  caption = "Week 8 response proportions in the short J2R example"
+)
+# Retained parameter draws for the subsequent rbmi comparison:
+dim(cro_draws$beta$reference)
+dim(cro_draws$omega$active)
+```
+
+For incomplete patients, `impZ` contains sequential latent draws at all visits;
+its imputation-0 block contains the original binary data, and complete patients'
+latent rows remain zero in the supplied algorithm. Use latent rows only for
+patients with missing outcomes and positive imputation indices.
+
+
+#### Reference draw sampler
 
 The comparison calls `jomo::jomo1cat.MCMCchain()` separately by arm, exactly as
 in the draw-stage calls inside `cro_latent_mvn()`. It skips the subsequent
@@ -897,7 +912,7 @@ knitr::kable(comparison_corrected[, c("variable", "mean_stan", "mean_reference",
 comparison_corrected
 ```
 
-### Recorded comparison (26 October 2026)
+#### Recorded comparison (26 October 2026)
 
 This snapshot used R 4.6.1, CmdStanR 0.9.0, CmdStan 2.39.0, posterior 1.7.0,
 and jomo 2.7-6 with the two corrections now maintained in the
@@ -1013,16 +1028,6 @@ benchmarked without changing the statistical target:
   size, scheduling and automatic-differentiation overhead may outweigh threading
   gains; larger datasets offer more opportunity.
 
-### Next steps
-
-Before package integration, the remaining work is an imputation-step design and
-validation, an adapter to the package design matrices and draw objects, and
-broader checks for rare outcomes, larger visit counts, and prior sensitivity.
-The fixed integration order and conservative sampler tuning here are prototype
-choices, not universal defaults for the package.
-
-
-
 ### Independent validation checks
 
 Agreement between two samplers is not sufficient on its own. The checks below
@@ -1130,5 +1135,13 @@ z <- data.frame(lp,q,truth,error=q-truth)
 print(z)
 stopifnot(max(abs(z$error))<1e-9)
 ```
+
+## Next steps
+
+Before package integration, the remaining work is an imputation-step design and
+validation, an adapter to the package design matrices and draw objects, and
+broader checks for rare outcomes, larger visit counts, and prior sensitivity.
+The fixed integration order and conservative sampler tuning here are prototype
+choices, not universal defaults for the package.
 
 ## References
