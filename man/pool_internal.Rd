@@ -52,9 +52,9 @@ uses the approximation from Rubin (1987). Ignored for other pooling methods.}
 }
 \value{
 A list containing the pooled results for a single parameter with elements
-\code{est} (point estimate), \code{ci} (confidence interval), \code{se} (standard error)
-and \code{pvalue} (p-value). The specific computation is determined by the class
-of \code{results} via S3 dispatch.
+\code{est} (point estimate), \code{ci} (confidence interval), \code{se} (standard error),
+\code{df} (degrees of freedom) and \code{pvalue} (p-value). The specific computation
+is determined by the class of \code{results} via S3 dispatch.
 }
 \description{
 Dispatches pool methods based upon results object class. See

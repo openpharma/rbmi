@@ -239,9 +239,9 @@ get_pool_components <- function(x) {
 #'
 #' @return
 #' A list containing the pooled results for a single parameter with elements
-#' `est` (point estimate), `ci` (confidence interval), `se` (standard error)
-#' and `pvalue` (p-value). The specific computation is determined by the class
-#' of `results` via S3 dispatch.
+#' `est` (point estimate), `ci` (confidence interval), `se` (standard error),
+#' `df` (degrees of freedom) and `pvalue` (p-value). The specific computation
+#' is determined by the class of `results` via S3 dispatch.
 #'
 #' @name pool_internal
 #' @keywords internal
