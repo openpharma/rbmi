@@ -72,19 +72,22 @@
 #' results with the following elements:
 #' - `pars`: a named list with one entry per parameter, each itself a list
 #'   containing the pooled point estimate (`est`), confidence interval (`ci`),
-#'   standard error (`se`) and p-value (`pvalue`).
+#'   standard error (`se`), degrees of freedom (`df`) and p-value (`pvalue`).
+#'   `df` is `NA_real_` for methods without a degrees-of-freedom concept
+#'   (jackknife, bootstrap).
 #' - `conf.level`: the confidence level used for the confidence intervals.
 #' - `alternative`: the alternative hypothesis used to derive the p-values.
 #' - `N`: the number of analysis results that were combined.
 #' - `method`: the pooling method that was used.
 #'
 #' The `as.data.frame()` method returns a `data.frame` with one row per
-#' parameter (columns `parameter`, `est`, `se`, `lci`, `uci`, `pval`) and the
-#' `print()` method returns its input invisibly. When the analysis function
-#' attached per-parameter metadata (as [ancova()] does), `as.data.frame()`
-#' additionally appends the metadata columns (`estimate_type`, `group`,
-#' `group_level_1`, `group_level_2`, `visit`); the `print()` method still shows
-#' only the six classic columns for a compact display.
+#' parameter (columns `parameter`, `est`, `se`, `df`, `lci`, `uci`, `pval`)
+#' and the `print()` method returns its input invisibly. When the analysis
+#' function attached per-parameter metadata (as [ancova()] does),
+#' `as.data.frame()` additionally appends the metadata columns
+#' (`estimate_type`, `group`, `group_level_1`, `group_level_2`, `visit`);
+#' the `print()` method still shows only the seven classic columns for a
+#' compact display.
 #'
 #' @examples
 #' # Prepare the data: expand to one row per subject and visit
