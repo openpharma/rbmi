@@ -1,5 +1,7 @@
 ---
-bibliography: misc/references.bib
+bibliography:
+  - ../vignettes/references.bib
+  - references.bib
 format:
   html:
     embed-resources: true
@@ -11,7 +13,7 @@ format:
 
 ## Overview
 
-This design doc works through the binary outcomes reference based multiple imputation approach, following @Cro2025 for the multivariate probit model and extending it to the situation in @rehal2026, which treats the more general case where a part of the patients is still observed after treatment discontinuation.
+This design doc works through the binary outcomes reference based multiple imputation approach, following @Cro2025 for the multivariate probit model and extending it to the situation in @Rehal2026, which treats the more general case where a part of the patients is still observed after treatment discontinuation.
 
 The design doc has the following structure:
 
@@ -1142,27 +1144,92 @@ Now let's have a look at the imputation methodology. We follow again @Cro2025 bu
 event, the observed data can be used to multiply impute the missing post-intercurrent
 event data.
 
-### Means and hybrid covariance definition
+### Means and hybrid covariance definition {#sec-binary-reference-distribution}
 
+For one joint posterior draw of $\beta$ and the arm-specific correlation
+matrices, write $m_{t,ij}=x_{t,ij}^{\mathsf T}\beta$ for patient $i$'s latent
+mean at visit $j$ under arm $t\in\{a,r\}$. Here $x_{t,ij}$ uses the patient's
+baseline covariates with the arm set to $t$. We retain the implementation's
+convention $Y_{ij}=\mathbf{1}(Z_{ij}>0)$, which reverses the latent means in
+@Cro2025 but leaves covariances unchanged.
 
+Let $d_i$ be the last scheduled visit before treatment discontinuation, with
+$P_i=\{1,\ldots,d_i\}$ and $Q_i=\{d_i+1,\ldots,D\}$. These are treatment-status
+blocks, not observed/missing blocks: a visit in either block may be missing,
+and visits in $Q_i$ may be observed. For an active-arm patient the full latent
+mean vector is defined componentwise as follows, following Section 3.2.1 of
+@Cro2025:
 
+| Assumption | $j\leq d_i$ | $j>d_i$ |
+|:-----------|:------------|:---------|
+| MAR | $m_{a,ij}$ | $m_{a,ij}$ |
+| J2R | $m_{a,ij}$ | $m_{r,ij}$ |
+| LMCF | $m_{a,ij}$ | $m_{a,i d_i}$ |
+| CIR | $m_{a,ij}$ | $m_{a,i d_i}+m_{r,ij}-m_{r,i d_i}$ |
+| CR | $m_{r,ij}$ | $m_{r,ij}$ |
+
+These means apply to observed as well as missing visits when constructing the
+joint distribution; observed binary values are preserved by conditioning on
+their signs. In particular, CR changes the pre-discontinuation means too.
+CIR and LMCF operate on the latent mean scale, not directly on response
+probabilities. For a reference-arm patient, MAR/J2R/CIR/CR all use $m_{r,ij}$;
+LMCF carries forward $m_{r,i d_i}$ after discontinuation if assigned to that arm.
+
+For the covariance, partition the posterior arm matrices $A=\Omega_a$ and
+$R=\Omega_r$ by $P_i,Q_i$, suppressing the patient index on the blocks. Define
+
+$$
+B=R_{QP}R_{PP}^{-1},\qquad
+V=R_{QQ}-R_{QP}R_{PP}^{-1}R_{PQ}.
+$$
+
+For an active-arm patient under J2R, CIR, or CR, the hybrid covariance specified
+in @Cro2025 is
+
+$$
+\Sigma_i^{\mathrm{ref}}=
+\begin{pmatrix}
+A_{PP} & A_{PP}B^{\mathsf T}\\
+BA_{PP} & V+BA_{PP}B^{\mathsf T}
+\end{pmatrix}.
+$$
+
+It preserves the active pre-discontinuation covariance and the reference
+conditional regression $B$ and residual covariance $V$. Equivalently,
+$Z_Q\mid Z_P\sim N(\mu_Q^{\mathrm{ref}}+
+B(Z_P-\mu_P^{\mathrm{ref}}),V)$. This construction is positive definite when
+$A$ and $R$ are positive definite. In particular, Cro's CR covariance uses this
+same hybrid, rather than replacing the entire covariance with $R$.
+MAR and LMCF retain the patient's randomized-arm covariance; reference-arm
+patients retain $R$ under all five assumptions.
+
+Although $A$ and $R$ have unit diagonals, the hybrid post-discontinuation block
+need not: it equals $R_{QQ}+B(A_{PP}-R_{PP})B^{\mathsf T}$. With only one
+pre-discontinuation visit, $A_{PP}=R_{PP}=1$, so its diagonal is still one.
+This justifies the variance $1-(\sigma_{12}^{\mathrm{ref}})^2/
+\sigma_{11}^{\mathrm{ref}}$ in the two-visit formula below. With multiple
+pre-discontinuation visits the arm correlation blocks can differ; use the
+constructed diagonal rather than forcing it to one. A common fitted covariance
+also makes the hybrid equal to that common covariance.
+
+For $d_i=D$ there is no post-discontinuation block and the ordinary randomized-arm
+model is used. For $d_i=0$, J2R and CR use the reference distribution throughout;
+MAR retains the randomized-arm distribution. CIR and LMCF require an explicit
+anchor mean if no pre-discontinuation visit is modeled; do not silently index
+visit zero. The formulas above assume $1\leq d_i<D$.
 
 ### Original imputation algorithm
 
-The imputation algorithm proceeds as follows (following Section 3.3 of @Cro2025):
+For comparison, the sequential algorithm as written in Section 3.3 of @Cro2025
+is reproduced below. It does not generally sample the intended conditional
+joint distribution; the correction is given in @sec-binary-joint-sampling.
 
-0. Depending on which reference assumption is made:
-
-   - Missing at random (MAR)
-   - Jump to reference (J2R)
-   - Last mean carried forward (LMCF)
-   - Copy increments in reference (CIR)
-   - Copy reference (CR)
-
-   adjust the design vectors $x_{ij}$ for the patient $i$ at time point $j$ with a missing observation accordingly. Analogously for the case with treatment arm specific covariance matrices take the corresponding covariance structure into account when imputing the missing values.
+0. Use one joint posterior draw of the coefficients and covariance matrices to
+   construct the full patient-specific mean and covariance for the chosen
+   assumption as defined in @sec-binary-reference-distribution.
 1. Start with time point $j = 1$, at which patient $i$ has been observed its outcome $y_{t,i,1}$ .
    - Draw the latent variable $Z^{\text{ref}}_{t,i,1}$ from the truncated univariate normal distribution with mean $\mu^{\text{ref}}_{t,i,1}$ and variance 1. The truncation is determined by the observed outcome $y_{t,i,1}$, i.e., truncated to positive values if $y_{t,i,1}=1$ and truncated to negative values if $y_{t,i,1}=0$. (@Cro2025 describe this with a rejection sampling scheme but we can directly sample from the truncated normal distribution.)
-  - In order to calculate the mean vector here and below we use the coefficient vector $\beta$ sample from the MCMC chain from the multivariate probit model fitted above.
+  - In order to calculate the mean vector here and below we use the coefficient vector $\beta$ from the same posterior draw from the multivariate probit model fitted above.
   - Note that only for the CR assumption the mean $\mu^{\text{ref}}_{t,i,1}$ is adjusted according to the reference arm, otherwise it is just the original mean $\mu_{t,i,1}$.
 2. Now for time point $j = 2$, first determine the conditional normal distribution of $Z^{\text{ref}}_{t,i,2}$ given the previously sampled latent variable $Z^{\text{ref}}_{t,i,1}$. 
   - The mean and variance of this conditional distribution are obtained from the multivariate normal distribution implied by the probit model. In this case it is simpler because there was just one previous time point:
@@ -1186,10 +1253,167 @@ The imputation algorithm proceeds as follows (following Section 3.3 of @Cro2025)
   - If $y_{t,i,j}$ is missing, just draw $Z^{\text{ref}}_{t,i,j}$ from the conditional normal distribution specified above. If it is observed, draw $Z^{\text{ref}}_{t,i,j}$ from the truncated conditional normal distribution, truncated to positive values if $y_{t,i,j}=1$ and truncated to negative values if $y_{t,i,j}=0$.
   - Repeat this process for all subsequent time points $j = 3, 4, \dots$ until the last time point for patient $i$.
 
-The algorithm above can be used independent of the location of the missing values among the time points for each patient. As such, we can also use it in the situation described by @Rehal2026 where observations are partially available after a treatment discontinuation.
+### Corrected imputation algorithm {#sec-binary-joint-sampling}
 
-### Corrected imputation algorithm
+The original sampler accepts each observed sign by resampling only the current
+latent variable, leaving earlier draws unchanged. Direct univariate truncated
+normal sampling is equivalent to that local rejection step, but neither
+conditions earlier latent values on later observed signs. For example,
 
-In principle it would be possible to use a single joint sample from the appropriately truncated multivariate normal distribution for all time points simultaneously, rather than sampling sequentially as described above: For those time points $j$ where the outcome $y_{t,i,j}$ is observed, there would be the corresponding truncation, while for the time points with missing outcomes, the distribution would be unconstrained. However the corresponding sampling algorithms typically either need to use rejection sampling or more sophisticated techniques such as the Gibbs sampler for truncated multivariate normal distributions, as implemented in the `tmvtnorm` package in R (@Wilhelm2010).
+$$
+p(z_1\mid Y_1=1,Y_2=1)\propto
+\phi(z_1;\mu_1,\Sigma_{11})\mathbf{1}(z_1>0)
+\Pr(Z_2>0\mid Z_1=z_1).
+$$
+
+The first draw in the sequential algorithm omits the last factor. Consequently,
+a single forward pass is not a joint truncated-normal draw, even with monotone
+dropout. This is a limitation of the paper's Step 5 as written, not a consequence
+of replacing its local rejection sampler with inverse-CDF sampling. The simple
+case of one observed visit followed only by missing visits does not have this
+problem.
+
+As a numerical example, take three zero-mean latent variables with unit
+variances and all correlations $\rho=0.7$, and observe $Y=(1,1,\mathrm{NA})$.
+The exact conditional response probability, using the bivariate and trivariate
+zero-mean normal orthant identities, is
+
+$$
+\Pr(Y_3=1\mid Y_1=Y_2=1)
+=\frac{1/8+3\arcsin(\rho)/(4\pi)}{1/4+\arcsin(\rho)/(2\pi)}
+=0.8304917.
+$$
+
+The following base-R example compares the original sampler with whole-vector
+rejection, which is an exact joint sampler and is inexpensive for this particular
+orthant. For the sequential estimate we integrate out the last normal draw to
+reduce Monte Carlo noise. The sequential estimate is about 0.811, versus 0.8305
+for the target; the discrepancy is much larger than Monte Carlo error.
+
+```{r}
+#| label: compare-sequential-joint-imputation
+local({
+  set.seed(917)
+  n <- 1000000L
+  rho <- 0.7
+  Sigma <- matrix(rho, 3, 3)
+  diag(Sigma) <- 1
+  exact <- (1/8 + 3 * asin(rho)/(4*pi)) /
+    (1/4 + asin(rho)/(2*pi))
+
+  # Joint rejection: reject the entire vector unless both observed signs match.
+  z <- matrix(rnorm(n * 3), n, 3) %*% chol(Sigma)
+  joint_response <- z[z[, 1] > 0 & z[, 2] > 0, 3] > 0
+
+  # Original forward sampler: independently enforce each successive sign.
+  z1 <- -qnorm(runif(n) / 2)
+  m2 <- rho * z1
+  s2 <- sqrt(1 - rho^2)
+  z2 <- m2 - s2 * qnorm(runif(n) * pnorm(m2 / s2))
+  b <- drop(Sigma[3, 1:2] %*% solve(Sigma[1:2, 1:2]))
+  v3 <- Sigma[3, 3] - sum(b * Sigma[1:2, 3])
+  sequential_probability <- pnorm((b[1] * z1 + b[2] * z2) / sqrt(v3))
+
+  data.frame(
+    Method = c("Exact", "Joint rejection", "Original sequential"),
+    Probability = c(exact, mean(joint_response), mean(sequential_probability)),
+    MCSE = c(0, sd(joint_response) / sqrt(length(joint_response)),
+             sd(sequential_probability) / sqrt(n))
+  )
+})
+```
+
+For the corrected imputation algorithm, repeat the following for each completed
+dataset:
+
+1. Take one joint posterior draw of the coefficients and covariance matrices,
+   shared across patients, and construct each patient's full
+   $(\mu_i^{\mathrm{ref}},\Sigma_i^{\mathrm{ref}})$ as defined in
+   @sec-binary-reference-distribution.
+2. Draw the **entire latent vector jointly** from that multivariate normal,
+   subject to the coordinate bounds
+   $$
+   (\ell_{ij},u_{ij})=
+   \begin{cases}
+   (0,\infty),&Y_{ij}=1,\\
+   (-\infty,0),&Y_{ij}=0,\\
+   (-\infty,\infty),&Y_{ij}\text{ missing}.
+   \end{cases}
+   $$
+   Thus all observed signs, including later and post-discontinuation signs,
+   constrain the same joint draw. No first-visit observation is required.
+3. Replace only missing binary outcomes by $\mathbf{1}(Z_{ij}>0)$, retaining all
+   observed values. Repeat with further posterior draws for further imputations.
+
+For computation, joint sampling can alternatively be factored into a truncated
+MVN draw for the observed coordinates and an ordinary conditional Gaussian draw
+for the missing coordinates. This is exactly equivalent and can reduce the
+truncated sampling dimension when many visits are missing. Patients without
+observed outcomes need only an ordinary MVN draw; complete patients need no
+imputation.
+
+#### Choice of joint sampler
+
+`tmvtnorm` [@Wilhelm2010] supports whole-vector rejection and Gibbs sampling.
+Ordinary rejection becomes expensive for rare observed sign patterns; Gibbs
+requires burn-in and mixing checks, particularly under strong correlations.
+Its updates condition on all other current latent coordinates and must be
+iterated to convergence; one forward pass is not a substitute.
+See the [current package documentation](https://stat.ethz.ch/CRAN/web/packages/tmvtnorm/refman/tmvtnorm.html#rtmvnorm).
+
+A stronger initial candidate is `TruncatedNormal::rtmvnorm`, which uses
+Botev's minimax exponential tilting accept-reject method [@Botev2017]. It targets
+independent draws without Gibbs burn-in and accepts infinite bounds, so observed
+and missing coordinates can be handled together. This is a provisional choice
+for the intended range of **5 to 30 visits**, not a claim of uniformly best
+performance. See the [package overview](https://lbelzile.github.io/TruncatedNormal/)
+and [sampling API](https://lbelzile.github.io/TruncatedNormal/reference/rtmvnorm.html).
+The illustrative call below requires the optional `TruncatedNormal` package;
+`y`, `mu_ref`, and `Sigma_ref` are one patient's outcomes and constructed parameters.
+
+```{r}
+#| label: joint-imputation-sampler-call
+#| eval: false
+lower <- rep(-Inf, length(y))
+upper <- rep(Inf, length(y))
+lower[which(y == 1)] <- 0
+upper[which(y == 0)] <- 0
+z <- as.numeric(TruncatedNormal::rtmvnorm(
+  n = 1, mu = mu_ref, sigma = Sigma_ref, lb = lower, ub = upper
+))
+completed <- y
+completed[is.na(y)] <- as.integer(z[is.na(y)] > 0)
+```
+
+Before selecting a production backend, benchmark 5, 10, 20, and 30 visits across
+posterior draws with common and rare sign patterns, weak and strong correlations,
+and varying fractions of missing visits. Measure setup plus sampling time per
+patient per imputation, numerical failures, and accuracy against orthant
+probabilities or small-dimensional rejection checks; for MCMC also measure
+burn-in and effective sample size. Compare full-vector tilting with the
+observed-block/conditional-Gaussian factorization. Matrix factorizations can be
+reused where covariance and coordinate patterns agree, but tilting optimization
+also depends on the centered bounds, which vary with means and observed signs.
+The [implementation](https://github.com/lbelzile/TruncatedNormal/blob/master/R/mvrandn.R)
+can warn about solver failure, near-singularity, or low acceptance and can return
+fewer draws than requested; production code must detect these cases rather than
+silently accepting the output. Hamiltonian alternatives such as
+[`hdtg`](https://arxiv.org/abs/2210.01097) are worth considering if these benchmarks
+show a bottleneck, but their published advantages concern much higher dimensions
+and do not establish superiority at 20--30 visits.
+
+The corrected joint sampler supports arbitrary missingness patterns, including
+partially observed post-discontinuation outcomes as in @Rehal2026. Conditioning
+on those outcomes lets them inform the same patient's missing outcomes, but does
+not by itself fit a retrieved-dropout model. Learning off-treatment behavior
+across patients also requires an explicit fitting model, for example latent
+means with on/off-treatment indicators and appropriate visit/arm interactions,
+estimated using observed post-discontinuation data. The default arm-by-visit
+model above does not distinguish these states. A retrieved-dropout extension
+must specify those effects, which observations inform each component, and how
+reference assumptions or priors supply information when off-treatment data are
+sparse. The joint sampler can then use the resulting patient-specific mean and
+covariance; the binary extension of that fitting model remains to be developed
+and validated rather than being established by the sampler alone.
 
 ## References
