@@ -1,5 +1,8 @@
 # rbmi (development version)
 
+* `pool()` now returns `df`, which is also included in the `data.frame` returned
+  by `as.data.frame.pool()`. (#562)
+
 # rbmi 1.7.0
 
 ## New Features

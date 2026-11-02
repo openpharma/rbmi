@@ -63,7 +63,9 @@ results with the following elements:
 \itemize{
 \item \code{pars}: a named list with one entry per parameter, each itself a list
 containing the pooled point estimate (\code{est}), confidence interval (\code{ci}),
-standard error (\code{se}) and p-value (\code{pvalue}).
+standard error (\code{se}), degrees of freedom (\code{df}) and p-value (\code{pvalue}).
+\code{df} is \code{NA_real_} for methods without a degrees-of-freedom concept
+(jackknife, bootstrap).
 \item \code{conf.level}: the confidence level used for the confidence intervals.
 \item \code{alternative}: the alternative hypothesis used to derive the p-values.
 \item \code{N}: the number of analysis results that were combined.
@@ -71,12 +73,13 @@ standard error (\code{se}) and p-value (\code{pvalue}).
 }
 
 The \code{as.data.frame()} method returns a \code{data.frame} with one row per
-parameter (columns \code{parameter}, \code{est}, \code{se}, \code{lci}, \code{uci}, \code{pval}) and the
-\code{print()} method returns its input invisibly. When the analysis function
-attached per-parameter metadata (as \code{\link[=ancova]{ancova()}} does), \code{as.data.frame()}
-additionally appends the metadata columns (\code{estimate_type}, \code{group},
-\code{group_level_1}, \code{group_level_2}, \code{visit}); the \code{print()} method still shows
-only the six classic columns for a compact display.
+parameter (columns \code{parameter}, \code{est}, \code{se}, \code{df}, \code{lci}, \code{uci}, \code{pval})
+and the \code{print()} method returns its input invisibly. When the analysis
+function attached per-parameter metadata (as \code{\link[=ancova]{ancova()}} does),
+\code{as.data.frame()} additionally appends the metadata columns
+(\code{estimate_type}, \code{group}, \code{group_level_1}, \code{group_level_2}, \code{visit});
+the \code{print()} method still shows only the seven classic columns for a
+compact display.
 
 \code{mcse()} returns an \code{mcse} object; a list of class \code{"mcse"} containing \code{pars}
 (the Monte Carlo standard errors of the pooled estimates, in the same

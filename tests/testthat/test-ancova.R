@@ -823,6 +823,7 @@ test_that("as.data.frame.pool appends ancova metadata columns", {
             "parameter",
             "est",
             "se",
+            "df",
             "lci",
             "uci",
             "pval",
@@ -837,10 +838,10 @@ test_that("as.data.frame.pool appends ancova metadata columns", {
     expect_equal(df$group_level_1, c("B", "A"))
     expect_equal(df$group_level_2, c("A", NA))
 
-    # Without metadata the classic 6-column data.frame is returned
+    # Without metadata the classic 7-column data.frame is returned
     pool_no_meta <- structure(list(pars = pars), class = "pool")
     df2 <- as.data.frame(pool_no_meta)
-    expect_equal(names(df2), c("parameter", "est", "se", "lci", "uci", "pval"))
+    expect_equal(names(df2), c("parameter", "est", "se", "df", "lci", "uci", "pval"))
 })
 
 

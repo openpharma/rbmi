@@ -72,19 +72,22 @@
 #' results with the following elements:
 #' - `pars`: a named list with one entry per parameter, each itself a list
 #'   containing the pooled point estimate (`est`), confidence interval (`ci`),
-#'   standard error (`se`) and p-value (`pvalue`).
+#'   standard error (`se`), degrees of freedom (`df`) and p-value (`pvalue`).
+#'   `df` is `NA_real_` for methods without a degrees-of-freedom concept
+#'   (jackknife, bootstrap).
 #' - `conf.level`: the confidence level used for the confidence intervals.
 #' - `alternative`: the alternative hypothesis used to derive the p-values.
 #' - `N`: the number of analysis results that were combined.
 #' - `method`: the pooling method that was used.
 #'
 #' The `as.data.frame()` method returns a `data.frame` with one row per
-#' parameter (columns `parameter`, `est`, `se`, `lci`, `uci`, `pval`) and the
-#' `print()` method returns its input invisibly. When the analysis function
-#' attached per-parameter metadata (as [ancova()] does), `as.data.frame()`
-#' additionally appends the metadata columns (`estimate_type`, `group`,
-#' `group_level_1`, `group_level_2`, `visit`); the `print()` method still shows
-#' only the six classic columns for a compact display.
+#' parameter (columns `parameter`, `est`, `se`, `df`, `lci`, `uci`, `pval`)
+#' and the `print()` method returns its input invisibly. When the analysis
+#' function attached per-parameter metadata (as [ancova()] does),
+#' `as.data.frame()` additionally appends the metadata columns
+#' (`estimate_type`, `group`, `group_level_1`, `group_level_2`, `visit`);
+#' the `print()` method still shows only the seven classic columns for a
+#' compact display.
 #'
 #' @examples
 #' # Prepare the data: expand to one row per subject and visit
@@ -236,9 +239,9 @@ get_pool_components <- function(x) {
 #'
 #' @return
 #' A list containing the pooled results for a single parameter with elements
-#' `est` (point estimate), `ci` (confidence interval), `se` (standard error)
-#' and `pvalue` (p-value). The specific computation is determined by the class
-#' of `results` via S3 dispatch.
+#' `est` (point estimate), `ci` (confidence interval), `se` (standard error),
+#' `df` (degrees of freedom) and `pvalue` (p-value). The specific computation
+#' is determined by the class of `results` via S3 dispatch.
 #'
 #' @name pool_internal
 #' @keywords internal
@@ -267,6 +270,7 @@ pool_internal.jackknife <- function(
     N_jack <- length(ests_jack)
     se_jack <- sqrt(((N_jack - 1) / N_jack) * sum((ests_jack - mean_jack)^2))
     ret <- parametric_ci(est_point, se_jack, alpha, alternative, qnorm, pnorm)
+    ret$df <- NA_real_
     return(ret)
 }
 
@@ -289,6 +293,7 @@ pool_internal.bootstrap <- function(
     )
 
     ret <- bootfun(results$est, conf.level, alternative)
+    ret$df <- NA_real_
     return(ret)
 }
 
@@ -318,6 +323,7 @@ pool_internal.bmlmi <- function(
         pfun = pt,
         df = pooled_est$df
     )
+    ret$df <- pooled_est$df
 
     return(ret)
 }
@@ -422,6 +428,7 @@ pool_internal.rubin <- function(
         pfun = pt,
         df = res_rubin$df
     )
+    ret$df <- res_rubin$df
 
     return(ret)
 }
@@ -579,8 +586,8 @@ rubin_rules <- function(
         return(
             list(
                 est_point = est_point,
-                var_t = NA,
-                df = NA
+                var_t = NA_real_,
+                df = NA_real_
             )
         )
     }
@@ -869,10 +876,15 @@ as_data_frame_internal <- function(x) {
         msg = "`x` must be a pool or mcse object"
     )
 
+    df_col <- vapply(x$pars, function(p) {
+        if (is.null(p$df)) NA_real_ else p$df
+    }, numeric(1))
+
     df <- data.frame(
         parameter = names(x$pars),
         est = vapply(x$pars, function(x) x$est, numeric(1)),
         se = vapply(x$pars, function(x) x$se, numeric(1)),
+        df = df_col,
         lci = vapply(x$pars, function(x) x$ci[[1]], numeric(1)),
         uci = vapply(x$pars, function(x) x$ci[[2]], numeric(1)),
         pval = vapply(x$pars, function(x) x$pvalue, numeric(1)),
@@ -942,6 +954,7 @@ print.pool <- function(x, ...) {
                 "parameter",
                 "est",
                 "se",
+                "df",
                 "lci",
                 "uci",
                 "pval"
