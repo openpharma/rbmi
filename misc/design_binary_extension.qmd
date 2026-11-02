@@ -7,7 +7,7 @@ format:
   html:
     embed-resources: true
     toc: true
-    toc-depth: 2
+    toc-depth: 3
 ---
 
 ## Overview
@@ -1265,12 +1265,43 @@ joint distribution; the correction is given in @sec-binary-joint-sampling.
     - If $y_{t,i,j}$ is missing, just draw $Z^{\text{ref}}_{t,i,j}$ from the conditional normal distribution specified above. If it is observed, draw $Z^{\text{ref}}_{t,i,j}$ from the truncated conditional normal distribution, truncated to positive values if $y_{t,i,j}=1$ and truncated to negative values if $y_{t,i,j}=0$.
     - Repeat this process for all subsequent time points $j = 3, 4, \dots$ until the last time point for patient $i$.
 
-### Corrected imputation algorithm {#sec-binary-joint-sampling}
+### Problem in original algorithm 
 
 The original sampler accepts each observed sign by resampling only the current
 latent variable, leaving earlier draws unchanged. Direct univariate truncated
 normal sampling is equivalent to that local rejection step, but neither
-conditions earlier latent values on later observed signs. For example,
+conditions earlier latent values on later observed signs. To see why, consider
+two observed responses $Y_1=Y_2=1$. Hold the model parameters fixed and suppress
+the patient index and reference-assumption superscript. Let
+$\phi(z_1;\mu_1,\Sigma_{11})$ denote the marginal normal density of $Z_1$.
+
+1. Under our sign convention, observing $Y_1=Y_2=1$ is the event
+   $E=\{Z_1>0,Z_2>0\}$. Bayes' rule for the density of $Z_1$ conditional on
+   this event gives
+   $$
+   p(z_1\mid E)
+   =\frac{p(z_1)\Pr(E\mid Z_1=z_1)}{\Pr(E)}.
+   $$
+   Here conditioning on $Z_1=z_1$ uses the conditional distribution of $Z_2$;
+   it does not require the point event $\{Z_1=z_1\}$ to have positive probability.
+
+2. Once $Z_1=z_1$ is fixed, the first sign is already determined. If $z_1\leq0$,
+   the event $E$ is impossible; if $z_1>0$, only the second sign remains uncertain.
+   Therefore
+   $$
+   \Pr(E\mid Z_1=z_1)
+   =\mathbf{1}(z_1>0)\Pr(Z_2>0\mid Z_1=z_1).
+   $$
+
+3. Substitute this expression and the marginal normal density into Bayes' rule:
+   $$
+   p(z_1\mid Y_1=1,Y_2=1)
+   =\frac{
+     \phi(z_1;\mu_1,\Sigma_{11})\mathbf{1}(z_1>0)
+     \Pr(Z_2>0\mid Z_1=z_1)
+   }{\Pr(Z_1>0,Z_2>0)}.
+   $$
+   The denominator is constant with respect to $z_1$, so dropping it gives
 
 $$
 p(z_1\mid Y_1=1,Y_2=1)\propto
@@ -1278,7 +1309,31 @@ p(z_1\mid Y_1=1,Y_2=1)\propto
 \Pr(Z_2>0\mid Z_1=z_1).
 $$
 
-The first draw in the sequential algorithm omits the last factor. Consequently,
+The extra factor can be written explicitly using normal conditioning. Define
+
+$$
+\mu_{2\mid1}(z_1)=\mu_2+
+\frac{\Sigma_{21}}{\Sigma_{11}}(z_1-\mu_1),\qquad
+s_{2\mid1}^2=\Sigma_{22}-\frac{\Sigma_{21}^2}{\Sigma_{11}}.
+$$
+
+Then $Z_2\mid Z_1=z_1\sim N(\mu_{2\mid1}(z_1),s_{2\mid1}^2)$, and hence
+
+$$
+\Pr(Z_2>0\mid Z_1=z_1)
+=1-\Phi\!\left(\frac{-\mu_{2\mid1}(z_1)}{s_{2\mid1}}\right)
+=\Phi\!\left(\frac{\mu_{2\mid1}(z_1)}{s_{2\mid1}}\right).
+$$
+
+By contrast, drawing $Z_1$ from its marginal normal truncated above zero uses
+only $p(z_1\mid Y_1=1)\propto
+\phi(z_1;\mu_1,\Sigma_{11})\mathbf{1}(z_1>0)$. It omits the probability of
+the second observed sign. With positive correlation, larger $z_1$ makes
+$Z_2>0$ more likely, so observing $Y_2=1$ gives those larger values additional
+weight. If the correlation is zero, this factor is constant and cancels in
+normalization; in general it depends on $z_1$ and cannot be omitted.
+
+Consequently,
 a single forward pass is not a joint truncated-normal draw, even with monotone
 dropout. This is a limitation of the paper's Step 5 as written, not a consequence
 of replacing its local rejection sampler with inverse-CDF sampling. The simple
@@ -1335,13 +1390,14 @@ local({
 })
 ```
 
+### Corrected imputation algorithm {#sec-binary-joint-sampling}
+
 For the corrected imputation algorithm, repeat the following for each completed
 dataset:
 
 1. Take one joint posterior draw of the coefficients and covariance matrices,
    shared across patients, and construct each patient's full
-   $(\mu_i^{\mathrm{ref}},\Sigma_i^{\mathrm{ref}})$ as defined in
-   @sec-binary-reference-distribution.
+   $(\mu_i^{\mathrm{ref}},\Sigma_i^{\mathrm{ref}})$ as defined in @sec-binary-reference-distribution.
 2. Draw the **entire latent vector jointly** from that multivariate normal,
    subject to the coordinate bounds
    $$
