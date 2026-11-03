@@ -337,6 +337,42 @@ test_that("count rate multiplier adjusts only selected subjects and periods", {
 })
 
 
+test_that("count imputation remains exact near the Poisson limit", {
+    # One subject: one observed cell (1 event, mean 0.1) and one missing cell
+    # (mean 0.1). With dispersion at the Stan lower bound the conditional
+    # distribution is Poisson(0.1); the former prob parameterisation rounded
+    # to prob = 1 here and returned only zeros.
+    prepared <- list(
+        id = c("a", "a"),
+        subject_ids = "a",
+        subject_index = c(1L, 1L),
+        period_index = 1:2,
+        duration = c(1, 1),
+        outcome = c(1, NA),
+        is_missing = c(FALSE, TRUE),
+        own_group = c("A", "A"),
+        reference_group = c("A", "A"),
+        strategy = c("MAR", "MAR"),
+        design_observed = matrix(1, 2, 1),
+        design_missing = matrix(1, 2, 1)
+    )
+    sample <- sample_single_count(
+        ids = c("a", "b"),
+        beta = log(0.1),
+        phi = 2 * .Machine$double.eps
+    )
+
+    set.seed(4040)
+    imputed <- replicate(4000, sample_count_outcomes(prepared, sample)[2])
+
+    # Poisson(0.1): mean 0.1, P(Y > 0) = 0.095; 4000 draws give SE 0.005.
+    # Explicit bounds: expect_equal() compares absolutely for targets below
+    # its tolerance, which would accept the former all-zero draws.
+    expect_lt(abs(mean(imputed) - 0.1), 0.02)
+    expect_lt(abs(mean(imputed > 0) - (-expm1(-0.1))), 0.02)
+})
+
+
 test_that("fixed lambda rate uses the posterior dispersion draw", {
     draws <- make_count_draws(strategy = "MAR", phi = 0.5)
     updated_strategy <- data.frame(

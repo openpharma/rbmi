@@ -599,16 +599,22 @@ sample_count_outcomes <- function(prepared, sample) {
                     prepared$fixed_lambda_rate[missing_row] *
                     inv_phi
             )
-            prob <- conditioning_mass /
-                (conditioning_mass + imputation_mean)
+            # Conditional mean of the missing cell given the subject's frailty
+            # posterior Gamma(size, conditioning_mass). Passing the mean
+            # directly avoids forming conditioning_mass / (conditioning_mass +
+            # imputation_mean), which rounds to 1 when dispersion is tiny and
+            # then forces a zero draw. rnbinom() consumes random numbers in
+            # the same way for `mu` and `prob`, so non-degenerate draws are
+            # unchanged.
+            conditional_mean <- size * (imputation_mean / conditioning_mass)
             assert_that(
                 is.finite(size),
                 size > 0,
-                is.finite(prob),
-                prob > 0 & prob <= 1,
+                is.finite(conditional_mean),
+                conditional_mean >= 0,
                 msg = "Invalid conditional negative binomial parameters"
             )
-            draw <- stats::rnbinom(1, size = size, prob = prob)
+            draw <- stats::rnbinom(1, size = size, mu = conditional_mean)
             result[missing_row] <- draw
             size <- size + draw
             conditioning_mass <- conditioning_mass + imputation_mean
