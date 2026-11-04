@@ -212,6 +212,21 @@ We fit this with maximum likelihood estimation for each imputed dataset (e.g. wi
 
 We need to be careful how to obtain the standard error. As reported in the CAMIS repository [here](https://psiaims.github.io/CAMIS/Comp/r-sas_negbin.html), we need to recalculate the variance-covariance matrix for the model parameters with a custom function in order to match the `SAS PROC GENMOD` results.
 
+### Additive adjustments to completed counts
+
+As a separate sensitivity analysis, `analyse(delta = ...)` can add a specified
+integer number of events to completed subject-period counts before analysis.
+For imputation $m$, the adjusted value is $Y_{ij}^{(m)} + \delta_{ij}$.
+Unlike a rate adjustment in `count_strategy()`, this does not change the
+conditional sampling distribution used to generate the imputations. The offset
+is per period count and is not automatically scaled by exposure.
+
+Offsets must be finite and integerish, and every adjusted count must be finite
+and non-negative, with zero counts in zero-duration periods. Invalid results
+are rejected rather than truncated. See the additive delta example in the
+[modeling count data vignette](count.html) for constructing a subject-period
+adjustment with `delta_template()`.
+
 ### Pooling
 
 Finally, Rubin's rules are applied to pool the estimates (on the log-rate scale, i.e. the regression coefficients $\beta$) across the imputed datasets, and we can then exponentiate the pooled estimates and confidence intervals to get the results for the rate ratios.

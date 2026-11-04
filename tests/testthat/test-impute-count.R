@@ -3,7 +3,7 @@ suppressPackageStartupMessages({
 })
 
 
-make_count_draws <- function(strategy = "JR", phi = 0.5) {
+make_count_draws <- function(strategy = "JR", phi = 0.5, ragged = FALSE, zero_duration = FALSE) {
     dat <- data.frame(
         id = factor(
             rep(c("control", "active"), each = 3),
@@ -17,6 +17,11 @@ make_count_draws <- function(strategy = "JR", phi = 0.5) {
             levels = c("Control", "Active")
         )
     )
+    if (ragged) dat <- dat[-2, ]
+    if (zero_duration) {
+        dat$duration[1] <- 0
+        dat$outcome[1] <- 0
+    }
     vars <- set_vars(
         subjid = "id",
         period = "period",
@@ -624,4 +629,65 @@ test_that("count reference designs keep the coding of the treatment factor", {
             unname(fit_design[1, ])
         )
     }
+})
+
+
+test_that("count deltas use period keys and preserve count support", {
+    obj <- impute(make_count_draws(strategy = "MAR"))
+    template <- delta_template(obj)
+    original <- extract_imputed_dfs(obj)[[1]]
+    expect_equal(nrow(template), nrow(original))
+    expect_named(template, c("id", "period", "group", "is_mar",
+                            "is_missing", "is_post_ice", "strategy", "delta"))
+    plan <- delta_template(obj, delta = c(0, 0, 2))
+    expect_equal(plan$delta, c(0, 0, 2, 0, 0, 2))
+    adjusted <- extract_imputed_dfs(obj, delta = plan)[[1]]
+    expect_equal(adjusted$outcome, original$outcome + plan$delta)
+    expect_equal(adjusted$duration, original$duration)
+    # The analysis function sees the same adjusted counts as extraction.
+    fun <- function(data) list(total = list(est = sum(data$outcome), se = 1, df = Inf))
+    analysis <- analyse(obj, fun, delta = plan)
+    expect_equal(analysis$results[[1]]$total$est, sum(adjusted$outcome))
+    expect_equal(extract_imputed_dfs(obj, delta = plan[c(6, 3), ])[[1]], adjusted)
+    expect_error(delta_template(obj, c(0, 0, 1), dlag = c(1, 1, 1)), "dlag")
+    for (bad in c(0.5, NA, Inf, NaN)) {
+        plan$delta[3] <- bad
+        expect_error(extract_imputed_dfs(obj, delta = plan), "finite and integerish")
+        expect_error(analyse(obj, fun, delta = plan), "finite and integerish")
+    }
+    plan$delta <- 0
+    plan$delta[3] <- 1 + 1e-10
+    expect_equal(extract_imputed_dfs(obj, delta = plan)[[1]]$outcome[3],
+                 original$outcome[3] + 1)
+    plan$delta[3] <- -original$outcome[3]
+    expect_equal(extract_imputed_dfs(obj, delta = plan)[[1]]$outcome[3], 0)
+    plan$delta[3] <- -original$outcome[3] - 1
+    expect_error(extract_imputed_dfs(obj, delta = plan), "non-negative")
+    expect_error(analyse(obj, fun, delta = plan), "non-negative")
+    plan$delta <- 0
+    expect_equal(extract_imputed_dfs(obj, delta = plan)[[1]], original)
+    expect_error(extract_imputed_dfs(obj, delta = rbind(plan, plan[3, ])),
+                 "duplicate rows")
+})
+
+
+test_that("count delta templates retain ragged cells and zero exposure support", {
+    obj <- impute(make_count_draws(strategy = "MAR", ragged = TRUE,
+                                  zero_duration = TRUE))
+    plan <- delta_template(obj, c(1, 2, 3))
+    expect_equal(as.character(plan$period), c("1", "3", "1", "2", "3"))
+    expect_equal(plan$delta, c(0, 3, 0, 0, 3))
+    plan_all <- delta_template(obj, c(1, 2, 3), missing_only = FALSE)
+    expect_equal(plan_all$delta, c(1, 3, 1, 2, 3))
+    expect_error(extract_imputed_dfs(obj, delta = plan_all), "zero-duration")
+    plan_all$delta[1] <- 0
+    expect_no_error(extract_imputed_dfs(obj, delta = plan_all))
+    expect_error(delta_template(obj, c(0, 0, 0.5)), "integerish")
+})
+
+
+test_that("count templates retain assigned reference strategies", {
+    template <- delta_template(make_count_draws(strategy = "JR"))
+    expect_equal(template$strategy, c(NA, NA, "MAR", NA, NA, "JR"))
+    expect_equal(template$is_missing, c(FALSE, FALSE, TRUE, FALSE, FALSE, TRUE))
 })

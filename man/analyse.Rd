@@ -125,6 +125,13 @@ use the helper function \code{\link[=delta_template]{delta_template()}} to defin
 this provides utility variables such as \code{is_missing} which can be used to identify
 exactly which visits have been imputed.
 
+For count outcomes, use \code{vars$period} instead of \code{vars$visit} as the
+matching key. Deltas must be finite and integerish; accepted floating-point
+deviations within \code{sqrt(.Machine$double.eps)} are rounded. Adjusted counts
+must be non-negative and finite, and zero in zero-duration periods.
+These checks also apply to \code{\link[=extract_imputed_dfs]{extract_imputed_dfs()}}. See \code{\link[=delta_template]{delta_template()}}
+for count templates and the distinction from \code{\link[=count_strategy]{count_strategy()}}.
+
 The optional \code{transform} argument specifies a transformation to apply to all
 pooled parameters for reporting. It defaults to the \code{"transform"} attribute
 of \code{fun}, so an analysis function can declare its usual reporting scale.

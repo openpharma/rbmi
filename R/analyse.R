@@ -82,6 +82,13 @@
 #' this provides utility variables such as `is_missing` which can be used to identify
 #' exactly which visits have been imputed.
 #'
+#' For count outcomes, use `vars$period` instead of `vars$visit` as the
+#' matching key. Deltas must be finite and integerish; accepted floating-point
+#' deviations within `sqrt(.Machine$double.eps)` are rounded. Adjusted counts
+#' must be non-negative and finite, and zero in zero-duration periods.
+#' These checks also apply to [extract_imputed_dfs()]. See [delta_template()]
+#' for count templates and the distinction from [count_strategy()].
+#'
 #' The optional `transform` argument specifies a transformation to apply to all
 #' pooled parameters for reporting. It defaults to the `"transform"` attribute
 #' of `fun`, so an analysis function can declare its usual reporting scale.
@@ -241,7 +248,7 @@ analyse <- function(
     if (!is.null(delta)) {
         expected_vars <- c(
             vars$subjid,
-            vars$visit,
+            if (uses_period(vars)) vars$period else vars$visit,
             "delta"
         )
         assert_that(
@@ -428,12 +435,26 @@ extract_imputed_df <- function(imputation, ld, delta = NULL, idmap = FALSE) {
         oldvar <- "old_subject_variable_zkfed1fgkadwni6g4oajd2aw"
         dat[[oldvar]] <- id_map[dat[[vars$subjid]]]
         delta[[oldvar]] <- delta[[vars$subjid]]
+        if (uses_period(vars)) {
+            delta$delta <- validate_count_delta(delta$delta)
+        }
         dat2 <- apply_delta(
             dat,
             delta,
-            group = c(oldvar, vars$visit),
+            group = c(oldvar, if (uses_period(vars)) vars$period else vars$visit),
             outcome = vars$outcome
         )
+        if (uses_period(vars)) {
+            counts <- dat2[[vars$outcome]]
+            assert_that(
+                all(is.finite(counts) & counts >= 0),
+                msg = "Count delta adjustment must produce finite, non-negative counts"
+            )
+            assert_that(
+                all(counts[dat2[[vars$duration]] == 0] == 0),
+                msg = "Count delta adjustment cannot create a positive count in a zero-duration period"
+            )
+        }
         dat2[[oldvar]] <- NULL
     } else {
         dat2 <- dat

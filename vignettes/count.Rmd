@@ -324,6 +324,44 @@ anaObj <- analyse(
 )
 ```
 
+### Additive delta sensitivity analysis
+
+To shift completed counts by a fixed number of events per period, supply a
+`delta` data frame to `analyse()`. This adjustment is applied after imputation
+and before the analysis function aggregates counts over periods. A rate
+multiplier in `count_strategy()` instead changes the model mean before drawing
+missing counts; it expresses a different sensitivity assumption.
+
+The template contains only the subject-period cells present in the input,
+including when subjects have different sets of periods. Use `is_missing` to
+limit the adjustment to imputed cells:
+
+```{r count-delta}
+count_delta <- delta_template(imputeObj)
+completed <- extract_imputed_dfs(imputeObj, index = 1)[[1]]
+count_delta$delta[count_delta$is_missing & completed$Length > 0] <- 1
+anaObj_delta <- analyse(
+    imputeObj,
+    neg_bin_regression,
+    vars = ana_vars,
+    delta = count_delta
+)
+```
+
+This adds one event to each missing positive-duration period. It does not scale with exposure:
+when periods differ in length, consider whether an additive count or a change
+in event rate better represents the sensitivity assumption. To target specific
+periods, edit the template using its period column, or supply one delta per
+period level to `delta_template()`; observed cells receive zero by default.
+Count templates do not use the continuous-outcome ICE lag argument `dlag`.
+
+Deltas must be finite and integerish. Tiny floating-point deviations within
+`sqrt(.Machine$double.eps)` are rounded to the nearest integer; fractional
+event adjustments are rejected. Negative deltas are allowed only when every
+adjusted count in every imputation remains non-negative. Counts are never
+clipped at zero, and positive counts in zero-duration periods are rejected.
+The same checks apply when using `extract_imputed_dfs(delta = ...)`.
+
 ## Pool
 
 Finally we can pool all regression coefficients across the multiple
