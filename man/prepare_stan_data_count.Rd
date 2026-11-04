@@ -4,22 +4,12 @@
 \alias{prepare_stan_data_count}
 \title{Prepare input data to run the Stan model for count outcome}
 \usage{
-prepare_stan_data_count(
-  ddat,
-  subjid,
-  period,
-  duration,
-  outcome,
-  group,
-  same_cov
-)
+prepare_stan_data_count(ddat, subjid, duration, outcome, group, same_cov)
 }
 \arguments{
 \item{ddat}{A design matrix}
 
 \item{subjid}{A vector of subject IDs}
-
-\item{period}{A vector of period values}
 
 \item{duration}{A vector of duration values}
 

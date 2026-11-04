@@ -119,7 +119,6 @@ for all observations. This list is populated by a call to \code{self$set_strateg
     \item \href{#method-longdata-extract_by_id}{\code{longdata$extract_by_id()}}
     \item \href{#method-longdata-update_strategies}{\code{longdata$update_strategies()}}
     \item \href{#method-longdata-set_strategies}{\code{longdata$set_strategies()}}
-    \item \href{#method-longdata-check_has_all_periods}{\code{longdata$check_has_all_periods()}}
     \item \href{#method-longdata-check_has_data_at_each_visit}{\code{longdata$check_has_data_at_each_visit()}}
     \item \href{#method-longdata-set_strata}{\code{longdata$set_strata()}}
     \item \href{#method-longdata-initialize}{\code{longdata$new()}}
@@ -320,19 +319,6 @@ information.
 See \code{\link[=impute]{impute()}} for the format of \code{dat_ice} if \code{update=TRUE}.
 If \code{update=TRUE} this function ensures that MAR strategies cannot be changed to non-MAR in the presence
 of post-ICE observations.
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-longdata-check_has_all_periods"></a>}}
-\if{latex}{\out{\hypertarget{method-longdata-check_has_all_periods}{}}}
-\subsection{\code{longdata$check_has_all_periods()}}{
-  Legacy period-data validation method. Count data may be ragged, so
-this now checks that subject-period cells are unique.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{longdata$check_has_all_periods()}
-    \if{html}{\out{</div>}}
   }
 }
 

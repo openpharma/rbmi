@@ -193,7 +193,6 @@ test_that("count Stan data supports shared and group-specific dispersion", {
     shared <- prepare_stan_data_count(
         ddat = design,
         subjid = subjid,
-        period = period,
         duration = duration,
         outcome = outcome,
         group = group,
@@ -202,7 +201,6 @@ test_that("count Stan data supports shared and group-specific dispersion", {
     separate <- prepare_stan_data_count(
         ddat = design,
         subjid = subjid,
-        period = period,
         duration = duration,
         outcome = outcome,
         group = group,
@@ -232,7 +230,6 @@ test_that("count Stan data supports ragged observed cells", {
     actual <- prepare_stan_data_count(
         ddat = design,
         subjid = subjid,
-        period = period,
         duration = duration,
         outcome = outcome,
         group = group,
@@ -264,7 +261,6 @@ test_that("count Stan data drops subjects without observed positive-duration cel
         actual <- prepare_stan_data_count(
             ddat = design,
             subjid = subjid,
-            period = period,
             duration = duration,
             outcome = outcome,
             group = group,
@@ -297,7 +293,6 @@ test_that("count Stan data requires full rank in observed positive-duration cell
                 prepare_stan_data_count(
                     ddat = design,
                     subjid = subjid,
-                    period = period,
                     duration = if (missing_active) rep(1, 4) else c(1, 1, 0, 0),
                     outcome = if (missing_active) {
                         c(1, 2, NA, NA)
@@ -332,7 +327,6 @@ test_that("count Stan data requires positive counts for period-specific effects"
                 prepare_stan_data_count(
                     ddat = cbind(intercept = 1, period2 = as.integer(period == "2")),
                     subjid = c("1", "1", "2", "2"),
-                    period = period,
                     duration = rep(1, 4),
                     outcome = outcome,
                     group = factor(rep("Control", 4)),
@@ -349,7 +343,6 @@ test_that("count Stan data allows zero-count periods with shared coefficients", 
     actual <- prepare_stan_data_count(
         ddat = matrix(1, nrow = 4, ncol = 1),
         subjid = c("1", "1", "2", "2"),
-        period = c("1", "2", "1", "2"),
         duration = rep(1, 4),
         outcome = c(1, 0, 2, 0),
         group = factor(rep("Control", 4)),
@@ -372,7 +365,6 @@ test_that("count Stan data ignores periods without observed positive-duration ce
             actual <- prepare_stan_data_count(
                 ddat = matrix(1, nrow = 4, ncol = 1),
                 subjid = c("1", "1", "2", "2"),
-                period = period,
                 duration = if (missing_period) rep(1, 4) else c(1, 0, 1, 0),
                 outcome = if (missing_period) c(1, NA, 2, NA) else c(1, 0, 2, 0),
                 group = factor(rep("Control", 4)),

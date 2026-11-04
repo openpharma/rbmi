@@ -508,14 +508,6 @@ longDataConstructor <- R6::R6Class(
         },
 
         #' @description
-        #' Legacy period-data validation method. Count data may be ragged, so
-        #' this now checks that subject-period cells are unique.
-        check_has_all_periods = function() {
-            validate_datalong_complete(self$data, self$vars)
-            invisible(self)
-        },
-
-        #' @description
         #' Ensures that all visits have at least 1 observed "MAR" observation. Throws
         #' an error if this criteria is not met. This is to ensure that the initial
         #' MMRM can be resolved.

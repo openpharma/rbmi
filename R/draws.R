@@ -680,7 +680,6 @@ draws.bayes <- function(
         outcome_unscaled = model_df[, 1, drop = TRUE],
         group = data2[[vars$group]],
         visit = data2[[vars$visit]],
-        period = data2[[vars$period]],
         duration = data2[[vars$duration]],
         subjid = data2[[vars$subjid]],
         method = method,

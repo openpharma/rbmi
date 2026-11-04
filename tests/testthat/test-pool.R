@@ -171,8 +171,7 @@ test_that("Rubin pooling retains t inference for finite complete-data df", {
         alternative = "two.sided",
         type = "percentile",
         D = NULL,
-        rubin_df_method = "barnard-rubin",
-        outcome_type = "continuous"
+        rubin_df_method = "barnard-rubin"
     )
 
     expect_equal(observed, expected)

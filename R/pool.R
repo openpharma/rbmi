@@ -186,11 +186,6 @@ pool <- function(
     )
 
     pool_type <- class(results$results)[[1]]
-    outcome_type <- if (has_class(results, "analysis_count")) {
-        "count"
-    } else {
-        "continuous"
-    }
 
     results_transpose <- transpose_results(
         results$results,
@@ -204,8 +199,7 @@ pool <- function(
         alternative = alternative,
         type = type,
         D = results$method$D,
-        rubin_df_method = rubin_df_method,
-        outcome_type = outcome_type
+        rubin_df_method = rubin_df_method
     )
 
     if (pool_type == "bootstrap") {
@@ -374,14 +368,12 @@ get_pool_components <- function(x) {
 #' @name pool_internal
 #' @keywords internal
 #' @export
-#' @param outcome_type A character string specifying the endpoint type.
 pool_internal <- function(
     results,
     conf.level,
     alternative,
     type,
     D,
-    outcome_type = "continuous",
     ...
 ) {
     UseMethod("pool_internal")
@@ -397,7 +389,6 @@ pool_internal.jackknife <- function(
     alternative,
     type,
     D,
-    outcome_type = "continuous",
     ...
 ) {
     alpha <- 1 - conf.level
@@ -420,7 +411,6 @@ pool_internal.bootstrap <- function(
     alternative,
     type = c("percentile", "normal"),
     D,
-    outcome_type = "continuous",
     ...
 ) {
     type <- match.arg(type)
@@ -444,7 +434,6 @@ pool_internal.bmlmi <- function(
     alternative,
     type,
     D,
-    outcome_type = "continuous",
     ...
 ) {
     ests <- results$est
@@ -534,7 +523,6 @@ pool_internal.rubin <- function(
     alternative,
     type,
     D,
-    outcome_type = "continuous",
     rubin_df_method,
     ...
 ) {

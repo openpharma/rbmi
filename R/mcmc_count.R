@@ -5,7 +5,6 @@
 #'
 #' @param ddat A design matrix
 #' @param subjid A vector of subject IDs
-#' @param period A vector of period values
 #' @param duration A vector of duration values
 #' @param outcome A vector of integer outcome values (unscaled, i.e. raw counts)
 #' @param group A factor containing the treatment group for each row.
@@ -29,20 +28,17 @@
 prepare_stan_data_count <- function(
     ddat,
     subjid,
-    period,
     duration,
     outcome,
     group,
     same_cov
 ) {
     assert_that(
-        is.factor(period) | is.character(period) | is.numeric(period),
         is.numeric(duration) & all(duration >= 0),
         is.character(subjid) | is.factor(subjid),
         is.numeric(outcome) &
             all((outcome == trunc(outcome) & (outcome >= 0)) | is.na(outcome)),
         is.data.frame(ddat) | is.matrix(ddat),
-        length(period) == length(duration),
         length(duration) == length(outcome),
         length(outcome) == length(subjid),
         length(group) == length(subjid),
@@ -184,8 +180,6 @@ validate.stan_data_count <- function(x, ...) {
 #' @param control A named list of arguments passed to [rstan::sampling()].
 #' @param n_samples Number of retained posterior draws requested by the user.
 #' @param quiet Logical indicating whether Stan progress output is suppressed.
-#' @param stan_data A `stan_data_count` object. Currently unused, but retained
-#'   for a common control-completion interface across outcome types.
 #'
 #' @return The completed `control` list, including calculated `iter` and
 #'   `refresh` values and a count-compatible initialization setting.
@@ -194,8 +188,7 @@ validate.stan_data_count <- function(x, ...) {
 complete_control_bayes_count <- function(
     control,
     n_samples,
-    quiet,
-    stan_data
+    quiet
 ) {
     control <- complete_control_bayes_common(
         control = control,

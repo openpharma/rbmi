@@ -12,7 +12,6 @@ fit_mcmc(
   group,
   subjid,
   visit,
-  period,
   duration,
   method,
   scaler = NULL,
@@ -35,9 +34,6 @@ omitted, \code{outcome} is treated as unscaled.}
 
 \item{visit}{Character vector containing the visit variable. \code{NULL} if
 \code{period} is used instead.}
-
-\item{period}{Character vector containing the period variable. \code{NULL} if
-\code{visit} is used instead.}
 
 \item{duration}{Numeric vector containing the duration variable. \code{NULL}
 if \code{period} is not used.}
