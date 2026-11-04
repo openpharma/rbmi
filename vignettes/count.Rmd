@@ -117,7 +117,7 @@ dat_count_filled <- dat_count %>%
 
 SAS reference results for the models illustrated below were computed with the 
 SAS macros `NM_Reg22.sas` and `NM_Rand13.sas` by James H. Roger (2021). Note
-that these can be downloaded can be downloaded as part of the archive `NegMult20210313` [here](https://lshtm.sharepoint.com/:u:/s/MissingDataPublicFiles/EVXl7TLAirxPvKQsdKoU25YBiG3enVCAOZm_8TOBq0DYAA?e=abaKGl) available under "Imputation of Recurrent event data for partial observed off-treatment data" on the [DIA Missing Data website](https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data).
+that these can be downloaded as part of the archive `NegMult20210313` [here](https://lshtm.sharepoint.com/:u:/s/MissingDataPublicFiles/EVXl7TLAirxPvKQsdKoU25YBiG3enVCAOZm_8TOBq0DYAA?e=abaKGl) available under "Imputation of Recurrent event data for partial observed off-treatment data" on the [DIA Missing Data website](https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data).
 The results are included as a CSV file with the package. We retain the two active-treatment versus placebo contrasts, so they can be compared directly with the pooled `rbmi` estimates.
 The assertions below stop vignette precompilation if any relative difference
 from SAS exceeds `0.005` for rate ratios and confidence limits, or `0.10` for
@@ -552,7 +552,9 @@ the `Separate each Treat. Shared frai` model in the SAS reference analysis.
 
 #### Draw and impute
 
-The model formula is `~ 0 + TreatLab:OnOff + TreatLab:BaseCount`. The
+`rbmi` adds an intercept and the `TreatLab` main effect to the requested
+interactions, so the model formula is
+`~ 1 + TreatLab + TreatLab:OnOff + TreatLab:BaseCount` (printed below). The
 interactions with `TreatLab` give each randomized treatment arm a separate
 coefficient for every covariate; `same_cov = TRUE` (the default) retains the
 shared count-model dispersion parameter.
@@ -580,6 +582,7 @@ drawObj_all_treatment_interactions <- draws(
     method = method,
     quiet = TRUE
 )
+drawObj_all_treatment_interactions$formula
 ```
 
 ```{r impute-all-treatment-interactions, time_it = TRUE}

@@ -4,9 +4,15 @@
 
 * Count outcomes with negative multinomial regression imputation models are now supported. Please see the new counts outcomes vignette, as well as the corresponding new statistical specifications for count outcomes vignette, for an introduction. In addition to new S3 methods and new arguments for existing functions, the analysis function `neg_bin_regression()` conducting negative binomial regression analysis, the simulation function `simulate_count_data()`, as well as the data wrangling function `split_time()` to support more complex time period patterns, have been added.
 
+* Controlled count imputation strategies are defined with `count_strategy()` and collected with `get_count_strategies()`. A `rate_multiplier` scales the model-based rate of selected missing periods; a `fixed_rate` replaces it by a fixed event rate. `fixed_rate_scale = "lambda"` reproduces the fixed-rate option of the SAS macro `NM_Rand13.sas`.
+
+* `draws()` has a new `outcome` argument. By default the outcome type is determined from `vars`: count outcomes are specified with `set_vars(period = , duration = )`.
+
 * New `transform` argument is available in `analyse()` to support transformations that are applied after the pooling of original scale parameters.
 
-* The corresponding new `scale` argument in `print.pool()` and `as.data.frame.pool()` methods allows to choose the original or transformed scale to look at for the pooled results.
+* The corresponding new `scale` argument in `print.pool()` and `as.data.frame.pool()` methods allows to choose the original or transformed scale to look at for the pooled results. Transformations are created with `use_transform()`.
+
+* `print.pool()` now reports the Rubin degrees-of-freedom method for Rubin pooling.
 
 ## Bug Fixes
 

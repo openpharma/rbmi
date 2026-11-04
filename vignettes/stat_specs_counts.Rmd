@@ -110,7 +110,7 @@ important when a subject has missing values in other periods.
 The available assumptions are therefore:
 
 - MAR: Missing periods use the patient's randomized-arm design.
-- CR: Missing periods use the reference-arm design. Observed periods also use the reference-arm design when fitting the count model.
+- CR: Missing periods use the reference-arm design. In the imputation step, the means of the observed periods that the subject's frailty is conditioned on are also computed with the reference-arm design. The posterior fit of the count model is the same for all strategies; it always uses the randomized-arm design for the observed periods.
 - JR: Missing periods use the reference-arm design, while observed periods retain the patient's randomized-arm design.
 
 Thus, count-outcome `JR` is not a post-ICE-only J2R implementation: it applies
@@ -162,6 +162,43 @@ and missing-period designs, as well as the dispersion, are from the reference
 arm. With a shared dispersion parameter, the group index can be dropped.
 
 Note that in the second parameter of the negative binomial distribution we have the actually observed number of events $y_{i1}$ and $y_{i2}$.
+
+More generally, let $a_i = \phi_{g_i^*}^{-1} + \sum_{j \in O_i} y_{ij}$ and
+$b_i = \phi_{g_i^*}^{-1} + \sum_{j \in O_i} \hat{\mu}_{ij}$ for the observed
+positive-duration periods $O_i$ of patient $i$. Its frailty then follows a
+$\text{Gamma}(a_i, b_i)$ distribution given the observed counts, and a missing
+period $j$ with unconditional mean $m_{ij}$ is imputed from a negative binomial
+distribution with size $a_i$ and mean $a_i m_{ij} / b_i$. Missing periods are
+imputed one after another in period order; after each imputed count $y$ with
+unconditional mean $m$, $a_i$ increases by $y$ and $b_i$ by $m$, so that the
+joint distribution of all imputed periods is the one implied by the shared
+frailty. The implementation passes the mean $a_i m_{ij} / b_i$ directly to the
+sampler. The equivalent probability parameter $b_i / (b_i + m_{ij})$ rounds to
+one when $\phi$ is close to zero and must not be formed.
+
+### Controlled imputation strategies {#sec:countStrategies}
+
+In addition to the reference-based assumptions, `count_strategy()` modifies the
+unconditional mean $m_{ij}$ of selected missing periods; the conditional
+sampling above is unchanged.
+
+- Rate multiplier $c \geq 0$: $m_{ij} = c\,\hat{\mu}_{ij}$, where
+  $\hat{\mu}_{ij}$ is the mean under the base strategy (MAR, JR or CR).
+- Fixed rate $\rho \geq 0$ (`fixed_rate_scale = "rate"`, the default):
+  $m_{ij} = T_{ij}\,\rho$. The rate is the same for every posterior draw,
+  treatment arm and base strategy.
+- Fixed rate on the SAS lambda scale (`fixed_rate_scale = "lambda"`):
+  $m_{ij} = T_{ij}\,\lambda / \phi_{g_i^*}$, reproducing the macro
+  `NM_Rand13.sas`, which fixes $\lambda = \phi \times \text{rate}$ in its
+  negative-multinomial parameterisation. The implied event rate
+  $\lambda / \phi$ varies between posterior draws and arms and is unbounded
+  as $\phi \to 0$. `impute()` warns if $m_{ij}$ exceeds 100 times
+  $\hat{\mu}_{ij}$ for any period and posterior draw.
+
+The base strategy still determines the observed-period means and the
+dispersion parameter used in $a_i$ and $b_i$, so with a fixed rate the
+conditional mean $a_i m_{ij} / b_i$ still depends on the patient's observed
+counts.
 
 ### Analysis
 
