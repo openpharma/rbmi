@@ -122,3 +122,26 @@ test_that("split_time requires event times to allocate positive counts", {
         "event_times"
     )
 })
+
+
+test_that("split_time rejects times between whole days instead of dropping events", {
+    # Cells use inclusive whole-day endpoints (e.g. 0-6 and 7-13). An event at
+    # time 6.5 belongs to neither cell, so such inputs must be rejected.
+    split <- function(start, event, origin = NULL) {
+        split_time(
+            data.frame(start = start, duration = 14, count = 1, event = event),
+            "start",
+            "duration",
+            "count",
+            event_times = "event",
+            interval = 7,
+            origin = origin
+        )
+    }
+    expect_error(split(0, 7.5), "whole numbers")
+    expect_error(split(0.5, 7), "whole-number")
+    expect_error(split(0, 7, origin = 0.5), "whole-number")
+
+    # Whole-number inputs conserve the count
+    expect_identical(sum(split(0, 7)$split_outcome), 1L)
+})

@@ -6,17 +6,19 @@
 #' every resulting positive-duration cell.
 #'
 #' @param data A data frame with one row per original count period.
-#' @param start Name of the row start variable. It must be numeric or a `Date`.
+#' @param start Name of the row start variable. It must be a `Date` or a
+#'   whole-number numeric time (time is measured in whole days or units).
 #' @param duration Name of the non-negative duration variable, measured in days
 #'   for `Date` starts and in the same units as a numeric `start`.
 #' @param outcome Name of the aggregate count variable.
 #' @param event_times Optional character vector naming columns that contain
-#'   one-based event-time offsets from `start`. These are required to allocate
-#'   a positive observed count when a row intersects more than one interval.
+#'   one-based, whole-number event-time offsets from `start`. These are
+#'   required to allocate a positive observed count when a row intersects more
+#'   than one interval.
 #' @param interval A positive whole number giving a fixed interval width, or
 #'   one of `"day"`, `"week"`, `"month"`, `"quarter"`, or `"year"`.
 #'   Calendar months, quarters, and years require `Date` starts.
-#' @param origin Optional interval origin. For fixed intervals this is the
+#' @param origin Optional whole-number interval origin. For fixed intervals this is the
 #'   boundary immediately before interval zero. For calendar intervals it must
 #'   be the first day of a month. Defaults to `0` for numeric starts and
 #'   `1970-01-01` for `Date` starts. (Note that `interval = "week"` with the default
@@ -94,6 +96,8 @@ split_time <- function(
     assert_that(
         is_date || is.numeric(start_value),
         !anyNA(start_value),
+        all(is.finite(as.numeric(start_value))),
+        all(as.numeric(start_value) == trunc(as.numeric(start_value))),
         is.numeric(duration_value),
         !anyNA(duration_value),
         all(is.finite(duration_value)),
@@ -105,8 +109,8 @@ split_time <- function(
                 (outcome_value >= 0 & outcome_value == trunc(outcome_value))
         ),
         msg = paste(
-            "`start`, `duration`, and `outcome` must contain valid times,",
-            "whole-number durations, and non-negative integer counts"
+            "`start`, `duration`, and `outcome` must contain whole-number",
+            "times and durations, and non-negative integer counts"
         )
     )
 
@@ -216,7 +220,8 @@ count_interval_info <- function(interval, origin, is_date) {
         !is.na(origin),
         (is_date && inherits(origin, "Date")) ||
             (!is_date && is.numeric(origin) && is.finite(origin)),
-        msg = "`origin` must have the same time scale as `start`"
+        as.numeric(origin) == trunc(as.numeric(origin)),
+        msg = "`origin` must be a whole-number time on the same scale as `start`"
     )
     list(width = as.integer(interval), origin = origin)
 }
@@ -339,8 +344,12 @@ split_time_row <- function(
     event_offsets <- event_offsets[!is.na(event_offsets)]
     assert_that(
         all(is.finite(event_offsets)),
+        all(event_offsets == trunc(event_offsets)),
         all(event_offsets >= 1 & event_offsets <= row_duration),
-        msg = "Event-time offsets must fall within their original row"
+        msg = paste(
+            "Event-time offsets must be whole numbers that fall within",
+            "their original row"
+        )
     )
     if (number_cells > 1 && row_outcome > 0 && is.null(event_times)) {
         stop(
@@ -376,6 +385,10 @@ split_time_row <- function(
             integer(1)
         )
     }
+    assert_that(
+        sum(result$split_outcome) == row_outcome,
+        msg = "Internal error: split counts do not add up to the original count"
+    )
     result
 }
 
