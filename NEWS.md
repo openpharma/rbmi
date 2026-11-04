@@ -12,6 +12,8 @@
 
 * `scalerConstructor` previously failed when applied to a matrix instead of a `data.frame`. This is fixed now.
 
+* Previously, ordered or custom-coded treatment factors were incorrectly imputed under reference-based imputation. This is fixed now.
+
 # rbmi 1.7.0
 
 ## New Features

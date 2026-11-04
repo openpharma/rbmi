@@ -131,6 +131,34 @@ as_model_df <- function(dat, frm) {
 }
 
 
+#' Replace the values of a factor while keeping its coding
+#'
+#' Reference-based imputation evaluates the fitted model with the treatment
+#' group replaced by the reference group. Constructing a new factor would drop
+#' the original factor's `contrasts` attribute and `ordered` class, so the
+#' design matrix would no longer be expressed in the basis in which the
+#' coefficients were estimated. Replacing the values in place keeps both.
+#'
+#' @param x A factor.
+#' @param values Values to assign; must be levels of `x`. Recycled if of
+#'   length 1.
+#'
+#' @return `x` with its values replaced and all other attributes unchanged.
+#'
+#' @keywords internal
+replace_factor_values <- function(x, values) {
+    values <- as.character(values)
+    assert_that(
+        is.factor(x),
+        length(values) %in% c(1, length(x)),
+        all(values %in% levels(x)),
+        msg = "`values` must be levels of the factor `x`"
+    )
+    x[] <- values
+    x
+}
+
+
 #' Convert character variables to factor
 #'
 #' Provided a vector of variable names this function converts any

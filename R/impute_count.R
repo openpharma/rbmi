@@ -477,9 +477,9 @@ prepare_count_imputation_data <- function(
     dat_reference <- dat
     reference_group <- unname(references[as.character(dat[[vars$group]])])
     own_group <- as.character(dat[[vars$group]])
-    dat_reference[[vars$group]] <- factor(
-        reference_group,
-        levels = levels(dat[[vars$group]])
+    dat_reference[[vars$group]] <- replace_factor_values(
+        dat[[vars$group]],
+        reference_group
     )
     design_reference <- as.matrix(
         as_model_df(dat_reference, data$formula)[, -1, drop = FALSE]

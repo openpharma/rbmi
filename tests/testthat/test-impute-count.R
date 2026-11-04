@@ -579,3 +579,49 @@ test_that("non-MAR count strategies retain all observed draw-model cells", {
     expect_equal(nrow(actual), 6)
     expect_false(anyNA(actual$outcome[actual$period %in% c("1", "2")]))
 })
+
+
+test_that("count reference designs keep the coding of the treatment factor", {
+    dat <- data.frame(
+        id = factor(rep(c("a", "b"), each = 2)),
+        period = rep(c("1", "2"), 2),
+        duration = 1,
+        outcome = c(1, NA, 1, NA),
+        group = factor(rep(c("A", "B"), each = 2))
+    )
+    vars <- set_vars(
+        subjid = "id",
+        period = "period",
+        duration = "duration",
+        outcome = "outcome",
+        group = "group"
+    )
+    sum_coded <- dat$group
+    stats::contrasts(sum_coded) <- stats::contr.sum(2)
+    for (group in list(sum_coded, factor(dat$group, ordered = TRUE))) {
+        dat$group <- group
+        longdata <- longDataConstructor$new(dat, vars)
+        fit_design <- as.matrix(
+            as_model_df(longdata$data, longdata$formula)[, -1, drop = FALSE]
+        )
+
+        # Identity mapping: the reference design equals the fitted design
+        identity <- prepare_count_imputation_data(
+            longdata,
+            c(A = "A", B = "B"),
+            c(a = "JR", b = "JR")
+        )
+        expect_equal(unname(identity$design_missing), unname(fit_design))
+
+        # Mapping B to A: subject b's missing cell is coded like arm A
+        mapped <- prepare_count_imputation_data(
+            longdata,
+            c(A = "A", B = "A"),
+            c(a = "JR", b = "JR")
+        )
+        expect_equal(
+            unname(mapped$design_missing[4, ]),
+            unname(fit_design[1, ])
+        )
+    }
+})

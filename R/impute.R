@@ -566,7 +566,7 @@ impute_data_individual <- function(
     dat_pt <- id_data$data
     dat_pt[, vars$outcome] <- 1 # Dummy outcome value to stop rows being dropped by model.matrix
     dat_ref <- dat_pt
-    dat_ref[, vars$group] <- factor(group_ref, levels = levels(id_data$group))
+    dat_ref[[vars$group]] <- replace_factor_values(dat_pt[[vars$group]], group_ref)
 
     dat_pt_mod <- as_model_df(dat_pt, data$formula)
     dat_ref_mod <- as_model_df(dat_ref, data$formula)

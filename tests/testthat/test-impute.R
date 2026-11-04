@@ -1073,3 +1073,39 @@ test_that("method_bmlmi is working as expected in combination with impute", {
 
     expect_equal(x$imputations, expected_output)
 })
+
+
+test_that("reference-based imputation keeps the coding of the treatment factor", {
+    # With every arm mapped to itself, JR must reproduce MAR exactly. Before
+    # the fix, an ordered (or custom-coded) treatment factor was rebuilt with
+    # default treatment contrasts for the reference design.
+    set.seed(1)
+    n <- 40
+    dat <- data.frame(
+        id = factor(rep(seq_len(n), each = 3)),
+        visit = factor(rep(c("1", "2", "3"), n)),
+        group = factor(rep(c("A", "B"), each = 3 * n / 2), ordered = TRUE)
+    )
+    dat$y <- rnorm(nrow(dat), mean = 0.5 * (dat$group == "B") * as.integer(dat$visit))
+    ice_ids <- c(1:5, 21:25)
+    dat$y[dat$id %in% ice_ids & dat$visit == "3"] <- NA
+    vars <- set_vars(subjid = "id", visit = "visit", outcome = "y", group = "group")
+    ice <- data.frame(id = as.character(ice_ids), visit = "3", strategy = "JR")
+
+    fit <- draws(
+        dat,
+        ice,
+        vars,
+        method_condmean(type = "bootstrap", n_samples = 0),
+        quiet = TRUE
+    )
+    references <- c(A = "A", B = "B")
+    jr <- impute(fit, references = references)
+    mar <- impute(
+        fit,
+        references = references,
+        update_strategy = data.frame(id = ice$id, strategy = "MAR")
+    )
+    values <- function(x) unlist(lapply(x$imputations[[1]], `[[`, "values"))
+    expect_equal(values(jr), values(mar))
+})
