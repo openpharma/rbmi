@@ -165,6 +165,8 @@
 #' - `duration`: for count outcomes, name of the column in `data` which contains the duration variable.
 #'
 #' The `outcome` argument allows to select either the continuous outcome or the count outcome.
+#' It must agree with `vars`: use `"continuous"` (the default) with `vars$visit`,
+#' or `"count"` with `vars$period` and `vars$duration`.
 #' Please see the corresponding statistical specification vignettes for details on the methods.
 #'
 #' In our experience, Bayesian MI (`method = method_bayes()`) with a relatively low number of
@@ -275,6 +277,30 @@ draws <- function(
 }
 
 
+# Validate compatibility before preparing data or fitting a model.
+validate_draws_outcome <- function(vars, outcome) {
+    validate(vars)
+    if (uses_period(vars)) {
+        assert_that(
+            outcome == "count",
+            msg = paste0(
+                '`outcome = "', outcome, '"` is incompatible with `vars$period` ',
+                'and `vars$duration`; use `outcome = "count"`.'
+            )
+        )
+    } else {
+        assert_that(
+            outcome == "continuous",
+            msg = paste0(
+                '`outcome = "', outcome, '"` is incompatible with `vars$visit`; ',
+                'use `outcome = "continuous"` or specify `period` and `duration` in `set_vars()`.'
+            )
+        )
+    }
+    invisible(TRUE)
+}
+
+
 #' @rdname draws
 #' @export
 draws.approxbayes <- function(
@@ -287,6 +313,7 @@ draws.approxbayes <- function(
     quiet = FALSE
 ) {
     outcome <- match.arg(outcome)
+    validate_draws_outcome(vars, outcome)
     assert_that(
         outcome == "continuous",
         msg = "Only continuous outcomes are supported for approximate Bayesian MI"
@@ -320,6 +347,7 @@ draws.condmean <- function(
     quiet = FALSE
 ) {
     outcome <- match.arg(outcome)
+    validate_draws_outcome(vars, outcome)
     assert_that(
         outcome == "continuous",
         msg = "Only continuous outcomes are supported for conditional mean MI"
@@ -369,6 +397,7 @@ draws.bmlmi <- function(
     quiet = FALSE
 ) {
     outcome <- match.arg(outcome)
+    validate_draws_outcome(vars, outcome)
     assert_that(
         outcome == "continuous",
         msg = "Only continuous outcomes are supported for BMLMI"
@@ -628,6 +657,7 @@ draws.bayes <- function(
     quiet = FALSE
 ) {
     outcome <- match.arg(outcome)
+    validate_draws_outcome(vars, outcome)
     longdata <- longDataConstructor$new(data, vars)
     longdata$set_strategies(data_ice)
 

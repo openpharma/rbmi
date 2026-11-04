@@ -261,6 +261,8 @@ Needed only for \code{method_condmean(type = "bootstrap")} and \code{method_appr
 }
 
 The \code{outcome} argument allows to select either the continuous outcome or the count outcome.
+It must agree with \code{vars}: use \code{"continuous"} (the default) with \code{vars$visit},
+or \code{"count"} with \code{vars$period} and \code{vars$duration}.
 Please see the corresponding statistical specification vignettes for details on the methods.
 
 In our experience, Bayesian MI (\code{method = method_bayes()}) with a relatively low number of
