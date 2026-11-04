@@ -297,7 +297,8 @@ test_that("full count usage follows all models in the count vignette", {
         strategies = get_count_strategies(
             FIXED_LAMBDA = count_strategy(
                 base = "MAR",
-                fixed_lambda_rate = 0.15,
+                fixed_rate = 0.15,
+                fixed_rate_scale = "lambda",
                 period = "3"
             )
         )

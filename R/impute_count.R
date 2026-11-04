@@ -3,8 +3,7 @@
 #' `count_strategy()` defines how the model-based mean for a missing count is
 #' obtained and optionally adjusted during imputation. The `base` strategy is
 #' applied first. A `rate_multiplier` then multiplies its model-based mean, or
-#' `fixed_lambda_rate` replaces that mean using the negative-multinomial lambda
-#' parameterisation described below.
+#' `fixed_rate` replaces that mean by a fixed event rate.
 #'
 #' `get_count_strategies()` returns the built-in MAR, JR and CR count strategies
 #' together with any named user-defined strategies supplied through `...`.
@@ -13,19 +12,39 @@
 #' supplied or inferred; consequently, JR and CR are not restricted to periods
 #' after an ICE.
 #'
+#' @section Fixed rates and SAS compatibility:
+#' With the default `fixed_rate_scale = "rate"`, `fixed_rate` is a marginal
+#' event rate per unit of the duration variable: a missing cell with exposure
+#' `L` has unconditional mean `L * fixed_rate`, the same for every posterior
+#' draw, treatment arm and base strategy.
+#'
+#' `fixed_rate_scale = "lambda"` reproduces the fixed-rate option of the
+#' SAS macro `NM_Rand13.sas` (Roger, 2021), which fixes the rate on the
+#' negative-multinomial lambda scale. The unconditional mean is then
+#' `L * fixed_rate / phi`, where `phi` is the dispersion parameter of the
+#' current posterior draw (from the subject's arm for MAR, and from the mapped
+#' reference arm for JR and CR). The implied event rate therefore changes from
+#' draw to draw and between arms, and becomes arbitrarily large as `phi`
+#' approaches zero (nearly Poisson data). [impute()] warns when the SAS lambda
+#' implies a rate more than 100 times the model-based rate of the same cell in
+#' any posterior draw. Use this scale only to reproduce SAS results.
+#'
+#' For both scales, the imputed count is drawn conditionally on the subject's
+#' observed cells. Its conditional mean is the unconditional mean multiplied by
+#' `(1 / phi + y_obs) / (1 / phi + mu_obs)`, where `y_obs` and `mu_obs` are the
+#' subject's observed total count and its model-based mean.
+#'
 #' @param base Character. The base count imputation strategy, one of `"MAR"`,
 #'   `"JR"`, or `"CR"`.
 #' @param rate_multiplier A non-negative numeric scalar multiplying the
 #'   model-based mean for affected missing cells.
-#' @param fixed_lambda_rate `NULL` or a non-negative numeric scalar. When set,
-#'   it replaces the model-based rate on the SAS negative-multinomial lambda
-#'   scale. For exposure `L` and the strategy-selected dispersion `phi`, the
-#'   Poisson mean supplied to the negative-binomial imputation is
-#'   `L * fixed_lambda_rate / phi`. MAR selects `phi` from the subject's arm;
-#'   JR and CR select it from the mapped reference arm. This is the unconditional
-#'   marginal mean for that cell in the joint count model; the mean of the
-#'   imputation distribution conditional on the other observed cells also
-#'   depends on their counts and fitted means.
+#' @param fixed_rate `NULL` or a non-negative numeric scalar. When set, it
+#'   replaces the model-based rate of affected missing cells. Its meaning
+#'   depends on `fixed_rate_scale`; see the section on fixed rates.
+#' @param fixed_rate_scale The scale of `fixed_rate`: `"rate"` (default), an
+#'   event rate per unit of duration, or `"lambda"`, the
+#'   negative-multinomial lambda scale. Must
+#'   only be specified together with `fixed_rate`.
 #' @param period `NULL` or a vector of period values. If supplied, the rate
 #'   adjustment is restricted to missing cells in these periods. The base
 #'   strategy still applies to other missing periods.
@@ -35,10 +54,20 @@
 #'   `get_count_strategies()` returns a named list of these objects for use in
 #'   the `strategies` argument of [impute()].
 #'
+#' @references Roger JH (2021). NegMult20210313: SAS macros for imputation of
+#'   recurrent event data for partially observed off-treatment data.
+#'   DIA Missing Data Working Group.
+#'
 #' @examples
+#' fixed_rate <- count_strategy(
+#'     base = "MAR",
+#'     fixed_rate = 0.003,
+#'     period = "3"
+#' )
 #' fixed_lambda <- count_strategy(
 #'     base = "MAR",
-#'     fixed_lambda_rate = 0.0021,
+#'     fixed_rate = 0.0021,
+#'     fixed_rate_scale = "lambda",
 #'     period = "3"
 #' )
 #' double_rate <- count_strategy(
@@ -47,6 +76,7 @@
 #'     period = "3"
 #' )
 #' get_count_strategies(
+#'     FIXED_RATE = fixed_rate,
 #'     FIXED_LAMBDA = fixed_lambda,
 #'     DOUBLE_RATE = double_rate
 #' )
@@ -55,15 +85,20 @@
 count_strategy <- function(
     base = c("MAR", "JR", "CR"),
     rate_multiplier = 1,
-    fixed_lambda_rate = NULL,
+    fixed_rate = NULL,
+    fixed_rate_scale = c("rate", "lambda"),
     period = NULL
 ) {
     base <- match.arg(base)
-    fixed_lambda_rate <- ife(
-        is.null(fixed_lambda_rate),
-        NA_real_,
-        fixed_lambda_rate
+    assert_that(
+        missing(fixed_rate_scale) || !is.null(fixed_rate),
+        msg = "`fixed_rate_scale` can only be specified together with `fixed_rate`"
     )
+    fixed_rate_scale <- match.arg(fixed_rate_scale)
+    if (is.null(fixed_rate)) {
+        fixed_rate <- NA_real_
+        fixed_rate_scale <- NA_character_
+    }
     if (!is.null(period)) {
         period <- unique(as.character(period))
     }
@@ -71,7 +106,8 @@ count_strategy <- function(
     x <- list(
         base = base,
         rate_multiplier = rate_multiplier,
-        fixed_lambda_rate = fixed_lambda_rate,
+        fixed_rate = fixed_rate,
+        fixed_rate_scale = fixed_rate_scale,
         period = period
     )
     class(x) <- c("count_strategy", "list")
@@ -124,7 +160,8 @@ validate_count_strategy <- function(x) {
             c(
                 "base",
                 "rate_multiplier",
-                "fixed_lambda_rate",
+                "fixed_rate",
+                "fixed_rate_scale",
                 "period"
             )
         ),
@@ -134,10 +171,15 @@ validate_count_strategy <- function(x) {
         length(x$rate_multiplier) == 1,
         is.finite(x$rate_multiplier),
         x$rate_multiplier >= 0,
-        is.numeric(x$fixed_lambda_rate),
-        length(x$fixed_lambda_rate) == 1,
-        is.na(x$fixed_lambda_rate) ||
-            (is.finite(x$fixed_lambda_rate) && x$fixed_lambda_rate >= 0),
+        is.numeric(x$fixed_rate),
+        length(x$fixed_rate) == 1,
+        is.na(x$fixed_rate) ||
+            (is.finite(x$fixed_rate) && x$fixed_rate >= 0),
+        is.character(x$fixed_rate_scale),
+        length(x$fixed_rate_scale) == 1,
+        identical(is.na(x$fixed_rate), is.na(x$fixed_rate_scale)),
+        is.na(x$fixed_rate_scale) ||
+            x$fixed_rate_scale %in% c("rate", "lambda"),
         is.null(x$period) ||
             (is.character(x$period) &&
                 length(x$period) >= 1 &&
@@ -146,10 +188,10 @@ validate_count_strategy <- function(x) {
         msg = "Invalid `count_strategy` object"
     )
     assert_that(
-        is.na(x$fixed_lambda_rate) || x$rate_multiplier == 1,
+        is.na(x$fixed_rate) || x$rate_multiplier == 1,
         msg = paste(
             "Only one of a non-default `rate_multiplier` and",
-            "`fixed_lambda_rate` can be specified"
+            "`fixed_rate` can be specified"
         )
     )
     invisible(TRUE)
@@ -292,8 +334,13 @@ impute.draws_count <- function(
         strategy_specs_by_id = strategy_specs_by_id
     )
 
+    lambda_ratio <- 0
     imputations <- lapply(draws$samples, function(sample) {
         imputed_values <- sample_count_outcomes(prepared, sample)
+        lambda_ratio <<- max(
+            lambda_ratio,
+            lambda_max_ratio(prepared, sample)
+        )
         imputation_df(lapply(sample$ids, function(id) {
             subject_rows <- prepared$id == id
             imputation_single(
@@ -302,6 +349,22 @@ impute.draws_count <- function(
             )
         }))
     })
+    if (lambda_ratio > 100) {
+        warning(
+            sprintf(
+                paste(
+                    "A `fixed_rate_scale = \"lambda\"` strategy implies a",
+                    "missing-cell mean up to %.3g times the model-based mean",
+                    "in at least one posterior draw. The SAS lambda scale",
+                    "divides by the dispersion, so it is unstable when the",
+                    "dispersion is close to zero (nearly Poisson data).",
+                    "Consider `fixed_rate_scale = \"rate\"`."
+                ),
+                lambda_ratio
+            ),
+            call. = FALSE
+        )
+    }
     imputations <- do.call(imputation_list_df, imputations)
 
     result <- as_imputation(
@@ -448,7 +511,8 @@ prepare_count_imputation_data <- function(
         )
     )
     rate_multiplier <- rep(1, length(id))
-    fixed_lambda_rate <- rep(NA_real_, length(id))
+    fixed_rate <- rep(NA_real_, length(id))
+    fixed_rate_scale <- rep(NA_character_, length(id))
     for (subject_id in data$ids) {
         strategy_spec <- strategy_specs_by_id[[subject_id]]
         validate_count_strategy(strategy_spec)
@@ -457,8 +521,8 @@ prepare_count_imputation_data <- function(
             (is.null(strategy_spec$period) |
                 period %in% strategy_spec$period)
         rate_multiplier[affected_rows] <- strategy_spec$rate_multiplier
-        fixed_lambda_rate[affected_rows] <-
-            strategy_spec$fixed_lambda_rate
+        fixed_rate[affected_rows] <- strategy_spec$fixed_rate
+        fixed_rate_scale[affected_rows] <- strategy_spec$fixed_rate_scale
     }
     use_reference_observed <- strategy == "CR" & !is_missing
     use_reference_missing <- strategy %in% c("JR", "CR") & is_missing
@@ -482,7 +546,8 @@ prepare_count_imputation_data <- function(
         reference_group = reference_group,
         strategy = strategy,
         rate_multiplier = rate_multiplier,
-        fixed_lambda_rate = fixed_lambda_rate,
+        fixed_rate = fixed_rate,
+        fixed_rate_scale = fixed_rate_scale,
         design_observed = design_observed,
         design_missing = design_missing
     )
@@ -531,8 +596,9 @@ sample_count_outcomes <- function(prepared, sample) {
     if (is.null(prepared$rate_multiplier)) {
         prepared$rate_multiplier <- rep(1, length(prepared$id))
     }
-    if (is.null(prepared$fixed_lambda_rate)) {
-        prepared$fixed_lambda_rate <- rep(NA_real_, length(prepared$id))
+    if (is.null(prepared$fixed_rate)) {
+        prepared$fixed_rate <- rep(NA_real_, length(prepared$id))
+        prepared$fixed_rate_scale <- rep(NA_character_, length(prepared$id))
     }
 
     mu_observed <- numeric(length(prepared$id))
@@ -591,14 +657,15 @@ sample_count_outcomes <- function(prepared, sample) {
         size <- inv_phi + observed_count_total[subject]
         conditioning_mass <- inv_phi + observed_mu_total[subject]
         for (missing_row in missing_rows) {
-            imputation_mean <- ife(
-                is.na(prepared$fixed_lambda_rate[missing_row]),
-                mu_missing[missing_row] *
-                    prepared$rate_multiplier[missing_row],
-                prepared$duration[missing_row] *
-                    prepared$fixed_lambda_rate[missing_row] *
-                    inv_phi
-            )
+            fixed_rate <- prepared$fixed_rate[missing_row]
+            imputation_mean <- if (is.na(fixed_rate)) {
+                mu_missing[missing_row] * prepared$rate_multiplier[missing_row]
+            } else if (prepared$fixed_rate_scale[missing_row] == "rate") {
+                prepared$duration[missing_row] * fixed_rate
+            } else {
+                # SAS NM_Rand13 lambda scale: mean = L * lambda / phi
+                prepared$duration[missing_row] * fixed_rate * inv_phi
+            }
             # Conditional mean of the missing cell given the subject's frailty
             # posterior Gamma(size, conditioning_mass). Passing the mean
             # directly avoids forming conditioning_mass / (conditioning_mass +
@@ -621,4 +688,39 @@ sample_count_outcomes <- function(prepared, sample) {
         }
     }
     result
+}
+
+
+#' Largest ratio of lambda fixed means to model-based means
+#'
+#' For missing cells using `fixed_rate_scale = "lambda"`, the fixed mean
+#' `L * lambda / phi` is compared with the model-based mean of the same cell
+#' under the base strategy, `L * exp(x * beta)`, for one posterior draw.
+#'
+#' @inheritParams sample_count_outcomes
+#'
+#' @return The largest ratio, or 0 if no cell uses the SAS lambda scale.
+#'
+#' @keywords internal
+lambda_max_ratio <- function(prepared, sample) {
+    rows <- prepared$is_missing &
+        prepared$duration > 0 &
+        prepared$fixed_rate_scale %in% "lambda"
+    if (!any(rows)) {
+        return(0)
+    }
+    phi_group <- ifelse(
+        prepared$strategy[rows] %in% c("JR", "CR"),
+        prepared$reference_group[rows],
+        prepared$own_group[rows]
+    )
+    phi <- if (length(sample$phi) == 1) {
+        sample$phi
+    } else {
+        unname(sample$phi[phi_group])
+    }
+    model_rate <- exp(drop(
+        prepared$design_missing[rows, , drop = FALSE] %*% sample$beta
+    ))
+    max(prepared$fixed_rate[rows] / phi / model_rate)
 }

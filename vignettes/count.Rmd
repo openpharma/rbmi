@@ -876,19 +876,26 @@ The next controlled-imputation analysis retains the estimated off-treatment
 rate for placebo, but replaces the model-based period-3 rate for both active
 arms with a fixed value.
 
-There is an important parameterization detail. The executed SAS code fixes
-`0.0021` on its negative-multinomial lambda scale. If
-$r = \phi^{-1}$ is the negative-multinomial shape parameter, the
-Poisson mean supplied for period 3 is therefore
+There is an important parameterization detail. `count_strategy()` offers two
+scales for `fixed_rate`:
 
-$$
-\mu_{i3} = r L_{i3} \times 0.0021
-          = \frac{L_{i3} \times 0.0021}{\phi}.
-$$
+- `fixed_rate_scale = "rate"` (the default): `fixed_rate` is an event rate per
+  unit of duration, so the unconditional mean of the missing cell is
+  $\mu_{i3} = L_{i3} \times \text{fixed\_rate}$, the same for every posterior
+  draw and treatment arm.
+- `fixed_rate_scale = "lambda"`: reproduces the SAS macro `NM_Rand13.sas`,
+  which fixes the value on its negative-multinomial lambda scale. If
+  $r = \phi^{-1}$ is the negative-multinomial shape parameter, the mean is
+  $\mu_{i3} = r L_{i3} \times \text{fixed\_rate} = L_{i3} \times \text{fixed\_rate} / \phi$.
+  The implied event rate therefore varies with each posterior draw of $\phi$
+  and grows without bound when $\phi$ is close to zero (nearly Poisson data);
+  `impute()` warns when this implies rates more than 100 times the model-based
+  rate.
 
-Consequently, `0.0021` is not a fixed marginal event rate. A genuinely fixed
-Poisson event rate would instead use
-$\mu_{i3} = L_{i3} \times 0.0021$, i.e. without the division by $\phi$. 
+To reproduce the SAS results, we select the SAS scale explicitly. For new
+analyses, the default rate scale is recommended because the specified value
+is then an interpretable event rate.
+
 In the joint count model, $\mu_{i3}$ is the
 unconditional marginal mean of $Y_{i3}$. The actual imputation distribution,
 however, conditions on the observed counts $y_{i1},y_{i2}$. Given these counts
@@ -901,7 +908,7 @@ $$
      {r + \hat\mu_{i1} + \hat\mu_{i2}}\,\mu_{i3}.
 $$
 
-For a `fixed_lambda_rate` strategy based on JR or CR, $r$ is calculated from
+For a fixed-rate strategy based on JR or CR, $r$ is calculated from
 the mapped reference arm's `phi`; under JR this is so even though the fitted
 observed-cell means in the denominator use the subject's randomized-arm
 design.
@@ -928,7 +935,8 @@ active_period3_strategy <- dat_count_filled %>%
 fixed_lambda_strategies <- get_count_strategies(
     FIXED_LAMBDA = count_strategy(
         base = "MAR",
-        fixed_lambda_rate = 0.0021,
+        fixed_rate = 0.0021,
+        fixed_rate_scale = "lambda",
         period = "3"
     )
 )

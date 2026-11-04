@@ -68,22 +68,31 @@ test_that("count draws print endpoint-specific settings", {
 test_that("count draws print the log of the configured duration as an offset", {
     result <- make_count_draws()
     result$data$vars$duration <- "Length"
-    result$formula <- Observed_Count ~ 1 + TreatLab + TreatLab * OnOff + BaseCount
+    result$formula <- Observed_Count ~ 1 +
+        TreatLab +
+        TreatLab * OnOff +
+        BaseCount
     original_formula <- result$formula
 
     output <- capture.output(print(result))
 
-    expect_true(any(output == paste0(
-        "Model Formula: Observed_Count ~ 1 + TreatLab + TreatLab * OnOff + ",
-        "BaseCount + offset(log(Length))"
-    )))
+    expect_true(any(
+        output ==
+            paste0(
+                "Model Formula: Observed_Count ~ 1 + TreatLab + TreatLab * OnOff + ",
+                "BaseCount + offset(log(Length))"
+            )
+    ))
     expect_identical(result$formula, original_formula)
 
     continuous_output <- capture.output(print.draws(result))
-    expect_true(any(continuous_output == paste0(
-        "Model Formula: Observed_Count ~ 1 + TreatLab + TreatLab * OnOff + ",
-        "BaseCount"
-    )))
+    expect_true(any(
+        continuous_output ==
+            paste0(
+                "Model Formula: Observed_Count ~ 1 + TreatLab + TreatLab * OnOff + ",
+                "BaseCount"
+            )
+    ))
 })
 
 
@@ -373,7 +382,7 @@ test_that("count imputation remains exact near the Poisson limit", {
 })
 
 
-test_that("fixed lambda rate uses the posterior dispersion draw", {
+test_that("SAS lambda fixed rate divides by the posterior dispersion draw", {
     draws <- make_count_draws(strategy = "MAR", phi = 0.5)
     updated_strategy <- data.frame(
         id = "active",
@@ -382,7 +391,8 @@ test_that("fixed lambda rate uses the posterior dispersion draw", {
     strategies <- get_count_strategies(
         FIXED_LAMBDA = count_strategy(
             base = "MAR",
-            fixed_lambda_rate = 0.25,
+            fixed_rate = 0.25,
+            fixed_rate_scale = "lambda",
             period = "3"
         )
     )
@@ -408,6 +418,65 @@ test_that("fixed lambda rate uses the posterior dispersion draw", {
 })
 
 
+test_that("default fixed rate is a marginal rate independent of dispersion", {
+    strategies <- get_count_strategies(
+        FIXED_RATE = count_strategy(
+            base = "MAR",
+            fixed_rate = 0.25,
+            period = "3"
+        )
+    )
+    updated_strategy <- data.frame(id = "active", strategy = "FIXED_RATE")
+
+    # The active subject observed 3 events with model-based mean 8; its missing
+    # cell has exposure 1 and fixed mean 0.25 for every dispersion value.
+    for (phi in c(0.5, 2, 1e-12)) {
+        draws <- make_count_draws(strategy = "MAR", phi = phi)
+        set.seed(906)
+        expected <- stats::rnbinom(
+            n = 2,
+            size = c(1 / phi + 5, 1 / phi + 3),
+            mu = c(
+                (1 / phi + 5) * 2 / (1 / phi + 4),
+                (1 / phi + 3) * 0.25 / (1 / phi + 8)
+            )
+        )
+        set.seed(906)
+        actual <- impute(
+            draws,
+            update_strategy = updated_strategy,
+            strategies = strategies
+        )
+        completed <- extract_imputed_dfs(actual)[[1]]
+        expect_equal(completed$outcome[completed$period == "3"], expected)
+    }
+})
+
+
+test_that("SAS lambda fixed rate warns near the Poisson limit", {
+    draws <- make_count_draws(strategy = "MAR", phi = 1e-12)
+    updated_strategy <- data.frame(id = "active", strategy = "FIXED")
+    sas <- get_count_strategies(
+        FIXED = count_strategy(
+            fixed_rate = 0.25,
+            fixed_rate_scale = "lambda",
+            period = "3"
+        )
+    )
+    rate <- get_count_strategies(
+        FIXED = count_strategy(fixed_rate = 0.25, period = "3")
+    )
+
+    expect_warning(
+        impute(draws, update_strategy = updated_strategy, strategies = sas),
+        "lambda"
+    )
+    expect_silent(
+        impute(draws, update_strategy = updated_strategy, strategies = rate)
+    )
+})
+
+
 test_that("controlled count strategy inputs are validated", {
     expect_error(
         count_strategy(rate_multiplier = -1),
@@ -416,10 +485,19 @@ test_that("controlled count strategy inputs are validated", {
     expect_error(
         count_strategy(
             rate_multiplier = 2,
-            fixed_lambda_rate = 0.1
+            fixed_rate = 0.1
         ),
         "Only one"
     )
+    expect_error(
+        count_strategy(fixed_rate_scale = "lambda"),
+        "only be specified together with `fixed_rate`"
+    )
+    expect_error(
+        count_strategy(fixed_rate = 0.1, fixed_rate_scale = "lambda"),
+        "should be one of"
+    )
+    expect_identical(count_strategy(fixed_rate = 0.1)$fixed_rate_scale, "rate")
     expect_error(
         get_count_strategies(count_strategy()),
         "must be named"
