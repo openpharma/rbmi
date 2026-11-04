@@ -53,6 +53,57 @@ test_that("count likelihood remains accurate near the Poisson limit", {
 })
 
 
+test_that("count likelihood is exact for large subject totals at any dispersion", {
+    skip_if_not(is_core_test())
+
+    # Subject totals of 40 and 1000 use the power-series and lgamma branches
+    # of the O(1) likelihood; the reference sums log1p(k * phi) directly.
+    stan_data <- list(
+        N = 2L,
+        R = 4L,
+        P = 1L,
+        G = 1L,
+        group = c(1L, 1L),
+        subject = c(1L, 1L, 2L, 2L),
+        y = c(25L, 15L, 600L, 400L),
+        X = matrix(1, 4, 1),
+        log_offset = log(c(10, 6, 300, 200))
+    )
+    beta <- array(log(1.1), dim = 1)
+    fit <- rstan::sampling(
+        get_stan_model_count(),
+        data = stan_data,
+        chains = 1,
+        iter = 1,
+        warmup = 0,
+        algorithm = "Fixed_param",
+        init = list(list(beta = beta, phi = array(0.5))),
+        seed = 42,
+        refresh = 0
+    )
+    reference <- function(phi) {
+        mu <- exp(stan_data$log_offset + beta)
+        sum(vapply(1:2, function(i) {
+            rows <- stan_data$subject == i
+            y <- stan_data$y[rows]
+            M <- sum(mu[rows])
+            k <- seq_len(sum(y) - 1)
+            sum(y * log(mu[rows]) - lgamma(y + 1)) + sum(log1p(k * phi)) -
+                (1 / phi + sum(y)) * log1p(phi * M)
+        }, numeric(1))) + stats::dgamma(phi, 0.0001, 0.0001, log = TRUE)
+    }
+    dispersion <- c(2, 0.3, 1e-3, 1e-6, 1e-10, 2 * .Machine$double.eps)
+    actual <- vapply(dispersion, function(phi) {
+        parameters <- rstan::unconstrain_pars(fit, list(beta = beta, phi = array(phi)))
+        rstan::log_prob(fit, parameters, adjust_transform = FALSE)
+    }, numeric(1))
+    expected <- vapply(dispersion, reference, numeric(1))
+
+    # Stan omits constants that do not depend on parameters.
+    expect_equal(actual - actual[1], expected - expected[1], tolerance = 1e-10)
+})
+
+
 test_that("count Stan model is reused from the model cache", {
     skip_if_not(is_core_test())
 
