@@ -399,7 +399,7 @@ It follows that
 $$
 \ell_i = \sum_{j\in O_i}
 \{y_{ij}\log\mu_{ij}-\log\Gamma(y_{ij}+1)-\mu_{ij}\}
-+\frac{\phi_i}{2}\{s_i(s_i-1)-2s_iM_i+M_i^2\}
++\frac{\phi_i}{2}\{s_i(s_i-1)-2s_i M_i+M_i^2\}
 +O(\phi_i^2).
 $$
 
