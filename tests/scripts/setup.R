@@ -8,6 +8,20 @@ remotes::install_deps(dependencies = TRUE, upgrade = "never")
 # Docker image is published. Source builds use the current system's libraries.
 if (identical(Sys.info()[["sysname"]], "Linux")) {
     installed <- installed.packages()
+    roots <- unique(c(
+        desc::desc("DESCRIPTION")$get_deps()$package,
+        "devtools", "roxygen2", "xml2"
+    ))
+    required <- unique(c(roots, unlist(tools::package_dependencies(
+        roots, db = installed, which = c("Depends", "Imports", "LinkingTo"),
+        recursive = TRUE
+    ))))
+    # Ignore unrelated tools bundled into the image, and never reinstall base R.
+    installed <- installed[
+        installed[, "Package"] %in% required &
+            (is.na(installed[, "Priority"]) | installed[, "Priority"] != "base"),
+        , drop = FALSE
+    ]
     broken <- vapply(seq_len(nrow(installed)), function(i) {
         libs <- list.files(
             file.path(installed[i, "LibPath"], installed[i, "Package"], "libs"),
