@@ -260,8 +260,16 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <li><a href="#reference-assumptions" id="toc-reference-assumptions"><span class="toc-section-number">2.4</span> Reference assumptions</a></li>
 <li><a href="#off-treatment-modeling" id="toc-off-treatment-modeling"><span class="toc-section-number">2.5</span> Off-treatment Modeling</a></li>
 <li><a href="#imputation" id="toc-imputation"><span class="toc-section-number">2.6</span> Imputation</a></li>
-<li><a href="#analysis" id="toc-analysis"><span class="toc-section-number">2.7</span> Analysis</a></li>
-<li><a href="#pooling" id="toc-pooling"><span class="toc-section-number">2.8</span> Pooling</a></li>
+<li><a href="#sec:countStrategies" id="toc-sec:countStrategies"><span class="toc-section-number">2.7</span> Controlled imputation strategies</a></li>
+<li><a href="#analysis" id="toc-analysis"><span class="toc-section-number">2.8</span> Analysis</a></li>
+<li><a href="#additive-adjustments-to-completed-counts" id="toc-additive-adjustments-to-completed-counts"><span class="toc-section-number">2.9</span> Additive adjustments to completed counts</a></li>
+<li><a href="#pooling" id="toc-pooling"><span class="toc-section-number">2.10</span> Pooling</a></li>
+</ul></li>
+<li><a href="#sec:countLikelihood" id="toc-sec:countLikelihood"><span class="toc-section-number">3</span> Appendix: Numerical evaluation of the count likelihood</a>
+<ul>
+<li><a href="#observed-data-likelihood" id="toc-observed-data-likelihood"><span class="toc-section-number">3.1</span> Observed-data likelihood</a></li>
+<li><a href="#evaluation-of-the-gamma-ratio" id="toc-evaluation-of-the-gamma-ratio"><span class="toc-section-number">3.2</span> Evaluation of the gamma ratio</a></li>
+<li><a href="#stable-evaluation-near-the-poisson-limit" id="toc-stable-evaluation-near-the-poisson-limit"><span class="toc-section-number">3.3</span> Stable evaluation near the Poisson limit</a></li>
 </ul></li>
 <li><a href="#references" id="toc-references">References</a></li>
 </ul>
@@ -334,13 +342,10 @@ If, on the other hand, we assume that <span class="math inline">\(\gamma_i\)</sp
 <li>For the regression coefficients <span class="math inline">\(\beta\)</span>, an improper uniform prior is used.</li>
 <li>For the dispersion parameter <span class="math inline">\(\phi\)</span>, a gamma distribution <span class="math inline">\(G(a, b)\)</span> with shape <span class="math inline">\(a\)</span> and inverse scale <span class="math inline">\(b\)</span> parameters both equal to 0.0001 is used.</li>
 </ul>
-<p>We use a lower bound of <span class="math inline">\(10^{-6}\)</span> on <code>phi</code> as a numerical safeguard. It makes the gamma prior
-technically truncated, but at this value the negative binomial is, for these
-data, effectively at its Poisson limit. The safeguard is needed because the
-very diffuse gamma prior has an integrable singularity at zero; and unconstrained exploration can cause
-divergent transitions even though still smaller values are not practically
-distinguishable from the Poisson limit.</p>
-<p>Note that these priors are currently fixed in the package. In the future we might offer additional prior options for users to choose from.</p>
+<p>The dispersion parameter is constrained to be positive, using machine epsilon
+(<code>.Machine$double.eps</code>) as its lower bound, consistent with the variance
+parameters in the continuous outcome models.</p>
+<p>The prior distribution families and their parameters are currently fixed in the package. In the future we might offer additional prior options for users to choose from.</p>
 </div>
 <div id="reference-assumptions" class="section level3" number="2.4">
 <h3><span class="header-section-number">2.4</span> Reference assumptions</h3>
@@ -352,7 +357,7 @@ important when a subject has missing values in other periods.</p>
 <p>The available assumptions are therefore:</p>
 <ul>
 <li>MAR: Missing periods use the patient’s randomized-arm design.</li>
-<li>CR: Missing periods use the reference-arm design. Observed periods also use the reference-arm design when fitting the count model.</li>
+<li>CR: Missing periods use the reference-arm design. In the imputation step, the means of the observed periods that the subject’s frailty is conditioned on are also computed with the reference-arm design. The posterior fit of the count model is the same for all strategies; it always uses the randomized-arm design for the observed periods.</li>
 <li>JR: Missing periods use the reference-arm design, while observed periods retain the patient’s randomized-arm design.</li>
 </ul>
 <p>Thus, count-outcome <code>JR</code> is not a post-ICE-only J2R implementation: it applies
@@ -399,18 +404,216 @@ reference arm under JR or CR. Under JR, <span class="math inline">\(\hat{\mu}_{i
 and missing-period designs, as well as the dispersion, are from the reference
 arm. With a shared dispersion parameter, the group index can be dropped.</p>
 <p>Note that in the second parameter of the negative binomial distribution we have the actually observed number of events <span class="math inline">\(y_{i1}\)</span> and <span class="math inline">\(y_{i2}\)</span>.</p>
+<p>More generally, let <span class="math inline">\(a_i = \phi_{g_i^*}^{-1} + \sum_{j \in O_i} y_{ij}\)</span> and
+<span class="math inline">\(b_i = \phi_{g_i^*}^{-1} + \sum_{j \in O_i} \hat{\mu}_{ij}\)</span> for the observed
+positive-duration periods <span class="math inline">\(O_i\)</span> of patient <span class="math inline">\(i\)</span>. Its frailty then follows a
+<span class="math inline">\(\text{Gamma}(a_i, b_i)\)</span> distribution given the observed counts, and a missing
+period <span class="math inline">\(j\)</span> with unconditional mean <span class="math inline">\(m_{ij}\)</span> is imputed from a negative binomial
+distribution with size <span class="math inline">\(a_i\)</span> and mean <span class="math inline">\(a_i m_{ij} / b_i\)</span>. Missing periods are
+imputed one after another in period order; after each imputed count <span class="math inline">\(y\)</span> with
+unconditional mean <span class="math inline">\(m\)</span>, <span class="math inline">\(a_i\)</span> increases by <span class="math inline">\(y\)</span> and <span class="math inline">\(b_i\)</span> by <span class="math inline">\(m\)</span>, so that the
+joint distribution of all imputed periods is the one implied by the shared
+frailty. The implementation passes the mean <span class="math inline">\(a_i m_{ij} / b_i\)</span> directly to the
+sampler. The equivalent probability parameter <span class="math inline">\(b_i / (b_i + m_{ij})\)</span> rounds to
+one when <span class="math inline">\(\phi\)</span> is close to zero and must not be formed.</p>
 </div>
-<div id="analysis" class="section level3" number="2.7">
-<h3><span class="header-section-number">2.7</span> Analysis</h3>
+<div id="sec:countStrategies" class="section level3" number="2.7">
+<h3><span class="header-section-number">2.7</span> Controlled imputation strategies</h3>
+<p>In addition to the reference-based assumptions, <code>count_strategy()</code> modifies the
+unconditional mean <span class="math inline">\(m_{ij}\)</span> of selected missing periods; the conditional
+sampling above is unchanged.</p>
+<ul>
+<li>Rate multiplier <span class="math inline">\(c \geq 0\)</span>: <span class="math inline">\(m_{ij} = c\,\hat{\mu}_{ij}\)</span>, where
+<span class="math inline">\(\hat{\mu}_{ij}\)</span> is the mean under the base strategy (MAR, JR or CR).</li>
+<li>Fixed rate <span class="math inline">\(\rho \geq 0\)</span> (<code>fixed_rate_scale = &quot;rate&quot;</code>, the default):
+<span class="math inline">\(m_{ij} = T_{ij}\,\rho\)</span>. The rate is the same for every posterior draw,
+treatment arm and base strategy.</li>
+<li>Fixed rate on the SAS lambda scale (<code>fixed_rate_scale = &quot;lambda&quot;</code>):
+<span class="math inline">\(m_{ij} = T_{ij}\,\lambda / \phi_{g_i^*}\)</span>, reproducing the macro
+<code>NM_Rand13.sas</code>, which fixes <span class="math inline">\(\lambda = \phi \times \text{rate}\)</span> in its
+negative-multinomial parameterisation. The implied event rate
+<span class="math inline">\(\lambda / \phi\)</span> varies between posterior draws and arms and is unbounded
+as <span class="math inline">\(\phi \to 0\)</span>. <code>impute()</code> warns if <span class="math inline">\(m_{ij}\)</span> exceeds 100 times
+<span class="math inline">\(\hat{\mu}_{ij}\)</span> for any period and posterior draw.</li>
+</ul>
+<p>The base strategy still determines the observed-period means and the
+dispersion parameter used in <span class="math inline">\(a_i\)</span> and <span class="math inline">\(b_i\)</span>, so with a fixed rate the
+conditional mean <span class="math inline">\(a_i m_{ij} / b_i\)</span> still depends on the patient’s observed
+counts.</p>
+</div>
+<div id="analysis" class="section level3" number="2.8">
+<h3><span class="header-section-number">2.8</span> Analysis</h3>
 <p>The analysis model is actually simpler than the imputation model. Since we want to use a treatment policy estimand, we do not differentiate any longer between the three periods, and we just want to model the total number of events <span class="math inline">\(Y_i = Y_{i1} + Y_{i2} + Y_{i3}\)</span> for each patient <span class="math inline">\(i\)</span> using a negative binomial regression model with an offset for the total follow-up time <span class="math inline">\(T_i = T_{i1} + T_{i2} + T_{i3}\)</span>.</p>
 <p>We note that all withdrawn patients will have the same total follow-up time <span class="math inline">\(t \equiv T_i\)</span> due to the fixed duration trial design and the fact that we impute for the same overall time. However, there might be patients who were not withdrawn who stayed slightly longer or shorter in the study. Therefore we still use offset terms <span class="math inline">\(t_{i}\)</span> for each patient <span class="math inline">\(i\)</span> in the analysis model.</p>
 <p>Patients should be analysed according to their assigned randomised treatment, in order to be aligned with the treatment policy estimand. This is regardless of the changes for the imputation model’s design matrix in the Impute step.</p>
 <p>We fit this with maximum likelihood estimation for each imputed dataset (e.g. with <code>MASS::glm.nb</code>). The model should include the same covariates as the imputation model.</p>
 <p>We need to be careful how to obtain the standard error. As reported in the CAMIS repository <a href="https://psiaims.github.io/CAMIS/Comp/r-sas_negbin.html">here</a>, we need to recalculate the variance-covariance matrix for the model parameters with a custom function in order to match the <code>SAS PROC GENMOD</code> results.</p>
 </div>
-<div id="pooling" class="section level3" number="2.8">
-<h3><span class="header-section-number">2.8</span> Pooling</h3>
+<div id="additive-adjustments-to-completed-counts" class="section level3" number="2.9">
+<h3><span class="header-section-number">2.9</span> Additive adjustments to completed counts</h3>
+<p>As a separate sensitivity analysis, <code>analyse(delta = ...)</code> can add a specified
+integer number of events to completed subject-period counts before analysis.
+For imputation <span class="math inline">\(m\)</span>, the adjusted value is <span class="math inline">\(Y_{ij}^{(m)} + \delta_{ij}\)</span>.
+Unlike a rate adjustment in <code>count_strategy()</code>, this does not change the
+conditional sampling distribution used to generate the imputations. The offset
+is per period count and is not automatically scaled by exposure.</p>
+<p>Offsets must be finite and integerish, and every adjusted count must be finite
+and non-negative, with zero counts in zero-duration periods. Invalid results
+are rejected rather than truncated. See the additive delta example in the
+<a href="count.html">modeling count data vignette</a> for constructing a subject-period
+adjustment with <code>delta_template()</code>.</p>
+</div>
+<div id="pooling" class="section level3" number="2.10">
+<h3><span class="header-section-number">2.10</span> Pooling</h3>
 <p>Finally, Rubin’s rules are applied to pool the estimates (on the log-rate scale, i.e. the regression coefficients <span class="math inline">\(\beta\)</span>) across the imputed datasets, and we can then exponentiate the pooled estimates and confidence intervals to get the results for the rate ratios.</p>
+</div>
+</div>
+<div id="sec:countLikelihood" class="section level2" number="3">
+<h2><span class="header-section-number">3</span> Appendix: Numerical evaluation of the count likelihood</h2>
+<p>The Stan implementation in
+<a href="https://github.com/openpharma/rbmi/blob/main/inst/stan/count_model.stan"><code>inst/stan/count_model.stan</code></a>
+integrates out the patient-specific gamma frailty before evaluating the likelihood. This appendix describes how that likelihood
+is evaluated efficiently while retaining numerical accuracy for small
+dispersion parameters and large event totals. These numerical choices leave
+the statistical model unchanged.</p>
+<div id="observed-data-likelihood" class="section level3" number="3.1">
+<h3><span class="header-section-number">3.1</span> Observed-data likelihood</h3>
+<p>Let <span class="math inline">\(O_i\)</span> denote the observed positive-duration periods for patient <span class="math inline">\(i\)</span>, and
+write</p>
+<p><span class="math display">\[
+\mu_{ij} = t_{ij}\exp(x_{ij}^{\top}\beta), \qquad
+s_i = \sum_{j\in O_i} y_{ij}, \qquad
+M_i = \sum_{j\in O_i} \mu_{ij}.
+\]</span></p>
+<p>Here <span class="math inline">\(\mu_{ij}\)</span> is the mean <em>before</em> multiplication by the frailty (and hence
+also the marginal mean, since the frailty has mean one). Let
+<span class="math inline">\(\phi_i = \phi_{g_i}\)</span> be the dispersion for the patient’s randomized-arm group
+in the posterior fit; with common dispersion, <span class="math inline">\(\phi_i = \phi\)</span>. Conditional on
+<span class="math inline">\(\gamma_i\)</span>, the observed counts are independent Poisson variables with means
+<span class="math inline">\(\gamma_i\mu_{ij}\)</span>, and
+<span class="math inline">\(\gamma_i\sim\mathrm{Gamma}(\phi_i^{-1},\phi_i^{-1})\)</span> in shape/rate notation.
+Integrating their joint density over <span class="math inline">\(\gamma_i\)</span> gives</p>
+<p><span class="math display">\[
+p(\{y_{ij}\}_{j\in O_i}\mid\beta,\phi_i)
+= \left\{\prod_{j\in O_i}\frac{\mu_{ij}^{y_{ij}}}{y_{ij}!}\right\}
+\frac{\Gamma(\phi_i^{-1}+s_i)}{\Gamma(\phi_i^{-1})}
+\frac{\phi_i^{s_i}}{(1+\phi_i M_i)^{\phi_i^{-1}+s_i}}.
+\]</span></p>
+<p>Thus the patient’s log-likelihood contribution is</p>
+<p><span class="math display">\[
+\ell_i = \sum_{j\in O_i}\{y_{ij}\log\mu_{ij}-\log\Gamma(y_{ij}+1)\}
++ D(s_i,\phi_i)
+- (\phi_i^{-1}+s_i)\log(1+\phi_i M_i),
+\]</span></p>
+<p>where the gamma recurrence yields</p>
+<p><span class="math display">\[
+D(s,\phi)
+= \log\Gamma(\phi^{-1}+s)-\log\Gamma(\phi^{-1})+s\log\phi
+= \sum_{k=1}^{s-1}\log(1+k\phi).
+\]</span></p>
+<p>The sum is empty and <span class="math inline">\(D(s,\phi)=0\)</span> for <span class="math inline">\(s=0\)</span> or <span class="math inline">\(s=1\)</span>. Only the totals <span class="math inline">\(s_i\)</span>
+and <span class="math inline">\(M_i\)</span> enter the shared-frailty part of the likelihood; the individual
+observed cells enter the first sum.</p>
+</div>
+<div id="evaluation-of-the-gamma-ratio" class="section level3" number="3.2">
+<h3><span class="header-section-number">3.2</span> Evaluation of the gamma ratio</h3>
+<p>The Stan function <code>log_rising_ratio()</code> evaluates <span class="math inline">\(D(s,\phi)\)</span>, using
+<code>stirling_remainder()</code> in the Stirling branch.</p>
+<p>Direct summation of <span class="math inline">\(D\)</span> requires work proportional to the event total.
+Conversely, directly subtracting log-gamma values can lose precision when
+<span class="math inline">\(\phi^{-1}\)</span> is large. The implementation uses the following branches, in the
+order shown.</p>
+<ol style="list-style-type: decimal">
+<li><p><strong>Small totals (<span class="math inline">\(s\leq32\)</span>).</strong> Evaluate the finite sum using
+<code>log1p(k * phi)</code>, which computes <span class="math inline">\(\log(1+k\phi)\)</span> accurately even when
+<span class="math inline">\(k\phi\)</span> is small.</p></li>
+<li><p><strong>Near the Poisson limit (<span class="math inline">\(s&gt;32\)</span> and <span class="math inline">\(s\phi&lt;10^{-2}\)</span>).</strong> Expand each
+logarithm and collect powers of <span class="math inline">\(\phi\)</span>:</p>
+<p><span class="math display">\[
+D(s,\phi) = \sum_{p=1}^{\infty}
+\frac{(-1)^{p+1}\phi^p}{p}S_p(s-1), \qquad
+S_p(n)=\sum_{k=1}^{n}k^p.
+\]</span></p>
+<p>The implementation retains <span class="math inline">\(p=1,\ldots,6\)</span>. The power sums have closed
+polynomial forms (Faulhaber’s formulas), so no loop over events is needed:</p>
+<p><span class="math display">\[
+\begin{aligned}
+S_1(n)&amp;=n(n+1)/2,\\
+S_2(n)&amp;=n(n+1)(2n+1)/6,\\
+S_3(n)&amp;=\{n(n+1)/2\}^2,\\
+S_4(n)&amp;=n(n+1)(2n+1)(3n^2+3n-1)/30,\\
+S_5(n)&amp;=n^2(n+1)^2(2n^2+2n-1)/12,\\
+S_6(n)&amp;=n(n+1)(2n+1)(3n^4+6n^3-3n+1)/42.
+\end{aligned}
+\]</span></p>
+<p>Since <span class="math inline">\(k\phi&lt;10^{-2}\)</span> throughout the sum, the alternating-series
+remainder has magnitude at most <span class="math inline">\(\phi^7 S_7(s-1)/7\)</span>. This controls the
+truncation error without subtracting large log-gamma values.</p></li>
+<li><p><strong>Large inverse dispersion (remaining cases with <span class="math inline">\(\phi\leq10^{-2}\)</span>).</strong>
+Put <span class="math inline">\(a=\phi^{-1}\geq100\)</span> and write the Stirling expansion as</p>
+<p><span class="math display">\[
+\log\Gamma(a)=(a-\tfrac12)\log a-a+\tfrac12\log(2\pi)+\delta(a).
+\]</span></p>
+<p>Substituting into <span class="math inline">\(D\)</span> and cancelling the <span class="math inline">\(\log a\)</span> terms algebraically gives</p>
+<p><span class="math display">\[
+D(s,\phi)=(a+s-\tfrac12)\log(1+s\phi)-s
++\delta(a+s)-\delta(a).
+\]</span></p>
+<p>The logarithm is evaluated with <code>log1p</code>, and the remainder is approximated
+by</p>
+<p><span class="math display">\[
+\delta(a)\approx\frac{1}{12a}-\frac{1}{360a^3}
++\frac{1}{1260a^5}-\frac{1}{1680a^7}.
+\]</span></p>
+<p>For <span class="math inline">\(a\geq100\)</span>, the first omitted term <span class="math inline">\(1/(1188a^9)\)</span> bounds the
+absolute error of this remainder approximation and is less than
+<span class="math inline">\(10^{-21}\)</span>. This form avoids subtracting two large log-gamma values;
+the near-Poisson branch handles the cases where <span class="math inline">\(s\phi\)</span> is small.</p></li>
+<li><p><strong>Remaining cases (<span class="math inline">\(\phi&gt;10^{-2}\)</span>).</strong> Use the log-gamma expression for
+<span class="math inline">\(D\)</span> directly. Here <span class="math inline">\(\phi^{-1}&lt;100\)</span>, avoiding the large inverse-dispersion
+cancellation that motivates the preceding branches.</p></li>
+</ol>
+<p>The finite-sum branch is capped at 31 terms, and the other branches have a
+fixed number of operations. Consequently, the work to evaluate <span class="math inline">\(D\)</span> does not
+grow with the event total. Evaluating the whole likelihood still requires
+work proportional to the number of observed cells and patients.</p>
+</div>
+<div id="stable-evaluation-near-the-poisson-limit" class="section level3" number="3.3">
+<h3><span class="header-section-number">3.3</span> Stable evaluation near the Poisson limit</h3>
+<p>The Stan function <code>log1p_minus_x()</code> evaluates the correction <span class="math inline">\(h(w)\)</span> below,
+which is used in the patient-level loop in the <code>model</code> block.
+The remaining likelihood term also needs care. With <span class="math inline">\(w=\phi M\)</span>, use the exact
+identity</p>
+<p><span class="math display">\[
+-(\phi^{-1}+s)\log(1+w)
+= -M-s\log(1+w)-\frac{h(w)}{\phi}, \qquad
+h(w)=\log(1+w)-w.
+\]</span></p>
+<p>For <span class="math inline">\(w&lt;10^{-3}\)</span>, the implementation evaluates</p>
+<p><span class="math display">\[
+h(w)\approx-\frac{w^2}{2}+\frac{w^3}{3}-\frac{w^4}{4}
++\frac{w^5}{5}-\frac{w^6}{6};
+\]</span></p>
+<p>otherwise it uses <code>log1p(w) - w</code>. In the series branch, the absolute
+truncation error is at most <span class="math inline">\(w^7/7\)</span> for <span class="math inline">\(0\leq w&lt;10^{-3}\)</span>.
+Separating the leading term <span class="math inline">\(-M\)</span> and evaluating the small correction directly
+avoids cancellation in derivatives with respect to <span class="math inline">\(\phi\)</span>, which Stan needs
+for posterior sampling.</p>
+<p>For example, with <span class="math inline">\(s\)</span> and <span class="math inline">\(M\)</span> fixed, the expansions give</p>
+<p><span class="math display">\[
+D(s,\phi)=\frac{s(s-1)}{2}\phi+O(\phi^2), \qquad
+-\frac{h(\phi M)}{\phi}=\frac{M^2}{2}\phi+O(\phi^2).
+\]</span></p>
+<p>It follows that</p>
+<p><span class="math display">\[
+\ell_i = \sum_{j\in O_i}
+\{y_{ij}\log\mu_{ij}-\log\Gamma(y_{ij}+1)-\mu_{ij}\}
++\frac{\phi_i}{2}\{s_i(s_i-1)-2s_i M_i+M_i^2\}
++O(\phi_i^2).
+\]</span></p>
+<p>The leading term is the log-likelihood for independent Poisson counts. This
+makes the Poisson limit explicit and shows why the dispersion-dependent
+corrections should be evaluated directly when <span class="math inline">\(\phi_i\)</span> is small.</p>
 </div>
 </div>
 <div id="references" class="section level2 unnumbered">

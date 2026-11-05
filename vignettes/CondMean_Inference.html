@@ -556,22 +556,22 @@ Finally, we call the function <code>draws()</code> to derive the parameter estim
 <span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
 <span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt; Results:</span></span>
 <span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt;   ==================================================</span></span>
-<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt;    parameter   est     se     lci     uci     pval  </span></span>
-<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="co">#&gt;   --------------------------------------------------</span></span>
-<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="co">#&gt;      trt_4    -0.092  0.695  -1.453   1.27   0.895  </span></span>
-<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_4  -1.616  0.588  -2.767  -0.464  0.006  </span></span>
-<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_4  -1.708  0.396  -2.484  -0.931  &lt;0.001 </span></span>
-<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a><span class="co">#&gt;      trt_5    1.305   0.878  -0.416  3.027   0.137  </span></span>
-<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_5  -4.133  0.688  -5.481  -2.785  &lt;0.001 </span></span>
-<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_5  -2.828  0.604  -4.011  -1.645  &lt;0.001 </span></span>
-<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a><span class="co">#&gt;      trt_6    1.929   0.862  0.239   3.619   0.025  </span></span>
-<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_6  -6.088  0.671  -7.402  -4.773  &lt;0.001 </span></span>
-<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_6  -4.159  0.686  -5.503  -2.815  &lt;0.001 </span></span>
-<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a><span class="co">#&gt;      trt_7    2.126   0.858  0.444   3.807   0.013  </span></span>
-<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_7  -6.965  0.685  -8.307  -5.622  &lt;0.001 </span></span>
-<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_7  -4.839  0.762  -6.333  -3.346  &lt;0.001 </span></span>
-<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a><span class="co">#&gt;   --------------------------------------------------</span></span></code></pre></div>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt;   ===============================================================================================================================</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt;    parameter   est     se     lci     uci     pval   estimate_type   group   group_level_1  group_level_2  contrast_label  visit </span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="co">#&gt;   -------------------------------------------------------------------------------------------------------------------------------</span></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="co">#&gt;      trt_4    -0.092  0.695  -1.453   1.27   0.895     contrast     THERAPY     PLACEBO         DRUG            &lt;NA&gt;         4   </span></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_4  -1.616  0.588  -2.767  -0.464  0.006        lsm       THERAPY      DRUG           &lt;NA&gt;            &lt;NA&gt;         4   </span></span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_4  -1.708  0.396  -2.484  -0.931  &lt;0.001       lsm       THERAPY     PLACEBO         &lt;NA&gt;            &lt;NA&gt;         4   </span></span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a><span class="co">#&gt;      trt_5    1.305   0.878  -0.416  3.027   0.137     contrast     THERAPY     PLACEBO         DRUG            &lt;NA&gt;         5   </span></span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_5  -4.133  0.688  -5.481  -2.785  &lt;0.001       lsm       THERAPY      DRUG           &lt;NA&gt;            &lt;NA&gt;         5   </span></span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_5  -2.828  0.604  -4.011  -1.645  &lt;0.001       lsm       THERAPY     PLACEBO         &lt;NA&gt;            &lt;NA&gt;         5   </span></span>
+<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a><span class="co">#&gt;      trt_6    1.929   0.862  0.239   3.619   0.025     contrast     THERAPY     PLACEBO         DRUG            &lt;NA&gt;         6   </span></span>
+<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_6  -6.088  0.671  -7.402  -4.773  &lt;0.001       lsm       THERAPY      DRUG           &lt;NA&gt;            &lt;NA&gt;         6   </span></span>
+<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_6  -4.159  0.686  -5.503  -2.815  &lt;0.001       lsm       THERAPY     PLACEBO         &lt;NA&gt;            &lt;NA&gt;         6   </span></span>
+<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a><span class="co">#&gt;      trt_7    2.126   0.858  0.444   3.807   0.013     contrast     THERAPY     PLACEBO         DRUG            &lt;NA&gt;         7   </span></span>
+<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_7  -6.965  0.685  -8.307  -5.622  &lt;0.001       lsm       THERAPY      DRUG           &lt;NA&gt;            &lt;NA&gt;         7   </span></span>
+<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_7  -4.839  0.762  -6.333  -3.346  &lt;0.001       lsm       THERAPY     PLACEBO         &lt;NA&gt;            &lt;NA&gt;         7   </span></span>
+<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a><span class="co">#&gt;   -------------------------------------------------------------------------------------------------------------------------------</span></span></code></pre></div>
 <p>This gives an estimated treatment effect of
 2.13 (95% CI 0.44 to 3.81)
 at the last visit with an associated p-value of 0.013.</p>
@@ -773,22 +773,22 @@ The argument <code>delta</code> can be used to add a delta-adjustment prior to t
 <span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#&gt; </span></span>
 <span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="co">#&gt; Results:</span></span>
 <span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="co">#&gt;   ==================================================</span></span>
-<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="co">#&gt;    parameter   est     se     lci     uci     pval  </span></span>
-<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="co">#&gt;   --------------------------------------------------</span></span>
-<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="co">#&gt;      trt_4    -0.092  0.695  -1.453   1.27   0.895  </span></span>
-<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_4  -1.616  0.588  -2.767  -0.464  0.006  </span></span>
-<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_4  -1.708  0.396  -2.484  -0.931  &lt;0.001 </span></span>
-<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a><span class="co">#&gt;      trt_5    1.305   0.944  -0.545  3.156   0.167  </span></span>
-<span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_5  -4.133  0.738  -5.579  -2.687  &lt;0.001 </span></span>
-<span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_5  -2.828  0.603  -4.01   -1.646  &lt;0.001 </span></span>
-<span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a><span class="co">#&gt;      trt_6    1.929   0.993  -0.018  3.876   0.052  </span></span>
-<span id="cb8-24"><a href="#cb8-24" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_6  -6.088  0.758  -7.574  -4.602  &lt;0.001 </span></span>
-<span id="cb8-25"><a href="#cb8-25" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_6  -4.159  0.686  -5.504  -2.813  &lt;0.001 </span></span>
-<span id="cb8-26"><a href="#cb8-26" tabindex="-1"></a><span class="co">#&gt;      trt_7    2.126   1.123  -0.076  4.327   0.058  </span></span>
-<span id="cb8-27"><a href="#cb8-27" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_7  -6.965  0.85   -8.63   -5.299  &lt;0.001 </span></span>
-<span id="cb8-28"><a href="#cb8-28" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_7  -4.839  0.763  -6.335  -3.343  &lt;0.001 </span></span>
-<span id="cb8-29"><a href="#cb8-29" tabindex="-1"></a><span class="co">#&gt;   --------------------------------------------------</span></span></code></pre></div>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="co">#&gt;   ===============================================================================================================================</span></span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="co">#&gt;    parameter   est     se     lci     uci     pval   estimate_type   group   group_level_1  group_level_2  contrast_label  visit </span></span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="co">#&gt;   -------------------------------------------------------------------------------------------------------------------------------</span></span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="co">#&gt;      trt_4    -0.092  0.695  -1.453   1.27   0.895     contrast     THERAPY     PLACEBO         DRUG            &lt;NA&gt;         4   </span></span>
+<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_4  -1.616  0.588  -2.767  -0.464  0.006        lsm       THERAPY      DRUG           &lt;NA&gt;            &lt;NA&gt;         4   </span></span>
+<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_4  -1.708  0.396  -2.484  -0.931  &lt;0.001       lsm       THERAPY     PLACEBO         &lt;NA&gt;            &lt;NA&gt;         4   </span></span>
+<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a><span class="co">#&gt;      trt_5    1.305   0.944  -0.545  3.156   0.167     contrast     THERAPY     PLACEBO         DRUG            &lt;NA&gt;         5   </span></span>
+<span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_5  -4.133  0.738  -5.579  -2.687  &lt;0.001       lsm       THERAPY      DRUG           &lt;NA&gt;            &lt;NA&gt;         5   </span></span>
+<span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_5  -2.828  0.603  -4.01   -1.646  &lt;0.001       lsm       THERAPY     PLACEBO         &lt;NA&gt;            &lt;NA&gt;         5   </span></span>
+<span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a><span class="co">#&gt;      trt_6    1.929   0.993  -0.018  3.876   0.052     contrast     THERAPY     PLACEBO         DRUG            &lt;NA&gt;         6   </span></span>
+<span id="cb8-24"><a href="#cb8-24" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_6  -6.088  0.758  -7.574  -4.602  &lt;0.001       lsm       THERAPY      DRUG           &lt;NA&gt;            &lt;NA&gt;         6   </span></span>
+<span id="cb8-25"><a href="#cb8-25" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_6  -4.159  0.686  -5.504  -2.813  &lt;0.001       lsm       THERAPY     PLACEBO         &lt;NA&gt;            &lt;NA&gt;         6   </span></span>
+<span id="cb8-26"><a href="#cb8-26" tabindex="-1"></a><span class="co">#&gt;      trt_7    2.126   1.123  -0.076  4.327   0.058     contrast     THERAPY     PLACEBO         DRUG            &lt;NA&gt;         7   </span></span>
+<span id="cb8-27"><a href="#cb8-27" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_7  -6.965  0.85   -8.63   -5.299  &lt;0.001       lsm       THERAPY      DRUG           &lt;NA&gt;            &lt;NA&gt;         7   </span></span>
+<span id="cb8-28"><a href="#cb8-28" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_7  -4.839  0.763  -6.335  -3.343  &lt;0.001       lsm       THERAPY     PLACEBO         &lt;NA&gt;            &lt;NA&gt;         7   </span></span>
+<span id="cb8-29"><a href="#cb8-29" tabindex="-1"></a><span class="co">#&gt;   -------------------------------------------------------------------------------------------------------------------------------</span></span></code></pre></div>
 <p>This gives an estimated treatment effect of
 2.13 (95% CI -0.08 to 4.33)
 at the last visit with an associated p-value of 0.058.
