@@ -131,6 +131,23 @@ as_model_df <- function(dat, frm) {
 }
 
 
+#' Column names of the model matrix used by `as_model_df()`
+#'
+#' `as_model_df()` renames the design columns to `V1`, `V2`, ...; this returns
+#' the original term names, e.g. for error messages.
+#'
+#' @inheritParams as_model_df
+#'
+#' @return A character vector of model-matrix column names.
+#'
+#' @keywords internal
+model_term_names <- function(dat, frm) {
+    outcome <- as.character(attr(stats::terms(frm), "variables")[[2]])
+    dat[[outcome]][is.na(dat[[outcome]])] <- 999
+    colnames(stats::model.matrix(frm, dat))
+}
+
+
 #' Replace the values of a factor while keeping its coding
 #'
 #' Reference-based imputation evaluates the fitted model with the treatment

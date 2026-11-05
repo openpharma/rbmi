@@ -15,7 +15,8 @@ fit_mcmc(
   duration,
   method,
   scaler = NULL,
-  quiet = FALSE
+  quiet = FALSE,
+  term_names = NULL
 )
 }
 \arguments{
@@ -44,6 +45,9 @@ if \code{period} is not used.}
 omitted, one is created from \code{outcome} and \code{designmat}.}
 
 \item{quiet}{Specify whether the Stan sampling log should be printed to the console.}
+
+\item{term_names}{\code{NULL} or the model-matrix column names of \code{designmat},
+used to name unidentified terms in count-model error messages.}
 }
 \value{
 A named list composed by the following:

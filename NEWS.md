@@ -16,6 +16,8 @@
 
 ## Bug Fixes
 
+* Count imputation model errors now name the model terms that are not identified by cells with positive counts when the positive-count design matrix is rank deficient.
+
 * `scalerConstructor` previously failed when applied to a matrix instead of a `data.frame`. This is fixed now.
 
 * Previously, ordered or custom-coded treatment factors were incorrectly imputed under reference-based imputation. This is fixed now.

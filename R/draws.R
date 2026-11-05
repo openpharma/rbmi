@@ -684,7 +684,8 @@ draws.bayes <- function(
         subjid = data2[[vars$subjid]],
         method = method,
         scaler = scaler,
-        quiet = quiet
+        quiet = quiet,
+        term_names = model_term_names(data2, longdata$formula)
     )
 
     samples <- if (outcome == "continuous") {

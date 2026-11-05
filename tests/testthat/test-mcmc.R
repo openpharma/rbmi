@@ -1369,3 +1369,30 @@ test_that("fit_mcmc works with heterogeneous Toeplitz covariance model", {
     set.seed(6459)
     test_fit_mcmc("toeph", sigma = sigma, same_cov = FALSE)
 })
+
+
+test_that("count Stan data names the model terms without positive-count support", {
+    # Arm B has events only in period 1, so its period-2 interaction is not
+    # identified by any positive count.
+    subjid <- factor(rep(c("a", "b", "c", "d"), each = 2))
+    group <- factor(rep(c("A", "A", "B", "B"), each = 2))
+    period2 <- rep(c(0, 1), 4)
+    design <- cbind(
+        intercept = 1,
+        groupB = as.integer(group == "B"),
+        period2 = period2,
+        groupB_period2 = as.integer(group == "B") * period2
+    )
+    expect_error(
+        prepare_stan_data_count(
+            ddat = design,
+            subjid = subjid,
+            duration = rep(1, 8),
+            outcome = c(1, 2, 3, 1, 2, 0, 1, 0),
+            group = group,
+            same_cov = TRUE,
+            term_names = c("(Intercept)", "groupB", "period2", "groupB:period2")
+        ),
+        "not identified by cells with positive counts.*`groupB:period2`"
+    )
+})

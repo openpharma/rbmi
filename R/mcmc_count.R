@@ -8,6 +8,8 @@
 #' @param duration A vector of duration values
 #' @param outcome A vector of integer outcome values (unscaled, i.e. raw counts)
 #' @param group A factor containing the treatment group for each row.
+#' @param term_names `NULL` or the model-matrix column names of `ddat`, used
+#'   to name unidentified terms in error messages.
 #' @param same_cov Logical. If `TRUE`, use one shared dispersion parameter. If
 #'   `FALSE`, estimate a separate dispersion parameter for each treatment group.
 #'
@@ -31,7 +33,8 @@ prepare_stan_data_count <- function(
     duration,
     outcome,
     group,
-    same_cov
+    same_cov,
+    term_names = colnames(ddat)
 ) {
     assert_that(
         is.numeric(duration) & all(duration >= 0),
@@ -83,14 +86,30 @@ prepare_stan_data_count <- function(
     # Check the fitted design rather than period IDs: ragged time cells can
     # have no events while sharing all their coefficients with other cells.
     positive_design <- ddat[outcome[observed] > 0, , drop = FALSE]
-    assert_that(
-        nrow(positive_design) > 0 &&
-            qr(positive_design)$rank == ncol(ddat),
-        msg = paste(
-            "The positive-count design matrix must have full column rank",
-            "to ensure a proper posterior under flat coefficient priors"
+    positive_qr <- qr(positive_design)
+    if (nrow(positive_design) == 0 || positive_qr$rank < ncol(ddat)) {
+        if (is.null(term_names)) {
+            term_names <- paste("column", seq_len(ncol(ddat)))
+        }
+        # Columns that the pivoted QR decomposition places beyond the rank
+        # are linear combinations of the others among positive-count cells.
+        unidentified <- if (nrow(positive_design) == 0) {
+            seq_len(ncol(ddat))
+        } else {
+            positive_qr$pivot[seq.int(positive_qr$rank + 1, ncol(ddat))]
+        }
+        stop(
+            paste(
+                "The positive-count design matrix must have full column rank",
+                "to ensure a proper posterior under flat coefficient priors.",
+                "The following model terms are not identified by cells with",
+                "positive counts (they are zero, or linear combinations of",
+                "other terms, in every such cell):",
+                paste0("`", term_names[unidentified], "`", collapse = ", ")
+            ),
+            call. = FALSE
         )
-    )
+    }
     subjid_observed <- subject_all[observed]
     outcome <- outcome[observed]
     duration <- duration[observed]

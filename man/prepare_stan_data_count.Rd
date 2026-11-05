@@ -4,7 +4,15 @@
 \alias{prepare_stan_data_count}
 \title{Prepare input data to run the Stan model for count outcome}
 \usage{
-prepare_stan_data_count(ddat, subjid, duration, outcome, group, same_cov)
+prepare_stan_data_count(
+  ddat,
+  subjid,
+  duration,
+  outcome,
+  group,
+  same_cov,
+  term_names = colnames(ddat)
+)
 }
 \arguments{
 \item{ddat}{A design matrix}
@@ -19,6 +27,9 @@ prepare_stan_data_count(ddat, subjid, duration, outcome, group, same_cov)
 
 \item{same_cov}{Logical. If \code{TRUE}, use one shared dispersion parameter. If
 \code{FALSE}, estimate a separate dispersion parameter for each treatment group.}
+
+\item{term_names}{\code{NULL} or the model-matrix column names of \code{ddat}, used
+to name unidentified terms in error messages.}
 }
 \value{
 A \code{stan_data_count} object. A named list containing all the
