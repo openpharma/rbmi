@@ -2,6 +2,13 @@
 
 ## rbmi (development version)
 
+### Bug Fixes
+
+- Fixed test failures caused by small numerical differences when using
+  MKL. ([\#604](https://github.com/openpharma/rbmi/issues/604))
+- Fixed the FAQ vignette not being available through
+  [`vignette("FAQ", package = "rbmi")`](https://openpharma.github.io/rbmi/articles/FAQ.md).
+
 ## rbmi 1.7.0
 
 CRAN release: 2026-10-15
