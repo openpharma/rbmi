@@ -1,10 +1,22 @@
+# Match PPM binaries to the container's OS release as the base image upgrades.
+os_release <- readLines("/etc/os-release")
+os_codename <- sub(
+    "^VERSION_CODENAME=",
+    "",
+    grep("^VERSION_CODENAME=", os_release, value = TRUE)
+)
+os_codename <- gsub("^['\"]|['\"]$", "", os_codename)
+if (length(os_codename) != 1L ||
+    !grepl("^[a-z][a-z0-9-]*$", os_codename)) {
+    stop("Expected a valid VERSION_CODENAME in /etc/os-release")
+}
+
 # Configure useragent to enable binary package installation from PPM
 options(
     repos = c(
         CRAN = sprintf(
-            "https://packagemanager.posit.co/cran/latest/bin/linux/noble-%s/%s",
-            R.version["arch"],
-            substr(getRversion(), 1, 3)
+            "https://packagemanager.posit.co/cran/__linux__/%s/latest",
+            os_codename
         )
     ),
     "HTTPUserAgent" = sprintf(
