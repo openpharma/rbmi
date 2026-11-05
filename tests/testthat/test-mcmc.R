@@ -1371,6 +1371,30 @@ test_that("fit_mcmc works with heterogeneous Toeplitz covariance model", {
 })
 
 
+test_that("unidentified design terms handles rank and empty matrices", {
+    design <- cbind(intercept = 1, x = 1:4)
+    expect_identical(unidentified_design_terms(design), character(0))
+    expect_identical(
+        unidentified_design_terms(cbind(design, duplicate = 2 * design[, 2])),
+        "duplicate"
+    )
+    expect_identical(unidentified_design_terms(design[FALSE, ]), colnames(design))
+    expect_identical(
+        unidentified_design_terms(matrix(0, 4, 2)),
+        c("column 1", "column 2")
+    )
+    expect_identical(unidentified_design_terms(matrix(numeric(), 4, 0)), character(0))
+})
+
+
+test_that("unidentified design terms supports data frames and name overrides", {
+    design <- data.frame(intercept = rep(1, 4), absent = rep(0, 4))
+    expect_identical(unidentified_design_terms(design), "absent")
+    expect_identical(unidentified_design_terms(design, c("a", "b")), "b")
+    expect_identical(unidentified_design_terms(unname(as.matrix(design))), "column 2")
+})
+
+
 test_that("continuous rank checks use all observed outcomes", {
     design <- cbind(intercept = 1, groupB = c(0, 0, 1, 1))
     expect_null(check_continuous_design_rank(design, c(-1, 0, -2, 0)))

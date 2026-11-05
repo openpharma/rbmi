@@ -86,18 +86,8 @@ prepare_stan_data_count <- function(
     # Check the fitted design rather than period IDs: ragged time cells can
     # have no events while sharing all their coefficients with other cells.
     positive_design <- ddat[outcome[observed] > 0, , drop = FALSE]
-    positive_qr <- qr(positive_design)
-    if (nrow(positive_design) == 0 || positive_qr$rank < ncol(ddat)) {
-        if (is.null(term_names)) {
-            term_names <- paste("column", seq_len(ncol(ddat)))
-        }
-        # Columns that the pivoted QR decomposition places beyond the rank
-        # are linear combinations of the others among positive-count cells.
-        unidentified <- if (nrow(positive_design) == 0) {
-            seq_len(ncol(ddat))
-        } else {
-            positive_qr$pivot[seq.int(positive_qr$rank + 1, ncol(ddat))]
-        }
+    unidentified <- unidentified_design_terms(positive_design, term_names)
+    if (length(unidentified) > 0) {
         stop(
             paste(
                 "The positive-count design matrix must have full column rank",
@@ -105,7 +95,7 @@ prepare_stan_data_count <- function(
                 "The following model terms are not identified by cells with",
                 "positive counts (they are zero, or linear combinations of",
                 "other terms, in every such cell):",
-                paste0("`", term_names[unidentified], "`", collapse = ", ")
+                paste0("`", unidentified, "`", collapse = ", ")
             ),
             call. = FALSE
         )

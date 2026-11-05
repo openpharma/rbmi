@@ -76,6 +76,45 @@ prepare_prior_params <- function(
     stan_data
 }
 
+#' Identify linearly dependent design columns
+#'
+#' Uses a pivoted QR decomposition to identify columns that are zero or linear
+#' combinations of other columns. The caller selects the rows relevant to its
+#' model. When no rows are supplied, all columns are unidentified.
+#'
+#' @param designmat A numeric matrix or data.frame containing the model design.
+#' @param term_names Optional column names. If `NULL`, uses the column names of
+#'   `designmat`, or numbered column labels when those are unavailable.
+#'
+#' @return A character vector naming the dependent columns selected by the QR
+#'   pivot, or `character(0)` when the matrix has full column rank. The selected
+#'   columns are one possible set of dependent columns, not a unique attribution
+#'   of the rank deficiency.
+#'
+#' @keywords internal
+unidentified_design_terms <- function(designmat, term_names = NULL) {
+    designmat <- as.matrix(designmat)
+    if (is.null(term_names)) {
+        term_names <- colnames(designmat)
+    }
+    if (is.null(term_names)) {
+        term_names <- paste("column", seq_len(ncol(designmat)))
+    }
+    if (ncol(designmat) == 0) {
+        return(character(0))
+    }
+    if (nrow(designmat) == 0) {
+        return(term_names)
+    }
+    design_qr <- qr(designmat)
+    if (design_qr$rank == ncol(designmat)) {
+        return(character(0))
+    }
+    unidentified <- design_qr$pivot[seq.int(design_qr$rank + 1, ncol(designmat))]
+    term_names[unidentified]
+}
+
+
 #' Check the rank of a continuous imputation model design
 #'
 #' Checks that the design matrix has full column rank among rows with observed
@@ -95,26 +134,15 @@ prepare_prior_params <- function(
 #' @keywords internal
 check_continuous_design_rank <- function(designmat, outcome, term_names = NULL) {
     observed_design <- as.matrix(designmat[!is.na(outcome), , drop = FALSE])
-    observed_qr <- qr(observed_design)
-    if (nrow(observed_design) == 0 || observed_qr$rank < ncol(designmat)) {
-        if (is.null(term_names)) {
-            term_names <- colnames(designmat)
-        }
-        if (is.null(term_names)) {
-            term_names <- paste("column", seq_len(ncol(designmat)))
-        }
-        unidentified <- if (nrow(observed_design) == 0) {
-            seq_len(ncol(designmat))
-        } else {
-            observed_qr$pivot[seq.int(observed_qr$rank + 1, ncol(designmat))]
-        }
+    unidentified <- unidentified_design_terms(observed_design, term_names)
+    if (length(unidentified) > 0) {
         stop(
             paste(
                 "The observed-outcome design matrix is rank deficient.",
                 "The following model terms are not identified by cells with",
                 "observed outcomes (they are zero, or linear combinations of",
                 "other terms, in every such cell):",
-                paste0("`", term_names[unidentified], "`", collapse = ", ")
+                paste0("`", unidentified, "`", collapse = ", ")
             ),
             call. = FALSE
         )
