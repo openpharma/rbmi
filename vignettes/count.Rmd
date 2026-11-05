@@ -597,6 +597,9 @@ interactions with `TreatLab` give each randomized treatment arm a separate
 coefficient for every covariate; `same_cov = TRUE` (the default) retains the
 shared count-model dispersion parameter.
 
+For this comparison we use four chains and 4,000 imputations to reduce Monte
+Carlo variation in the confidence limits relative to the SAS tolerance.
+
 ```{r}
 vars_all_treatment_interactions <- set_vars(
     outcome = "Observed_Count",
@@ -612,12 +615,21 @@ vars_all_treatment_interactions <- set_vars(
 ```
 
 ```{r draw-all-treatment-interactions, time_it = TRUE}
+set.seed(987)
 drawObj_all_treatment_interactions <- draws(
     outcome = "count",
     data = dat_count_filled,
     data_ice = dat_ice,
     vars = vars_all_treatment_interactions,
-    method = method,
+    method = method_bayes(
+        n_samples = 4000,
+        control = control_bayes(
+            chains = 4,
+            warmup = 500,
+            thin = 1,
+            seed = 1821
+        )
+    ),
     quiet = TRUE
 )
 drawObj_all_treatment_interactions$formula
