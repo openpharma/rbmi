@@ -1,0 +1,410 @@
+---
+title: "rbmi: Statistical Specifications for Count Outcomes"
+author: Daniel Sabanés Bové
+output: 
+  bookdown::html_document2:
+    toc: true
+    toc_depth: 4
+    number_sections: true
+    citation_package: natbib
+    base_format: rmarkdown::html_vignette
+bibliography: "references.bib"
+link-citations: true   
+linkcolor: blue
+pkgdown:
+  as_is: true
+vignette: >
+  %\VignetteIndexEntry{rbmi: Statistical Specifications for Count Outcomes}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Scope of this document
+
+This document describes the statistical methods implemented in the `rbmi` R package for multiple imputation of count outcomes. Please see the [separate vignette](stat_specs.html) for details on the implemented statistical methods for continuous outcomes.
+
+The package focuses on multiple imputation (MI) for count outcomes following these approaches:
+
+1. @Keene2014 is the basic proposal for Bayesian MI for negative binomial count data, covering two time periods: before and after discontinuing the trial and treatment at the same time.
+1. @Roger2019 extends this to more than two time periods, in particular a third time period where patients are still continuing the trial, but have stopped treatment already. This is the more general setting, which is implemented in `rbmi`.
+
+Note that time to recurrent events can also be analyzed with Andersen-Gill models, but this is not available in the package at this point.
+
+## Statistical methodology {#sec:statsMethods}
+
+### Notation
+
+We follow quite closely the notation in @Roger2019.
+
+- We have $i = 1, \dotsc, N$ patients in the considered analysis population of the trial.
+- There are $m = 3$ periods for each patient:
+  - $j= 1$: the period on-treatment
+  - $j= 2$: the period after stopping treatment and before withdrawal from the study (off-treatment)
+  - $j= 3$: the period after withdrawal from the study (post-withdrawal)
+- Let $Y_{ij}$ be the number of events for patient $i$ in period $j$, $j = 1, 2, 3$.
+  - Note that we never observe $Y_{i3}$, but we always observe $Y_{i1}$ and $Y_{i2}$ for all patients.
+- Let $T_{ij}$ be the length of time for patient $i$ in period $j$, $j = 1, 2, 3$.
+  - We use here for simplicity a fixed duration trial, where according to the protocol all patients are followed for the same amount of time $t$.
+  - Therefore $T_{i1} + T_{i2} + T_{i3} = t$ for all $i$
+  - However, some of $T_{i2}$ and $T_{i3}$ may be zero, if the patient did not stop treatment (then $T_{i2} = T_{i3} = 0$), immediately withdrew when stopping treatment (then $T_{i2} = 0$ but $T_{i3} > 0$), or always stayed in the study after stopping treatment (then $T_{i2} > 0$ but $T_{i3} = 0$).
+
+### Model
+
+We want to model the number of events $Y_{ij}$ for patient $i$ in period $j$ using a joint [negative multinomial distribution](https://en.wikipedia.org/wiki/Negative_multinomial_distribution) [@Keene2014]:
+
+$$
+\mathbb{P}(Y_{i} = (y_{i1}, y_{i2}, y_{i3})) =
+\frac{\Gamma(y_0 + \sum_{j=1}^3 y_{ij})}{\Gamma(y_0) \prod_{j=1}^3 \Gamma(y_{ij} + 1)}
+\prod_{j=0}^3 p_{ij}^{y_{ij}}
+$$
+
+where:
+
+- $y_0 = \phi^{-1}$ is the shape parameter in the negative multinomial representation, and $\phi$ is the dispersion parameter.
+- $\lambda_{ij}$ is the event rate for patient $i$ in period $j$ for $j = 1, 2, 3$.
+- $\mu_{ij} = t_{ij} \lambda_{ij}$ is the expected number of events for patient $i$ in period $j$, given that the patient stays for time $t_{ij}$ in that period.
+- $p_{ij} = \frac{\mu_{ij}}{\phi^{-1} + \sum_{k=1}^3 \mu_{ik}}$ is the probability of an event for patient $i$ in period $j$.
+- $p_{i0} = 1 - \sum_{j=1}^3 p_{ij}$ is the complementary probability of no event for patient $i$ in any of the three periods.
+
+We can model the event rate $\lambda_{ij}$ as:
+
+$$
+\lambda_{ij} = \exp(\eta_{ij} + u_{i})
+$$
+
+where $\eta_{ij} = x_{ij}^{\top} \beta$ is the linear predictor for patient $i$ in period $j$, given a vector of covariates $x_{ij}$ (which includes the treatment assignment and possibly other covariates) and the corresponding regression coefficient vector $\beta$. The random intercept $u_{i}$ models the patient-specific frailty term, often formulated as $\gamma_{i} = \exp(u_{i})$, which captures the unobserved heterogeneity between patients in their event rates.
+
+Conditional on a fixed frailty $\gamma_{i}$, $Y_{ij}$ has a Poisson distribution with mean $\mu_{ij} = t_{ij} \lambda_{ij} = t_{ij} \gamma_{i} \exp(\eta_{ij})$.
+If, on the other hand, we assume that $\gamma_i$ follow an iid gamma distribution with mean 1 and shape $\phi^{-1}$ for $i= 1, \dotsc, N$, then we obtain a Poisson-gamma mixture model. Integrating out $\gamma_i$ gives us a negative binomial distribution for each $Y_{ij}$, or the above negative multinomial distribution for the vector $Y_i$ with dispersion parameter $\phi$.
+
+For the implementation of this model we are using Stan. The negative multinomial distribution is not available as a built-in distribution. In principle, there is an option to add it as a custom distribution relatively easily (see [docs](https://mc-stan.org/docs/2_38/stan-users-guide/custom-probability.html)). Unfortunately, it is not possible to add it already now as a [custom family](https://cran.r-project.org/web/packages/brms/vignettes/brms_customfamilies.html) to `brms`, see the discussion in [here](https://github.com/paul-buerkner/brms/issues/1728). We therefore stay with the native Stan implementation. 
+
+### Priors
+
+We fit the above model with the following priors: 
+
+- For the regression coefficients $\beta$, an improper uniform prior is used.
+- For the dispersion parameter $\phi$, a gamma distribution $G(a, b)$ with shape $a$ and inverse scale $b$ parameters both equal to 0.0001 is used.
+
+The dispersion parameter is constrained to be positive, using machine epsilon
+(`.Machine$double.eps`) as its lower bound, consistent with the variance
+parameters in the continuous outcome models.
+
+The prior distribution families and their parameters are currently fixed in the package. In the future we might offer additional prior options for users to choose from.
+
+### Reference assumptions
+
+For count outcomes, `rbmi` does not collect or infer the time of an
+intercurrent event. A subject-level strategy is instead applied to every
+missing positive-duration period for that subject. In the three-period example
+above, only $Y_{i3}$ is missing, so this distinction is not visible; it is
+important when a subject has missing values in other periods.
+
+The available assumptions are therefore:
+
+- MAR: Missing periods use the patient's randomized-arm design.
+- CR: Missing periods use the reference-arm design. In the imputation step, the means of the observed periods that the subject's frailty is conditioned on are also computed with the reference-arm design. The posterior fit of the count model is the same for all strategies; it always uses the randomized-arm design for the observed periods.
+- JR: Missing periods use the reference-arm design, while observed periods retain the patient's randomized-arm design.
+
+Thus, count-outcome `JR` is not a post-ICE-only J2R implementation: it applies
+to all missing positive-duration periods for the subject. The same applies to
+the reference-based component of `CR`.
+
+When treatment-specific dispersion parameters are fitted, the strategy also
+determines which frailty distribution is used for the conditional imputation.
+MAR uses the dispersion parameter for the patient's randomized arm, whereas JR
+and CR use the dispersion parameter for the mapped reference arm. This choice
+affects the entire subject-level conditional distribution: under JR, the
+observed-period means are still calculated from the randomized-arm design, but
+the reference-arm dispersion is used both for conditioning on the observed
+counts and for sampling the missing counts. Thus, JR combines the subject's
+randomized-arm observed mean trajectory with the reference arm's frailty
+distribution; it is not solely a change to the design matrix for missing
+periods. This is a controlled-imputation sensitivity assumption. It has no
+effect when a common dispersion parameter is fitted across treatment arms.
+
+### Off-treatment Modeling
+
+As described in @Roger2019, we can adapt the model for the off-treatment period (period 2) to reflect different assumptions about the treatment effect after stopping treatment, which will then also affect the imputation of $Y_{i3}$ for patients who withdrew later from the study:
+
+- Off-treatment arm levels can be introduced separately for each randomised treatment arm. This can be implemented by including an interaction term between the treatment arm and the off-treatment period indicator, which would apply to both periods 2 and 3.
+- The off-treatment arm level can also be shared across randomised treatment arms, which can be implemented by introducing a new factor level for the treatment arm variable, which is only active in periods 2 and 3, but not in period 1. This would correspond to the assumption that all patients behave the same after stopping treatment, regardless of their randomised treatment arm.
+
+### Imputation
+
+We use the negative multinomial model (i.e. with the frailty integrated out) for the observed data to get the MCMC samples for the regression coefficients $\beta$ and dispersion parameter $\phi$, and then use these to impute $Y_{i3}$ in a separate step. Note that we will only need to impute the missing values for $Y_{i3}$, as we observe $Y_{i1}$ and $Y_{i2}$ for all patients. 
+
+This is also described briefly in @Roger2019 on p. 89. The required conditional distribution for $Y_{i3}$ given $Y_{i1}$ and $Y_{i2}$ can be derived from formula (7) in @Keene2014:
+
+$$
+Y_{i3} | Y_{i1}, Y_{i2} \sim \text{NegativeBinomial}\left(
+  \frac{\phi_{g_i^*}^{-1} + \hat{\mu}_{i1} + \hat{\mu}_{i2}}{\phi_{g_i^*}^{-1} + \hat{\mu}_{i1} + \hat{\mu}_{i2} + \hat{\mu}_{i3}},
+  \phi_{g_i^*}^{-1} + y_{i1} + y_{i2}
+\right)
+$$ {#eq-impute-cond-dist}
+
+Here the quantities $\hat{\mu}_{ij}$ are the expected number of events for patient $i$ in period $j$ based on the regression coefficients $\beta$ and the covariates for patient $i$ in period $j$. Depending on which assumptions we use (MAR, CR, or JR), we may use different covariate values for a missing period to calculate $\hat{\mu}_{ij}$.
+Similarly, depending on how we model the off-treatment periods 2 and 3, we would use different covariate values for patient $i$ in periods 2 and 3 to calculate $\hat{\mu}_{i2}$ and $\hat{\mu}_{i3}$. Therefore we still need to keep $y_{i2}$ and $y_{i3}$ as separate variables and don't combine them into a single stage.
+
+In this formula, $g_i^*$ is the randomized arm under MAR and the mapped
+reference arm under JR or CR. Under JR, $\hat{\mu}_{i1}$ and
+$\hat{\mu}_{i2}$ use the randomized-arm design for the observed periods, while
+$\hat{\mu}_{i3}$ uses the reference-arm design and every occurrence of
+$\phi_{g_i^*}$ uses the reference-arm dispersion. Under CR, both the observed-
+and missing-period designs, as well as the dispersion, are from the reference
+arm. With a shared dispersion parameter, the group index can be dropped.
+
+Note that in the second parameter of the negative binomial distribution we have the actually observed number of events $y_{i1}$ and $y_{i2}$.
+
+More generally, let $a_i = \phi_{g_i^*}^{-1} + \sum_{j \in O_i} y_{ij}$ and
+$b_i = \phi_{g_i^*}^{-1} + \sum_{j \in O_i} \hat{\mu}_{ij}$ for the observed
+positive-duration periods $O_i$ of patient $i$. Its frailty then follows a
+$\text{Gamma}(a_i, b_i)$ distribution given the observed counts, and a missing
+period $j$ with unconditional mean $m_{ij}$ is imputed from a negative binomial
+distribution with size $a_i$ and mean $a_i m_{ij} / b_i$. Missing periods are
+imputed one after another in period order; after each imputed count $y$ with
+unconditional mean $m$, $a_i$ increases by $y$ and $b_i$ by $m$, so that the
+joint distribution of all imputed periods is the one implied by the shared
+frailty. The implementation passes the mean $a_i m_{ij} / b_i$ directly to the
+sampler. The equivalent probability parameter $b_i / (b_i + m_{ij})$ rounds to
+one when $\phi$ is close to zero and must not be formed.
+
+### Controlled imputation strategies {#sec:countStrategies}
+
+In addition to the reference-based assumptions, `count_strategy()` modifies the
+unconditional mean $m_{ij}$ of selected missing periods; the conditional
+sampling above is unchanged.
+
+- Rate multiplier $c \geq 0$: $m_{ij} = c\,\hat{\mu}_{ij}$, where
+  $\hat{\mu}_{ij}$ is the mean under the base strategy (MAR, JR or CR).
+- Fixed rate $\rho \geq 0$ (`fixed_rate_scale = "rate"`, the default):
+  $m_{ij} = T_{ij}\,\rho$. The rate is the same for every posterior draw,
+  treatment arm and base strategy.
+- Fixed rate on the SAS lambda scale (`fixed_rate_scale = "lambda"`):
+  $m_{ij} = T_{ij}\,\lambda / \phi_{g_i^*}$, reproducing the macro
+  `NM_Rand13.sas`, which fixes $\lambda = \phi \times \text{rate}$ in its
+  negative-multinomial parameterisation. The implied event rate
+  $\lambda / \phi$ varies between posterior draws and arms and is unbounded
+  as $\phi \to 0$. `impute()` warns if $m_{ij}$ exceeds 100 times
+  $\hat{\mu}_{ij}$ for any period and posterior draw.
+
+The base strategy still determines the observed-period means and the
+dispersion parameter used in $a_i$ and $b_i$, so with a fixed rate the
+conditional mean $a_i m_{ij} / b_i$ still depends on the patient's observed
+counts.
+
+### Analysis
+
+The analysis model is actually simpler than the imputation model. Since we want to use a treatment policy estimand, we do not differentiate any longer between the three periods, and we just want to model the total number of events $Y_i = Y_{i1} + Y_{i2} + Y_{i3}$ for each patient $i$ using a negative binomial regression model with an offset for the total follow-up time $T_i = T_{i1} + T_{i2} + T_{i3}$.
+
+We note that all withdrawn patients will have the same total follow-up time $t \equiv T_i$ due to the fixed duration trial design and the fact that we impute for the same overall time. However, there might be patients who were not withdrawn who stayed slightly longer or shorter in the study. Therefore we still use offset terms $t_{i}$ for each patient $i$ in the analysis model.
+
+Patients should be analysed according to their assigned randomised treatment, in order to be aligned with the treatment policy estimand. This is regardless of the changes for the imputation model's design matrix in the Impute step.
+
+We fit this with maximum likelihood estimation for each imputed dataset (e.g. with `MASS::glm.nb`). The model should include the same covariates as the imputation model. 
+
+We need to be careful how to obtain the standard error. As reported in the CAMIS repository [here](https://psiaims.github.io/CAMIS/Comp/r-sas_negbin.html), we need to recalculate the variance-covariance matrix for the model parameters with a custom function in order to match the `SAS PROC GENMOD` results.
+
+### Additive adjustments to completed counts
+
+As a separate sensitivity analysis, `analyse(delta = ...)` can add a specified
+integer number of events to completed subject-period counts before analysis.
+For imputation $m$, the adjusted value is $Y_{ij}^{(m)} + \delta_{ij}$.
+Unlike a rate adjustment in `count_strategy()`, this does not change the
+conditional sampling distribution used to generate the imputations. The offset
+is per period count and is not automatically scaled by exposure.
+
+Offsets must be finite and integerish, and every adjusted count must be finite
+and non-negative, with zero counts in zero-duration periods. Invalid results
+are rejected rather than truncated. See the additive delta example in the
+[modeling count data vignette](count.html) for constructing a subject-period
+adjustment with `delta_template()`.
+
+### Pooling
+
+Finally, Rubin's rules are applied to pool the estimates (on the log-rate scale, i.e. the regression coefficients $\beta$) across the imputed datasets, and we can then exponentiate the pooled estimates and confidence intervals to get the results for the rate ratios.
+
+## Appendix: Numerical evaluation of the count likelihood {#sec:countLikelihood}
+
+The Stan implementation in
+[`inst/stan/count_model.stan`](https://github.com/openpharma/rbmi/blob/main/inst/stan/count_model.stan)
+integrates out the patient-specific gamma frailty before evaluating the likelihood. This appendix describes how that likelihood
+is evaluated efficiently while retaining numerical accuracy for small
+dispersion parameters and large event totals. These numerical choices leave
+the statistical model unchanged.
+
+### Observed-data likelihood
+
+Let $O_i$ denote the observed positive-duration periods for patient $i$, and
+write
+
+$$
+\mu_{ij} = t_{ij}\exp(x_{ij}^{\top}\beta), \qquad
+s_i = \sum_{j\in O_i} y_{ij}, \qquad
+M_i = \sum_{j\in O_i} \mu_{ij}.
+$$
+
+Here $\mu_{ij}$ is the mean *before* multiplication by the frailty (and hence
+also the marginal mean, since the frailty has mean one). Let
+$\phi_i = \phi_{g_i}$ be the dispersion for the patient's randomized-arm group
+in the posterior fit; with common dispersion, $\phi_i = \phi$. Conditional on
+$\gamma_i$, the observed counts are independent Poisson variables with means
+$\gamma_i\mu_{ij}$, and
+$\gamma_i\sim\mathrm{Gamma}(\phi_i^{-1},\phi_i^{-1})$ in shape/rate notation.
+Integrating their joint density over $\gamma_i$ gives
+
+$$
+p(\{y_{ij}\}_{j\in O_i}\mid\beta,\phi_i)
+= \left\{\prod_{j\in O_i}\frac{\mu_{ij}^{y_{ij}}}{y_{ij}!}\right\}
+\frac{\Gamma(\phi_i^{-1}+s_i)}{\Gamma(\phi_i^{-1})}
+\frac{\phi_i^{s_i}}{(1+\phi_i M_i)^{\phi_i^{-1}+s_i}}.
+$$
+
+Thus the patient's log-likelihood contribution is
+
+$$
+\ell_i = \sum_{j\in O_i}\{y_{ij}\log\mu_{ij}-\log\Gamma(y_{ij}+1)\}
++ D(s_i,\phi_i)
+- (\phi_i^{-1}+s_i)\log(1+\phi_i M_i),
+$$
+
+where the gamma recurrence yields
+
+$$
+D(s,\phi)
+= \log\Gamma(\phi^{-1}+s)-\log\Gamma(\phi^{-1})+s\log\phi
+= \sum_{k=1}^{s-1}\log(1+k\phi).
+$$
+
+The sum is empty and $D(s,\phi)=0$ for $s=0$ or $s=1$. Only the totals $s_i$
+and $M_i$ enter the shared-frailty part of the likelihood; the individual
+observed cells enter the first sum.
+
+### Evaluation of the gamma ratio
+
+The Stan function `log_rising_ratio()` evaluates $D(s,\phi)$, using
+`stirling_remainder()` in the Stirling branch.
+
+Direct summation of $D$ requires work proportional to the event total.
+Conversely, directly subtracting log-gamma values can lose precision when
+$\phi^{-1}$ is large. The implementation uses the following branches, in the
+order shown.
+
+1. **Small totals ($s\leq32$).** Evaluate the finite sum using
+   `log1p(k * phi)`, which computes $\log(1+k\phi)$ accurately even when
+   $k\phi$ is small.
+2. **Near the Poisson limit ($s>32$ and $s\phi<10^{-2}$).** Expand each
+   logarithm and collect powers of $\phi$:
+
+   $$
+   D(s,\phi) = \sum_{p=1}^{\infty}
+   \frac{(-1)^{p+1}\phi^p}{p}S_p(s-1), \qquad
+   S_p(n)=\sum_{k=1}^{n}k^p.
+   $$
+
+   The implementation retains $p=1,\ldots,6$. The power sums have closed
+   polynomial forms (Faulhaber's formulas), so no loop over events is needed:
+
+   $$
+   \begin{aligned}
+   S_1(n)&=n(n+1)/2,\\
+   S_2(n)&=n(n+1)(2n+1)/6,\\
+   S_3(n)&=\{n(n+1)/2\}^2,\\
+   S_4(n)&=n(n+1)(2n+1)(3n^2+3n-1)/30,\\
+   S_5(n)&=n^2(n+1)^2(2n^2+2n-1)/12,\\
+   S_6(n)&=n(n+1)(2n+1)(3n^4+6n^3-3n+1)/42.
+   \end{aligned}
+   $$
+
+   Since $k\phi<10^{-2}$ throughout the sum, the alternating-series
+   remainder has magnitude at most $\phi^7 S_7(s-1)/7$. This controls the
+   truncation error without subtracting large log-gamma values.
+3. **Large inverse dispersion (remaining cases with $\phi\leq10^{-2}$).**
+   Put $a=\phi^{-1}\geq100$ and write the Stirling expansion as
+
+   $$
+   \log\Gamma(a)=(a-\tfrac12)\log a-a+\tfrac12\log(2\pi)+\delta(a).
+   $$
+
+   Substituting into $D$ and cancelling the $\log a$ terms algebraically gives
+
+   $$
+   D(s,\phi)=(a+s-\tfrac12)\log(1+s\phi)-s
+   +\delta(a+s)-\delta(a).
+   $$
+
+   The logarithm is evaluated with `log1p`, and the remainder is approximated
+   by
+
+   $$
+   \delta(a)\approx\frac{1}{12a}-\frac{1}{360a^3}
+   +\frac{1}{1260a^5}-\frac{1}{1680a^7}.
+   $$
+
+   For $a\geq100$, the first omitted term $1/(1188a^9)$ bounds the
+   absolute error of this remainder approximation and is less than
+   $10^{-21}$. This form avoids subtracting two large log-gamma values;
+   the near-Poisson branch handles the cases where $s\phi$ is small.
+4. **Remaining cases ($\phi>10^{-2}$).** Use the log-gamma expression for
+   $D$ directly. Here $\phi^{-1}<100$, avoiding the large inverse-dispersion
+   cancellation that motivates the preceding branches.
+
+The finite-sum branch is capped at 31 terms, and the other branches have a
+fixed number of operations. Consequently, the work to evaluate $D$ does not
+grow with the event total. Evaluating the whole likelihood still requires
+work proportional to the number of observed cells and patients.
+
+### Stable evaluation near the Poisson limit
+
+The Stan function `log1p_minus_x()` evaluates the correction $h(w)$ below,
+which is used in the patient-level loop in the `model` block.
+The remaining likelihood term also needs care. With $w=\phi M$, use the exact
+identity
+
+$$
+-(\phi^{-1}+s)\log(1+w)
+= -M-s\log(1+w)-\frac{h(w)}{\phi}, \qquad
+h(w)=\log(1+w)-w.
+$$
+
+For $w<10^{-3}$, the implementation evaluates
+
+$$
+h(w)\approx-\frac{w^2}{2}+\frac{w^3}{3}-\frac{w^4}{4}
++\frac{w^5}{5}-\frac{w^6}{6};
+$$
+
+otherwise it uses `log1p(w) - w`. In the series branch, the absolute
+truncation error is at most $w^7/7$ for $0\leq w<10^{-3}$.
+Separating the leading term $-M$ and evaluating the small correction directly
+avoids cancellation in derivatives with respect to $\phi$, which Stan needs
+for posterior sampling.
+
+For example, with $s$ and $M$ fixed, the expansions give
+
+$$
+D(s,\phi)=\frac{s(s-1)}{2}\phi+O(\phi^2), \qquad
+-\frac{h(\phi M)}{\phi}=\frac{M^2}{2}\phi+O(\phi^2).
+$$
+
+It follows that
+
+$$
+\ell_i = \sum_{j\in O_i}
+\{y_{ij}\log\mu_{ij}-\log\Gamma(y_{ij}+1)-\mu_{ij}\}
++\frac{\phi_i}{2}\{s_i(s_i-1)-2s_i M_i+M_i^2\}
++O(\phi_i^2).
+$$
+
+The leading term is the log-likelihood for independent Poisson counts. This
+makes the Poisson limit explicit and shows why the dispersion-dependent
+corrections should be evaluated directly when $\phi_i$ is small.
+
+## References

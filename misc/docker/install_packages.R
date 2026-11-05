@@ -1,23 +1,5 @@
-# Configure useragent to enable binary package installation from PPM
-options(
-    repos = c(
-        CRAN = sprintf(
-            "https://packagemanager.posit.co/cran/latest/bin/linux/noble-%s/%s",
-            R.version["arch"],
-            substr(getRversion(), 1, 3)
-        )
-    ),
-    "HTTPUserAgent" = sprintf(
-        "R/%s R (%s)",
-        getRversion(),
-        paste(
-            getRversion(),
-            R.version["platform"],
-            R.version["arch"],
-            R.version["os"]
-        )
-    )
-)
+# Use the repository and HTTPUserAgent configured by the Rocker base image.
+# Its Linux binaries match the Ubuntu release used by that image.
 
 # Throw errors if any warnings arise
 options(warn = 2)

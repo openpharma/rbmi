@@ -1,5 +1,31 @@
 # rbmi (development version)
 
+## New Features
+
+* Count outcomes with negative multinomial regression imputation models are now supported. Please see the new counts outcomes vignette, as well as the corresponding new statistical specifications for count outcomes vignette, for an introduction. In addition to new S3 methods and new arguments for existing functions, the analysis function `neg_bin_regression()` conducting negative binomial regression analysis, the simulation function `simulate_count_data()`, as well as the data wrangling function `split_time()` to support more complex time period patterns, have been added.
+
+* Controlled count imputation strategies are defined with `count_strategy()` and collected with `get_count_strategies()`. A `rate_multiplier` scales the model-based rate of selected missing periods; a `fixed_rate` replaces it by a fixed event rate. `fixed_rate_scale = "lambda"` reproduces the fixed-rate option of the SAS macro `NM_Rand13.sas`.
+
+* `draws()` has a new `outcome` argument. By default the outcome type is determined from `vars`: count outcomes are specified with `set_vars(period = , duration = )`.
+
+* New `transform` argument is available in `analyse()` to support transformations that are applied after the pooling of original scale parameters.
+
+* The corresponding new `scale` argument in `print.pool()` and `as.data.frame.pool()` methods allows to choose the original or transformed scale to look at for the pooled results. Transformations are created with `use_transform()`.
+
+* `print.pool()` now reports the Rubin degrees-of-freedom method for Rubin pooling.
+
+* `analyse()` now collects warnings from any analysis function and reports one summary listing each distinct message and the number of affected imputed datasets, including when running in parallel. Messages are retained in the `rbmi_warnings` attribute of each affected result in `$results`. This avoids repeated warnings.
+
+## Bug Fixes
+
+* Bayesian controls now default to `init = "auto"`, preserving the existing model-specific defaults. Count models honour custom Stan initial values and reject explicit `init = "mmrm"`. Draws print the resolved initialisation setting.
+
+* Bayesian imputation models now report informative errors naming unidentified model terms when the design matrix is rank deficient among cells with observed outcomes (continuous models) or positive counts (count models).
+
+* `scalerConstructor` previously failed when applied to a matrix instead of a `data.frame`. This is fixed now.
+
+* Previously, ordered or custom-coded treatment factors were incorrectly imputed under reference-based imputation. This is fixed now.
+
 # rbmi 1.7.0
 
 ## New Features

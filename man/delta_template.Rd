@@ -11,15 +11,16 @@ delta_template(imputations, delta = NULL, dlag = NULL, missing_only = TRUE)
 
 \item{delta}{\code{NULL} or a numeric vector. Determines the baseline amount of delta
 to be applied to each visit. See details. If a numeric vector it must have
-the same length as the number of unique visits in the original dataset.}
+the same length as the number of unique visits in the original dataset.
+For counts, supply direct integerish offsets, one per period level.}
 
 \item{dlag}{\code{NULL} or a numeric vector. Determines the scaling to be applied
 to \code{delta} based upon which visit the ICE occurred on. See details. If a
 numeric vector it must have the same length as the number of unique visits in
-the original dataset.}
+the original dataset. Must be \code{NULL} for counts.}
 
 \item{missing_only}{Logical, if \code{TRUE} then non-missing post-ICE data will have a delta value
-of 0 assigned. Note that the calculation (as described in the details section) is performed
+of 0 assigned. For counts, all observed cells receive zero. Note that the calculation (as described in the details section) is performed
 first and then overwritten with 0's at the end (i.e. the delta values for missing
 post-ICE visits will stay the same regardless of this option).}
 }
@@ -35,7 +36,7 @@ Creates a \code{data.frame} in the format required by \code{\link[=analyse]{anal
 of applying a delta adjustment.
 }
 \details{
-To apply a delta adjustment the \code{\link[=analyse]{analyse()}} function expects
+For continuous outcomes, the \code{\link[=analyse]{analyse()}} function expects
 a delta \code{data.frame} with 3 variables: \code{vars$subjid}, \code{vars$visit} and \code{delta}
 (where \code{vars} is the object supplied in the original call to \code{\link[=draws]{draws()}}
 as created by the \code{\link[=set_vars]{set_vars()}} function).
@@ -128,6 +129,24 @@ is set to \code{FALSE} for observations that occurred after a non-MAR ICE, other
 The design and implementation of this function is largely based upon the same functionality
 as implemented in the so called "five macros" by James Roger. See Roger (2021).
 }
+\section{Count outcomes}{
+
+For counts, the template has one row per existing subject-period cell,
+keyed by \code{vars$subjid} and \code{vars$period}; absent periods are not added.
+Supply \code{delta} in the order of the period levels to assign direct additive
+offsets, with zero offsets for observed cells when \code{missing_only = TRUE}.
+Alternatively, edit the returned template using \code{is_missing} and period.
+Counts have no ICE lag scale, so \code{dlag} must be \code{NULL}.
+Delta values must be finite and integerish (within \code{sqrt(.Machine$double.eps)}
+of an integer); accepted values are rounded to that integer.
+Extraction and analysis reject adjusted counts that are negative or non-finite,
+or positive in a zero-duration period. Counts are never clipped at zero.
+An additive delta changes a completed period count, whereas
+\code{\link[=count_strategy]{count_strategy()}} adjusts the model mean before sampling imputations.
+The \code{is_post_ice} flag for counts identifies missing cells assigned a strategy,
+rather than time relative to an ICE.
+}
+
 \examples{
 \dontrun{
 delta_template(imputeObj)

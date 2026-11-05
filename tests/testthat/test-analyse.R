@@ -15,6 +15,17 @@ test_that("basic constructions of `analysis` work as expected", {
         method = method_condmean(n_samples = 1)
     )
     expect_true(validate(x))
+    expect_s3_class(x, "analysis_continuous")
+
+    x_count <- as_analysis(
+        results = list(
+            list(p1 = list("est" = 1)),
+            list(p1 = list("est" = 2))
+        ),
+        method = method_condmean(n_samples = 1),
+        outcome_type = "count"
+    )
+    expect_s3_class(x_count, "analysis_count")
 
     x <- as_analysis(
         results = list(
@@ -235,6 +246,67 @@ test_that("incorrect constructions of as_analysis fail", {
 })
 
 
+test_that("analysis transformation specifications are validated", {
+    results <- list(
+        list(p1 = list(est = 1, df = 4, se = 1)),
+        list(p1 = list(est = 2, df = 3, se = 3))
+    )
+
+    expect_error(
+        as_analysis(
+            results = results,
+            method = method_bayes(n_samples = 2),
+            transform = list(transform = exp)
+        ),
+        "functions named"
+    )
+    expect_error(
+        as_analysis(
+            results = results,
+            method = method_bayes(n_samples = 2),
+            transform = list(transform = exp, derivative = "exp")
+        ),
+        "functions named"
+    )
+})
+
+
+test_that("use_transform creates a transformation and derivative from x", {
+    transform <- use_transform(exp(x))
+    negation_transform <- use_transform(-x)
+    identity_transform <- use_transform(x)
+
+    expect_equal(transform$transform(c(0, log(2))), c(1, 2))
+    expect_equal(transform$derivative(c(0, log(2))), c(1, 2))
+    expect_equal(negation_transform$derivative(2), -1)
+    expect_equal(identity_transform$derivative(c(1, 2)), c(1, 1))
+    expect_error(use_transform(exp(y)), "expression in `x`")
+    expect_identical(transform$scale, "exp(x)")
+    expect_identical(negation_transform$scale, "-x")
+    labelled <- use_transform(exp(x), scale = "rate")
+    expect_identical(labelled$scale, "rate")
+    expect_true(validate_transform(labelled))
+    expect_error(
+        validate_transform(list(transform = exp, derivative = exp)),
+        "functions named"
+    )
+    for (scale in list(NULL, "", "  ", NA_character_, c("rate", "odds"), 1)) {
+        expect_error(use_transform(exp(x), scale = scale), "single non-empty string")
+    }
+    expect_identical(attr(neg_bin_regression, "transform")$scale, "rate")
+})
+
+
+test_that("analyse defaults to the analysis function transformation", {
+    transform <- eval(
+        formals(analyse)$transform,
+        envir = list(fun = neg_bin_regression)
+    )
+
+    expect_equal(transform$transform(log(2)), 2)
+})
+
+
 test_that("Parallisation works with analyse and produces identical results", {
     set.seed(4642)
     sigma <- as_vcov(
@@ -389,4 +461,59 @@ test_that("Parallisation works with analyse and produces identical results", {
     expect_false(identical(anaobj_d1_t1$results, anaobj_d3_t1$results))
     expect_false(identical(anaobj_d2_t1$results, anaobj_d3_t1$results))
     parallel::stopCluster(cl)
+})
+
+
+test_that("analyse summarises arbitrary warnings in serial and parallel", {
+    imputations <- list(
+        data = list(
+            vars = list(),
+            get_data = function(imputation, ...) data.frame(index = imputation)
+        ),
+        imputations = as.list(1:3),
+        method = method_bayes(n_samples = 3)
+    )
+    fun <- function(data) {
+        if (data$index != 2) {
+            warning("first warning")
+            warning("first warning")
+        }
+        if (data$index == 3) warning("second warning")
+        result <- list(beta = list(est = data$index, se = 0.2, df = Inf))
+        attr(result, "custom_metadata") <- "retained"
+        result
+    }
+    run <- function(ncores) {
+        messages <- character()
+        result <- withCallingHandlers(
+            analyse(imputations, fun, ncores = ncores, .validate = FALSE),
+            warning = function(w) {
+                messages <<- c(messages, conditionMessage(w))
+                invokeRestart("muffleWarning")
+            }
+        )
+        expect_length(messages, 1)
+        expect_match(messages, "2/3: first warning", fixed = TRUE)
+        expect_match(messages, "1/3: second warning", fixed = TRUE)
+        expect_identical(attr(result$results[[1]], "rbmi_warnings"), "first warning")
+        expect_null(attr(result$results[[2]], "rbmi_warnings"))
+        expect_identical(
+            attr(result$results[[3]], "rbmi_warnings"),
+            c("first warning", "second warning")
+        )
+        expect_identical(attr(result$results[[1]], "custom_metadata"), "retained")
+        result
+    }
+    serial <- run(1)
+    parallel <- run(2)
+    expect_equal(serial, parallel)
+    expect_s3_class(serial, "analysis_continuous")
+    expect_no_warning(analyse(
+        imputations,
+        function(data) list(beta = list(est = 1, se = 0.2, df = Inf)),
+        .validate = FALSE
+    ))
+    expect_error(analyse(
+        imputations, function(data) stop("analysis failed"), .validate = FALSE
+    ), "analysis failed")
 })

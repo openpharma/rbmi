@@ -8,6 +8,7 @@
       -----------
       Number of Results Combined: 50
       Method: rubin
+      Rubin df method: barnard-rubin
       Confidence Level: 0.95
       Alternative: two.sided
       
@@ -35,6 +36,7 @@
       -----------
       Number of Results Combined: 5
       Method: rubin
+      Rubin df method: barnard-rubin
       Confidence Level: 0.9
       Alternative: less
       
@@ -259,10 +261,7 @@
           warmup: 200
           thin: 1
           chains: 1
-          init: function (chain_id) 
-          {
-              list(b0 = chain_id, b1 = chain_id)
-          }
+          init: custom (function)
           seed: 791990519
           control: list(adapt_delta = 0.95, max_treedepth = 15)
       

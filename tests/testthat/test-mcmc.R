@@ -55,6 +55,10 @@ get_within <- function(x, real) {
         mutate(inside = real >= lci & real <= uci)
 }
 
+get_shared_sigma_draws <- function(samples) {
+    lapply(samples, function(sample_sigma) sample_sigma[[1]])
+}
+
 test_extract_draws <- function(draws_extracted, same_cov, n_groups, n_visits) {
     expect_type(draws_extracted, "list")
     expect_length(draws_extracted, 2)
@@ -153,6 +157,248 @@ test_that("split_dim creates a list from an array as expected", {
 })
 
 
+test_that("get_ESS excludes lp__ from the Stan summary", {
+    methods::setClass("stanfit_ess_test", slots = c(sim = "list"))
+    methods::setMethod(
+        "summary",
+        "stanfit_ess_test",
+        function(object, pars) {
+            expect_identical(pars, c("beta", "sigma"))
+            list(summary = cbind(n_eff = c(beta = 100, sigma = 200)))
+        }
+    )
+    withr::defer(methods::removeMethod("summary", "stanfit_ess_test"))
+    stan_fit <- methods::new(
+        "stanfit_ess_test",
+        sim = list(pars_oi = c("beta", "lp__", "sigma"))
+    )
+
+    ESS <- get_ESS(stan_fit)
+
+    expect_identical(ESS, c(beta = 100, sigma = 200))
+})
+
+
+test_that("count Stan data supports shared and group-specific dispersion", {
+    subjid <- factor(rep(c("1", "2"), each = 3))
+    period <- rep(as.character(1:3), 2)
+    group <- factor(
+        rep(c("Control", "Active"), each = 3),
+        levels = c("Control", "Active")
+    )
+    duration <- rep(1, 6)
+    outcome <- c(1, 2, NA, 3, 4, 1)
+    design <- cbind(intercept = 1, active = as.integer(group == "Active"))
+
+    shared <- prepare_stan_data_count(
+        ddat = design,
+        subjid = subjid,
+        duration = duration,
+        outcome = outcome,
+        group = group,
+        same_cov = TRUE
+    )
+    separate <- prepare_stan_data_count(
+        ddat = design,
+        subjid = subjid,
+        duration = duration,
+        outcome = outcome,
+        group = group,
+        same_cov = FALSE
+    )
+
+    expect_equal(shared$G, 1L)
+    expect_equal(shared$group, c(1L, 1L))
+    expect_equal(separate$G, 2L)
+    expect_equal(separate$group, c(1L, 2L))
+    expect_true(validate(shared))
+    expect_true(validate(separate))
+})
+
+
+test_that("count Stan data supports ragged observed cells", {
+    subjid <- factor(c("1", "1", "1", "2", "2"))
+    period <- c("1", "2", "3", "1", "3")
+    group <- factor(
+        c("Control", "Control", "Control", "Active", "Active"),
+        levels = c("Control", "Active")
+    )
+    duration <- c(2, 2, 1, 3, 2)
+    outcome <- c(0, 1, NA, 2, 1)
+    design <- cbind(intercept = 1, active = as.integer(group == "Active"))
+
+    actual <- prepare_stan_data_count(
+        ddat = design,
+        subjid = subjid,
+        duration = duration,
+        outcome = outcome,
+        group = group,
+        same_cov = FALSE
+    )
+
+    expect_equal(actual$N, 2)
+    expect_equal(actual$R, 4)
+    expect_equal(actual$subject, c(1L, 1L, 2L, 2L))
+    expect_equal(actual$y, c(0L, 1L, 2L, 1L))
+    expect_equal(actual$group, c(1L, 2L))
+    expect_true(validate(actual))
+})
+
+
+test_that("count Stan data drops subjects without observed positive-duration cells", {
+    subjid <- factor(rep(c("1", "2", "3"), each = 2))
+    period <- rep(c("1", "2"), 3)
+    group <- factor(
+        rep(c("Control", "Control", "Active"), each = 2),
+        levels = c("Control", "Active")
+    )
+    duration <- c(1, 1, 1, 1, 0, 0)
+    outcome <- c(1, 2, NA, NA, 0, NA)
+    # Only Control has observed cells, so a treatment effect is not estimable.
+    design <- matrix(1, nrow = 6, ncol = 1, dimnames = list(NULL, "intercept"))
+
+    expect_message(
+        actual <- prepare_stan_data_count(
+            ddat = design,
+            subjid = subjid,
+            duration = duration,
+            outcome = outcome,
+            group = group,
+            same_cov = TRUE
+        ),
+        "Dropping subject\\(s\\).*: `2`, `3`"
+    )
+
+    expect_equal(actual$N, 1)
+    expect_equal(actual$R, 2)
+    expect_equal(actual$subject, c(1L, 1L))
+    expect_equal(actual$y, c(1L, 2L))
+    expect_equal(actual$group, 1L)
+    expect_equal(actual$X, design[1:2, , drop = FALSE])
+    expect_true(validate(actual))
+})
+
+
+test_that("count Stan data requires full rank in observed positive-duration cells", {
+    subjid <- factor(rep(c("1", "2"), each = 2))
+    period <- rep(c("1", "2"), 2)
+    group <- factor(rep(c("Control", "Active"), each = 2))
+    design <- cbind(intercept = 1, active = as.integer(group == "Active"))
+
+    # The full design has rank two, but Active contributes no likelihood when
+    # its outcomes are missing or its exposure is zero.
+    for (missing_active in c(TRUE, FALSE)) {
+        expect_message(
+            expect_error(
+                prepare_stan_data_count(
+                    ddat = design,
+                    subjid = subjid,
+                    duration = if (missing_active) rep(1, 4) else c(1, 1, 0, 0),
+                    outcome = if (missing_active) {
+                        c(1, 2, NA, NA)
+                    } else {
+                        c(1, 2, 0, 0)
+                    },
+                    group = group,
+                    same_cov = TRUE
+                ),
+                "The positive-count design matrix must have full column rank"
+            ),
+            "Dropping subject\\(s\\).*: `2`"
+        )
+    }
+})
+
+
+test_that("count Stan data requires positive counts for period-specific effects", {
+    periods <- list(
+        c(1, 2, 1, 2),
+        c("1", "2", "1", "2"),
+        factor(c("1", "2", "1", "2"))
+    )
+    outcomes <- list(
+        c(1, 0, 2, 0),
+        c(1, NA, 2, 0),
+        c(0, 0, 0, 0)
+    )
+    for (period in periods) {
+        for (outcome in outcomes) {
+            expect_error(
+                prepare_stan_data_count(
+                    ddat = cbind(intercept = 1, period2 = as.integer(period == "2")),
+                    subjid = c("1", "1", "2", "2"),
+                    duration = rep(1, 4),
+                    outcome = outcome,
+                    group = factor(rep("Control", 4)),
+                    same_cov = TRUE
+                ),
+                "positive-count design matrix.*proper posterior"
+            )
+        }
+    }
+})
+
+
+test_that("count Stan data allows zero-count periods with shared coefficients", {
+    actual <- prepare_stan_data_count(
+        ddat = matrix(1, nrow = 4, ncol = 1),
+        subjid = c("1", "1", "2", "2"),
+        duration = rep(1, 4),
+        outcome = c(1, 0, 2, 0),
+        group = factor(rep("Control", 4)),
+        same_cov = TRUE
+    )
+
+    expect_equal(actual$y, c(1L, 0L, 2L, 0L))
+    expect_true(validate(actual))
+})
+
+
+test_that("count Stan data ignores periods without observed positive-duration cells", {
+    periods <- list(
+        c(1, 2, 1, 2),
+        c("1", "2", "1", "2"),
+        factor(c("1", "2", "1", "2"), levels = c("1", "2", "3"))
+    )
+    for (period in periods) {
+        for (missing_period in c(TRUE, FALSE)) {
+            actual <- prepare_stan_data_count(
+                ddat = matrix(1, nrow = 4, ncol = 1),
+                subjid = c("1", "1", "2", "2"),
+                duration = if (missing_period) rep(1, 4) else c(1, 0, 1, 0),
+                outcome = if (missing_period) c(1, NA, 2, NA) else c(1, 0, 2, 0),
+                group = factor(rep("Control", 4)),
+                same_cov = TRUE
+            )
+
+            expect_equal(actual$R, 2)
+            expect_equal(actual$y, c(1L, 2L))
+            expect_equal(actual$X, matrix(1, nrow = 2, ncol = 1))
+            expect_true(validate(actual))
+        }
+    }
+})
+
+
+test_that("ragged and fixed-period negative-multinomial likelihoods agree", {
+    count <- c(2, 3)
+    mu <- c(4, 5)
+    shape <- 2
+    probability <- mu / (shape + sum(mu))
+
+    fixed_period <- lgamma(shape + sum(count)) - lgamma(shape) -
+        sum(lgamma(count + 1)) +
+        sum(count * log(probability)) +
+        shape * log1p(-sum(probability))
+    ragged <- sum(count * log(mu) - lgamma(count + 1)) +
+        lgamma(shape + sum(count)) - lgamma(shape) +
+        shape * log(shape) -
+        (shape + sum(count)) * log(shape + sum(mu))
+
+    expect_equal(ragged, fixed_period, tolerance = 1e-14)
+})
+
+
 test_that("Verbose suppression works", {
     skip_if_not(is_core_test())
     set.seed(301)
@@ -241,6 +487,18 @@ test_that("as_indices", {
     expect_error(as_indices(c("12")), "must be 0 or 1")
     expect_error(as_indices(c("11", "1")), "same length")
     expect_error(as_indices(c("11", "111")), "same length")
+})
+
+test_that("prepare_stan_data creates valid continuous Stan data", {
+    stan_data <- prepare_stan_data(
+        ddat = matrix(c(1, 2, 3, 4), ncol = 1),
+        subjid = factor(c("1", "1", "2", "2")),
+        visit = factor(c("1", "2", "1", "2")),
+        outcome = c(1, 2, 3, 4),
+        group = factor(c("A", "A", "B", "B"))
+    )
+
+    expect_s3_class(stan_data, "stan_data_continuous")
 })
 
 
@@ -559,7 +817,10 @@ test_that("fit_mcmc can recover known values with same_cov = TRUE", {
     beta_within <- get_within(fit$samples$beta, c(10, 6, 3, 7, 0, 0, 7, 14))
     assert_that(all(beta_within$inside))
 
-    sigma_within <- get_within(fit$samples$sigma, unlist(as.list(sigma)))
+    sigma_within <- get_within(
+        get_shared_sigma_draws(fit$samples$sigma),
+        unlist(as.list(sigma))
+    )
     assert_that(all(sigma_within$inside))
 
     # check extract_draws() worked properly
@@ -588,7 +849,10 @@ test_that("fit_mcmc can recover known values with same_cov = TRUE", {
     beta_within <- get_within(fit$samples$beta, c(10, 6, 3, 7, 0, 0, 7, 14))
     assert_that(all(beta_within$inside))
 
-    sigma_within <- get_within(fit$samples$sigma, unlist(as.list(sigma)))
+    sigma_within <- get_within(
+        get_shared_sigma_draws(fit$samples$sigma),
+        unlist(as.list(sigma))
+    )
     assert_that(all(sigma_within$inside))
 
     # check extract_draws() worked properly
@@ -626,7 +890,10 @@ test_that("fit_mcmc can recover known values with same_cov = TRUE", {
     beta_within <- get_within(fit$samples$beta, c(10, 6, 3, 7, 0, 0, 7, 14))
     assert_that(all(beta_within$inside))
 
-    sigma_within <- get_within(fit$samples$sigma, unlist(as.list(sigma)))
+    sigma_within <- get_within(
+        get_shared_sigma_draws(fit$samples$sigma),
+        unlist(as.list(sigma))
+    )
     assert_that(all(sigma_within$inside))
 
     # check extract_draws() worked properly
@@ -654,7 +921,11 @@ test_that("fit_mcmc returns error if mmrm on original sample fails", {
         data = dat,
         ~ 1 + sex + age + group + visit + group * visit
     )
-    mat[, 2] <- 1
+    # Keep the design full rank so validation reaches the MMRM failure path.
+    local_mocked_bindings(
+        fit_mmrm = function(...) list(failed = TRUE),
+        .package = "rbmi"
+    )
 
     method <- method_bayes(
         n_samples = 2,
@@ -866,7 +1137,10 @@ test_that("fit_mcmc works with multiple chains", {
     beta_within <- get_within(fit$samples$beta, c(10, 6, 3, 7, 0, 0, 7, 14))
     assert_that(all(beta_within$inside))
 
-    sigma_within <- get_within(fit$samples$sigma, unlist(as.list(sigma)))
+    sigma_within <- get_within(
+        get_shared_sigma_draws(fit$samples$sigma),
+        unlist(as.list(sigma))
+    )
     assert_that(all(sigma_within$inside))
 
     # check extract_draws() worked properly
@@ -927,7 +1201,7 @@ test_fit_mcmc <- function(
     assert_that(all(beta_within$inside))
 
     sigma_within <- get_within(
-        fit$samples$sigma,
+        if (same_cov) get_shared_sigma_draws(fit$samples$sigma) else fit$samples$sigma,
         rep(unlist(as.list(sigma)), ifelse(same_cov, 1, 2))
     )
     assert_that(all(sigma_within$inside))
@@ -1098,4 +1372,125 @@ test_that("fit_mcmc works with heterogeneous Toeplitz covariance model", {
 
     set.seed(6459)
     test_fit_mcmc("toeph", sigma = sigma, same_cov = FALSE)
+})
+
+
+test_that("unidentified design terms handles rank and empty matrices", {
+    design <- cbind(intercept = 1, x = 1:4)
+    expect_identical(unidentified_design_terms(design), character(0))
+    expect_identical(
+        unidentified_design_terms(cbind(design, duplicate = 2 * design[, 2])),
+        "duplicate"
+    )
+    expect_identical(unidentified_design_terms(design[FALSE, ]), colnames(design))
+    expect_identical(
+        unidentified_design_terms(matrix(0, 4, 2)),
+        c("column 1", "column 2")
+    )
+    expect_identical(unidentified_design_terms(matrix(numeric(), 4, 0)), character(0))
+})
+
+
+test_that("unidentified design terms supports data frames and name overrides", {
+    design <- data.frame(intercept = rep(1, 4), absent = rep(0, 4))
+    expect_identical(unidentified_design_terms(design), "absent")
+    expect_identical(unidentified_design_terms(design, c("a", "b")), "b")
+    expect_identical(unidentified_design_terms(unname(as.matrix(design))), "column 2")
+})
+
+
+test_that("continuous rank checks use all observed outcomes", {
+    design <- cbind(intercept = 1, groupB = c(0, 0, 1, 1))
+    expect_null(check_continuous_design_rank(design, c(-1, 0, -2, 0)))
+    expect_null(check_continuous_design_rank(as.data.frame(design), c(NA, 0, -2, NA)))
+    expect_error(
+        check_continuous_design_rank(design, c(-1, 0, NA, NA)),
+        "observed-outcome design matrix is rank deficient.*`groupB`"
+    )
+    expect_error(
+        check_continuous_design_rank(design, rep(NA_real_, 4)),
+        "`intercept`, `groupB`"
+    )
+})
+
+
+test_that("continuous rank checks name linearly dependent columns", {
+    design <- cbind(intercept = 1, x = 1:4, duplicate = 2 * (1:4))
+    expect_error(
+        check_continuous_design_rank(design, 1:4),
+        "`duplicate`"
+    )
+})
+
+
+test_that("continuous rank checks use supplied, matrix, or fallback names", {
+    design <- cbind(intercept = 1, groupB = c(0, 0, 1, 1))
+    outcome <- c(-1, 0, NA, NA)
+    expect_error(
+        check_continuous_design_rank(design, outcome, c("(Intercept)", "armB")),
+        "`armB`"
+    )
+    expect_error(check_continuous_design_rank(design, outcome), "`groupB`")
+    expect_error(
+        check_continuous_design_rank(unname(design), outcome),
+        "`column 2`"
+    )
+})
+
+
+test_that("continuous MCMC names terms without observed-outcome support", {
+    design <- cbind(intercept = 1, groupB = c(0, 0, 1, 1))
+    fit <- function(y, x = design, terms = colnames(x)) {
+        fit_mcmc(
+            outcome_type = "continuous",
+            designmat = x,
+            outcome = y,
+            group = factor(c("A", "A", "B", "B")),
+            subjid = factor(c("a", "a", "b", "b")),
+            visit = factor(rep(1:2, 2)),
+            duration = NULL,
+            method = list(covariance = "us", same_cov = TRUE),
+            scaler = list(),
+            term_names = terms
+        )
+    }
+
+    expect_error(
+        fit(c(-1, 0, NA, NA)),
+        "observed-outcome design matrix is rank deficient.*`groupB`"
+    )
+    # Reaching the initial MMRM verifies that zero and negative observations
+    # contribute to the rank check, without running Stan sampling.
+    local_mocked_bindings(
+        fit_mmrm = function(...) stop("Reached initial MMRM"),
+        .package = "rbmi"
+    )
+    expect_error(fit(c(-1, 0, -2, 0)), "Reached initial MMRM")
+})
+
+
+test_that("count Stan data names the model terms without positive-count support", {
+    # Arm B has events only in period 1, so its period-2 interaction is not
+    # identified by any positive count.
+    subjid <- factor(rep(c("a", "b", "c", "d"), each = 2))
+    group <- factor(rep(c("A", "A", "B", "B"), each = 2))
+    period2 <- rep(c(0, 1), 4)
+    design <- cbind(
+        intercept = 1,
+        groupB = as.integer(group == "B"),
+        period2 = period2,
+        groupB_period2 = as.integer(group == "B") * period2
+    )
+    expect_error(
+        prepare_stan_data_count(
+            ddat = design,
+            subjid = subjid,
+            duration = rep(1, 8),
+            outcome = c(1, 2, 3, 1, 2, 0, 1, 0),
+            group = group,
+            same_cov = TRUE,
+            term_names = c("(Intercept)", "groupB", "period2", "groupB:period2")
+        ),
+        "not identified by cells with positive counts.*`groupB:period2`"
+    )
 })

@@ -8,9 +8,11 @@ as_analysis(
   results,
   method,
   delta = NULL,
+  transform = NULL,
   fun = NULL,
   fun_name = NULL,
-  par_meta = NULL
+  par_meta = NULL,
+  outcome_type = c("continuous", "count")
 )
 }
 \arguments{
@@ -22,6 +24,9 @@ See \code{\link[=analyse]{analyse()}} for details on what this object should loo
 \item{delta}{The delta dataset used. See \code{\link[=analyse]{analyse()}} for details on how this
 should be specified.}
 
+\item{transform}{The reporting-scale transformation specification used. See
+\code{\link[=analyse]{analyse()}} for details.}
+
 \item{fun}{The analysis function that was used.}
 
 \item{fun_name}{The character name of the analysis function (used for printing)
@@ -30,6 +35,8 @@ purposes.}
 \item{par_meta}{Optional \code{data.frame} of per-parameter metadata (e.g. the group
 levels and visit associated with each analysis parameter) as attached by the
 analysis function. May be \code{NULL}.}
+
+\item{outcome_type}{The endpoint type used to produce the imputations.}
 }
 \description{
 Creates an analysis object ensuring that all components are
