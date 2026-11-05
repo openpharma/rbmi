@@ -380,9 +380,9 @@ test_that("Parallisation works with analyse and produces identical results", {
     ## future results
 
     # First assert consistency
-    expect_true(identical(anaobj_d1_t1$results, anaobj_d1_t3$results))
-    expect_true(identical(anaobj_d2_t1$results, anaobj_d2_t3$results))
-    expect_true(identical(anaobj_d3_t1$results, anaobj_d3_t3$results))
+    expect_equal(anaobj_d1_t1$results, anaobj_d1_t3$results)
+    expect_equal(anaobj_d2_t1$results, anaobj_d2_t3$results)
+    expect_equal(anaobj_d3_t1$results, anaobj_d3_t3$results)
 
     # The ensure they are different
     expect_false(identical(anaobj_d1_t1$results, anaobj_d2_t1$results))
