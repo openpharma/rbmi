@@ -1,11 +1,7 @@
 # Configure useragent to enable binary package installation from PPM
 options(
     repos = c(
-        CRAN = sprintf(
-            "https://packagemanager.posit.co/cran/latest/bin/linux/noble-%s/%s",
-            R.version["arch"],
-            substr(getRversion(), 1, 3)
-        )
+        CRAN = "https://packagemanager.posit.co/cran/__linux__/resolute/latest"
     ),
     "HTTPUserAgent" = sprintf(
         "R/%s R (%s)",
