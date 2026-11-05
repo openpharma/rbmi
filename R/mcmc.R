@@ -406,7 +406,8 @@ fit_mcmc <- function(
 
     ret_obj <- list(
         "samples" = draws,
-        "fit" = fit
+        "fit" = fit,
+        "initialisation" = attr(control, "initialisation")
     )
 
     return(ret_obj)

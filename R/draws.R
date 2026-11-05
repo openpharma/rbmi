@@ -711,6 +711,7 @@ draws.bayes <- function(
         samples = sample_list(samples),
         data = longdata,
         fit = fit$fit,
+        initialisation = fit$initialisation,
         formula = longdata$formula,
         n_failures = 0
     )
@@ -738,7 +739,6 @@ print.draws_count <- function(x, ...) {
         x,
         endpoint_type = "count",
         exclude_method = c("covariance", "prior_cov"),
-        exclude_control = "init",
         offset = x$data$vars$duration
     )
 }
@@ -768,6 +768,19 @@ print_draws <- function(
 
     control_args <- if ("control" %in% names(method)) {
         control <- method$control
+        if (!is.null(x$initialisation)) {
+            init <- x$initialisation
+            control$init <- if (is.function(init)) {
+                "custom (function)"
+            } else if (is.list(init)) {
+                "custom (list)"
+            } else {
+                as.character(init)
+            }
+            if (identical(method$control$init, "auto")) {
+                control$init <- paste0(control$init, " (auto)")
+            }
+        }
         control <- control[!names(control) %in% exclude_control]
         method <- method[!(names(method) == "control")]
         format_method_descriptions(control)
@@ -831,6 +844,8 @@ print_draws <- function(
 #' @param formula Fixed effects formula object used for the model specification.
 #' @param n_failures Absolute number of failures of the model fit.
 #' @param fit If `method_bayes()` is chosen, returns the MCMC Stan fit object. Otherwise `NULL`.
+#' @param initialisation Resolved Bayesian initialisation policy or custom Stan
+#'   initial values. Defaults to `NULL` when unavailable or not applicable.
 #'
 #' @return
 #' A `draws` object which is a named list containing the following:
@@ -849,6 +864,8 @@ print_draws <- function(
 #' - `n_failures`: absolute number of failures of the model fit.
 #' Relevant only for `method_condmean(type = "bootstrap")`, `method_approxbayes()` and `method_bmlmi()`.
 #' - `formula`: fixed effects formula object used for the model specification.
+#' - `initialisation`: resolved Bayesian initialisation policy or custom Stan
+#'   initial values, or `NULL` when unavailable or not applicable.
 #'
 as_draws <- function(
     method,
@@ -856,7 +873,8 @@ as_draws <- function(
     data,
     formula,
     n_failures = NULL,
-    fit = NULL
+    fit = NULL,
+    initialisation = NULL
 ) {
     x <- list(
         data = data,
@@ -864,7 +882,8 @@ as_draws <- function(
         samples = samples,
         fit = fit,
         n_failures = n_failures,
-        formula = formula
+        formula = formula,
+        initialisation = initialisation
     )
 
     next_class <- switch(

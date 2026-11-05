@@ -18,6 +18,8 @@
 
 ## Bug Fixes
 
+* Bayesian controls now default to `init = "auto"`, preserving the existing model-specific defaults. Count models honour custom Stan initial values and reject explicit `init = "mmrm"`. Draws print the resolved initialisation setting.
+
 * Bayesian imputation models now report informative errors naming unidentified model terms when the design matrix is rank deficient among cells with observed outcomes (continuous models) or positive counts (count models).
 
 * `scalerConstructor` previously failed when applied to a matrix instead of a `data.frame`. This is fixed now.

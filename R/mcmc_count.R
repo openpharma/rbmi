@@ -199,14 +199,12 @@ complete_control_bayes_count <- function(
     n_samples,
     quiet
 ) {
-    control <- complete_control_bayes_common(
+    complete_control_bayes_common(
         control = control,
         n_samples = n_samples,
-        quiet = quiet
+        quiet = quiet,
+        outcome = "count"
     )
-
-    control$init <- "random"
-    control
 }
 
 #' Compile the Stan model for count outcomes

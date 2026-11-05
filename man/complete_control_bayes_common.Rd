@@ -4,7 +4,12 @@
 \alias{complete_control_bayes_common}
 \title{Complete Common Stan Control Options for Bayesian Methods}
 \usage{
-complete_control_bayes_common(control, n_samples, quiet)
+complete_control_bayes_common(
+  control,
+  n_samples,
+  quiet,
+  outcome = c("continuous", "count")
+)
 }
 \arguments{
 \item{control}{A list containing part of the control options. Must not contain
@@ -13,10 +18,13 @@ complete_control_bayes_common(control, n_samples, quiet)
 \item{n_samples}{Number of samples to be drawn.}
 
 \item{quiet}{A logical indicating whether to suppress output during sampling.}
+
+\item{outcome}{Outcome type used to resolve the initialisation policy.}
 }
 \value{
 A completed control options list including computed \code{iter} and
-\code{refresh} values.
+\code{refresh} values and resolved \code{init}. The \code{initialisation} attribute retains
+the resolved policy before model-specific expansion of starting values.
 }
 \description{
 Complete Common Stan Control Options for Bayesian Methods

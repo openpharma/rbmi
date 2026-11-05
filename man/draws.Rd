@@ -99,6 +99,8 @@ Each element of \code{samples} is a named list containing the following:
 \item \code{n_failures}: absolute number of failures of the model fit.
 Relevant only for \code{method_condmean(type = "bootstrap")}, \code{method_approxbayes()} and \code{method_bmlmi()}.
 \item \code{formula}: fixed effects formula object used for the model specification.
+\item \code{initialisation}: resolved Bayesian initialisation policy or custom Stan
+initial values, or \code{NULL} when unavailable or not applicable.
 }
 }
 \description{

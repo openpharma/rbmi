@@ -45,7 +45,8 @@ make_count_draws <- function(strategy = "JR", phi = 0.5, ragged = FALSE, zero_du
         samples = sample_list(sample),
         data = longdata,
         formula = longdata$formula,
-        n_failures = 0
+        n_failures = 0,
+        initialisation = "random"
     )
     class(result) <- c("draws_count", class(result))
     result
@@ -66,7 +67,7 @@ test_that("count draws print endpoint-specific settings", {
     expect_true(any(output == "    same_cov: TRUE"))
     expect_false(any(grepl("covariance:", output, fixed = TRUE)))
     expect_false(any(grepl("prior_cov:", output, fixed = TRUE)))
-    expect_false(any(grepl("init:", output, fixed = TRUE)))
+    expect_true(any(output == "    init: random (auto)"))
 })
 
 
@@ -690,4 +691,15 @@ test_that("count templates retain assigned reference strategies", {
     template <- delta_template(make_count_draws(strategy = "JR"))
     expect_equal(template$strategy, c(NA, NA, "MAR", NA, NA, "JR"))
     expect_equal(template$is_missing, c(FALSE, FALSE, TRUE, FALSE, FALSE, TRUE))
+})
+
+
+test_that("draws print custom initialisers without evaluating them", {
+    result <- make_count_draws()
+    for (init in list(list(list(phi = 1)), function() stop("Do not evaluate"))) {
+        result$method$control$init <- init
+        result$initialisation <- init
+        label <- if (is.function(init)) "function" else "list"
+        expect_output(print(result), paste0("init: custom \\(", label, "\\)"))
+    }
 })
