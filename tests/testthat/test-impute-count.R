@@ -500,10 +500,14 @@ test_that("controlled count strategy inputs are validated", {
         "only be specified together with `fixed_rate`"
     )
     expect_error(
-        count_strategy(fixed_rate = 0.1, fixed_rate_scale = "lambda"),
+        count_strategy(fixed_rate = 0.1, fixed_rate_scale = "invalid"),
         "should be one of"
     )
     expect_identical(count_strategy(fixed_rate = 0.1)$fixed_rate_scale, "rate")
+    expect_identical(
+        count_strategy(fixed_rate = 0.1, fixed_rate_scale = "lambda")$fixed_rate_scale,
+        "lambda"
+    )
     expect_error(
         get_count_strategies(count_strategy()),
         "must be named"
