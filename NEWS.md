@@ -6,7 +6,7 @@
 * Fixed the FAQ vignette not being available through `vignette("FAQ", package = "rbmi")` (#588).
 
 ## Miscellaneous
-* Updated Isaac Gravestock's e-mail address
+* Updated e-mail address for Isaac Gravestock.
 
 # rbmi 1.7.0
 
