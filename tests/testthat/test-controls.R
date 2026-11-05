@@ -61,7 +61,7 @@ test_that("prepare_init_vals works as expected", {
     expected_us_default <- list(
         list(theta = 8, sigma = mmrm_initial$sigma, tau = mmrm_initial$tau)
     )
-    expect_identical(result_us_default, expected_us_default)
+    expect_equal(result_us_default, expected_us_default)
 
     result_us_lkj <- prepare_init_vals(
         stan_data = stan_data,
@@ -79,7 +79,7 @@ test_that("prepare_init_vals works as expected", {
             corr_chol = list(diag(2))
         )
     )
-    expect_identical(result_us_lkj, expected_us_lkj)
+    expect_equal(result_us_lkj, expected_us_lkj)
 })
 
 test_that("complete_control_bayes works as expected", {

@@ -57,11 +57,9 @@ standard_checks <- function(dobj, d, meth) {
         function(x) length(x$sigma) == 2,
         logical(1)
     )))
-    expect_true(all(vapply(
-        dobj$samples,
-        function(x) identical(x$sigma[[1]], x$sigma[[2]]),
-        logical(1)
-    )))
+    for (item in dobj$samples) {
+        expect_equal(item$sigma[[1]], item$sigma[[2]])
+    }
     expect_true(all(vapply(
         dobj$samples,
         function(x) length(x$beta) == 8,
@@ -125,7 +123,7 @@ test_that("condmean - bootstrap", {
 
     expect_length(dobj3$samples, 2)
     expect_equal(dobj3$samples[[1]], dobj$samples[[1]])
-    expect_true(identical(dobj2$samples, dobj3$samples))
+    expect_equal(dobj2$samples, dobj3$samples)
 })
 
 

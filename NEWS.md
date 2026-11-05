@@ -1,5 +1,11 @@
 # rbmi (development version)
 
+## Bug Fixes
+
+* Fixed test failures caused by small numerical differences when using MKL. (#604)
+* Fixed the FAQ vignette not being available through `vignette("FAQ", package = "rbmi")`.
+
+
 # rbmi 1.7.0
 
 ## New Features
