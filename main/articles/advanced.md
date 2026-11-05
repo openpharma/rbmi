@@ -486,7 +486,7 @@ by looking at function
 [`strategy_CIR()`](https://openpharma.github.io/rbmi/reference/strategies.md).
 
 \
-`strategy_CIR`\
+[`cat`](https://rdrr.io/r/base/cat.html)`(`[`deparse`](https://rdrr.io/r/base/deparse.html)`(``strategy_CIR``)``, sep ``=`` ``"\n"``)`\
 `#> function (pars_group, pars_ref, index_mar) `\
 `#> {`\
 `#>     if (all(index_mar)) {`\
@@ -504,9 +504,7 @@ by looking at function
 `#>         index_mar = index_mar)`\
 `#>     pars <- list(mu = mu, sigma = sigma)`\
 `#>     return(pars)`\
-`#> }`\
-`#> <bytecode: 0x561cff5add20>`\
-`#> <environment: namespace:rbmi>`
+`#> }`
 
 To further illustrate this for a simple example, assume that a new
 strategy is to be implemented as follows: - The marginal mean of the
