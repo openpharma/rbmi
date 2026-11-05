@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Install package dependencies
+        run: Rscript -e 'remotes::install_deps(dependencies = TRUE, upgrade = "never")'
       - name: Check
         run: tests/scripts/core.sh
 
@@ -28,6 +30,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Install package dependencies
+        run: Rscript -e 'remotes::install_deps(dependencies = TRUE, upgrade = "never")'
       - name: Check
         run: ./tests/scripts/cran.sh
 
@@ -38,6 +42,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Install package dependencies
+        run: Rscript -e 'remotes::install_deps(dependencies = TRUE, upgrade = "never")'
       - name: Build Vignettes
         run: ./tests/scripts/vignettes.sh
 
@@ -48,5 +54,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Install package dependencies
+        run: Rscript -e 'remotes::install_deps(dependencies = TRUE, upgrade = "never")'
       - name: Check
         run: ./tests/scripts/documentation.sh

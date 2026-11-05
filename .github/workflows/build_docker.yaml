@@ -18,6 +18,8 @@ on:
     branches:
       - main
     paths:
+      - 'DESCRIPTION'
+      - '.github/workflows/build_docker.yaml'
       - 'misc/docker/**'
       - 'misc/docker/*'
 
