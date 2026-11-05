@@ -5,6 +5,9 @@
 * Fixed test failures caused by small numerical differences when using MKL. (#604)
 * Fixed the FAQ vignette not being available through `vignette("FAQ", package = "rbmi")` (#588).
 
+## Miscellaneous
+* Updated Isaac Gravestock's e-mail address
+
 # rbmi 1.7.0
 
 ## New Features
