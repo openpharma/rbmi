@@ -48,6 +48,12 @@
 #' This is to say they will not contain the original subject values and as such
 #' any hard coding of subject ids is strictly to be avoided.
 #'
+#' Warnings raised by `fun` are collected for each imputed dataset and stored
+#' as unique messages in the `rbmi_warnings` attribute of its result (accessible
+#' via `analysis$results`). After analysis, one summary warning lists each
+#' distinct message and the number of datasets affected. This also applies
+#' when running in parallel. Errors from `fun` still stop the analysis.
+#'
 #' By default `fun` is the [ancova()] function.
 #' Please note that this function
 #' requires that a `vars` object, as created by [set_vars()], is provided via
@@ -316,7 +322,18 @@ analyse <- function(
                     ..rbmi..analysis..imputations$data,
                     ..rbmi..analysis..delta
                 )
-                ..rbmi..analysis..fun(dat2, ...)
+                warnings <- character()
+                result <- withCallingHandlers(
+                    ..rbmi..analysis..fun(dat2, ...),
+                    warning = function(w) {
+                        warnings <<- c(warnings, conditionMessage(w))
+                        invokeRestart("muffleWarning")
+                    }
+                )
+                if (length(warnings)) {
+                    attr(result, "rbmi_warnings") <- unique(warnings)
+                }
+                result
             }
             lapply(indicies, inner_fun, ...)
         },
@@ -359,6 +376,23 @@ analyse <- function(
         }
     )
     validate(ret)
+    warning_messages <- lapply(results, function(result) {
+        unique(attr(result, "rbmi_warnings", exact = TRUE))
+    })
+    distinct_messages <- unique(unlist(warning_messages, use.names = FALSE))
+    if (length(distinct_messages)) {
+        counts <- vapply(distinct_messages, function(message) {
+            sum(vapply(warning_messages, function(messages) {
+                message %in% messages
+            }, logical(1)))
+        }, integer(1))
+        warning(paste0(
+            "Analysis warnings (datasets affected out of ", length(results), "):\n",
+            paste0("- ", counts, "/", length(results), ": ", distinct_messages,
+                   collapse = "\n"),
+            '\nSee attr(result, "rbmi_warnings") for each entry in $results.'
+        ), call. = FALSE)
+    }
     return(ret)
 }
 

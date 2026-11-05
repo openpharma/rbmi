@@ -14,6 +14,8 @@
 
 * `print.pool()` now reports the Rubin degrees-of-freedom method for Rubin pooling.
 
+* `analyse()` now collects warnings from any analysis function and reports one summary listing each distinct message and the number of affected imputed datasets, including when running in parallel. Messages are retained in the `rbmi_warnings` attribute of each affected result in `$results`. This avoids repeated warnings.
+
 ## Bug Fixes
 
 * Bayesian imputation models now report informative errors naming unidentified model terms when the design matrix is rank deficient among cells with observed outcomes (continuous models) or positive counts (count models).

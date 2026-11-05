@@ -211,6 +211,26 @@ test_that("negative binomial regression handles nearly Poisson data", {
     )
 
     result <- suppressWarnings(neg_bin_regression(dat, vars))
+    imputations <- list(
+        data = list(vars = vars, get_data = function(...) dat),
+        imputations = list(NULL, NULL),
+        method = method_bayes(n_samples = 2)
+    )
+    messages <- character()
+    analysis <- withCallingHandlers(
+        analyse(imputations, neg_bin_regression, vars = vars, .validate = FALSE),
+        warning = function(w) {
+            messages <<- c(messages, conditionMessage(w))
+            invokeRestart("muffleWarning")
+        }
+    )
+    expect_length(messages, 1)
+    expect_match(messages, "2/2: iteration limit reached", fixed = TRUE)
+    expect_true("iteration limit reached" %in%
+        attr(analysis$results[[1]], "rbmi_warnings"))
+    recorded <- analysis$results[[1]]
+    attr(recorded, "rbmi_warnings") <- NULL
+    expect_equal(recorded, result)
     se <- vapply(result, `[[`, numeric(1), "se")
     poisson_se <- sqrt(diag(stats::vcov(
         stats::glm(outcome ~ group, family = stats::poisson, data = dat)
