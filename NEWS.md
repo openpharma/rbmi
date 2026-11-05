@@ -1,3 +1,8 @@
+# rbmi Development Version
+
+* Fixed minor reproducibility issue with vignettes
+
+
 # rbmi 1.7.1
 
 ## Bug Fixes
