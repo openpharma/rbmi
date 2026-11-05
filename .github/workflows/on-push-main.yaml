@@ -18,6 +18,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Install package dependencies
-        run: Rscript -e 'remotes::install_deps(dependencies = TRUE, upgrade = "never")'
+        run: Rscript tests/scripts/setup.R
       - name: Check
         run: ./tests/scripts/cran.sh

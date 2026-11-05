@@ -20,6 +20,7 @@ on:
     paths:
       - 'DESCRIPTION'
       - '.github/workflows/build_docker.yaml'
+      - 'tests/scripts/setup.R'
       - 'misc/docker/**'
       - 'misc/docker/*'
 
