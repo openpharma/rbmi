@@ -921,7 +921,11 @@ test_that("fit_mcmc returns error if mmrm on original sample fails", {
         data = dat,
         ~ 1 + sex + age + group + visit + group * visit
     )
-    mat[, 2] <- 1
+    # Keep the design full rank so validation reaches the MMRM failure path.
+    local_mocked_bindings(
+        fit_mmrm = function(...) list(failed = TRUE),
+        .package = "rbmi"
+    )
 
     method <- method_bayes(
         n_samples = 2,
