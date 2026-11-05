@@ -1371,6 +1371,76 @@ test_that("fit_mcmc works with heterogeneous Toeplitz covariance model", {
 })
 
 
+test_that("continuous rank checks use all observed outcomes", {
+    design <- cbind(intercept = 1, groupB = c(0, 0, 1, 1))
+    expect_null(check_continuous_design_rank(design, c(-1, 0, -2, 0)))
+    expect_null(check_continuous_design_rank(as.data.frame(design), c(NA, 0, -2, NA)))
+    expect_error(
+        check_continuous_design_rank(design, c(-1, 0, NA, NA)),
+        "observed-outcome design matrix is rank deficient.*`groupB`"
+    )
+    expect_error(
+        check_continuous_design_rank(design, rep(NA_real_, 4)),
+        "`intercept`, `groupB`"
+    )
+})
+
+
+test_that("continuous rank checks name linearly dependent columns", {
+    design <- cbind(intercept = 1, x = 1:4, duplicate = 2 * (1:4))
+    expect_error(
+        check_continuous_design_rank(design, 1:4),
+        "`duplicate`"
+    )
+})
+
+
+test_that("continuous rank checks use supplied, matrix, or fallback names", {
+    design <- cbind(intercept = 1, groupB = c(0, 0, 1, 1))
+    outcome <- c(-1, 0, NA, NA)
+    expect_error(
+        check_continuous_design_rank(design, outcome, c("(Intercept)", "armB")),
+        "`armB`"
+    )
+    expect_error(check_continuous_design_rank(design, outcome), "`groupB`")
+    expect_error(
+        check_continuous_design_rank(unname(design), outcome),
+        "`column 2`"
+    )
+})
+
+
+test_that("continuous MCMC names terms without observed-outcome support", {
+    design <- cbind(intercept = 1, groupB = c(0, 0, 1, 1))
+    fit <- function(y, x = design, terms = colnames(x)) {
+        fit_mcmc(
+            outcome_type = "continuous",
+            designmat = x,
+            outcome = y,
+            group = factor(c("A", "A", "B", "B")),
+            subjid = factor(c("a", "a", "b", "b")),
+            visit = factor(rep(1:2, 2)),
+            duration = NULL,
+            method = list(covariance = "us", same_cov = TRUE),
+            scaler = list(),
+            term_names = terms
+        )
+    }
+
+    expect_error(
+        fit(c(-1, 0, NA, NA)),
+        "observed-outcome design matrix is rank deficient.*`groupB`"
+    )
+    # Reaching the initial MMRM verifies that zero and negative observations
+    # contribute to the rank check, without running Stan sampling.
+    local_mocked_bindings(
+        fit_mmrm = function(...) stop("Reached initial MMRM"),
+        .package = "rbmi"
+    )
+    expect_error(fit(c(-1, 0, -2, 0)), "Reached initial MMRM")
+})
+
+
 test_that("count Stan data names the model terms without positive-count support", {
     # Arm B has events only in period 1, so its period-2 interaction is not
     # identified by any positive count.

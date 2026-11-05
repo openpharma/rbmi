@@ -16,7 +16,7 @@
 
 ## Bug Fixes
 
-* Count imputation model errors now name the model terms that are not identified by cells with positive counts when the positive-count design matrix is rank deficient.
+* Bayesian imputation models now report informative errors naming unidentified model terms when the design matrix is rank deficient among cells with observed outcomes (continuous models) or positive counts (count models).
 
 * `scalerConstructor` previously failed when applied to a matrix instead of a `data.frame`. This is fixed now.
 
