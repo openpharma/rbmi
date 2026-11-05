@@ -82,7 +82,7 @@ test_that("count likelihood is exact for large subject totals at any dispersion"
         refresh = 0
     )
     reference <- function(phi) {
-        mu <- exp(stan_data$log_offset + beta)
+        mu <- exp(stan_data$log_offset + as.vector(beta))
         sum(vapply(1:2, function(i) {
             rows <- stan_data$subject == i
             y <- stan_data$y[rows]
