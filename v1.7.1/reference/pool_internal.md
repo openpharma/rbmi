@@ -1,0 +1,81 @@
+# Internal Pool Methods
+
+Dispatches pool methods based upon results object class. See
+[`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) for
+details.
+
+## Usage
+
+``` r
+pool_internal(results, conf.level, alternative, type, D, ...)
+
+# S3 method for class 'jackknife'
+pool_internal(results, conf.level, alternative, type, D, ...)
+
+# S3 method for class 'bootstrap'
+pool_internal(
+  results,
+  conf.level,
+  alternative,
+  type = c("percentile", "normal"),
+  D,
+  ...
+)
+
+# S3 method for class 'bmlmi'
+pool_internal(results, conf.level, alternative, type, D, ...)
+
+# S3 method for class 'rubin'
+pool_internal(results, conf.level, alternative, type, D, rubin_df_method, ...)
+```
+
+## Arguments
+
+- results:
+
+  a list of results i.e. the `x$results` element of an `analyse` object
+  created by
+  [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)).
+
+- conf.level:
+
+  confidence level of the returned confidence interval. Must be a single
+  number between 0 and 1. Default is 0.95.
+
+- alternative:
+
+  a character string specifying the alternative hypothesis, must be one
+  of `"two.sided"` (default), `"greater"` or `"less"`.
+
+- type:
+
+  a character string of either `"percentile"` (default) or `"normal"`.
+  Determines what method should be used to calculate the bootstrap
+  confidence intervals. See details. Only used if
+  `method_condmean(type = "bootstrap")` was specified in the original
+  call to
+  [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md).
+
+- D:
+
+  numeric representing the number of imputations between each bootstrap
+  sample in the BMLMI method.
+
+- ...:
+
+  not used.
+
+- rubin_df_method:
+
+  a character string specifying the degrees-of-freedom approximation
+  used when pooling with Rubin's rules. `"barnard-rubin"` (default) uses
+  the Barnard-Rubin (1999) small-sample adjustment, while `"rubin"` uses
+  the approximation from Rubin (1987). Ignored for other pooling
+  methods.
+
+## Value
+
+A list containing the pooled results for a single parameter with
+elements `est` (point estimate), `ci` (confidence interval), `se`
+(standard error) and `pvalue` (p-value). The specific computation is
+determined by the class of `results` via S3 dispatch.
