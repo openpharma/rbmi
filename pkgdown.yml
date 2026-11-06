@@ -1,4 +1,4 @@
-pandoc: '3.11'
+pandoc: '3.13'
 pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
@@ -8,7 +8,7 @@ articles:
   quickstart: quickstart.html
   retrieved_dropout: retrieved_dropout.html
   stat_specs: stat_specs.html
-last_built: 2026-10-15T09:37Z
+last_built: 2026-11-06T08:26Z
 urls:
   reference: https://openpharma.github.io/rbmi/latest-tag/reference
   article: https://openpharma.github.io/rbmi/latest-tag/articles

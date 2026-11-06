@@ -36,11 +36,11 @@ between-imputation variance is zero, returns `Inf`.
 
 ## Details
 
-Let \\V_W = V_T - (1 + 1 / M) V_B\\ be the within-imputation variance
-and \\r = (1 + 1 / M) V_B / V_W\\ be the relative increase in variance
-due to nonresponse. The returned degrees of freedom are \\(M - 1) (1 + 1
-/ r)^2\\. Note that the internal computation is algebraically simplified
-to \\(M - 1) ((M V_T) / ((M + 1) V_B))^2\\.
+Let \\(V_W = V_T - (1 + 1 / M) V_B\\) be the within-imputation variance
+and \\(r = (1 + 1 / M) V_B / V_W\\) be the relative increase in variance
+due to nonresponse. The returned degrees of freedom are \\((M - 1) (1 +
+1 / r)^2\\). Note that the internal computation is algebraically
+simplified to \\((M - 1) ((M V_T) / ((M + 1) V_B))^2\\).
 
 ## References
 

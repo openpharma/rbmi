@@ -452,7 +452,7 @@ e2472. https://doi.org/<https://doi.org/10.1002/pst.2472>.
 
 Drury, Thomas, Juan J Abellan, Nicky Best, and Ian R White. 2024.
 “Estimation of Treatment Policy Estimands for Continuous Outcomes Using
-Off-Treatment Sequential Multiple Imputation.” *Pharmaceutical
+off-Treatment Sequential Multiple Imputation.” *Pharmaceutical
 Statistics*.
 
 Guizzaro, Lorenzo, Frank Pétavy, Robin Ristl, and Ciro Gallo. 2021. “The
