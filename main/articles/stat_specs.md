@@ -1309,7 +1309,7 @@ Their Application*. Cambridge University Press.
 
 Drury, Thomas, Juan J Abellan, Nicky Best, and Ian R White. 2024.
 “Estimation of Treatment Policy Estimands for Continuous Outcomes Using
-Off-Treatment Sequential Multiple Imputation.” *Pharmaceutical
+off-Treatment Sequential Multiple Imputation.” *Pharmaceutical
 Statistics*.
 
 Efron, Bradley. 1994. “Missing Data, Imputation, and the Bootstrap.”
@@ -1383,7 +1383,7 @@ Stan Development Team. 2020. *RStan: The R Interface to Stan*.
 
 von Hippel, Paul T, and Jonathan W Bartlett. 2021. “Maximum Likelihood
 Multiple Imputation: Faster Imputations and Consistent Standard Errors
-Without Posterior Draws.” *Statistical Science* 36 (3): 400–420.
+without Posterior Draws.” *Statistical Science* 36 (3): 400–420.
 
 White, Ian R, Patrick Royston, and Angela M Wood. 2011. “Multiple
 Imputation Using Chained Equations: Issues and Guidance for Practice.”
