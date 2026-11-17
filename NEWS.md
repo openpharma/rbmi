@@ -4,6 +4,10 @@
 
 * Fixed minor reproducibility issue with vignettes
 
+## Bug Fixes
+
+* With `control_bayes(init = "mmrm")`, the default for a single chain, only the regression coefficients previously started at the MMRM estimates: the covariance parameters were passed to Stan in the wrong names and shapes, so `rstan` silently started them at random values. All parameters of every covariance structure now start at the MMRM estimates. As a consequence, results of `method_bayes()` with a single chain differ from previous versions for the same seed. (#609)
+
 
 # rbmi 1.7.1
 
