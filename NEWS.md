@@ -8,6 +8,7 @@
 
 * With `control_bayes(init = "mmrm")`, the default for a single chain, only the regression coefficients previously started at the MMRM estimates: the covariance parameters were passed to Stan in the wrong names and shapes, so `rstan` silently started them at random values. All parameters of every covariance structure now start at the MMRM estimates. As a consequence, results of `method_bayes()` with a single chain differ from previous versions for the same seed. (#609)
 * `control_bayes()` now warns when `init = "mmrm"` is combined with more than one chain, as all chains then start at the same values, which makes convergence diagnostics such as R-hat less reliable.
+* With `method_bayes(same_cov = FALSE)` and a structured covariance (`"ad"`, `"adh"`, `"ar1"`, `"ar1h"`, `"cs"`, `"csh"`, `"toep"`, `"toeph"`), the group-specific prior parameters were assigned in alphabetical order of the treatment groups instead of the order of the factor levels. If the levels were not in alphabetical order, each group's covariance prior was centred on another group's MMRM estimate. This is fixed now.
 
 
 # rbmi 1.7.1
