@@ -145,6 +145,15 @@ test_that("prepare_init_vals returns MMRM estimates in Stan names and shapes", {
     expect_equal(us_shared$Sigma[1, , ], sigma$A)
 })
 
+test_that("stack_by_group puts groups first and keeps vector shapes", {
+    expect_equal(stack_by_group(list(1:3, 4:6)), rbind(1:3, 4:6))
+    # With two visits, `rhos` has one element per group: `array[G] vector[1]`.
+    expect_equal(stack_by_group(list(A = 0.3, B = 0.2)), matrix(c(0.3, 0.2)))
+    expect_equal(dim(stack_by_group(list(matrix(1)))), c(1, 1, 1))
+    m <- matrix(1:6, nrow = 2)
+    expect_equal(stack_by_group(list(m, 2 * m))[2, , ], 2 * m)
+})
+
 test_that("complete_control_bayes works as expected", {
     control <- control_bayes()
     # We use dummy inputs here for simplicity.
