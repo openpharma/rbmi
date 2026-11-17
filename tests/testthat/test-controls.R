@@ -39,6 +39,15 @@ test_that("control_bayes", {
     )
 })
 
+test_that("control_bayes warns if several chains start at the MMRM estimates", {
+    expect_warning(
+        control_bayes(chains = 2, init = "mmrm"),
+        "starts all 2 chains at the same values"
+    )
+    expect_no_warning(control_bayes(chains = 2))
+    expect_no_warning(control_bayes(chains = 1, init = "mmrm"))
+})
+
 test_that("prepare_init_vals returns MMRM estimates in Stan names and shapes", {
     sigma <- list(
         A = matrix(c(4, 1, 0.5, 1, 5, 1.5, 0.5, 1.5, 6), nrow = 3),

@@ -898,17 +898,30 @@ test_fit_mcmc <- function(
         ~ 1 + sex + age + group + visit + group * visit
     )
 
-    method <- method_bayes(
-        covariance = cov_struct,
-        n_samples = 500,
-        same_cov = same_cov,
-        prior_cov = prior_cov,
-        control = control_bayes(
+    if (init == "mmrm") {
+        expect_warning(
+            control <- control_bayes(
+                warmup = 200,
+                thin = 3,
+                chains = 3,
+                init = init
+            ),
+            "starts all 3 chains at the same values"
+        )
+    } else {
+        control <- control_bayes(
             warmup = 200,
             thin = 3,
             chains = 3,
             init = init
         )
+    }
+    method <- method_bayes(
+        covariance = cov_struct,
+        n_samples = 500,
+        same_cov = same_cov,
+        prior_cov = prior_cov,
+        control = control
     )
 
     fit <- fit_mcmc(

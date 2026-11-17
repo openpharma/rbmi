@@ -24,7 +24,8 @@
 #'
 #' - The `init` argument can be set to `"random"` to randomly initialise the sampler with `rstan`
 #' default values or to `"mmrm"` to initialise the sampler with the maximum likelihood estimate
-#' values of the MMRM.
+#' values of the MMRM. With more than one chain, `"mmrm"` starts all chains at the same values,
+#' which makes convergence diagnostics such as R-hat less reliable, so a warning is given.
 #' - The `seed` argument is used to set the seed for the MCMC sampler. By default, a random seed
 #' is generated, such that outside invocation of the `set.seed()` call can effectively set the
 #' seed.
@@ -80,6 +81,16 @@ control_bayes <- function(
         stop(
             "Instead of the `refresh` argument here, please provide the `quiet` argument",
             " directly to `draws()`"
+        )
+    }
+    if (identical(init, "mmrm") && chains > 1) {
+        warning(
+            "`init = \"mmrm\"` starts all ",
+            chains,
+            " chains at the same values, ",
+            "which makes convergence diagnostics such as R-hat less reliable. ",
+            "Consider `init = \"random\"`.",
+            call. = FALSE
         )
     }
     list(

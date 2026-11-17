@@ -40,7 +40,8 @@ Currently only the Bayesian imputation via \code{\link[=method_bayes]{method_bay
 \itemize{
 \item The \code{init} argument can be set to \code{"random"} to randomly initialise the sampler with \code{rstan}
 default values or to \code{"mmrm"} to initialise the sampler with the maximum likelihood estimate
-values of the MMRM.
+values of the MMRM. With more than one chain, \code{"mmrm"} starts all chains at the same values,
+which makes convergence diagnostics such as R-hat less reliable, so a warning is given.
 \item The \code{seed} argument is used to set the seed for the MCMC sampler. By default, a random seed
 is generated, such that outside invocation of the \code{set.seed()} call can effectively set the
 seed.
