@@ -1099,3 +1099,72 @@ test_that("fit_mcmc works with heterogeneous Toeplitz covariance model", {
     set.seed(6459)
     test_fit_mcmc("toeph", sigma = sigma, same_cov = FALSE)
 })
+
+expect_mmrm_init <- function(
+    covariance,
+    prior_cov = "default",
+    same_cov = FALSE
+) {
+    set.seed(5112)
+    mcoefs <- list("int" = 10, "age" = 3, "sex" = 6, "trtslope" = 7)
+    dat <- get_mcmc_sim_dat(200, mcoefs, as_vcov(c(3, 5, 7), c(0.1, 0.4, 0.7)))
+    mat <- model.matrix(
+        data = dat,
+        ~ 1 + sex + age + group + visit + group * visit
+    )
+
+    method <- method_bayes(
+        covariance = covariance,
+        prior_cov = prior_cov,
+        same_cov = same_cov,
+        n_samples = 20,
+        control = control_bayes(warmup = 20, thin = 1, init = "mmrm")
+    )
+    fit <- suppressWarnings(fit_mcmc(
+        designmat = mat,
+        outcome = dat$outcome,
+        group = dat$group,
+        subjid = dat$id,
+        visit = dat$visit,
+        method = method,
+        quiet = TRUE
+    ))
+    mmrm <- fit_mmrm(
+        designmat = mat,
+        outcome = dat$outcome,
+        subjid = dat$id,
+        visit = dat$visit,
+        group = dat$group,
+        cov_struct = covariance,
+        REML = TRUE,
+        same_cov = same_cov
+    )
+
+    inits <- rstan::get_inits(fit$fit)[[1]]
+    expect_equal(as.vector(inits$beta), mmrm$beta, tolerance = 1e-6)
+    for (g in seq_len(ifelse(same_cov, 1, 2))) {
+        expect_equal(
+            inits$Sigma[g, , ],
+            mmrm$sigma[[g]],
+            tolerance = 1e-6,
+            ignore_attr = TRUE
+        )
+    }
+}
+
+test_that("fit_mcmc starts the chain at the MMRM estimates with init = 'mmrm'", {
+    skip_if_not(is_core_test())
+    expect_mmrm_init("us")
+    expect_mmrm_init("us", same_cov = TRUE)
+})
+
+test_that("fit_mcmc starts all covariance models at the MMRM estimates", {
+    skip_if_not(is_extended_test())
+    expect_mmrm_init("us", prior_cov = "lkj")
+    expect_mmrm_init("us", prior_cov = "lkj", same_cov = TRUE)
+    structures <- c("ar1", "ar1h", "cs", "csh", "ad", "adh", "toep", "toeph")
+    for (covariance in structures) {
+        expect_mmrm_init(covariance)
+    }
+    expect_mmrm_init("ar1h", same_cov = TRUE)
+})
