@@ -1116,11 +1116,13 @@ test_that("fit_mcmc works with heterogeneous Toeplitz covariance model", {
 expect_mmrm_init <- function(
     covariance,
     prior_cov = "default",
-    same_cov = FALSE
+    same_cov = FALSE,
+    group_levels = c("A", "B")
 ) {
     set.seed(5112)
     mcoefs <- list("int" = 10, "age" = 3, "sex" = 6, "trtslope" = 7)
     dat <- get_mcmc_sim_dat(200, mcoefs, as_vcov(c(3, 5, 7), c(0.1, 0.4, 0.7)))
+    dat$group <- factor(dat$group, levels = group_levels)
     mat <- model.matrix(
         data = dat,
         ~ 1 + sex + age + group + visit + group * visit
@@ -1178,6 +1180,8 @@ test_that("fit_mcmc starts all covariance models at the MMRM estimates", {
     structures <- c("ar1", "ar1h", "cs", "csh", "ad", "adh", "toep", "toeph")
     for (covariance in structures) {
         expect_mmrm_init(covariance)
+        # Stan indexes groups by factor level, not alphabetically.
+        expect_mmrm_init(covariance, group_levels = c("B", "A"))
     }
     expect_mmrm_init("ar1h", same_cov = TRUE)
 })
