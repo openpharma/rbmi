@@ -39,7 +39,9 @@ and returns warnings in case of any detected issues.
 \details{
 The Bayesian model assumes a multivariate normal likelihood function and weakly-informative
 priors for the model parameters: in particular, uniform priors are assumed for the regression
-coefficients and inverse-Wishart priors for the covariance matrices.
+coefficients and, by default, inverse-Wishart priors for unstructured covariance matrices.
+Structured covariances and the LKJ prior use scaled inverse chi-squared priors for the
+variances and uniform or LKJ priors for the correlations, see \code{vignette("stat_specs", package = "rbmi")}.
 With \code{init = "mmrm"} (the default for a single chain, see \code{\link[=control_bayes]{control_bayes()}}) the chain is
 initialized using the REML parameter estimates from MMRM as starting values.
 
