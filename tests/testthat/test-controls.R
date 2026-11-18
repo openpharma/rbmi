@@ -104,7 +104,7 @@ test_that("prepare_init_vals returns MMRM estimates in Stan names and shapes", {
     expect_equal(ar1$var_const, array(c(4, 2.25), dim = 2))
     expect_equal(ar1$rho, array(c(0.3, -0.2), dim = 2))
 
-    # Only `sds` and `rhos` are given, so `$sd` or `$rho` would partial-match.
+    # Only `sds` is given, so `$sd` would partial-match it.
     csh <- init(
         mmrm_initial(
             sds = list(A = 1:3, B = c(2, 2, 2)),
