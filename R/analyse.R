@@ -88,12 +88,10 @@
 #' this provides utility variables such as `is_missing` which can be used to identify
 #' exactly which visits have been imputed.
 #'
-#' For count outcomes, use `vars$period` instead of `vars$visit` as the
-#' matching key. Deltas must be finite and integerish; accepted floating-point
-#' deviations within `sqrt(.Machine$double.eps)` are rounded. Adjusted counts
-#' must be non-negative and finite, and zero in zero-duration periods.
-#' These checks also apply to [extract_imputed_dfs()]. See [delta_template()]
-#' for count templates and the distinction from [count_strategy()].
+#' Additive delta adjustments are supported only for continuous outcomes.
+#' For count outcomes, `delta` must be `NULL` in both this function and
+#' [extract_imputed_dfs()]. Use rate multipliers in [count_strategy()] for
+#' count sensitivity analyses.
 #'
 #' The optional `transform` argument specifies a transformation to apply to all
 #' pooled parameters for reporting. It defaults to the `"transform"` attribute
@@ -252,9 +250,10 @@ analyse <- function(
     }
 
     if (!is.null(delta)) {
+        assert_delta_supported(vars)
         expected_vars <- c(
             vars$subjid,
-            if (uses_period(vars)) vars$period else vars$visit,
+            vars$visit,
             "delta"
         )
         assert_that(
@@ -408,7 +407,7 @@ analyse <- function(
 #' all datasets within the `imputations` object will be returned.
 #' @param delta A `data.frame` containing the delta transformation to be
 #' applied to the imputed dataset. See [analyse()] for details on the
-#' format and specification of this `data.frame`.
+#' format and specification of this `data.frame`. Must be `NULL` for count outcomes.
 #' @param idmap Logical. The subject IDs in the imputed `data.frame`'s are
 #' replaced with new IDs to ensure they are unique. Setting this argument to
 #' `TRUE` attaches an attribute, called `idmap`, to the returned `data.frame`'s
@@ -431,6 +430,7 @@ extract_imputed_dfs <- function(
     delta = NULL,
     idmap = FALSE
 ) {
+    if (!is.null(delta)) assert_delta_supported(imputations$data$vars)
     x <- imputations$imputations[index]
     lapply(
         x,
@@ -460,6 +460,7 @@ extract_imputed_dfs <- function(
 #' @returns A `data.frame`.
 extract_imputed_df <- function(imputation, ld, delta = NULL, idmap = FALSE) {
     vars <- ld$vars
+    if (!is.null(delta)) assert_delta_supported(vars)
     dat <- ld$get_data(imputation, idmap = TRUE)
     id_map <- attr(dat, "idmap")
 
@@ -469,26 +470,12 @@ extract_imputed_df <- function(imputation, ld, delta = NULL, idmap = FALSE) {
         oldvar <- "old_subject_variable_zkfed1fgkadwni6g4oajd2aw"
         dat[[oldvar]] <- id_map[dat[[vars$subjid]]]
         delta[[oldvar]] <- delta[[vars$subjid]]
-        if (uses_period(vars)) {
-            delta$delta <- validate_count_delta(delta$delta)
-        }
         dat2 <- apply_delta(
             dat,
             delta,
-            group = c(oldvar, if (uses_period(vars)) vars$period else vars$visit),
+            group = c(oldvar, vars$visit),
             outcome = vars$outcome
         )
-        if (uses_period(vars)) {
-            counts <- dat2[[vars$outcome]]
-            assert_that(
-                all(is.finite(counts) & counts >= 0),
-                msg = "Count delta adjustment must produce finite, non-negative counts"
-            )
-            assert_that(
-                all(counts[dat2[[vars$duration]] == 0] == 0),
-                msg = "Count delta adjustment cannot create a positive count in a zero-duration period"
-            )
-        }
         dat2[[oldvar]] <- NULL
     } else {
         dat2 <- dat

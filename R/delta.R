@@ -4,21 +4,8 @@
 #' Creates a `data.frame` in the format required by [analyse()] for the use
 #' of applying a delta adjustment.
 #'
-#' @section Count outcomes:
-#' For counts, the template has one row per existing subject-period cell,
-#' keyed by `vars$subjid` and `vars$period`; absent periods are not added.
-#' Supply `delta` in the order of the period levels to assign direct additive
-#' offsets, with zero offsets for observed cells when `missing_only = TRUE`.
-#' Alternatively, edit the returned template using `is_missing` and period.
-#' Counts have no ICE lag scale, so `dlag` must be `NULL`.
-#' Delta values must be finite and integerish (within `sqrt(.Machine$double.eps)`
-#' of an integer); accepted values are rounded to that integer.
-#' Extraction and analysis reject adjusted counts that are negative or non-finite,
-#' or positive in a zero-duration period. Counts are never clipped at zero.
-#' An additive delta changes a completed period count, whereas
-#' [count_strategy()] adjusts the model mean before sampling imputations.
-#' The `is_post_ice` flag for counts identifies missing cells assigned a strategy,
-#' rather than time relative to an ICE.
+#' Additive delta adjustments are supported only for continuous outcomes.
+#' For count sensitivity analyses, use rate multipliers in [count_strategy()].
 #'
 #' @details
 #' For continuous outcomes, the [analyse()] function expects
@@ -129,15 +116,14 @@
 #' @param delta `NULL` or a numeric vector. Determines the baseline amount of delta
 #' to be applied to each visit. See details. If a numeric vector it must have
 #' the same length as the number of unique visits in the original dataset.
-#' For counts, supply direct integerish offsets, one per period level.
 #'
 #' @param dlag `NULL` or a numeric vector. Determines the scaling to be applied
 #' to `delta` based upon which visit the ICE occurred on. See details. If a
 #' numeric vector it must have the same length as the number of unique visits in
-#' the original dataset. Must be `NULL` for counts.
+#' the original dataset.
 #'
 #' @param missing_only Logical, if `TRUE` then non-missing post-ICE data will have a delta value
-#' of 0 assigned. For counts, all observed cells receive zero. Note that the calculation (as described in the details section) is performed
+#' of 0 assigned. Note that the calculation (as described in the details section) is performed
 #' first and then overwritten with 0's at the end (i.e. the delta values for missing
 #' post-ICE visits will stay the same regardless of this option).
 #'
@@ -175,21 +161,6 @@ delta_template <- function(
         msg = "`missing_only` must be TRUE or FALSE"
     )
 
-    if (uses_period(ld$vars)) {
-        assert_that(
-            is.null(dlag),
-            msg = "`dlag` is not supported for counts: specify direct per-period deltas"
-        )
-        assert_that(
-            is.numeric(delta), length(delta) == length(ld$periods),
-            msg = "`delta` must be a numeric vector with one value per count period"
-        )
-        delta <- validate_count_delta(delta)
-        dat$delta <- delta[match(dat[[ld$vars$period]], ld$periods)]
-        if (missing_only) dat$delta[!dat$is_missing] <- 0
-        return(dat)
-    }
-
     assert_that(
         is.numeric(delta),
         is.numeric(dlag),
@@ -226,29 +197,15 @@ delta_template <- function(
 
 #' Get delta utility variables
 #'
-#' This function creates the default delta template (1 row per subject per visit
-#' for continuous outcomes, or per existing subject-period cell for counts)
+#' This function creates the default delta template (1 row per subject per visit)
+#' for continuous outcomes
 #' and extracts all the utility information that users need to define their own logic
 #' for defining delta. See [delta_template()] for full details.
 #'
 #' @param imputations an imputations object created by [impute()].
 get_delta_template <- function(imputations) {
     ld <- imputations$data
-    if (uses_period(ld$vars)) {
-        vars <- ld$vars
-        dat <- ld$get_data()
-        result <- dat[, c(vars$subjid, vars$period, vars$group), drop = FALSE]
-        result$is_mar <- unlist(ld$is_mar, use.names = FALSE)
-        result$is_missing <- unlist(ld$is_missing, use.names = FALSE)
-        result$is_post_ice <- unlist(ld$is_post_ice, use.names = FALSE)
-        result$strategy <- unlist(lapply(ld$ids, function(id) {
-            strategy <- rep(ld$strategies[[id]], length(ld$is_missing[[id]]))
-            strategy[!ld$is_missing[[id]]] <- NA_character_
-            strategy
-        }), use.names = FALSE)
-        result$delta <- 0
-        return(result)
-    }
+    assert_delta_supported(ld$vars)
     x <- lapply(
         ld$ids,
         function(id) {
@@ -419,13 +376,14 @@ apply_delta <- function(data, delta = NULL, group = NULL, outcome = NULL) {
 }
 
 
-# Validate count offsets and remove harmless floating-point deviations.
-validate_count_delta <- function(delta) {
+# Reject additive count adjustments consistently at all entry points.
+assert_delta_supported <- function(vars) {
     assert_that(
-        is.numeric(delta),
-        all(is.finite(delta)),
-        all(abs(delta - round(delta)) <= sqrt(.Machine$double.eps)),
-        msg = "Count `delta` values must be finite and integerish"
+        !uses_period(vars),
+        msg = paste0(
+            "Additive delta adjustments are not supported for count outcomes. ",
+            "Use rate multipliers in `count_strategy()` for count sensitivity analyses."
+        )
     )
-    round(delta)
+    invisible(NULL)
 }

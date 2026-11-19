@@ -262,8 +262,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <li><a href="#imputation" id="toc-imputation"><span class="toc-section-number">2.6</span> Imputation</a></li>
 <li><a href="#sec:countStrategies" id="toc-sec:countStrategies"><span class="toc-section-number">2.7</span> Controlled imputation strategies</a></li>
 <li><a href="#analysis" id="toc-analysis"><span class="toc-section-number">2.8</span> Analysis</a></li>
-<li><a href="#additive-adjustments-to-completed-counts" id="toc-additive-adjustments-to-completed-counts"><span class="toc-section-number">2.9</span> Additive adjustments to completed counts</a></li>
-<li><a href="#pooling" id="toc-pooling"><span class="toc-section-number">2.10</span> Pooling</a></li>
+<li><a href="#pooling" id="toc-pooling"><span class="toc-section-number">2.9</span> Pooling</a></li>
 </ul></li>
 <li><a href="#sec:countLikelihood" id="toc-sec:countLikelihood"><span class="toc-section-number">3</span> Appendix: Numerical evaluation of the count likelihood</a>
 <ul>
@@ -448,23 +447,12 @@ counts.</p>
 <p>Patients should be analysed according to their assigned randomised treatment, in order to be aligned with the treatment policy estimand. This is regardless of the changes for the imputation model’s design matrix in the Impute step.</p>
 <p>We fit this with maximum likelihood estimation for each imputed dataset (e.g. with <code>MASS::glm.nb</code>). The model should include the same covariates as the imputation model.</p>
 <p>We need to be careful how to obtain the standard error. As reported in the CAMIS repository <a href="https://psiaims.github.io/CAMIS/Comp/r-sas_negbin.html">here</a>, we need to recalculate the variance-covariance matrix for the model parameters with a custom function in order to match the <code>SAS PROC GENMOD</code> results.</p>
+<p>Additive delta adjustments to completed counts are not supported. For count
+sensitivity analyses, use rate multipliers in <code>count_strategy()</code> when specifying
+the imputation strategies.</p>
 </div>
-<div id="additive-adjustments-to-completed-counts" class="section level3" number="2.9">
-<h3><span class="header-section-number">2.9</span> Additive adjustments to completed counts</h3>
-<p>As a separate sensitivity analysis, <code>analyse(delta = ...)</code> can add a specified
-integer number of events to completed subject-period counts before analysis.
-For imputation <span class="math inline">\(m\)</span>, the adjusted value is <span class="math inline">\(Y_{ij}^{(m)} + \delta_{ij}\)</span>.
-Unlike a rate adjustment in <code>count_strategy()</code>, this does not change the
-conditional sampling distribution used to generate the imputations. The offset
-is per period count and is not automatically scaled by exposure.</p>
-<p>Offsets must be finite and integerish, and every adjusted count must be finite
-and non-negative, with zero counts in zero-duration periods. Invalid results
-are rejected rather than truncated. See the additive delta example in the
-<a href="count.html">modeling count data vignette</a> for constructing a subject-period
-adjustment with <code>delta_template()</code>.</p>
-</div>
-<div id="pooling" class="section level3" number="2.10">
-<h3><span class="header-section-number">2.10</span> Pooling</h3>
+<div id="pooling" class="section level3" number="2.9">
+<h3><span class="header-section-number">2.9</span> Pooling</h3>
 <p>Finally, Rubin’s rules are applied to pool the estimates (on the log-rate scale, i.e. the regression coefficients <span class="math inline">\(\beta\)</span>) across the imputed datasets, and we can then exponentiate the pooled estimates and confidence intervals to get the results for the rate ratios.</p>
 </div>
 </div>

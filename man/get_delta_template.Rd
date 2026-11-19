@@ -10,8 +10,8 @@ get_delta_template(imputations)
 \item{imputations}{an imputations object created by \code{\link[=impute]{impute()}}.}
 }
 \description{
-This function creates the default delta template (1 row per subject per visit
-for continuous outcomes, or per existing subject-period cell for counts)
+This function creates the default delta template (1 row per subject per visit)
+for continuous outcomes
 and extracts all the utility information that users need to define their own logic
 for defining delta. See \code{\link[=delta_template]{delta_template()}} for full details.
 }

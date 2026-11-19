@@ -340,10 +340,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <li><a href="#sampling" id="toc-sampling"><span class="toc-section-number">2.4</span> Sampling</a></li>
 </ul></li>
 <li><a href="#impute" id="toc-impute"><span class="toc-section-number">3</span> Impute</a></li>
-<li><a href="#analyse" id="toc-analyse"><span class="toc-section-number">4</span> Analyse</a>
-<ul>
-<li><a href="#additive-delta-sensitivity-analysis" id="toc-additive-delta-sensitivity-analysis"><span class="toc-section-number">4.1</span> Additive delta sensitivity analysis</a></li>
-</ul></li>
+<li><a href="#analyse" id="toc-analyse"><span class="toc-section-number">4</span> Analyse</a></li>
 <li><a href="#pool" id="toc-pool"><span class="toc-section-number">5</span> Pool</a></li>
 <li><a href="#comparison-with-sas-results" id="toc-comparison-with-sas-results"><span class="toc-section-number">6</span> Comparison with SAS results</a></li>
 <li><a href="#additional-modeling-options" id="toc-additional-modeling-options"><span class="toc-section-number">7</span> Additional modeling options</a>
@@ -638,38 +635,9 @@ each patient before fitting the model; it does not require a separate <code>Impu
 <span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>    neg_bin_regression,</span>
 <span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>    <span class="at">vars =</span> ana_vars</span>
 <span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>)</span></code></pre></div>
-<div id="additive-delta-sensitivity-analysis" class="section level3" number="4.1">
-<h3><span class="header-section-number">4.1</span> Additive delta sensitivity analysis</h3>
-<p>To shift completed counts by a fixed number of events per period, supply a
-<code>delta</code> data frame to <code>analyse()</code>. This adjustment is applied after imputation
-and before the analysis function aggregates counts over periods. A rate
-multiplier in <code>count_strategy()</code> instead changes the model mean before drawing
-missing counts; it expresses a different sensitivity assumption.</p>
-<p>The template contains only the subject-period cells present in the input,
-including when subjects have different sets of periods. Use <code>is_missing</code> to
-limit the adjustment to imputed cells:</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>count_delta <span class="ot">&lt;-</span> <span class="fu">delta_template</span>(imputeObj)</span>
-<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>completed <span class="ot">&lt;-</span> <span class="fu">extract_imputed_dfs</span>(imputeObj, <span class="at">index =</span> <span class="dv">1</span>)[[<span class="dv">1</span>]]</span>
-<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>count_delta<span class="sc">$</span>delta[count_delta<span class="sc">$</span>is_missing <span class="sc">&amp;</span> completed<span class="sc">$</span>Length <span class="sc">&gt;</span> <span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
-<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>anaObj_delta <span class="ot">&lt;-</span> <span class="fu">analyse</span>(</span>
-<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>    imputeObj,</span>
-<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>    neg_bin_regression,</span>
-<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a>    <span class="at">vars =</span> ana_vars,</span>
-<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a>    <span class="at">delta =</span> count_delta</span>
-<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a>)</span></code></pre></div>
-<p>This adds one event to each missing positive-duration period. It does not scale with exposure:
-when periods differ in length, consider whether an additive count or a change
-in event rate better represents the sensitivity assumption. To target specific
-periods, edit the template using its period column, or supply one delta per
-period level to <code>delta_template()</code>; observed cells receive zero by default.
-Count templates do not use the continuous-outcome ICE lag argument <code>dlag</code>.</p>
-<p>Deltas must be finite and integerish. Tiny floating-point deviations within
-<code>sqrt(.Machine$double.eps)</code> are rounded to the nearest integer; fractional
-event adjustments are rejected. Negative deltas are allowed only when every
-adjusted count in every imputation remains non-negative. Counts are never
-clipped at zero, and positive counts in zero-duration periods are rejected.
-The same checks apply when using <code>extract_imputed_dfs(delta = ...)</code>.</p>
-</div>
+<p>Additive delta adjustments to completed counts are not supported. For count
+sensitivity analyses, use rate multipliers in <code>count_strategy()</code> when specifying
+the imputation strategies.</p>
 </div>
 <div id="pool" class="section level2" number="5">
 <h2><span class="header-section-number">5</span> Pool</h2>
