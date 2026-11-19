@@ -7,7 +7,7 @@
 prepare_init_vals(stan_data, mmrm_initial, chains, covariance, prior_cov)
 }
 \arguments{
-\item{stan_data}{A list containing the Stan data.}
+\item{stan_data}{A list containing the Stan data, including the number of covariance groups \code{G}.}
 
 \item{mmrm_initial}{A list containing the initial values from the MMRM, including attribute \code{cov_param_names}
 specifying the names of the covariance parameters.}
@@ -19,9 +19,13 @@ specifying the names of the covariance parameters.}
 \item{prior_cov}{A character string indicating the type of prior for the covariance parameters.}
 }
 \value{
-A list of initial values for the MCMC sampler.
+A list of initial values for the MCMC sampler, one per chain.
 }
 \description{
 This function is used by \code{\link[=complete_control_bayes]{complete_control_bayes()}} when the \code{init} argument is set to \code{"mmrm"}.
+It converts the MMRM estimates to the names and shapes of the parameters of the Stan model:
+\code{theta}, plus \code{Sigma} (\code{"us"}), \code{corr_chol} and \code{vars} (\code{"us"} with LKJ prior), \code{var_const}
+(homogeneous variance structures) or \code{vars} (heterogeneous variance structures), and \code{rho} or
+\code{rhos} (correlation parameters).
 }
 \keyword{internal}

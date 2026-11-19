@@ -415,10 +415,17 @@ test_prepare_prior_params <- function(cov_struct, expected_params_dim) {
         is.list(result) && setequal(names(result), expected_params)
     )
     for (param in expected_params) {
+        is_matrix_res <- is.matrix(result[[param]]) &&
+            nrow(result[[param]]) == 1
         is_list_res <- is.list(result[[param]]) && length(result[[param]]) == 1
         is_array_res <- is.array(result[[param]]) &&
             length(result[[param]]) == 1
-        if (is_list_res) {
+        if (is_matrix_res) {
+            expect_equal(
+                ncol(result[[param]]),
+                unname(expected_params_dim[param])
+            )
+        } else if (is_list_res) {
             expect_true(
                 length(result[[param]][[1]]) == expected_params_dim[param]
             )
@@ -454,12 +461,42 @@ test_prepare_prior_params <- function(cov_struct, expected_params_dim) {
         is.list(result) && setequal(names(result), expected_params)
     )
     for (param in expected_params) {
+        is_matrix_res <- is.matrix(result[[param]]) &&
+            nrow(result[[param]]) == 2
         is_list_res <- is.list(result[[param]]) && length(result[[param]]) == 2
         is_array_res <- is.array(result[[param]]) &&
             length(result[[param]]) == 2
-        expect_true(is_list_res || is_array_res)
+        expect_true(is_list_res || is_array_res || is_matrix_res)
     }
 }
+
+test_that("prepare_prior_params gives one row of correlations per group with two visits", {
+    set.seed(2152)
+    mcoefs <- list("int" = 10, "age" = 3, "sex" = 6, "trtslope" = 7)
+    dat <- get_mcmc_sim_dat(200, mcoefs, as_vcov(c(3, 5), 0.4))
+    mat <- model.matrix(data = dat, ~ 1 + sex + age + group + visit)
+    for (cov_struct in c("ad", "adh", "toep", "toeph")) {
+        for (same_cov in c(TRUE, FALSE)) {
+            mmrm_initial <- fit_mmrm(
+                designmat = mat,
+                outcome = dat$outcome,
+                subjid = dat$id,
+                visit = dat$visit,
+                group = dat$group,
+                cov_struct = cov_struct,
+                same_cov = same_cov
+            )
+            result <- prepare_prior_params(
+                stan_data = list(),
+                covariance = cov_struct,
+                prior_cov = "default",
+                mmrm_initial = mmrm_initial,
+                same_cov = same_cov
+            )
+            expect_equal(dim(result$rhos_par), c(ifelse(same_cov, 1, 2), 1))
+        }
+    }
+})
 
 test_that("prepare_prior_params works for AR1", {
     skip_if_not(is_extended_test())
@@ -942,17 +979,30 @@ test_fit_mcmc <- function(
         ~ 1 + sex + age + group + visit + group * visit
     )
 
-    method <- method_bayes(
-        covariance = cov_struct,
-        n_samples = 500,
-        same_cov = same_cov,
-        prior_cov = prior_cov,
-        control = control_bayes(
+    if (init == "mmrm") {
+        expect_warning(
+            control <- control_bayes(
+                warmup = 200,
+                thin = 3,
+                chains = 3,
+                init = init
+            ),
+            "starts all 3 chains at the same values"
+        )
+    } else {
+        control <- control_bayes(
             warmup = 200,
             thin = 3,
             chains = 3,
             init = init
         )
+    }
+    method <- method_bayes(
+        covariance = cov_struct,
+        n_samples = 500,
+        same_cov = same_cov,
+        prior_cov = prior_cov,
+        control = control
     )
 
     fit <- fit_mcmc(
@@ -1159,4 +1209,77 @@ test_that("fit_mcmc works with heterogeneous Toeplitz covariance model", {
 
     set.seed(6459)
     test_fit_mcmc("toeph", sigma = sigma, same_cov = FALSE)
+})
+
+expect_mmrm_init <- function(
+    covariance,
+    prior_cov = "default",
+    same_cov = FALSE,
+    group_levels = c("A", "B")
+) {
+    set.seed(5112)
+    mcoefs <- list("int" = 10, "age" = 3, "sex" = 6, "trtslope" = 7)
+    dat <- get_mcmc_sim_dat(200, mcoefs, as_vcov(c(3, 5, 7), c(0.1, 0.4, 0.7)))
+    dat$group <- factor(dat$group, levels = group_levels)
+    mat <- model.matrix(
+        data = dat,
+        ~ 1 + sex + age + group + visit + group * visit
+    )
+
+    method <- method_bayes(
+        covariance = covariance,
+        prior_cov = prior_cov,
+        same_cov = same_cov,
+        n_samples = 20,
+        control = control_bayes(warmup = 20, thin = 1, init = "mmrm")
+    )
+    fit <- suppressWarnings(fit_mcmc(
+        designmat = mat,
+        outcome = dat$outcome,
+        group = dat$group,
+        subjid = dat$id,
+        visit = dat$visit,
+        method = method,
+        quiet = TRUE
+    ))
+    mmrm <- fit_mmrm(
+        designmat = mat,
+        outcome = dat$outcome,
+        subjid = dat$id,
+        visit = dat$visit,
+        group = dat$group,
+        cov_struct = covariance,
+        REML = TRUE,
+        same_cov = same_cov
+    )
+
+    inits <- rstan::get_inits(fit$fit)[[1]]
+    expect_equal(as.vector(inits$beta), mmrm$beta, tolerance = 1e-6)
+    for (g in seq_len(ifelse(same_cov, 1, 2))) {
+        expect_equal(
+            inits$Sigma[g, , ],
+            mmrm$sigma[[g]],
+            tolerance = 1e-6,
+            ignore_attr = TRUE
+        )
+    }
+}
+
+test_that("fit_mcmc starts the chain at the MMRM estimates with init = 'mmrm'", {
+    skip_if_not(is_core_test())
+    expect_mmrm_init("us")
+    expect_mmrm_init("us", same_cov = TRUE)
+})
+
+test_that("fit_mcmc starts all covariance models at the MMRM estimates", {
+    skip_if_not(is_extended_test())
+    expect_mmrm_init("us", prior_cov = "lkj")
+    expect_mmrm_init("us", prior_cov = "lkj", same_cov = TRUE)
+    structures <- c("ar1", "ar1h", "cs", "csh", "ad", "adh", "toep", "toeph")
+    for (covariance in structures) {
+        expect_mmrm_init(covariance)
+        # Stan indexes groups by factor level, not alphabetically.
+        expect_mmrm_init(covariance, group_levels = c("B", "A"))
+    }
+    expect_mmrm_init("ar1h", same_cov = TRUE)
 })

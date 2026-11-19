@@ -66,10 +66,14 @@ prepare_prior_params <- function(
         stan_data$rho_par <- adjust_dimensions(same_cov, mmrm_initial$rho)
     } else if (covariance %in% c("ad", "toep")) {
         stan_data$sd_par <- adjust_dimensions(same_cov, mmrm_initial$sd)
-        stan_data$rhos_par <- adjust_dimensions(same_cov, mmrm_initial$rhos)
+        stan_data$rhos_par <- stack_by_group(
+            ife(same_cov, mmrm_initial$rhos[1], mmrm_initial$rhos)
+        )
     } else if (covariance %in% c("adh", "toeph")) {
         stan_data$sds_par <- adjust_dimensions(same_cov, mmrm_initial$sds)
-        stan_data$rhos_par <- adjust_dimensions(same_cov, mmrm_initial$rhos)
+        stan_data$rhos_par <- stack_by_group(
+            ife(same_cov, mmrm_initial$rhos[1], mmrm_initial$rhos)
+        )
     } else {
         stop(sprintf("Unknown covariance structure: %s", covariance))
     }
@@ -97,15 +101,18 @@ prepare_prior_params <- function(
 #' @details
 #' The Bayesian model assumes a multivariate normal likelihood function and weakly-informative
 #' priors for the model parameters: in particular, uniform priors are assumed for the regression
-#' coefficients and inverse-Wishart priors for the covariance matrices.
-#' The chain is initialized using the REML parameter estimates from MMRM as starting values.
+#' coefficients and, by default, inverse-Wishart priors for unstructured covariance matrices.
+#' Structured covariances and the LKJ prior use scaled inverse chi-squared priors for the
+#' variances and uniform or LKJ priors for the correlations, see `vignette("stat_specs", package = "rbmi")`.
+#' With `init = "mmrm"` (the default for a single chain, see [control_bayes()]) the chain is
+#' initialized using the REML parameter estimates from MMRM as starting values.
 #'
 #' The function performs the following steps:
 #' 1. Fit MMRM using a REML approach.
 #' 2. Prepare the input data for the MCMC fit as described in the `data{}`
 #' block of the Stan file. See [prepare_stan_data()] for details.
-#' 3. Run the MCMC according the input arguments and using as starting values the REML parameter estimates
-#' estimated at point 1.
+#' 3. Run the MCMC according the input arguments, using as starting values the REML parameter estimates
+#' estimated at point 1 if `init = "mmrm"`.
 #' 4. Performs diagnostics checks of the MCMC. See [check_mcmc()] for details.
 #' 5. Extract the draws from the model fit.
 #'

@@ -512,6 +512,49 @@ test_that("extract_params works with different covariance structures", {
     expect_true(is.list(result$rho) && length(result$rho) == 2)
 })
 
+test_that("extract_params returns group-specific parameters in group level order", {
+    set.seed(5521)
+    sigma <- as_vcov(c(2, 1, 0.7), c(0.3, 0.4, 0.2))
+    dat <- get_sim_data(n = 200, sigma) %>%
+        mutate(group = factor(group, levels = c("B", "A")))
+    # Different variances per group, so that swapped groups are detected.
+    is_a <- dat$group == "A"
+    dat$outcome[is_a] <- 4 * dat$outcome[is_a]
+
+    for (struct in c(
+        "ar1",
+        "ar1h",
+        "cs",
+        "csh",
+        "ad",
+        "adh",
+        "toep",
+        "toeph"
+    )) {
+        mod <- mmrm::mmrm(
+            formula = as.formula(sprintf(
+                "outcome ~ age + group + sex + visit + %s(visit | group / id)",
+                struct
+            )),
+            data = dat
+        )
+        result <- extract_params(mod)
+        expect_named(result$sigma, c("B", "A"))
+        sd_name <- intersect(c("sd", "sds"), names(result))
+        rho_name <- intersect(c("rho", "rhos"), names(result))
+        expect_named(result[[sd_name]], c("B", "A"))
+        expect_named(result[[rho_name]], c("B", "A"))
+        # Stan indexes groups by position, so positions must match `sigma`.
+        for (g in 1:2) {
+            expect_equal(
+                rep_len(result[[sd_name]][[g]]^2, 3),
+                diag(result$sigma[[g]]),
+                info = paste(struct, g)
+            )
+        }
+    }
+})
+
 test_that("fit_mmrm works with ar1 structure", {
     # Snapshot tests can be flakey from minor changes in dependencies
     skip_if_not(is_core_test())
