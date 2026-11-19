@@ -112,7 +112,7 @@ get_data <- function(n) {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%
@@ -201,9 +201,9 @@ test_that("longData - Sampling", {
     x <- ld$get_data(c("1", "1", "3"))
 
     y <- bind_rows(
-        dat %>% filter(subjid == "1"),
-        dat %>% filter(subjid == "1"),
-        dat %>% filter(subjid == "3")
+        dat %>% dplyr::filter(subjid == "1"),
+        dat %>% dplyr::filter(subjid == "1"),
+        dat %>% dplyr::filter(subjid == "3")
     )
     expect_equal(
         select(x, -subjid),
@@ -219,16 +219,16 @@ test_that("longData - Sampling", {
     )
     x <- ld$get_data(imputes)
     pt2_val <- dat %>%
-        filter(subjid == "2") %>%
+        dplyr::filter(subjid == "2") %>%
         pull(outcome)
 
     pt2_val[is.na(pt2_val)] <- c(7, 8)
 
     y <- bind_rows(
-        dat %>% filter(subjid == "1") %>% mutate(outcome = c(1, 2, 3)),
-        dat %>% filter(subjid == "4"),
-        dat %>% filter(subjid == "1") %>% mutate(outcome = c(4, 5, 6)),
-        dat %>% filter(subjid == "2") %>% mutate(outcome = pt2_val)
+        dat %>% dplyr::filter(subjid == "1") %>% mutate(outcome = c(1, 2, 3)),
+        dat %>% dplyr::filter(subjid == "4"),
+        dat %>% dplyr::filter(subjid == "1") %>% mutate(outcome = c(4, 5, 6)),
+        dat %>% dplyr::filter(subjid == "2") %>% mutate(outcome = pt2_val)
     )
 
     expect_equal(
@@ -239,14 +239,14 @@ test_that("longData - Sampling", {
 
     x <- ld$get_data(c("1", "1", "1", "2"), na.rm = TRUE)
 
-    pt2_val <- dat %>% filter(subjid == "2") %>% pull(outcome)
+    pt2_val <- dat %>% dplyr::filter(subjid == "2") %>% pull(outcome)
     y <- bind_rows(
-        dat %>% filter(subjid == "1"),
-        dat %>% filter(subjid == "1"),
-        dat %>% filter(subjid == "1"),
-        dat %>% filter(subjid == "2"),
+        dat %>% dplyr::filter(subjid == "1"),
+        dat %>% dplyr::filter(subjid == "1"),
+        dat %>% dplyr::filter(subjid == "1"),
+        dat %>% dplyr::filter(subjid == "2"),
     ) %>%
-        filter(!is.na(outcome))
+        dplyr::filter(!is.na(outcome))
     expect_equal(
         select(x, -subjid),
         select(y, -subjid) %>% as.data.frame()
@@ -1066,7 +1066,7 @@ test_that("get_data() uses na.rm and mnar.rm correctly", {
     # Dataset to represent what the data should look like if the above IDs are specified
     dat2 <- bind_rows(
         dat %>% arrange(pt, vis),
-        dat %>% arrange(pt, vis) %>% filter(pt == "A")
+        dat %>% arrange(pt, vis) %>% dplyr::filter(pt == "A")
     ) %>%
         mutate(pt = rep(paste0("new_pt_", 1:3), each = 4))
 
@@ -1090,12 +1090,12 @@ test_that("get_data() uses na.rm and mnar.rm correctly", {
 
     expect_equal(
         ld$get_data(na.rm = TRUE),
-        dat %>% filter(!is.na(out)) %>% arrange(pt, vis) %>% as.data.frame()
+        dat %>% dplyr::filter(!is.na(out)) %>% arrange(pt, vis) %>% as.data.frame()
     )
 
     expect_equal(
         ld$get_data(na.rm = TRUE, mnar.rm = TRUE),
-        dat %>% filter(!is.na(out)) %>% arrange(pt, vis) %>% as.data.frame()
+        dat %>% dplyr::filter(!is.na(out)) %>% arrange(pt, vis) %>% as.data.frame()
     )
 
     expect_equal(
@@ -1112,7 +1112,7 @@ test_that("get_data() uses na.rm and mnar.rm correctly", {
 
     expect_equal(
         ld$get_data(IDS, na.rm = TRUE),
-        dat2 %>% filter(!is.na(out)) %>% as.data.frame()
+        dat2 %>% dplyr::filter(!is.na(out)) %>% as.data.frame()
     )
 
     expect_equal(
@@ -1122,7 +1122,7 @@ test_that("get_data() uses na.rm and mnar.rm correctly", {
 
     expect_equal(
         ld$get_data(IDS, na.rm = TRUE, mnar.rm = TRUE),
-        dat2 %>% filter(!is.na(out)) %>% as.data.frame()
+        dat2 %>% dplyr::filter(!is.na(out)) %>% as.data.frame()
     )
 
     ############
@@ -1149,7 +1149,7 @@ test_that("get_data() uses na.rm and mnar.rm correctly", {
     expect_equal(
         ld$get_data(na.rm = TRUE),
         dat %>%
-            filter(!is.na(out)) %>%
+            dplyr::filter(!is.na(out)) %>%
             arrange(pt, vis) %>%
             as.data.frame()
     )
@@ -1157,7 +1157,7 @@ test_that("get_data() uses na.rm and mnar.rm correctly", {
     expect_equal(
         ld$get_data(mnar.rm = TRUE),
         dat %>%
-            filter(!(as.numeric(vis) >= 2 & pt == "A")) %>%
+            dplyr::filter(!(as.numeric(vis) >= 2 & pt == "A")) %>%
             arrange(pt, vis) %>%
             as.data.frame()
     )
@@ -1165,8 +1165,8 @@ test_that("get_data() uses na.rm and mnar.rm correctly", {
     expect_equal(
         ld$get_data(na.rm = TRUE, mnar.rm = TRUE),
         dat %>%
-            filter(!is.na(out)) %>%
-            filter(!(as.numeric(vis) >= 2 & pt == "A")) %>%
+            dplyr::filter(!is.na(out)) %>%
+            dplyr::filter(!(as.numeric(vis) >= 2 & pt == "A")) %>%
             arrange(pt, vis) %>%
             as.data.frame()
     )
@@ -1199,14 +1199,14 @@ test_that("get_data() uses na.rm and mnar.rm correctly", {
     expect_equal(
         ld$get_data(IDS, na.rm = TRUE),
         dat2 %>%
-            filter(!is.na(out)) %>%
+            dplyr::filter(!is.na(out)) %>%
             as.data.frame()
     )
 
     expect_equal(
         ld$get_data(IDS, mnar.rm = TRUE),
         dat2 %>%
-            filter(
+            dplyr::filter(
                 !(as.numeric(vis) >= 2 & pt %in% c("new_pt_1", "new_pt_3"))
             ) %>%
             as.data.frame()
@@ -1215,8 +1215,8 @@ test_that("get_data() uses na.rm and mnar.rm correctly", {
     expect_equal(
         ld$get_data(IDS, na.rm = TRUE, mnar.rm = TRUE),
         dat2 %>%
-            filter(!is.na(out)) %>%
-            filter(
+            dplyr::filter(!is.na(out)) %>%
+            dplyr::filter(
                 !(as.numeric(vis) >= 2 & pt %in% c("new_pt_1", "new_pt_3"))
             ) %>%
             as.data.frame()

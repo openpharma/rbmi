@@ -4,8 +4,11 @@
 #' Creates a `data.frame` in the format required by [analyse()] for the use
 #' of applying a delta adjustment.
 #'
+#' Additive delta adjustments are supported only for continuous outcomes.
+#' For count sensitivity analyses, use rate multipliers in [count_strategy()].
+#'
 #' @details
-#' To apply a delta adjustment the [analyse()] function expects
+#' For continuous outcomes, the [analyse()] function expects
 #' a delta `data.frame` with 3 variables: `vars$subjid`, `vars$visit` and `delta`
 #' (where `vars` is the object supplied in the original call to [draws()]
 #' as created by the [set_vars()] function).
@@ -152,6 +155,13 @@ delta_template <- function(
     ld <- imputations$data
 
     assert_that(
+        is.logical(missing_only),
+        length(missing_only) == 1,
+        !is.na(missing_only),
+        msg = "`missing_only` must be TRUE or FALSE"
+    )
+
+    assert_that(
         is.numeric(delta),
         is.numeric(dlag),
         length(delta) == length(dlag),
@@ -160,12 +170,6 @@ delta_template <- function(
             "`delta` and `dlag` must both be a length %s numeric vector",
             length(ld$visits)
         )
-    )
-
-    assert_that(
-        is.logical(missing_only),
-        length(missing_only) == 1,
-        msg = "`missing_only` must be TRUE or FALSE"
     )
 
     delta_list <- lapply(
@@ -194,12 +198,14 @@ delta_template <- function(
 #' Get delta utility variables
 #'
 #' This function creates the default delta template (1 row per subject per visit)
+#' for continuous outcomes
 #' and extracts all the utility information that users need to define their own logic
 #' for defining delta. See [delta_template()] for full details.
 #'
 #' @param imputations an imputations object created by [impute()].
 get_delta_template <- function(imputations) {
     ld <- imputations$data
+    assert_delta_supported(ld$vars)
     x <- lapply(
         ld$ids,
         function(id) {
@@ -367,4 +373,17 @@ apply_delta <- function(data, delta = NULL, group = NULL, outcome = NULL) {
     )
     class(data3) <- class(data)
     return(data3)
+}
+
+
+# Reject additive count adjustments consistently at all entry points.
+assert_delta_supported <- function(vars) {
+    assert_that(
+        !uses_period(vars),
+        msg = paste0(
+            "Additive delta adjustments are not supported for count outcomes. ",
+            "Use rate multipliers in `count_strategy()` for count sensitivity analyses."
+        )
+    )
+    invisible(NULL)
 }

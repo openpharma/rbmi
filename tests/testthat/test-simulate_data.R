@@ -497,9 +497,9 @@ test_that("generic tests to ensure simulate_data is working as expected", {
     )
 
     control_nrow <- dat %>%
-        filter(group == "Control") %>%
-        filter(!is.na(outcome)) %>%
-        filter(outcome_noICE != outcome) %>%
+        dplyr::filter(group == "Control") %>%
+        dplyr::filter(!is.na(outcome)) %>%
+        dplyr::filter(outcome_noICE != outcome) %>%
         nrow()
 
     expect_equal(
@@ -508,7 +508,7 @@ test_that("generic tests to ensure simulate_data is working as expected", {
     )
 
     stat_c <- dat %>%
-        filter(group == "Control") %>%
+        dplyr::filter(group == "Control") %>%
         group_by(visit) %>%
         summarise(
             m = mean(outcome, na.rm = TRUE),
@@ -518,7 +518,7 @@ test_that("generic tests to ensure simulate_data is working as expected", {
         )
 
     stat_t <- dat %>%
-        filter(group == "Intervention") %>%
+        dplyr::filter(group == "Intervention") %>%
         group_by(visit) %>%
         summarise(
             m = mean(outcome),

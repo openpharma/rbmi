@@ -9,7 +9,7 @@ control_bayes(
   warmup = 200,
   thin = 50,
   chains = 1,
-  init = ifelse(chains > 1, "random", "mmrm"),
+  init = "auto",
   seed = sample.int(.Machine$integer.max, 1),
   ...
 )
@@ -21,7 +21,7 @@ control_bayes(
 
 \item{chains}{a numeric, the number of chains to run in parallel.}
 
-\item{init}{a character string, the method used to initialise the MCMC sampler, see the details.}
+\item{init}{Initialisation policy or Stan initial values; see the details.}
 
 \item{seed}{a numeric, the seed used to initialise the MCMC sampler.}
 
@@ -38,9 +38,19 @@ These functions control lower level computational details of the imputation meth
 \details{
 Currently only the Bayesian imputation via \code{\link[=method_bayes]{method_bayes()}} uses a control function:
 \itemize{
-\item The \code{init} argument can be set to \code{"random"} to randomly initialise the sampler with \code{rstan}
-default values or to \code{"mmrm"} to initialise the sampler with the maximum likelihood estimate
-values of the MMRM.
+\item The default \code{init = "auto"} uses MMRM estimates for continuous outcomes with
+one chain, and random initialisation otherwise. Explicit \code{"mmrm"} initialisation
+is only supported for continuous outcomes. Other \code{init} values are passed
+unchanged to \code{\link[rstan:sampling]{rstan::sampling()}}: \code{"random"},
+\code{0} or \code{"0"} (zero on Stan's unconstrained scale), a list of named lists
+(one per chain), or a function returning a named list, optionally accepting
+\code{chain_id}. Omitted parameters use Stan's random initialisation.
+Custom lists and functions must use the internal Stan parameterisation and
+constrained parameter scales. For counts, \code{beta} follows the internally scaled
+design matrix column order, and \code{phi} has one value per dispersion group
+(one when \code{same_cov = TRUE}), strictly greater than \code{.Machine$double.eps}.
+For continuous outcomes, initial values use \code{theta} and covariance-specific
+parameters. Note that these are not coefficients on the original data scale.
 \item The \code{seed} argument is used to set the seed for the MCMC sampler. By default, a random seed
 is generated, such that outside invocation of the \code{set.seed()} call can effectively set the
 seed.
