@@ -198,6 +198,16 @@ fit_mcmc <- function(
         stop(stan_fit$errors)
     }
 
+    # rstan prints sampler exceptions and returns a fit without draws (mode 2).
+    if (stan_fit$results@mode != 0L) {
+        stop(
+            "Stan sampling failed (",
+            trimws(paste(stan_fit$messages, collapse = " ")),
+            "); see the Stan error message printed above.",
+            call. = FALSE
+        )
+    }
+
     ignorable_warnings <- c(
         "Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.\nRunning the chains for more iterations may help. See\nhttps://mc-stan.org/misc/warnings.html#bulk-ess",
         "Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.\nRunning the chains for more iterations may help. See\nhttps://mc-stan.org/misc/warnings.html#tail-ess"

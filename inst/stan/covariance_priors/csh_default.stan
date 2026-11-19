@@ -15,12 +15,12 @@ functions {
 
 data {
     array[G] vector<lower={{ machine_double_eps }}>[n_visit] sds_par; // Standard deviations for each visit.
-    array[G] real<lower=-1/(n_visit - 1), upper=1> rho_par; // Correlation prior parameter.
+    array[G] real<lower=-1.0 / (n_visit - 1), upper=1> rho_par; // Correlation prior parameter.
 }
 
 parameters {
     array[G] vector<lower={{ machine_double_eps }}>[n_visit] vars; // Variances for each visit.
-    array[G] real<lower=-1,upper=1> rho; // Compound symmetry correlation coefficient.  
+    array[G] real<lower=-1.0 / (n_visit - 1), upper=1> rho; // Compound symmetry correlation coefficient.
 }
 
 transformed parameters {
@@ -36,7 +36,7 @@ transformed parameters {
 }
 
 model {
-    rho ~ uniform(-1/(n_visit - 1), 1);
+    rho ~ uniform(-1.0 / (n_visit - 1), 1);
 
     for(g in 1:G) {
         // Note that we need to pass the estimated standard deviation as 

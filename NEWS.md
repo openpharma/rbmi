@@ -4,6 +4,11 @@
 
 * Fixed minor reproducibility issue with vignettes
 
+## Bug Fixes
+
+* `method_bayes(covariance = "cs")` and `method_bayes(covariance = "csh")` now allow negative correlations down to `-1 / (n_visits - 1)`. Previously, integer division in the Stan models restricted the correlation to be non-negative for three or more visits, so `draws()` failed whenever the MMRM estimate was negative. (#610)
+* `draws()` now reports an informative error when Stan fails to start sampling, instead of failing later with "second argument must be a list". (#610)
+
 
 # rbmi 1.7.1
 

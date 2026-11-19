@@ -15,11 +15,11 @@ functions {
 
 data {
     array[G] real<lower={{ machine_double_eps }}> sd_par; // Standard deviation prior parameter.
-    array[G] real<lower=-1/(n_visit - 1), upper=1> rho_par; // Correlation prior parameter.
+    array[G] real<lower=-1.0 / (n_visit - 1), upper=1> rho_par; // Correlation prior parameter.
 }
 
 parameters {
-    array[G] real<lower=-1/(n_visit - 1), upper=1> rho; // Compound symmetry correlation coefficient.
+    array[G] real<lower=-1.0 / (n_visit - 1), upper=1> rho; // Compound symmetry correlation coefficient.
     array[G] real<lower={{ machine_double_eps }}> var_const; // Homogeneous variance across visits.
 }
 
@@ -33,7 +33,7 @@ transformed parameters {
 }
 
 model {
-    rho ~ uniform(-1/(n_visit - 1), 1);
+    rho ~ uniform(-1.0 / (n_visit - 1), 1);
 
     // Note that we pass the estimated sd, not sd^2 here as
     // the scale parameter of the scaled inverse Chi-Square distribution.
