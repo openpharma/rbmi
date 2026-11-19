@@ -731,6 +731,50 @@ test_that("fit_mcmc returns error if mmrm on original sample fails", {
     )
 })
 
+test_that("fit_mcmc reports an informative error if Stan cannot sample", {
+    set.seed(101)
+    skip_if_not(is_core_test())
+    mcoefs <- list(
+        "int" = 10,
+        "age" = 3,
+        "sex" = 6,
+        "trtslope" = 7
+    )
+    sigma <- as_vcov(c(3, 5, 7), c(0.1, 0.4, 0.7))
+
+    dat <- get_mcmc_sim_dat(100, mcoefs, sigma)
+    mat <- model.matrix(
+        data = dat,
+        ~ 1 + sex + age + group + visit + group * visit
+    )
+
+    # `theta` has one element per design column, so this initial value is rejected.
+    method <- method_bayes(
+        n_samples = 2,
+        control = control_bayes(
+            warmup = 10,
+            thin = 1,
+            init = function() list(theta = 1)
+        )
+    )
+
+    expect_error(
+        capture.output(
+            fit_mcmc(
+                designmat = mat,
+                outcome = dat$outcome,
+                group = dat$group,
+                subjid = dat$id,
+                visit = dat$visit,
+                method = method,
+                quiet = TRUE
+            )
+        ),
+        "Stan sampling failed (error occurred during calling the sampler; sampling not done)",
+        fixed = TRUE
+    )
+})
+
 
 test_that("fit_mcmc can recover known values with same_cov = FALSE", {
     skip_if_not(is_extended_test())
@@ -1058,6 +1102,15 @@ test_that("fit_mcmc works with compound symmetry covariance model", {
 
     set.seed(3459)
     test_fit_mcmc("cs", sigma = sigma, same_cov = FALSE)
+
+    # The smallest eigenvalue of cs_matrix(rho, n) is 1 + (n - 1) * rho.
+    n_visits <- 3
+    rho_min <- -1 / (n_visits - 1)
+    expect_equal(min(eigen(cs_matrix(rho_min, n_visits))$values), 0)
+
+    # At rho_min itself the covariance matrix is singular.
+    set.seed(3459)
+    test_fit_mcmc("cs", sigma = sd^2 * cs_matrix(rho_min + 0.1, n_visits))
 })
 
 test_that("fit_mcmc works with heterogeneous compound symmetry covariance model", {
@@ -1076,6 +1129,14 @@ test_that("fit_mcmc works with heterogeneous compound symmetry covariance model"
 
     set.seed(3459)
     test_fit_mcmc("csh", sigma = sigma, same_cov = FALSE, init = "mmrm")
+
+    n_visits <- 3
+    rho_min <- -1 / (n_visits - 1)
+    set.seed(3459)
+    test_fit_mcmc(
+        "csh",
+        sigma = diag(sds) %*% cs_matrix(rho_min + 0.1, n_visits) %*% diag(sds)
+    )
 })
 
 test_that("fit_mcmc works with antedependence covariance model", {
