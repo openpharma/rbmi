@@ -1202,7 +1202,7 @@ test_that("mcse works as expected", {
 
     dat_ice <- dat %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         group_by(id) %>%
         slice(1) %>%
         ungroup() %>%

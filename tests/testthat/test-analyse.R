@@ -325,7 +325,7 @@ test_that("Parallisation works with analyse and produces identical results", {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%

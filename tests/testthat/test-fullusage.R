@@ -49,7 +49,7 @@ advanced_bayes_test <- function(cov_struct, ...) {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%
@@ -145,7 +145,7 @@ test_that("Basic Usage - Approx Bayes", {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%
@@ -213,7 +213,7 @@ test_that("Basic Usage - Bayesian", {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%
@@ -368,7 +368,7 @@ test_that("Basic Usage - Condmean", {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%
@@ -456,7 +456,7 @@ test_that("Custom Strategies and Custom analysis functions", {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%
@@ -487,7 +487,7 @@ test_that("Custom Strategies and Custom analysis functions", {
     )
 
     myfun <- function(dat) {
-        dat <- dat %>% filter(visit == "visit_3")
+        dat <- dat %>% dplyr::filter(visit == "visit_3")
         mod <- lm(data = dat, outcome ~ group + age + sex)
         list(
             "treatment_effect" = list(
@@ -571,7 +571,7 @@ test_that("Sorting doesn't change results", {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%
@@ -702,7 +702,7 @@ test_that("Multiple imputation references / groups work as expected (end to end 
     )
 
     dat_ice <- dat %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         group_by(id) %>%
         arrange(id, visit) %>%
         slice(1) %>%
@@ -850,7 +850,7 @@ test_that("rbmi works for one arm trials", {
                 outcome
             )
         ) %>%
-        filter(group == "A") %>%
+        dplyr::filter(group == "A") %>%
         mutate(group_wrong = group) %>%
         mutate(id = factor(id, levels = unique(id))) %>%
         mutate(group = factor(group, unique(group)))
@@ -861,7 +861,7 @@ test_that("rbmi works for one arm trials", {
 
     dat_ice <- dat %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         group_by(id) %>%
         slice(1) %>%
         ungroup() %>%
@@ -1016,7 +1016,7 @@ test_that("Three arms trial runs smoothly and gives expected results", {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%

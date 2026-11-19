@@ -366,10 +366,10 @@ test_that("validate_datalong_complete", {
     expect_error(validate_datalong_complete(dat2, vars))
 
     ### Completely remove 1 visit (should check against the levels)
-    dat2 <- dat %>% filter(visit != "Visit 1")
+    dat2 <- dat %>% dplyr::filter(visit != "Visit 1")
     expect_error(validate_datalong_complete(dat2, vars))
 
-    dat2 <- dat_period %>% filter(period != "3")
+    dat2 <- dat_period %>% dplyr::filter(period != "3")
     expect_true(validate_datalong_complete(dat2, vars_period))
 
     dat2 <- dat_period[-1, ]

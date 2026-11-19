@@ -36,7 +36,7 @@ make_count_fullusage_data <- function(
 
 make_count_ice <- function(data, strategy = "MAR") {
     data %>%
-        filter(is.na(outcome), duration > 0) %>%
+        dplyr::filter(is.na(outcome), duration > 0) %>%
         distinct(id) %>%
         mutate(strategy = strategy)
 }
@@ -285,7 +285,7 @@ test_that("full count usage follows all models in the count vignette", {
     # Controlled imputations reuse the main posterior draws, as in the
     # vignette, rather than fitting the observed-data model again.
     active_missing <- dat %>%
-        filter(group != "Placebo", is.na(outcome)) %>%
+        dplyr::filter(group != "Placebo", is.na(outcome)) %>%
         distinct(id)
     fixed_update <- mutate(active_missing, strategy = "FIXED_LAMBDA")
     double_update <- mutate(active_missing, strategy = "DOUBLE_RATE")

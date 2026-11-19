@@ -982,11 +982,11 @@ test_that("fit_mcmc can recover known values with same_cov = FALSE", {
 
     dat <- bind_rows(
         get_mcmc_sim_dat(1200, mcoefs, sigma_a) %>%
-            filter(group == "A") %>%
+            dplyr::filter(group == "A") %>%
             mutate(id = paste0(id, "A")),
 
         get_mcmc_sim_dat(1200, mcoefs, sigma_b) %>%
-            filter(group == "B") %>%
+            dplyr::filter(group == "B") %>%
             mutate(id = paste0(id, "B"))
     )
 

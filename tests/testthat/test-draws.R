@@ -24,7 +24,7 @@ get_data <- function(n) {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%
@@ -306,7 +306,7 @@ test_that("Failure is handled properly", {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%
@@ -502,7 +502,7 @@ test_that("draws is calling get_mmrm_sample properly", {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%
@@ -610,7 +610,7 @@ test_that("draws.bmlmi works as expected", {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%
@@ -693,7 +693,7 @@ test_that("quiet suppress progress messages", {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%
