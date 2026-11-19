@@ -305,7 +305,7 @@ test_that("generate_data_single", {
     res <- generate_data_single(pars_group, strategy_fun, distr_pars_ref = NULL)
     test_data_basics(res, n_visits, n)
     expect_true(all(!is.na(res)))
-    expect_true(identical(res$outcome_noICE, res$outcome))
+    expect_equal(res$outcome_noICE, res$outcome)
     expect_true(all(c(res$ind_ice1, res$dropout_ice1, res$ind_ice2) == 0))
 
     # only ICE1

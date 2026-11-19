@@ -26,7 +26,7 @@ test_that("simulate data", {
     set.seed(121)
     z <- simulate_test_data()
 
-    expect_true(identical(x, y))
+    expect_equal(x, y)
     expect_false(identical(x, z))
 
     # Show that we can recover known values

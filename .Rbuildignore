@@ -25,3 +25,7 @@
 ^CONTRIBUTING.md$
 ^local$
 ^revdep$
+
+^rv$
+^rv.lock$
+^rproject.toml$
