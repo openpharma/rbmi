@@ -59,7 +59,10 @@ uses a control function:
 
 - The `init` argument can be set to `"random"` to randomly initialise
   the sampler with `rstan` default values or to `"mmrm"` to initialise
-  the sampler with the maximum likelihood estimate values of the MMRM.
+  the sampler with the REML estimates of the MMRM. With more than one
+  chain, `"mmrm"` starts all chains at the same values, which makes
+  convergence diagnostics such as R-hat less reliable, so a warning is
+  given.
 
 - The `seed` argument is used to set the seed for the MCMC sampler. By
   default, a random seed is generated, such that outside invocation of

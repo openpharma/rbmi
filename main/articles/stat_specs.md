@@ -516,13 +516,12 @@ data specified in section [3.3.1](#sec:imputationModelSpecs) can be
 considered a generalization of the models described in the Stan user’s
 guide (see Stan Development Team ([2020, sec. 3.5](#ref-Rstan))).
 
-As in the “five macros”, the MCMC algorithm is initialized at the
-parameters from a frequentist REML fit (see section
+As in the “five macros”, the MCMC algorithm is by default initialized at
+the parameters from a frequentist REML fit (see section
 [3.3.2](#sec:imputationModelREML)). As described below, we are using
 only weakly informative priors for the parameters. Therefore, the Markov
-chain is essentially starting from the targeted stationary posterior
-distribution and only a minimal amount of burn-in of the chain is
-required.
+chain starts close to the bulk of the posterior distribution and only a
+short burn-in of the chain is required.
 
 We now describe the available combinations of covariance models and
 prior specifications.
@@ -624,13 +623,15 @@ call is required before running
 [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md). In
 particular, please note that it is not sufficient to just set the `seed`
 option in the `control` list. If more than one chain is being run, the
-chains are currently initialized at `"random"` values as per `rstan`
-default. Note that for consistency with `rstan`, the burn-in can be
-customized via the `warmup` argument, and the burn-between can be
-customized via the `thin` argument. Independent of the number of chains
-used, the total number of returned samples is always `n_samples`. In the
-case that more than one chain is used, these samples are distributed
-across the multiple chains appropriately.
+chains are by default initialized at `"random"` values as per `rstan`
+default. With `init = "mmrm"`, all chains start at the REML estimates,
+and a warning is given because convergence diagnostics such as R-hat
+then become less reliable. Note that for consistency with `rstan`, the
+burn-in can be customized via the `warmup` argument, and the
+burn-between can be customized via the `thin` argument. Independent of
+the number of chains used, the total number of returned samples is
+always `n_samples`. In the case that more than one chain is used, these
+samples are distributed across the multiple chains appropriately.
 
 #### 3.3.4 Approximate Bayesian posterior draws via the bootstrap
 
