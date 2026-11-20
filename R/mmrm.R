@@ -187,7 +187,11 @@ extract_params <- function(fit) {
     } else {
         groups <- names(sigma)
         n_par_per_group <- length(theta_est) / length(groups)
-        split(theta_est, rep(groups, each = n_par_per_group))
+        # Keep the order of `sigma`; split() on characters would sort alphabetically.
+        split(
+            theta_est,
+            factor(rep(groups, each = n_par_per_group), levels = groups)
+        )
     }
 
     if (cov_type == "ar1") {

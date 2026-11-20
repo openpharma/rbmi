@@ -741,15 +741,15 @@ in the original call to <code>draws()</code>:</p>
 <span id="cb11-20"><a href="#cb11-20" tabindex="-1"></a><span class="co">#&gt;      trt_4    -0.092  0.683  -1.439  1.256   0.893  </span></span>
 <span id="cb11-21"><a href="#cb11-21" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_4  -1.616  0.486  -2.576  -0.656  0.001  </span></span>
 <span id="cb11-22"><a href="#cb11-22" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_4  -1.708  0.475  -2.645  -0.77   &lt;0.001 </span></span>
-<span id="cb11-23"><a href="#cb11-23" tabindex="-1"></a><span class="co">#&gt;      trt_5    1.331   0.922  -0.49   3.153   0.151  </span></span>
-<span id="cb11-24"><a href="#cb11-24" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_5  -4.142  0.658  -5.442  -2.843  &lt;0.001 </span></span>
-<span id="cb11-25"><a href="#cb11-25" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_5  -2.811  0.645  -4.084  -1.538  &lt;0.001 </span></span>
-<span id="cb11-26"><a href="#cb11-26" tabindex="-1"></a><span class="co">#&gt;      trt_6    1.935   0.995  -0.032  3.901   0.054  </span></span>
-<span id="cb11-27"><a href="#cb11-27" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_6  -6.078  0.715  -7.49   -4.666  &lt;0.001 </span></span>
-<span id="cb11-28"><a href="#cb11-28" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_6  -4.144  0.701  -5.529  -2.759  &lt;0.001 </span></span>
-<span id="cb11-29"><a href="#cb11-29" tabindex="-1"></a><span class="co">#&gt;      trt_7    2.143   1.111  -0.053   4.34   0.056  </span></span>
-<span id="cb11-30"><a href="#cb11-30" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_7  -6.957  0.815  -8.568  -5.346  &lt;0.001 </span></span>
-<span id="cb11-31"><a href="#cb11-31" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_7  -4.813  0.782  -6.36   -3.267  &lt;0.001 </span></span>
+<span id="cb11-23"><a href="#cb11-23" tabindex="-1"></a><span class="co">#&gt;      trt_5     1.34   0.923  -0.484  3.163   0.149  </span></span>
+<span id="cb11-24"><a href="#cb11-24" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_5  -4.155  0.659  -5.456  -2.853  &lt;0.001 </span></span>
+<span id="cb11-25"><a href="#cb11-25" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_5  -2.815  0.645  -4.089  -1.541  &lt;0.001 </span></span>
+<span id="cb11-26"><a href="#cb11-26" tabindex="-1"></a><span class="co">#&gt;      trt_6    1.954   0.996  -0.013  3.921   0.052  </span></span>
+<span id="cb11-27"><a href="#cb11-27" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_6  -6.093  0.717  -7.51   -4.677  &lt;0.001 </span></span>
+<span id="cb11-28"><a href="#cb11-28" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_6  -4.14   0.699  -5.52   -2.759  &lt;0.001 </span></span>
+<span id="cb11-29"><a href="#cb11-29" tabindex="-1"></a><span class="co">#&gt;      trt_7    2.172   1.111  -0.023  4.368   0.052  </span></span>
+<span id="cb11-30"><a href="#cb11-30" tabindex="-1"></a><span class="co">#&gt;    lsm_ref_7  -6.986  0.826  -8.619  -5.352  &lt;0.001 </span></span>
+<span id="cb11-31"><a href="#cb11-31" tabindex="-1"></a><span class="co">#&gt;    lsm_alt_7  -4.813  0.78   -6.354  -3.272  &lt;0.001 </span></span>
 <span id="cb11-32"><a href="#cb11-32" tabindex="-1"></a><span class="co">#&gt;   --------------------------------------------------</span></span></code></pre></div>
 <p>The table of values shown in the print message for <code>poolObj</code> can also be extracted using the <code>as.data.frame()</code> function:</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">as.data.frame</span>(poolObj)</span>
@@ -757,15 +757,15 @@ in the original call to <code>draws()</code>:</p>
 <span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a><span class="co">#&gt; 1      trt_4 -0.09180645 0.6826279 -1.43949684  1.2558839 8.931772e-01</span></span>
 <span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="co">#&gt; 2  lsm_ref_4 -1.61581996 0.4862316 -2.57577141 -0.6558685 1.093708e-03</span></span>
 <span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a><span class="co">#&gt; 3  lsm_alt_4 -1.70762640 0.4749573 -2.64531931 -0.7699335 4.262148e-04</span></span>
-<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="co">#&gt; 4      trt_5  1.33145959 0.9223733 -0.49016505  3.1530842 1.508345e-01</span></span>
-<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a><span class="co">#&gt; 5  lsm_ref_5 -4.14219432 0.6579126 -5.44155700 -2.8428316 2.845711e-09</span></span>
-<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a><span class="co">#&gt; 6  lsm_alt_5 -2.81073472 0.6445801 -4.08382993 -1.5376395 2.328862e-05</span></span>
-<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="co">#&gt; 7      trt_6  1.93454961 0.9953313 -0.03164137  3.9007406 5.375533e-02</span></span>
-<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="co">#&gt; 8  lsm_ref_6 -6.07838318 0.7146734 -7.49036389 -4.6664025 1.595631e-14</span></span>
-<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a><span class="co">#&gt; 9  lsm_alt_6 -4.14383357 0.7008355 -5.52857539 -2.7590918 2.171326e-08</span></span>
-<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="co">#&gt; 10     trt_7  2.14349522 1.1113103 -0.05261968  4.3396101 5.567279e-02</span></span>
-<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a><span class="co">#&gt; 11 lsm_ref_7 -6.95677226 0.8147015 -8.56769605 -5.3458485 2.219923e-14</span></span>
-<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a><span class="co">#&gt; 12 lsm_alt_7 -4.81327704 0.7823969 -6.35977260 -3.2667815 7.200388e-09</span></span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="co">#&gt; 4      trt_5  1.33961621 0.9232449 -0.48376074  3.1629932 1.487496e-01</span></span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a><span class="co">#&gt; 5  lsm_ref_5 -4.15459535 0.6587767 -5.45569503 -2.8534957 2.710568e-09</span></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a><span class="co">#&gt; 6  lsm_alt_5 -2.81497914 0.6452482 -4.08941814 -1.5405401 2.312445e-05</span></span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="co">#&gt; 7      trt_6  1.95365546 0.9957017 -0.01330852  3.9206194 5.155088e-02</span></span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="co">#&gt; 8  lsm_ref_6 -6.09326298 0.7168374 -7.50961993 -4.6769060 1.719890e-14</span></span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a><span class="co">#&gt; 9  lsm_alt_6 -4.13960752 0.6987583 -5.52018931 -2.7590257 2.034638e-08</span></span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="co">#&gt; 10     trt_7  2.17232092 1.1110826 -0.02336216  4.3680040 5.245564e-02</span></span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a><span class="co">#&gt; 11 lsm_ref_7 -6.98553269 0.8258652 -8.61904503 -5.3520203 4.240669e-14</span></span>
+<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a><span class="co">#&gt; 12 lsm_alt_7 -4.81321177 0.7797037 -6.35429587 -3.2721277 6.393825e-09</span></span>
 <span id="cb12-15"><a href="#cb12-15" tabindex="-1"></a><span class="co">#&gt;    estimate_type   group group_level_1 group_level_2 contrast_label visit</span></span>
 <span id="cb12-16"><a href="#cb12-16" tabindex="-1"></a><span class="co">#&gt; 1       contrast THERAPY       PLACEBO          DRUG           &lt;NA&gt;     4</span></span>
 <span id="cb12-17"><a href="#cb12-17" tabindex="-1"></a><span class="co">#&gt; 2            lsm THERAPY          DRUG          &lt;NA&gt;           &lt;NA&gt;     4</span></span>
@@ -780,8 +780,8 @@ in the original call to <code>draws()</code>:</p>
 <span id="cb12-26"><a href="#cb12-26" tabindex="-1"></a><span class="co">#&gt; 11           lsm THERAPY          DRUG          &lt;NA&gt;           &lt;NA&gt;     7</span></span>
 <span id="cb12-27"><a href="#cb12-27" tabindex="-1"></a><span class="co">#&gt; 12           lsm THERAPY       PLACEBO          &lt;NA&gt;           &lt;NA&gt;     7</span></span></code></pre></div>
 <p>These outputs gives an estimated difference of
-2.143 (95% CI -0.053 to 4.340)
-between the two groups at the last visit with an associated p-value of 0.056.</p>
+2.172 (95% CI -0.023 to 4.368)
+between the two groups at the last visit with an associated p-value of 0.052.</p>
 </div>
 <div id="code" class="section level1" number="7">
 <h1><span class="header-section-number">7</span> Code</h1>
