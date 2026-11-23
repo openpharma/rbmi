@@ -415,10 +415,17 @@ test_prepare_prior_params <- function(cov_struct, expected_params_dim) {
         is.list(result) && setequal(names(result), expected_params)
     )
     for (param in expected_params) {
+        is_matrix_res <- is.matrix(result[[param]]) &&
+            nrow(result[[param]]) == 1
         is_list_res <- is.list(result[[param]]) && length(result[[param]]) == 1
         is_array_res <- is.array(result[[param]]) &&
             length(result[[param]]) == 1
-        if (is_list_res) {
+        if (is_matrix_res) {
+            expect_equal(
+                ncol(result[[param]]),
+                unname(expected_params_dim[param])
+            )
+        } else if (is_list_res) {
             expect_true(
                 length(result[[param]][[1]]) == expected_params_dim[param]
             )
@@ -454,12 +461,42 @@ test_prepare_prior_params <- function(cov_struct, expected_params_dim) {
         is.list(result) && setequal(names(result), expected_params)
     )
     for (param in expected_params) {
+        is_matrix_res <- is.matrix(result[[param]]) &&
+            nrow(result[[param]]) == 2
         is_list_res <- is.list(result[[param]]) && length(result[[param]]) == 2
         is_array_res <- is.array(result[[param]]) &&
             length(result[[param]]) == 2
-        expect_true(is_list_res || is_array_res)
+        expect_true(is_list_res || is_array_res || is_matrix_res)
     }
 }
+
+test_that("prepare_prior_params gives one row of correlations per group with two visits", {
+    set.seed(2152)
+    mcoefs <- list("int" = 10, "age" = 3, "sex" = 6, "trtslope" = 7)
+    dat <- get_mcmc_sim_dat(200, mcoefs, as_vcov(c(3, 5), 0.4))
+    mat <- model.matrix(data = dat, ~ 1 + sex + age + group + visit)
+    for (cov_struct in c("ad", "adh", "toep", "toeph")) {
+        for (same_cov in c(TRUE, FALSE)) {
+            mmrm_initial <- fit_mmrm(
+                designmat = mat,
+                outcome = dat$outcome,
+                subjid = dat$id,
+                visit = dat$visit,
+                group = dat$group,
+                cov_struct = cov_struct,
+                same_cov = same_cov
+            )
+            result <- prepare_prior_params(
+                stan_data = list(),
+                covariance = cov_struct,
+                prior_cov = "default",
+                mmrm_initial = mmrm_initial,
+                same_cov = same_cov
+            )
+            expect_equal(dim(result$rhos_par), c(ifelse(same_cov, 1, 2), 1))
+        }
+    }
+})
 
 test_that("prepare_prior_params works for AR1", {
     skip_if_not(is_extended_test())

@@ -404,7 +404,7 @@
           matrix[N,P] Q;                          // design matrix (After QR decomp)
           matrix[P,P] R;                          // R matrix (from QR decomp)
               array[G] real<lower=2.2204e-16> sd_par; // Standard deviation prior parameter.
-          array[G] real<lower=-1/(n_visit - 1), upper=1> rho_par; // Correlation prior parameter.
+          array[G] real<lower=-1.0 / (n_visit - 1), upper=1> rho_par; // Correlation prior parameter.
       }
       transformed data {
          matrix[P, P] R_inverse = inverse(R);
@@ -412,7 +412,7 @@
       }
       parameters {
           vector[P] theta;              // coefficients of linear model on covariates
-              array[G] real<lower=-1/(n_visit - 1), upper=1> rho; // Compound symmetry correlation coefficient.
+              array[G] real<lower=-1.0 / (n_visit - 1), upper=1> rho; // Compound symmetry correlation coefficient.
           array[G] real<lower=2.2204e-16> var_const; // Homogeneous variance across visits.
       }
       transformed parameters {
@@ -428,7 +428,7 @@
       
           vector[N] mu = Q * theta;
       
-              rho ~ uniform(-1/(n_visit - 1), 1);
+              rho ~ uniform(-1.0 / (n_visit - 1), 1);
           // Note that we pass the estimated sd, not sd^2 here as
           // the scale parameter of the scaled inverse Chi-Square distribution.
           // Note also the parallel vectorization in the var_const/sd_par elements.
@@ -517,7 +517,7 @@
           matrix[N,P] Q;                          // design matrix (After QR decomp)
           matrix[P,P] R;                          // R matrix (from QR decomp)
               array[G] vector<lower=2.2204e-16>[n_visit] sds_par; // Standard deviations for each visit.
-          array[G] real<lower=-1/(n_visit - 1), upper=1> rho_par; // Correlation prior parameter.
+          array[G] real<lower=-1.0 / (n_visit - 1), upper=1> rho_par; // Correlation prior parameter.
       }
       transformed data {
          matrix[P, P] R_inverse = inverse(R);
@@ -526,7 +526,7 @@
       parameters {
           vector[P] theta;              // coefficients of linear model on covariates
               array[G] vector<lower=2.2204e-16>[n_visit] vars; // Variances for each visit.
-          array[G] real<lower=-1,upper=1> rho; // Compound symmetry correlation coefficient.
+          array[G] real<lower=-1.0 / (n_visit - 1), upper=1> rho; // Compound symmetry correlation coefficient.
       }
       transformed parameters {
               array[G] cov_matrix[n_visit] Sigma;
@@ -544,7 +544,7 @@
       
           vector[N] mu = Q * theta;
       
-              rho ~ uniform(-1/(n_visit - 1), 1);
+              rho ~ uniform(-1.0 / (n_visit - 1), 1);
           for(g in 1:G) {
               // Note that we need to pass the estimated standard deviation as
               // the scale parameter.

@@ -66,10 +66,14 @@ prepare_prior_params <- function(
         stan_data$rho_par <- adjust_dimensions(same_cov, mmrm_initial$rho)
     } else if (covariance %in% c("ad", "toep")) {
         stan_data$sd_par <- adjust_dimensions(same_cov, mmrm_initial$sd)
-        stan_data$rhos_par <- adjust_dimensions(same_cov, mmrm_initial$rhos)
+        stan_data$rhos_par <- stack_by_group(
+            ife(same_cov, mmrm_initial$rhos[1], mmrm_initial$rhos)
+        )
     } else if (covariance %in% c("adh", "toeph")) {
         stan_data$sds_par <- adjust_dimensions(same_cov, mmrm_initial$sds)
-        stan_data$rhos_par <- adjust_dimensions(same_cov, mmrm_initial$rhos)
+        stan_data$rhos_par <- stack_by_group(
+            ife(same_cov, mmrm_initial$rhos[1], mmrm_initial$rhos)
+        )
     } else {
         stop(sprintf("Unknown covariance structure: %s", covariance))
     }
