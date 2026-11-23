@@ -15,6 +15,10 @@
 #' `"proportional_em"` or `"proportional"`.
 #' Specifies the weighting strategy to be used when calculating the lsmeans.
 #' See the weighting section for more details.
+#' @param include_variance Logical. If `TRUE`, a `var_<visit>` entry is added to
+#' the results containing the residual variance estimate (`sigma^2`), its
+#' approximate standard error, and the residual degrees of freedom.
+#' Defaults to `FALSE`.
 #'
 #' @details
 #' The function works as follows:
@@ -164,13 +168,15 @@ ancova <- function(
     data,
     vars,
     visits = NULL,
-    weights = c("counterfactual", "equal", "proportional_em", "proportional")
+    weights = c("counterfactual", "equal", "proportional_em", "proportional"),
+    include_variance = FALSE
 ) {
     ancova_core(
         data = data,
         vars = vars,
         visits = visits,
-        weights = weights
+        weights = weights,
+        include_variance = include_variance
     )
 }
 
@@ -189,7 +195,8 @@ ancova_core <- function(
     data,
     vars,
     visits = NULL,
-    weights = c("counterfactual", "equal", "proportional_em", "proportional")
+    weights = c("counterfactual", "equal", "proportional_em", "proportional"),
+    include_variance = FALSE
 ) {
     outcome <- vars[["outcome"]]
     group <- vars[["group"]]
@@ -276,6 +283,7 @@ ancova_core <- function(
                 group,
                 covariates,
                 weights,
+                include_variance = include_variance,
                 group_contrasts
             )
             meta <- attr(fit, "rbmi_par_meta")
@@ -326,6 +334,10 @@ ancova_core <- function(
 #' to be included in the model as well as any interaction terms.
 #'
 #' @inheritParams ancova
+#' @param include_variance Logical. If `TRUE`, a `var` entry is prepended to
+#'   the results containing the residual variance estimate (`sigma^2`), its
+#'   approximate standard error, and the residual degrees of freedom.
+#'   Defaults to `FALSE`.
 #' @inheritSection lsmeans Weighting
 #'
 #' @param group_contrasts Optional list specifying bespoke treatment-group contrasts.
@@ -359,6 +371,7 @@ ancova_single <- function(
     group,
     covariates,
     weights = c("counterfactual", "equal", "proportional_em", "proportional"),
+    include_variance = FALSE,
     group_contrasts = NULL
 ) {
     weights <- match.arg(weights)
@@ -431,6 +444,21 @@ ancova_single <- function(
     )
 
     res <- append(trt, lsm)
+
+    # Optionally append residual variance estimate
+    if (include_variance) {
+        sigma2 <- sigma(mod)^2
+        res <- c(
+            list(
+                var = list(
+                    est = sigma2,
+                    se = sigma2 * sqrt(2 / df_res),
+                    df = df_res
+                )
+            ),
+            res
+        )
+    }
 
     # Parameter metadata (uses the actual group level labels, not ref/alt)
     meta_trt <- data.frame(
