@@ -55,11 +55,8 @@ RUN apt-get update -y --fix-missing && \
 
 ADD misc/docker/install_packages.R /
 ADD DESCRIPTION /
-ADD tests/scripts/setup.R /setup.R
 
-RUN Rscript /install_packages.R && Rscript /setup.R
-
-
+RUN Rscript /install_packages.R
 
 ENV TINYTEX_DIR=/opt
 ENV TINYTEX_INSTALLER=TinyTeX
