@@ -35,7 +35,7 @@ The package focuses on multiple imputation (MI) for count outcomes following the
 1. @Keene2014 is the basic proposal for Bayesian MI for negative binomial count data, covering two time periods: before and after discontinuing the trial and treatment at the same time.
 1. @Roger2019 extends this to more than two time periods, in particular a third time period where patients are still continuing the trial, but have stopped treatment already. This is the more general setting, which is implemented in `rbmi`.
 
-Note that time to recurrent events can also be analyzed with Andersen-Gill models, but this is not available in the package at this point.
+Note that time to recurrent events can also be analysed with Andersen-Gill models, but this is not available in the package at this point.
 
 ## Statistical methodology {#sec:statsMethods}
 
