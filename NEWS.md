@@ -1,7 +1,5 @@
 # rbmi (development version)
 
-# rbmi Development Version
-
 ## New Features
 
 * Count outcomes with negative multinomial regression imputation models are now supported. Please see the new counts outcomes vignette, as well as the corresponding new statistical specifications for count outcomes vignette, for an introduction. In addition to new S3 methods and new arguments for existing functions, the analysis function `neg_bin_regression()` conducting negative binomial regression analysis, the simulation function `simulate_count_data()`, as well as the data wrangling function `split_time()` to support more complex time period patterns, have been added. Controlled count imputation strategies are defined with `count_strategy()` and collected with `get_count_strategies()`.
@@ -24,12 +22,6 @@
 
 * Previously, ordered or custom-coded treatment factors were incorrectly imputed under reference-based imputation. This is fixed now.
 
-## Miscellaneous
-
-* Fixed minor reproducibility issue with vignettes
-
-## Bug Fixes
-
 * `method_bayes(covariance = "cs")` and `method_bayes(covariance = "csh")` now allow negative correlations down to `-1 / (n_visits - 1)`. Previously, integer division in the Stan models restricted the correlation to be non-negative for three or more visits, so `draws()` failed whenever the MMRM estimate was negative. (#610)
 * `draws()` now reports an informative error when Stan fails to start sampling, instead of failing later with "second argument must be a list". (#610)
 * With `method_bayes(same_cov = FALSE)` and a structured covariance (`"ad"`, `"adh"`, `"ar1"`, `"ar1h"`, `"cs"`, `"csh"`, `"toep"`, `"toeph"`), the group-specific prior parameters were assigned in alphabetical order of the treatment groups instead of the order of the factor levels. If the levels were not in alphabetical order (e.g. `c("PBO", "ACT")`), each group's covariance prior was centred on another group's MMRM estimate. This biased the posterior covariance and therefore the imputations, most strongly for small groups with different variances. Results of such analyses differ from previous versions. (#609)
@@ -37,6 +29,9 @@
 * `control_bayes()` now warns when `init = "mmrm"` is combined with more than one chain, as all chains then start at the same values, which makes convergence diagnostics such as R-hat less reliable. (#609)
 * `method_bayes()` with the `"ad"`, `"adh"`, `"toep"` or `"toeph"` covariance structure failed for data with only two visits, because the correlation prior parameters reached Stan in the wrong shape. This is fixed now. (#613)
 
+## Miscellaneous
+
+* Fixed minor reproducibility issue with vignettes
 
 # rbmi 1.7.1
 
