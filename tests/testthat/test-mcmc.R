@@ -1529,9 +1529,12 @@ expect_mmrm_init <- function(
         method = method,
         quiet = TRUE
     ))
+    # Fit the reference MMRM on the same scale as Stan's stored initial values.
+    model_df <- cbind(dat$outcome, mat)
+    scaled <- scalerConstructor$new(model_df)$scale(model_df)
     mmrm <- fit_mmrm(
-        designmat = mat,
-        outcome = dat$outcome,
+        designmat = scaled[, -1, drop = FALSE],
+        outcome = scaled[, 1],
         subjid = dat$id,
         visit = dat$visit,
         group = dat$group,

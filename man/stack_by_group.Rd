@@ -5,8 +5,6 @@
 \title{Stack Per-Group Values into a Stan Array}
 \usage{
 stack_by_group(x)
-
-stack_by_group(x)
 }
 \arguments{
 \item{x}{A list with one numeric vector or one matrix per group.}
@@ -15,14 +13,8 @@ stack_by_group(x)
 A matrix (vectors) or 3-dimensional array (matrices) with the groups
 along the first dimension, as expected by \code{rstan} for Stan variables declared
 as \verb{array[G] vector} or \verb{array[G] matrix}.
-
-A matrix (vectors) or 3-dimensional array (matrices) with the groups
-along the first dimension, as expected by \code{rstan} for Stan variables declared
-as \verb{array[G] vector} or \verb{array[G] matrix}.
 }
 \description{
-Stack Per-Group Values into a Stan Array
-
 Stack Per-Group Values into a Stan Array
 }
 \keyword{internal}

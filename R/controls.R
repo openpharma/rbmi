@@ -22,7 +22,7 @@
 #'
 #' Currently only the Bayesian imputation via [method_bayes()] uses a control function:
 #'
-#' - The default `init = "auto"` uses MMRM estimates for continuous outcomes,
+#' - The default `init = "auto"` uses MMRM estimates for continuous outcomes with one chain,
 #' and random initialisation otherwise. (With more than one chain, `"mmrm"` starts
 #' all chains at the same values, which makes convergence diagnostics such as R-hat
 #' less reliable, so a warning is given.) Explicit `"mmrm"` initialisation
@@ -183,25 +183,6 @@ prepare_init_vals <- function(
         init_vals,
         simplify = FALSE
     )
-}
-
-#' Stack Per-Group Values into a Stan Array
-#'
-#' @param x A list with one numeric vector or one matrix per group.
-#' @return A matrix (vectors) or 3-dimensional array (matrices) with the groups
-#'   along the first dimension, as expected by `rstan` for Stan variables declared
-#'   as `array[G] vector` or `array[G] matrix`.
-#'
-#' @keywords internal
-stack_by_group <- function(x) {
-    assert_that(is.list(x), length(x) > 0)
-    assert_that(all(vapply(x, is.numeric, logical(1))))
-    if (is.matrix(x[[1]])) {
-        stacked <- array(unlist(x), dim = c(dim(x[[1]]), length(x)))
-        return(aperm(stacked, c(3, 1, 2)))
-    }
-    # rbind() keeps a G x 1 matrix for length-1 vectors, unlike simplification.
-    unname(do.call(rbind, x))
 }
 
 #' Stack Per-Group Values into a Stan Array

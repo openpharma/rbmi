@@ -38,7 +38,7 @@ These functions control lower level computational details of the imputation meth
 \details{
 Currently only the Bayesian imputation via \code{\link[=method_bayes]{method_bayes()}} uses a control function:
 \itemize{
-\item The default \code{init = "auto"} uses MMRM estimates for continuous outcomes,
+\item The default \code{init = "auto"} uses MMRM estimates for continuous outcomes with one chain,
 and random initialisation otherwise. (With more than one chain, \code{"mmrm"} starts
 all chains at the same values, which makes convergence diagnostics such as R-hat
 less reliable, so a warning is given.) Explicit \code{"mmrm"} initialisation
