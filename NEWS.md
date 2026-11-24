@@ -28,6 +28,15 @@
 
 * Fixed minor reproducibility issue with vignettes
 
+## Bug Fixes
+
+* `method_bayes(covariance = "cs")` and `method_bayes(covariance = "csh")` now allow negative correlations down to `-1 / (n_visits - 1)`. Previously, integer division in the Stan models restricted the correlation to be non-negative for three or more visits, so `draws()` failed whenever the MMRM estimate was negative. (#610)
+* `draws()` now reports an informative error when Stan fails to start sampling, instead of failing later with "second argument must be a list". (#610)
+* With `method_bayes(same_cov = FALSE)` and a structured covariance (`"ad"`, `"adh"`, `"ar1"`, `"ar1h"`, `"cs"`, `"csh"`, `"toep"`, `"toeph"`), the group-specific prior parameters were assigned in alphabetical order of the treatment groups instead of the order of the factor levels. If the levels were not in alphabetical order (e.g. `c("PBO", "ACT")`), each group's covariance prior was centred on another group's MMRM estimate. This biased the posterior covariance and therefore the imputations, most strongly for small groups with different variances. Results of such analyses differ from previous versions. (#609)
+* With `control_bayes(init = "mmrm")`, the default for a single chain, only the regression coefficients previously started at the MMRM estimates: the covariance parameters were passed to Stan in the wrong names and shapes, so `rstan` silently started them at random values. All parameters of every covariance structure now start at the MMRM estimates. As a consequence, results of `method_bayes()` with `init = "mmrm"` differ from previous versions for the same seed, within Monte Carlo error. (#609)
+* `control_bayes()` now warns when `init = "mmrm"` is combined with more than one chain, as all chains then start at the same values, which makes convergence diagnostics such as R-hat less reliable. (#609)
+* `method_bayes()` with the `"ad"`, `"adh"`, `"toep"` or `"toeph"` covariance structure failed for data with only two visits, because the correlation prior parameters reached Stan in the wrong shape. This is fixed now. (#613)
+
 
 # rbmi 1.7.1
 

@@ -67,16 +67,19 @@ and returns warnings in case of any detected issues.
 \details{
 The Bayesian model assumes a multivariate normal likelihood function and weakly-informative
 priors for the model parameters: in particular, uniform priors are assumed for the regression
-coefficients and inverse-Wishart priors for the covariance matrices.
-The chain is initialized using the REML parameter estimates from MMRM as starting values.
+coefficients and, by default, inverse-Wishart priors for unstructured covariance matrices.
+Structured covariances and the LKJ prior use scaled inverse chi-squared priors for the
+variances and uniform or LKJ priors for the correlations, see \code{vignette("stat_specs", package = "rbmi")}.
+With \code{init = "mmrm"} (the default for a single chain, see \code{\link[=control_bayes]{control_bayes()}}) the chain is
+initialized using the REML parameter estimates from MMRM as starting values.
 
 The function performs the following steps:
 \enumerate{
 \item Fit MMRM using a REML approach.
 \item Prepare the input data for the MCMC fit as described in the \verb{data\{\}}
 block of the Stan file. See \code{\link[=prepare_stan_data]{prepare_stan_data()}} for details.
-\item Run the MCMC according the input arguments and using as starting values the REML parameter estimates
-estimated at point 1.
+\item Run the MCMC according the input arguments, using as starting values the REML parameter estimates
+estimated at point 1 if \code{init = "mmrm"}.
 \item Performs diagnostics checks of the MCMC. See \code{\link[=check_mcmc]{check_mcmc()}} for details.
 \item Extract the draws from the model fit.
 }

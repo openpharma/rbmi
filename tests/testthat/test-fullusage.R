@@ -232,7 +232,12 @@ test_that("Basic Usage - Bayesian", {
         data = dat,
         data_ice = dat_ice,
         vars = vars,
-        method = method_bayes(n_samples = nsamp),
+        method = method_bayes(
+            n_samples = nsamp,
+            # Fixed Stan seed so that changes to e.g. the initial values do not shift
+            # the chain onto a path where the noisy ESS check gives a false alarm
+            control = control_bayes(seed = 4513)
+        ),
         quiet = TRUE,
         ncores = NCORES
     )

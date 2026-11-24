@@ -27,6 +27,7 @@ A completed control options list including computed \code{iter} and
 the resolved policy before model-specific expansion of starting values.
 }
 \description{
-Complete Common Stan Control Options for Bayesian Methods
+This function completes the control options list for Bayesian methods by setting
+the number of iterations, refresh rate, and initial values based on the provided arguments.
 }
 \keyword{internal}
