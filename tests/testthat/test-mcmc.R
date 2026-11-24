@@ -841,7 +841,7 @@ test_that("fit_mcmc can recover known values with same_cov = TRUE", {
     )
 
     method <- method_bayes(
-        n_samples = 200,
+        n_samples = 600,
         same_cov = TRUE,
         control = control_bayes(
             warmup = 200,
