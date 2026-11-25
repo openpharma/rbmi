@@ -99,10 +99,19 @@ model {
     real dispersion = phi[group[n]];
     real x = dispersion * mu_sum[n];
 
-    // -(1/phi + y_sum) * log1p(x), written so that the leading -mu_sum is
+    // -(1/phi + y_sum) * log1p(x). For small x, the leading -mu_sum is
     // separated from the small dispersion-dependent remainder; otherwise the
     // gradient with respect to phi cancels catastrophically as phi -> 0.
-    target += log_rising_ratio(y_sum[n], dispersion)
-              - mu_sum[n] - y_sum[n] * log1p(x) - log1p_minus_x(x) / dispersion;
+    // For larger x that split would itself cancel (two terms of order mu_sum
+    // for a result of order log(mu_sum)), so the direct form is used there.
+    // The cutoff matches the series branch of log1p_minus_x(), above which
+    // the split has no accuracy advantage.
+    if (x < 1e-3) {
+      target += log_rising_ratio(y_sum[n], dispersion)
+                - mu_sum[n] - y_sum[n] * log1p(x) - log1p_minus_x(x) / dispersion;
+    } else {
+      target += log_rising_ratio(y_sum[n], dispersion)
+                - (inv(dispersion) + y_sum[n]) * log1p(x);
+    }
   }
 }
