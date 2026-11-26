@@ -47,7 +47,7 @@ after an intercurrent event (ICE), as motivated by @Rehal2026. The trial
 example shows the workflow from posterior draws through imputation, analysis,
 and pooling.
 
-The design proceeds in six sections.
+The design proceeds in seven sections.
 
 1. [Example data](#example-data)
 2. [Multivariate probit draw model in Stan](#sec-binary-probit)
@@ -55,6 +55,7 @@ The design proceeds in six sections.
 4. [Firth regression](#sec-binary-firth)
 5. [`rbmi` integration prototype](#rbmi-integration-prototype)
 6. [Example data analysis](#example-data-analysis)
+7. [Implementation plan](#sec-binary-implementation-plan)
 
 The [companion research notes](research_binary_extension.html) cover validation
 against the Cro et al. sampler, the derivation of the joint imputation correction,
@@ -562,11 +563,36 @@ The prototype uses `TruncatedNormal::rtmvnorm()` [@Botev2017] for the joint
 draw. See the [sampler comparison](research_binary_extension.html#sec-binary-sampler-choice).
 
 Observed post-discontinuation responses can inform missing outcomes for the
-same patient through this conditioning step. Estimating off-treatment effects
-across patients would additionally require a retrieved-dropout fitting model,
-for example with on/off-treatment indicators and visit-by-arm interactions
-estimated from observed post-discontinuation data [@Rehal2026]. The current
-draw model estimates arm-by-visit means using on-treatment observations.
+same patient through this conditioning step. Learning off-treatment means
+across patients also uses those responses in the draw model.
+
+### Off-treatment modelling {#sec-binary-off-treatment}
+
+The count draw model retains all observed positive-duration counts, including
+off-treatment counts, regardless of the assigned imputation strategy. The
+longitudinal data object sets the count fit mask to `TRUE` throughout, and
+`prepare_stan_data_count()` selects observed cells with positive duration.
+The count imputer builds its predictor rows from the same formula used for
+fitting. Each row keeps its covariate values when the arm is changed for a
+reference prediction. [R/longData.R](../R/longData.R) · [R/mcmc_count.R](../R/mcmc_count.R) · [R/impute_count.R](../R/impute_count.R)
+
+The binary design will support two fitting modes. The on-treatment mode
+reproduces the prototype and supplies the parameters for the five strategies
+in @sec-binary-reference-distribution. The all-observed mode retains every
+recorded binary response, including retrieved responses, and allows a
+visit-level `off_treatment` covariate in the probit design [@Rehal2026]. A
+main effect gives a common shift on the latent scale. Interactions with visit
+or arm let the shift vary over time or by treatment. Sparse off-treatment
+data may call for pooling effects across visits or arms, or a proper prior.
+
+Under the all-observed model, imputation is MAR conditional on treatment
+status and the other predictors. Supply treatment status for every scheduled
+visit, including those with missing outcomes. Where a recorded ICE marks
+treatment discontinuation, its first affected visit can define the indicator.
+For each draw, evaluate the fitted mean at the patient's actual arm and
+status, then use the existing joint sampler and latent correlation model.
+Use a separate on-treatment fit for reference-based sensitivity analyses
+under the strategy definitions in @sec-binary-reference-distribution.
 
 ### Prototype and example
 
@@ -2037,5 +2063,111 @@ In the fitted-model workflow the pooled Week 8 odds ratio was
 `r sprintf("%.2f", exp(post_ice_pooled$est))` with a 95% confidence interval
 from `r sprintf("%.2f", exp(post_ice_pooled$ci[1]))` to
 `r sprintf("%.2f", exp(post_ice_pooled$ci[2]))`.
+
+## Implementation plan {#sec-binary-implementation-plan}
+
+This plan integrates the prototype's reference-based workflow and adds
+@sec-binary-off-treatment for two-arm trials with scheduled binary visits.
+The prototype functions serve as references for the package implementation
+and its tests.
+
+### 1. Integrate binary dispatch and longitudinal data preparation
+
+Add `outcome = "binary"` to `draws()` in [R/draws.R](../R/draws.R). Route the
+Bayesian method to a binary preparation path before the existing scaling step.
+Update `validate_draws_outcome()` to allow binary visit data and retain the
+continuous-only checks for the other methods. Use `longDataConstructor` and
+`validate_dataice()` for scheduled rows, factor levels, subject indexes, and
+the first affected visit. Port the binary checks and `binary_baseline_design()`
+from the [draw prototype](#draw-and-impute), including complete covariates
+that are constant within subject and visit-specific slopes shared across arms.
+
+Expose the binary fitting mode explicitly and default to the prototype's
+on-treatment fit. In that mode, build the mask from `longdata$is_post_ice`,
+including ICEs assigned MAR. In all-observed mode, use the original outcomes
+and build the design with the supplied visit-level treatment status and any
+status interactions. Validate that the predictors needed for imputation are
+available at every scheduled visit. Preserve `longdata$data` and `is_missing`
+in both modes. [R/longData.R](../R/longData.R) · [R/validate_datalong.R](../R/validate_datalong.R)
+
+### 2. Port the Stan model and package the posterior draws
+
+Port `probit_stan_code` to `inst/stan/binary_model.stan` and use the model
+loading and compilation path used by `get_stan_model_count()`. Check that
+the model compiles and samples on the minimum supported `rstan` version
+before wiring it into `draws.bayes()`. Port `prepare_probit_data()` and
+benchmark the prototype's two-stage adaptation and step-size cap under
+`rstan` against the recorded posterior and retained-chain diagnostics in
+@sec-binary-probit.
+[R/mcmc_count.R](../R/mcmc_count.R) · [R/utilities.R](../R/utilities.R) · [R/mcmc.R](../R/mcmc.R)
+
+Add an optional `prior_beta_sd` to `method_bayes()` for binary fits. Resolve
+an omitted value to the prototype's flat prior and require a positive value
+for covariate designs and sparse or unobserved arm-by-visit cells. Validate
+`covariance = "us"`, `same_cov`, initialization, and the retained-draw budget
+before compilation. Map `control_bayes()` settings and `quiet` to the binary
+sampler. Return a `draws_binary` object through `as_draws()`, retaining the
+`stanfit`, initialization and diagnostics. Store each coefficient vector
+and its paired latent correlation matrices in a validated `sample_list`.
+Retain the fitting mode, visit and treatment labels, and design information
+needed to evaluate means with the same factor coding at imputation time.
+[R/methods.R](../R/methods.R) · [R/controls.R](../R/controls.R) · [R/dataclasses.R](../R/dataclasses.R)
+
+### 3. Implement binary imputation with the shared storage contract
+
+Add `impute.draws_binary()` using `impute.draws_count()` as the structure for
+S3 dispatch, cloning the draw data, validating the named `references` mapping,
+and constructing the result. Port the binary mean and covariance rules and
+the cached joint sampler from @sec-binary-joint-sampling and its prototype.
+Declare `TruncatedNormal` in `Suggests` and check availability when binary
+sampling needs it. Include the subject and draw index in sampling failures.
+Use the current R random stream so callers can reproduce a run with `set.seed()`.
+
+For the all-observed fit, use the fitted design at the patient's actual arm
+and treatment status. For the on-treatment fit, apply `update_strategy` to
+subjects with an existing ICE and keep the fitting mask fixed. The existing
+visit-based strategy lock assumes a strategy-dependent fit. Validate strategy
+compatibility against the stored binary fit mode. Store draws of the originally
+missing outcomes as `imputation_single()` entries inside `imputation_df()`
+and `imputation_list_df()`. Use `as_imputation()` with an `imputation_binary`
+subclass so the existing extractor reconstructs completed datasets in the
+package's row and subject-ID conventions. [R/impute_count.R](../R/impute_count.R) · [R/impute.R](../R/impute.R) · [R/dataclasses.R](../R/dataclasses.R)
+
+### 4. Connect extraction, analysis, and pooling
+
+Teach `analyse()` and `as_analysis()` to carry the binary endpoint class.
+Keep the shared callback, warning capture, and parallel execution paths.
+Reject additive `delta` in both analysis and extraction using the endpoint
+class, since visit-based `vars` alone also describe continuous endpoints.
+Port `binary_logistic()` as the supplied treatment-only callback for a named
+visit, treatment, and comparator. Keep ML as the default and add `brglm2` to
+`Suggests` for Firth fits. Return the log odds ratio, its standard error,
+and the complete-data degrees of freedom as `est`, `se`, and `df`. Attach
+the odds-ratio transformation using the pattern in
+`neg_bin_regression()`, so `pool()` applies Rubin's rules on the log scale
+and reports the transformed estimate and interval. [R/analyse.R](../R/analyse.R) · [R/neg_bin_regression.R](../R/neg_bin_regression.R) · [R/pool.R](../R/pool.R)
+
+### 5. Promote the prototype checks to package tests and documentation
+
+Use fixed draws for fast checks of strategy moments, treatment and visit
+ordering, baseline design alignment, fit-mask invariance, extraction, and
+ML and Firth endpoint fits. Compare the unadjusted Firth result with the
+[closed-form reference](research_binary_extension.html#closed-form-reference).
+Use the [count workflow tests](../tests/testthat/test-counts-fullusage.R) as a
+pattern for a public `draws()` → `impute()` → `extract_imputed_dfs()` and
+`analyse()` → `pool()` fixture. Carry over the sparse-cell and
+[recorded-ICE](#recorded-ice-with-a-later-observed-response) checks. Use the
+same fixture to verify that the post-ICE response is excluded from the
+on-treatment fit, included in the all-observed fit, and preserved in both
+completed datasets. Verify the analytic conditioning probability and add a
+synthetic example in which the fitted status effect informs imputation at
+missing off-treatment visits. Compare the pooled estimate and interval with
+the independent calculation.
+Exercise selected extraction with `idmap`, a custom analysis callback, and
+the error for additive `delta`. Put the full trial fit against its recorded
+posterior in the extended suite. Use the opt-in research render for live
+`jomo` comparisons. Run the continuous and count regression tests as part of
+integration. Update roxygen and the package documentation, and make the binary
+vignette use the public workflow once these checks pass.
 
 ## References
