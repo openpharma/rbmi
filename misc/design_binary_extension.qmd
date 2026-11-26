@@ -2234,9 +2234,13 @@ See [Firth (1993)](https://doi.org/10.1093/biomet/80.1.27) and
 
 | Implementation | Fit and extraction | Trade-off for `rbmi` |
 |---|---|---|
-| From scratch | For the unadjusted two-arm model, add 0.5 to each response-by-arm cell for the fitted odds and use expected information at the fitted probabilities for the standard error. | Exact for this model and dependency-free. Covariate adjustment would require a general solver with rank and convergence checks. |
+| From scratch | Use the closed form for the unadjusted two-arm model or the adjusted-score algorithm below when the model includes covariates. | Dependency-free. An adjusted solver needs numerical safeguards and validation against reference fits. |
 | `logistf` | Use `logistf::logistf(formula, data = data, pl = FALSE)` and extract the coefficient and its covariance. | Dedicated Firth implementation with profile penalized-likelihood intervals available. The Wald option fits the existing coefficient-and-SE pooling interface. See the [logistf manual](https://search.r-project.org/CRAN/refmans/logistf/html/logistf.html). |
 | `brglm2` | Use `glm(formula, data = data, family = binomial(), method = brglm2::brglmFit, type = "AS_mean")` and extract with `coef()` and `vcov()`. | Mean bias reduction gives the Firth estimate for logistic regression and keeps the familiar GLM interface for covariate-adjusted analyses. See the [brglm2 fitting documentation](https://search.r-project.org/CRAN/refmans/brglm2/html/brglmFit.html). |
+
+The `logistf` package is quite well adopted by other packages, as its CRAN reverse dependencies indicate, see [here](https://cran.r-project.org/web/packages/logistf/index.html). The implementation is in C code (see [source](https://github.com/georgheinze/logistf/tree/master/src)). Unfortunately no tests are available. Maintenance does not seem guaranteed, e.g. there is one important PR [here](https://github.com/georgheinze/logistf/pull/73) that has been open for almost a year without any comments by the maintainer.
+
+The `brglm2` package just had an update in October 2026, is similarly well adopted by reverse depending packages, see CRAN [here](https://cran.r-project.org/web/packages/brglm2/index.html). While some C code is used, most of the implementation seems to be native R, see GitHub [here](https://github.com/ikosmidis/brglm2). Tests are available [here](https://github.com/ikosmidis/brglm2/tree/main/inst/tinytest).
 
 **Scope of the prototype.** The closed-form `binary_firth()` callback
 supports a model with an intercept and a two-level treatment indicator only.
@@ -2261,10 +2265,68 @@ available for analysis in each completed dataset.
 Most of the package integration effort would go into checking missing
 covariates, consistent factor coding and an estimable treatment contrast
 across imputations, and reporting rank or convergence failures with the
-affected imputation index. Writing the adjusted fitter from scratch would be
-substantially more work. It would require an iterative solver for the
-penalized likelihood or adjusted scores, stable information-matrix
-calculations, and tests against reference fits for sparse and separated data.
+affected imputation index.
+
+### From-scratch algorithm for Firth regression with covariates
+
+For one completed dataset, let $y$ be the $n$ binary outcomes at the endpoint
+and $X$ the $n \times p$ model matrix, including the intercept, treatment
+indicator and covariate columns. The same algorithm covers the unadjusted
+model and models with continuous or categorical covariates.
+
+1. **Initialize.** Check that $X$ is full rank, $n>p$, and all outcomes and
+   covariates are available. Start at $\beta=0$, which gives an initial
+   probability of $1/2$ without requiring a maximum-likelihood fit.
+2. **Compute weights and leverages.** At the current $\beta$, compute
+   $\eta=X\beta$, $\mu_i=\operatorname{logit}^{-1}(\eta_i)$, and
+   $w_i=\mu_i(1-\mu_i)$. Set $W=\operatorname{diag}(w_i)$ and compute a thin QR
+   factorization $W^{1/2}X=QR$. Compute $h_i=\sum_j Q_{ij}^2$, the leverage
+   of subject $i$. Use row scaling for $W^{1/2}X$ and row sums of squares for
+   the leverages so neither $W$ nor the hat matrix has to be allocated.
+3. **Compute the adjusted score and direction.** Form
+   $U^*=X^\top\{y-\mu+h(1/2-\mu)\}$, with the multiplication by $h$
+   elementwise. Solve $R^\top R\,\Delta=U^*$ using two triangular solves,
+   since $R^\top R=I(\beta)=X^\top W X$. This is a quasi-Fisher scoring
+   step. If the QR implementation pivots the columns, apply the same
+   permutation to the score and undo it for the coefficient update.
+4. **Update with backtracking.** Try $\beta+\Delta$. If the trial point
+   has a numerically singular weighted design or decreases the penalized
+   log-likelihood, halve the step and retry. Evaluate the Bernoulli
+   log-likelihood stably from the linear predictors and compute the
+   half log-determinant penalty as $\sum_j\log |R_{jj}|$ at each trial point.
+   Stop when the information-scaled score $\|R^{-\top}U^*\|_2$ and the
+   relative size of the full scoring direction meet their tolerances. Using
+   the full direction prevents declaring convergence solely because
+   backtracking produced a small accepted step. If the line search or
+   iteration limit is exhausted, report the failure and its imputation index.
+5. **Return the treatment contrast.** For a contrast vector $c$, compute
+   $\mathrm{est}=c^\top\hat\beta$ and
+   $\mathrm{se}=\sqrt{c^\top I(\hat\beta)^{-1}c}$ using the final QR factor
+   and a triangular solve. For the treatment coefficient, $c$ selects its
+   column in $X$. Return those values with $\mathrm{df}=n-p$ for Rubin
+   pooling.
+
+The adjusted score and scoring direction follow the mean bias reduction
+algorithm in [Kosmidis, Kenne Pagui and Sartori (2020)](https://doi.org/10.1007/s11222-019-09860-6).
+
+For a dense design with $n \ge p$, a weighted QR factorization costs
+$O(np^2)$ time and $O(np+p^2)$ working memory. The factorization dominates
+each scoring iteration and each trial point checked by the line search.
+With $M$ imputations and an average of $K$ factorizations per fit, including
+backtracking, the total fitting cost is $O(MKnp^2)$ for similarly sized
+datasets. With a few covariates this is roughly linear in the number of
+subjects and imputations. Those costs are for the endpoint fits and exclude
+the draw and imputation steps.
+
+The scoring loop is short with base R linear algebra. A production fitter
+is a moderate implementation effort because it must handle extreme linear
+predictors, nearly singular weighted designs, and failed line searches while
+returning reliable standard errors. Test the unadjusted fit against the
+closed form and compare coefficients and standard errors with a reference
+package on adjusted data with and without separation. Also verify explicit
+failure for rank-deficient designs. A package-backed callback delegates the
+solver and leaves the model-matrix, contrast and pooling integration to
+`rbmi`.
 
 ### Closed-form example
 
@@ -2348,5 +2410,13 @@ The ordinary callback stops because the active-versus-placebo maximum
 likelihood estimate is infinite. The Firth callback returns a finite odds ratio
 of `r sprintf("%.2f", exp(firth_fit$est))` and a log odds ratio standard error
 of `r sprintf("%.2f", firth_fit$se)`.
+
+### Preliminary conclusion and prototype
+
+Given the significant effort needed for a from-scratch Firth implementation and the availability of well-tested packages like `brglm2`, it seems wiser to rely weakly on `brglm2`. We can put it in `Suggests` and allow its optional use via an argument for the analysis function.
+
+```{r}
+binary_logistic_with_firth <- 
+```
 
 ## References
