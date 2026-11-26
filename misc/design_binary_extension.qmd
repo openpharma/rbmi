@@ -646,7 +646,7 @@ existing `rstan` infrastructure is deferred.
 fit_probit_draws <- function(prepared, model, chains = 4L, parallel_chains = chains,
                              iter_warmup = 1500L, iter_sampling = 2000L,
                              seed = 20261026L, adapt_delta = 0.99,
-                             step_size_cap = 0.005, ...) {
+                             step_size_cap = 0.005, thin = 1L, ...) {
     stopifnot(length(step_size_cap) == 1L, is.finite(step_size_cap), step_size_cap > 0)
     # Adapt the metric, then sample with a conservative fixed step size.
     warm <- model$sample(
@@ -670,15 +670,22 @@ fit_probit_draws <- function(prepared, model, chains = 4L, parallel_chains = cha
             u_raw = if (dat$U > 0L) as.numeric(d[ch, paste0("u_raw[", seq_len(dat$U), "]")]) else numeric()
         )
     })
+    sampling_seed <- as.integer(seed %% .Machine$integer.max + 1)
     fit <- model$sample(
         data = dat, chains = chains, parallel_chains = parallel_chains,
-        iter_warmup = 0L, iter_sampling = iter_sampling, seed = seed + 1L,
+        iter_warmup = 0L, iter_sampling = iter_sampling, thin = thin, seed = sampling_seed,
         init = initial, metric = "diag_e", inv_metric = warm$inv_metric(matrix = FALSE),
         adapt_engaged = FALSE,
         step_size = pmin(step_size_cap, warm$metadata()$step_size_adaptation),
         max_treedepth = 12L, refresh = 0
     )
-    structure(list(fit = fit, warmup_fit = warm, prepared = prepared), class = "probit_draw_fit")
+    structure(
+        list(
+            fit = fit, warmup_fit = warm, prepared = prepared,
+            initialisation = initial, diagnostics = fit$diagnostic_summary()
+        ),
+        class = "probit_draw_fit"
+    )
 }
 ```
 
@@ -694,8 +701,13 @@ extract_probit_draws <- function(object, n_samples = NULL, seed = 123L) {
     if (is.null(n_samples)) n_samples <- nrow(d)
     stopifnot(
         length(n_samples) == 1L, is.finite(n_samples), n_samples >= 1L,
-        n_samples == as.integer(n_samples), n_samples <= nrow(d)
+        n_samples == floor(n_samples)
     )
+    if (n_samples > nrow(d)) {
+        stop("Requested ", n_samples, " posterior draws, but only ", nrow(d),
+            " are available.", call. = FALSE
+        )
+    }
     set.seed(seed)
     take <- sample.int(nrow(d), n_samples, replace = FALSE)
     dat <- object$prepared$data
@@ -1623,9 +1635,13 @@ if (!exists("probit_fit")) {
         saved_data <- readRDS(file.path(dirname(saved_fit), "data.rds"))
         stopifnot(identical(Ycat, saved_data$Y), identical(treat1, saved_data$arm))
         # Supply the same draw interface used by extract_probit_draws().
-        probit_fit <- list(prepared = probit_input, fit = list(
-            draws = function(variables) posterior::subset_draws(saved$draws, variable = variables)
-        ))
+        probit_fit <- list(
+            prepared = probit_input,
+            fit = list(draws = function(variables) {
+                posterior::subset_draws(saved$draws, variable = variables)
+            }),
+            diagnostics = saved$diagnostics
+        )
     } else {
         probit_model <- cmdstanr::cmdstan_model(cmdstanr::write_stan_file(probit_stan_code))
         probit_fit <- fit_probit_draws(probit_input, probit_model, init = 0)
@@ -1766,7 +1782,8 @@ binary_strategy <- function(strategy) {
 binary_distribution <- function(means, covariances, arm, ref, d, strategy) {
     D <- nrow(means)
     mu <- means[, arm]
-    Sigma <- covariances[[arm]]
+    shared <- length(covariances) == 1L
+    Sigma <- covariances[[if (shared) 1L else arm]]
     if (strategy == "MAR" || d == D) {
         return(list(mu = mu, Sigma = Sigma))
     }
@@ -1780,7 +1797,7 @@ binary_distribution <- function(means, covariances, arm, ref, d, strategy) {
         return(list(mu = mu, Sigma = Sigma))
     }
 
-    R <- covariances[[ref]]
+    R <- covariances[[if (shared) 1L else ref]]
     if (d == 0L) {
         return(list(mu = means[, ref], Sigma = R))
     }
@@ -1795,6 +1812,8 @@ binary_distribution <- function(means, covariances, arm, ref, d, strategy) {
         }
     }
 
+    if (shared) return(list(mu = mu, Sigma = Sigma))
+
     pre <- seq_len(d)
     B <- R[post, pre, drop = FALSE] %*% solve(R[pre, pre, drop = FALSE])
     V <- R[post, post, drop = FALSE] - B %*% R[pre, post, drop = FALSE]
@@ -1806,7 +1825,7 @@ binary_distribution <- function(means, covariances, arm, ref, d, strategy) {
 }
 
 impute_binary_fast <- function(
-  Y, arm, last_on, parameters, references, strategy, seed = 20261103
+  Y, arm, last_on, parameters, references, strategy, seed = NULL
 ) {
     D <- ncol(Y)
     arm_levels <- parameters$metadata$arm_levels
@@ -1819,13 +1838,12 @@ impute_binary_fast <- function(
         length(last_on) == nrow(Y), all(last_on %in% 0:D),
         all(Y[!is.na(Y)] %in% 0:1),
         length(arm_levels) == 2L,
-        !parameters$metadata$same_cov,
         length(parameters$beta[[1]]) == 2L * D
     )
     if (any(strategy == "LMCF" & last_on == 0L)) {
         stop("LMCF requires a scheduled visit before the ICE.", call. = FALSE)
     }
-    set.seed(seed)
+    if (!is.null(seed)) set.seed(seed)
     incomplete <- which(rowSums(is.na(Y)) > 0L)
 
     # Use a common cache entry whenever the distribution reduces to MAR.
@@ -1897,7 +1915,8 @@ cir_time_original <- system.time(
 cir_rng_original <- .Random.seed
 cir_time_fast <- system.time(
     cir_completed_fast <- impute_binary_fast(
-        Ycat, treat1, last_on, cir_parameters, cir_references, rep("CIR", nrow(Ycat))
+        Ycat, treat1, last_on, cir_parameters, cir_references, rep("CIR", nrow(Ycat)),
+        seed = 20261103L
     )
 )[["elapsed"]]
 stopifnot(
@@ -2143,8 +2162,8 @@ mapping. For MAR-only imputation, the default maps each arm to itself.
 
 The local functions below implement the four steps with column names supplied through
 `set_vars()`. This first version supports two arms, saturated
-arm-by-visit means, separate unstructured latent correlations, and a Bayesian
-draw method. It uses the section 2 Stan settings. A package implementation
+arm-by-visit means, shared or arm-specific unstructured latent correlations,
+and a Bayesian draw method. It uses the section 2 Stan model and sampler. A package implementation
 would add binary dispatch to `draws()` and `impute()`, expose sampler controls,
 and let `analyse()` recognize the binary imputation class. Rubin pooling
 already accepts the analysis result.
@@ -2165,10 +2184,11 @@ reference mapping also reuses the fit. Adding, removing, or moving an ICE
 requires preparing the draw data again. An optional fitted model can be reused
 when its prepared inputs match.
 
-`binary_draws(beta_sd = 0)` uses flat priors and requires both outcomes in
-every arm-by-visit cell of the fit data after ICE masking. A positive
-`beta_sd` gives each arm-by-visit latent probit mean an independent
-`Normal(0, beta_sd^2)` prior, where `beta_sd` is the standard deviation on
+`method_bayes_binary()` is a prototype wrapper around `rbmi::method_bayes()`
+that adds `prior_beta_sd`. The default of zero uses flat priors and requires
+both outcomes in every arm-by-visit cell after ICE masking. A positive
+`prior_beta_sd` gives each arm-by-visit latent probit mean an independent
+`Normal(0, prior_beta_sd^2)` prior, where `prior_beta_sd` is the standard deviation on
 the latent scale. The prior is centered at a marginal response probability of
 0.5 and its scale controls how strongly it pulls probabilities toward 0.5.
 In a cell with only one observed outcome category, both the prior and
@@ -2178,18 +2198,87 @@ imputation in that cell, observed responses at other visits can still inform a
 patient's prediction through the latent correlation model. Firth adjustment
 acts later, in the completed-data logistic regression.
 
+Binary fitting supports `covariance = "us"`. With `same_cov = TRUE`, both
+arms share one latent correlation matrix and retain separate means. The
+hybrid for JR, CR, and CIR reduces to that shared matrix. With
+`same_cov = FALSE`, the sampler estimates a matrix for each arm. Both
+`prior_cov = "default"` and `"lkj"` resolve to LKJ(1) for binary.
+
+New fits use `control_bayes()` fields `warmup`, `thin`, `chains`, `seed` and
+`init`. Initialization accepts `"auto"` (zero), `"random"` (Stan radius 2),
+or a nonnegative Stan initialization radius. Optional binary controls
+`iter_sampling` (default 2000 raw iterations per chain) and `parallel_chains`
+(default `chains`) can be supplied through `control_bayes(...)`. Other
+control fields are rejected. `n_samples` is the number of paired draws
+selected without replacement across the retained chains. The adapter checks
+the requested count against the sampling budget before compiling or sampling.
+
+The draw object retains the CmdStan sampling and warmup fits, diagnostics, and
+the initial values used to start sampling. With a supplied fit, the adapter
+uses its existing draws and diagnostics, checks its prepared data, and
+ignores the requested fitting controls except for the seed used to select
+draws. The optional `binary_draws(seed = ...)` overrides the control seed.
+For imputation, `binary_impute(seed = NULL)` consumes the current R random
+stream, as in continuous and count imputation. Pass an explicit seed to
+repeat imputations or pair random draws across strategy runs.
+
 ```{r}
 #| label: binary-integration-draws
+method_bayes_binary <- function(
+    same_cov = TRUE, n_samples = 20L, prior_beta_sd = 0,
+    control = rbmi::control_bayes(warmup = 1500L, thin = 1L, chains = 4L)
+) {
+    method <- rbmi::method_bayes(
+        covariance = "us", same_cov = same_cov, n_samples = n_samples,
+        prior_cov = "lkj", control = control
+    )
+    method$prior_beta_sd <- prior_beta_sd
+    method
+}
+
+binary_fit_control <- function(control, seed) {
+    supported <- c("warmup", "thin", "chains", "init", "seed", "iter_sampling", "parallel_chains")
+    unsupported <- setdiff(names(control), supported)
+    if (length(unsupported)) {
+        stop("Unsupported binary fitting controls: ", paste(unsupported, collapse = ", "),
+            call. = FALSE
+        )
+    }
+    init <- control$init
+    if (identical(init, "auto")) init <- 0
+    if (identical(init, "random")) init <- 2
+    settings <- list(
+        chains = control$chains,
+        parallel_chains = control$parallel_chains %||% control$chains,
+        iter_warmup = control$warmup,
+        iter_sampling = control$iter_sampling %||% 2000L,
+        thin = control$thin,
+        seed = seed
+    )
+    for (name in names(settings)) binary_positive_integer(settings[[name]], name)
+    stopifnot(
+        settings$parallel_chains <= settings$chains,
+        is.numeric(init), length(init) == 1L, is.finite(init), init >= 0
+    )
+    c(settings, list(init = init))
+}
+
+binary_positive_integer <- function(value, name) {
+    if (!is.numeric(value) || length(value) != 1L || !is.finite(value) ||
+        value < 1 || value > .Machine$integer.max || value != floor(value)) {
+        stop("`", name, "` must be a positive integer.", call. = FALSE)
+    }
+}
+
 # Binary counterpart of rbmi::draws() and its draws.bayes() method.
 #
 # data: Long data with one row per subject and visit and a 0/1/NA outcome.
 # data_ice: Optional subject, first affected visit and strategy columns.
 # vars: Column mapping from rbmi::set_vars() for the saturated two-arm model.
-# method: rbmi::method_bayes() with separate unstructured correlations.
+# method: method_bayes_binary() or rbmi::method_bayes() with unstructured correlations.
 # outcome: Endpoint selector, "binary" for this prototype.
 # fit: Optional section 2 fit for the same prepared data.
-# seed: Random seed for fitting and selecting paired posterior draws.
-# beta_sd: Coefficient prior standard deviation on the latent probit scale.
+# seed: Optional override for the method control seed.
 binary_draws <- function(
   data,
   data_ice = NULL,
@@ -2197,9 +2286,21 @@ binary_draws <- function(
   method,
   outcome = "binary",
   fit = NULL,
-  seed = 20261102L,
-  beta_sd = 0
+  seed = NULL
 ) {
+    binary_positive_integer(method$n_samples, "n_samples")
+    seed <- seed %||% method$control$seed
+    binary_positive_integer(seed, "seed")
+    settings <- NULL
+    if (is.null(fit)) {
+        settings <- binary_fit_control(method$control, seed)
+        capacity <- settings$chains * ceiling(settings$iter_sampling / settings$thin)
+        if (method$n_samples > capacity) {
+            stop("`n_samples` exceeds the binary sampling budget of ", capacity, " draws.",
+                call. = FALSE
+            )
+        }
+    }
     original <- data
     fields <- c("subjid", "visit", "group", "outcome")
     columns <- unlist(vars[fields], use.names = FALSE)
@@ -2230,7 +2331,8 @@ binary_draws <- function(
         identical(outcome, "binary"),
         inherits(method, "bayes"),
         identical(method$covariance, "us"),
-        identical(method$same_cov, FALSE),
+        length(method$same_cov) == 1L, is.logical(method$same_cov), !is.na(method$same_cov),
+        method$prior_cov %in% c("default", "lkj"),
         is.factor(data$visit),
         is.factor(data$group),
         nlevels(data$group) == 2L,
@@ -2275,13 +2377,13 @@ binary_draws <- function(
     Y_fit[col(Y) > last_on] <- NA_integer_
     prepared <- prepare_probit_data(
         Y_fit, as.integer(arm),
-        same_cov = FALSE, beta_sd = beta_sd
+        same_cov = method$same_cov, beta_sd = method$prior_beta_sd %||% 0
     )
     if (is.null(fit)) {
         model <- cmdstanr::cmdstan_model(cmdstanr::write_stan_file(
             probit_stan_code
         ))
-        fit <- fit_probit_draws(prepared, model, seed = seed, init = 0)
+        fit <- do.call(fit_probit_draws, c(list(prepared = prepared, model = model), settings))
     } else {
         stopifnot(identical(prepared, fit$prepared))
     }
@@ -2298,6 +2400,11 @@ binary_draws <- function(
             last_on = last_on,
             strategy = strategy,
             method = method,
+            fit = fit,
+            diagnostics = fit$diagnostics,
+            initialisation = fit$initialisation,
+            fit_control = settings,
+            selection_seed = seed,
             parameters = parameters
         ),
         class = "draws_binary"
@@ -2308,9 +2415,9 @@ binary_draws <- function(
 #
 # draws: Binary draws object with the original data and paired parameters.
 # references: Named mapping from randomized arms to reference arms.
-# seed: Random seed for conditional latent-response sampling.
+# seed: Optional seed for conditional latent-response sampling.
 # update_strategy: Optional subject ID and strategy columns for existing ICEs.
-binary_impute <- function(draws, references = NULL, seed = 20261103L, update_strategy = NULL) {
+binary_impute <- function(draws, references = NULL, seed = NULL, update_strategy = NULL) {
     stopifnot(inherits(draws, "draws_binary"))
     strategy <- draws$strategy
     if (!is.null(update_strategy)) {
@@ -2503,10 +2610,11 @@ draw <- binary_draws(
     vars,
     method,
     outcome = "binary",
-    fit = probit_fit
+    fit = probit_fit,
+    seed = 20261102L
 )
 trial_references <- c(Placebo = "Placebo", Active = "Placebo")
-imp <- binary_impute(draw, references = trial_references)
+imp <- binary_impute(draw, references = trial_references, seed = 20261103L)
 fits <- lapply(c("ml", "firth"), function(fit_method) {
     analysis <- binary_analyse(
         imp,
@@ -2568,7 +2676,7 @@ reversed_draw$parameters$metadata$arm_levels <- reversed_levels
 beta_order <- as.vector(matrix(seq_len(2L * ncol(draw$Y)), ncol = 2)[, arm_order])
 reversed_draw$parameters$beta <- lapply(draw$parameters$beta, `[`, beta_order)
 reversed_draw$parameters$sigma <- lapply(draw$parameters$sigma, `[`, arm_order)
-reversed_imp <- binary_impute(reversed_draw, references = trial_references)
+reversed_imp <- binary_impute(reversed_draw, references = trial_references, seed = 20261103L)
 
 week8_contrast <- function(imputations, fit_method) {
     rbmi::pool(binary_analyse(
@@ -2656,10 +2764,17 @@ sparse_trial$outcome[with(sparse_trial, visit == "week8" & subjid == 24L)] <- NA
 empty_trial <- sparse_trial
 empty_trial$outcome[early_active] <- NA_integer_
 
-sparse_method <- rbmi::method_bayes(covariance = "us", same_cov = FALSE, n_samples = 30L)
-check_sparse_workflow <- function(data, data_ice = NULL) {
+sparse_method <- method_bayes_binary(
+    same_cov = TRUE, n_samples = 30L, prior_beta_sd = 1,
+    control = rbmi::control_bayes(
+        warmup = 500L, chains = 2L, thin = 2L, seed = 20261102L, iter_sampling = 600L
+    )
+)
+check_sparse_workflow <- function(data, data_ice = NULL, method = sparse_method) {
+    flat_method <- method
+    flat_method$prior_beta_sd <- 0
     flat_error <- tryCatch(
-        binary_draws(data, data_ice, vars = vars, method = sparse_method),
+        binary_draws(data, data_ice, vars = vars, method = flat_method),
         error = identity
     )
     stopifnot(
@@ -2667,11 +2782,18 @@ check_sparse_workflow <- function(data, data_ice = NULL) {
         grepl("Flat priors require both outcomes", conditionMessage(flat_error), fixed = TRUE)
     )
 
-    draws <- binary_draws(data, data_ice, vars = vars, method = sparse_method, beta_sd = 1)
-    completed <- binary_impute(draws)
+    draws <- binary_draws(data, data_ice, vars = vars, method = method)
+    completed <- binary_impute(draws, seed = 20261103L)
     observed <- !is.na(data$outcome)
     stopifnot(
-        length(completed$imputations) == sparse_method$n_samples,
+        length(draws$parameters$sigma[[1]]) == if (method$same_cov) 1L else 2L,
+        posterior::nchains(draws$fit$fit$draws("beta")) == method$control$chains,
+        posterior::niterations(draws$fit$fit$draws("beta")) == 300L,
+        length(draws$initialisation) == method$control$chains,
+        !is.null(draws$diagnostics),
+        draws$fit$prepared$data$beta_sd == method$prior_beta_sd,
+        draws$fit_control$seed == method$control$seed,
+        length(completed$imputations) == method$n_samples,
         all(vapply(completed$imputations, function(dat) {
             all(dat$outcome %in% 0:1) &&
                 identical(dat$outcome[observed], data$outcome[observed])
@@ -2685,8 +2807,26 @@ check_sparse_workflow <- function(data, data_ice = NULL) {
 sparse_ice <- data.frame(
     subjid = c(13L, 24L), visit = c("week8", "week1"), strategy = "MAR"
 )
+oversized_method <- sparse_method
+oversized_method$n_samples <- 601L
+budget_error <- tryCatch(
+    binary_draws(sparse_trial, sparse_ice, vars, oversized_method), error = identity
+)
+stopifnot(
+    inherits(budget_error, "error"),
+    grepl("exceeds the binary sampling budget", conditionMessage(budget_error), fixed = TRUE)
+)
 sparse_check <- check_sparse_workflow(sparse_trial, sparse_ice)
-empty_check <- check_sparse_workflow(empty_trial)
+empty_method <- sparse_method
+empty_method$same_cov <- FALSE
+empty_check <- check_sparse_workflow(empty_trial, method = empty_method)
+
+set.seed(20261103L)
+implicit_seed_imp <- binary_impute(sparse_check$draws)
+previous_rng <- .Random.seed
+stopifnot(identical(implicit_seed_imp, binary_impute(sparse_check$draws, seed = 20261103L)))
+invisible(binary_impute(sparse_check$draws))
+stopifnot(!identical(previous_rng, .Random.seed))
 ```
 
 ### Strategy sensitivity checks
