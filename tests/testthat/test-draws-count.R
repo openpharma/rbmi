@@ -104,6 +104,68 @@ test_that("count likelihood is exact for large subject totals at any dispersion"
 })
 
 
+test_that("count likelihood is accurate for large expected totals", {
+    skip_if_not(is_core_test())
+
+    # Two single-cell subjects with totals 0 and 3; beta = log(M) sets the
+    # expected total M of both. Large x = phi * M must not cancel.
+    stan_data <- list(
+        N = 2L,
+        R = 2L,
+        P = 1L,
+        G = 1L,
+        group = c(1L, 1L),
+        subject = 1:2,
+        y = c(0L, 3L),
+        X = matrix(1, 2, 1),
+        log_offset = c(0, 0)
+    )
+    fit <- rstan::sampling(
+        get_stan_model_count(),
+        data = stan_data,
+        chains = 1,
+        iter = 1,
+        warmup = 0,
+        algorithm = "Fixed_param",
+        init = list(list(beta = array(0), phi = array(1))),
+        seed = 42,
+        refresh = 0
+    )
+    log_prob_and_grad <- function(M, phi) {
+        parameters <- rstan::unconstrain_pars(
+            fit,
+            list(beta = array(log(M)), phi = array(phi))
+        )
+        grad <- rstan::grad_log_prob(fit, parameters, adjust_transform = FALSE)
+        c(value = attr(grad, "log_prob"), d_beta = grad[[1]])
+    }
+    reference <- function(M, phi) {
+        x <- phi * M
+        c(
+            value = sum(dnbinom(stan_data$y, size = 1 / phi, mu = M, log = TRUE)),
+            d_beta = sum(stan_data$y - (1 / phi + stan_data$y) * x / (1 + x))
+        )
+    }
+
+    # phi = 1e-3 with M = 0.5 and 2 puts x on both sides of the 1e-3 cutoff.
+    cases <- list(
+        list(phi = 1, M = c(1, 1e3, 1e8, 1e16, 1e20)),
+        list(phi = 1e-3, M = c(0.1, 0.5, 2, 1e6))
+    )
+    for (case in cases) {
+        actual <- vapply(case$M, log_prob_and_grad, numeric(2), phi = case$phi)
+        expected <- vapply(case$M, reference, numeric(2), phi = case$phi)
+        # Stan omits constants of the dispersion prior, which cancel for fixed phi.
+        expect_equal(
+            actual["value", ] - actual["value", 1],
+            expected["value", ] - expected["value", 1],
+            tolerance = 1e-10
+        )
+        expect_equal(actual["d_beta", ], expected["d_beta", ], tolerance = 1e-10)
+    }
+})
+
+
 test_that("count Stan model is reused from the model cache", {
     skip_if_not(is_core_test())
 
