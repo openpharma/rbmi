@@ -1761,9 +1761,11 @@ patient IDs and visit names retained.
 #### Reusing covariance and missingness calculations
 
 `impute_binary_fast()` extends the CIR sampler to all five strategies. Within each
-posterior draw, it computes the mean and covariance once per arm, strategy, and ICE time,
-and checks positive definiteness once per group. Bounds and missing indices
-are prepared once per observed response pattern, including the observed signs.
+posterior draw, it computes and checks the covariance once per arm, strategy,
+and ICE time. The mean is evaluated for each patient with missing outcomes
+using that patient’s covariates under both the randomized and reference arms.
+Bounds and missing indices are prepared once per observed response pattern,
+including the observed signs.
 Covariances must still be recomputed for each new posterior draw; missingness
 alone does not determine them. Patient order and the individual sampler calls
 are unchanged, allowing an exact comparison with the same seed.
@@ -1779,41 +1781,36 @@ binary_strategy <- function(strategy) {
     strategy
 }
 
-binary_distribution <- function(means, covariances, arm, ref, d, strategy) {
+binary_mean <- function(means, arm, ref, d, strategy) {
     D <- nrow(means)
     mu <- means[, arm]
-    shared <- length(covariances) == 1L
-    Sigma <- covariances[[if (shared) 1L else arm]]
-    if (strategy == "MAR" || d == D) {
-        return(list(mu = mu, Sigma = Sigma))
-    }
+    if (strategy == "MAR" || d == D) return(mu)
 
     post <- seq.int(d + 1L, D)
     if (strategy == "LMCF") {
         mu[post] <- means[d, arm]
-        return(list(mu = mu, Sigma = Sigma))
+        return(mu)
     }
-    if (ref == arm) {
-        return(list(mu = mu, Sigma = Sigma))
-    }
+    if (ref == arm) return(mu)
+    if (d == 0L || strategy == "CR") return(means[, ref])
 
-    R <- covariances[[if (shared) 1L else ref]]
-    if (d == 0L) {
-        return(list(mu = means[, ref], Sigma = R))
-    }
-
-    if (strategy == "CR") {
-        mu <- means[, ref]
+    mu[post] <- if (strategy == "JR") {
+        means[post, ref]
     } else {
-        mu[post] <- if (strategy == "JR") {
-            means[post, ref]
-        } else {
-            means[d, arm] + means[post, ref] - means[d, ref]
-        }
+        means[d, arm] + means[post, ref] - means[d, ref]
     }
+    mu
+}
 
-    if (shared) return(list(mu = mu, Sigma = Sigma))
+binary_covariance <- function(covariances, arm, ref, d, strategy) {
+    if (length(covariances) == 1L) return(covariances[[1L]])
+    Sigma <- covariances[[arm]]
+    D <- nrow(Sigma)
+    if (strategy %in% c("MAR", "LMCF") || d == D || ref == arm) return(Sigma)
 
+    R <- covariances[[ref]]
+    if (d == 0L) return(R)
+    post <- seq.int(d + 1L, D)
     pre <- seq_len(d)
     B <- R[post, pre, drop = FALSE] %*% solve(R[pre, pre, drop = FALSE])
     V <- R[post, post, drop = FALSE] - B %*% R[pre, post, drop = FALSE]
@@ -1821,13 +1818,22 @@ binary_distribution <- function(means, covariances, arm, ref, d, strategy) {
     Sigma[post, pre] <- cross
     Sigma[pre, post] <- t(cross)
     Sigma[post, post] <- V + cross %*% t(B)
-    list(mu = mu, Sigma = (Sigma + t(Sigma)) / 2)
+    (Sigma + t(Sigma)) / 2
+}
+
+binary_distribution <- function(means, covariances, arm, ref, d, strategy) {
+    list(
+        mu = binary_mean(means, arm, ref, d, strategy),
+        Sigma = binary_covariance(covariances, arm, ref, d, strategy)
+    )
 }
 
 impute_binary_fast <- function(
-  Y, arm, last_on, parameters, references, strategy, seed = NULL
+  Y, arm, last_on, parameters, references, strategy, seed = NULL, baseline = NULL
 ) {
     D <- ncol(Y)
+    if (is.null(baseline)) baseline <- matrix(numeric(), nrow(Y), 0L)
+    Q <- ncol(baseline)
     arm_levels <- parameters$metadata$arm_levels
     arm <- match(as.character(arm), arm_levels)
     reference_arm <- match(unname(references[arm_levels]), arm_levels)[arm]
@@ -1838,7 +1844,8 @@ impute_binary_fast <- function(
         length(last_on) == nrow(Y), all(last_on %in% 0:D),
         all(Y[!is.na(Y)] %in% 0:1),
         length(arm_levels) == 2L,
-        length(parameters$beta[[1]]) == 2L * D
+        nrow(baseline) == nrow(Y),
+        length(parameters$beta[[1]]) == (2L + Q) * D
     )
     if (any(strategy == "LMCF" & last_on == 0L)) {
         stop("LMCF requires a scheduled visit before the ICE.", call. = FALSE)
@@ -1850,6 +1857,7 @@ impute_binary_fast <- function(
     effective_strategy <- strategy
     effective_strategy[last_on == D | (arm == reference_arm & strategy != "LMCF")] <- "MAR"
     effective_last_on <- ifelse(effective_strategy == "MAR", D, last_on)
+    baseline <- baseline[incomplete, , drop = FALSE]
     group_key <- paste(arm[incomplete], effective_strategy[incomplete],
         effective_last_on[incomplete],
         sep = ":"
@@ -1868,28 +1876,35 @@ impute_binary_fast <- function(
     })
 
     lapply(seq_along(parameters$beta), function(m) {
-        means <- matrix(parameters$beta[[m]], nrow = D, ncol = 2)
-        distributions <- lapply(representatives, function(i) {
-            distribution <- binary_distribution(
-                means, parameters$sigma[[m]], arm[i], reference_arm[i],
+        beta <- parameters$beta[[m]]
+        means <- matrix(beta[seq_len(2L * D)], nrow = D, ncol = 2)
+        if (Q > 0L) {
+            slopes <- matrix(beta[-seq_len(2L * D)], nrow = Q, ncol = D)
+            contributions <- baseline %*% slopes
+        }
+        covariances <- lapply(representatives, function(i) {
+            Sigma <- binary_covariance(
+                parameters$sigma[[m]], arm[i], reference_arm[i],
                 effective_last_on[i], effective_strategy[i]
             )
-            Sigma <- distribution$Sigma
             # These are rtmvnorm's covariance checks, done once per group.
             stopifnot(
                 isSymmetric(Sigma), all(diag(Sigma) > 0),
                 all(eigen(Sigma, only.values = TRUE)$values > 0)
             )
-            distribution
+            Sigma
         })
         completed <- Y
         for (k in seq_along(incomplete)) {
             i <- incomplete[k]
-            distribution <- distributions[[group[k]]]
+            patient_means <- if (Q > 0L) means + contributions[k, ] else means
+            mu <- binary_mean(
+                patient_means, arm[i], reference_arm[i], effective_last_on[i], effective_strategy[i]
+            )
             b <- bounds[[pattern[k]]]
             z <- withCallingHandlers(
                 as.numeric(TruncatedNormal::rtmvnorm(
-                    n = 1, mu = distribution$mu, sigma = distribution$Sigma,
+                    n = 1, mu = mu, sigma = covariances[[group[k]]],
                     lb = b$lower, ub = b$upper, check = FALSE
                 )),
                 warning = function(w) stop(conditionMessage(w), call. = FALSE)
@@ -2160,15 +2175,25 @@ entry per randomized arm. Mapping an arm to itself reduces JR, CR, and CIR to
 that arm's distribution. LMCF uses the randomized-arm parameters for any
 mapping. For MAR-only imputation, the default maps each arm to itself.
 
-The local functions below implement the four steps with column names supplied through
-`set_vars()`. This first version supports two arms, saturated
-arm-by-visit means, shared or arm-specific unstructured latent correlations,
-and a Bayesian draw method. It uses the section 2 Stan model and sampler. A package implementation
+The local functions implement the four steps with column names supplied through
+`set_vars()`. The Bayesian model supports two arms, arm-by-visit intercepts,
+optional baseline covariates, and shared or arm-specific unstructured latent
+correlations. It uses the section 2 Stan model and sampler. A package implementation
 would add binary dispatch to `draws()` and `impute()`, expose sampler controls,
 and let `analyse()` recognize the binary imputation class. Rubin pooling
 already accepts the analysis result.
 
 ### Draw and impute
+
+Use `set_vars(covariates = ...)` to name complete baseline columns, repeated
+unchanged on each subject's scheduled rows. The prototype uses standard R
+model-matrix coding for additive covariates. Each covariate has a separate
+slope at each visit, shared across the arms. Under reference treatment the
+arm-by-visit intercept changes, while the patient's own covariate values and
+the visit slopes stay fixed. The draw object retains the baseline model matrix
+in subject order so it can reconstruct both trajectories from each posterior
+draw. Treatment-by-covariate interactions and time-varying covariates are
+outside this adapter's design.
 
 Keep two versions of the outcomes. The draw model estimates on-treatment
 parameters, so it masks outcomes from every recorded ICE onward, including
@@ -2186,15 +2211,17 @@ when its prepared inputs match.
 
 `method_bayes_binary()` is a prototype wrapper around `rbmi::method_bayes()`
 that adds `prior_beta_sd`. The default of zero uses flat priors and requires
-both outcomes in every arm-by-visit cell after ICE masking. A positive
-`prior_beta_sd` gives each arm-by-visit latent probit mean an independent
-`Normal(0, prior_beta_sd^2)` prior, where `prior_beta_sd` is the standard deviation on
-the latent scale. The prior is centered at a marginal response probability of
-0.5 and its scale controls how strongly it pulls probabilities toward 0.5.
+both outcomes in every arm-by-visit cell after ICE masking. With covariates,
+a positive `prior_beta_sd` is required. This gives each latent probit coefficient
+an independent `Normal(0, prior_beta_sd^2)` prior. At zero-valued design
+covariates, the arm-by-visit intercept prior centers the response
+probability at 0.5. Covariate scale determines the prior scale
+of a change in prediction, so center and scale continuous inputs as appropriate.
 In a cell with only one observed outcome category, both the prior and
 likelihood inform the mean. In an entirely unobserved cell, the likelihood
-contains no term for its mean, so its posterior is its prior. For MAR
-imputation in that cell, observed responses at other visits can still inform a
+contains no term for its intercept, so the intercept posterior is its prior.
+With covariates, the shared visit slopes can still learn from the other arm.
+For MAR imputation in that cell, observed responses at other visits can still inform a
 patient's prediction through the latent correlation model. Firth adjustment
 acts later, in the completed-data logistic regression.
 
@@ -2270,11 +2297,29 @@ binary_positive_integer <- function(value, name) {
     }
 }
 
+# Arm-by-visit intercepts followed by visit-specific baseline slopes.
+binary_baseline_design <- function(Y, arm, baseline) {
+    N <- nrow(Y)
+    D <- ncol(Y)
+    Q <- ncol(baseline)
+    A <- nlevels(arm)
+    X <- array(0, c(N, D, (A + Q) * D))
+    dimnames(X) <- list(NULL, NULL, c(
+        as.vector(outer(colnames(Y), levels(arm), function(v, a) paste(a, v, sep = ":"))),
+        as.vector(outer(colnames(baseline), colnames(Y), paste, sep = ":"))
+    ))
+    for (d in seq_len(D)) {
+        X[cbind(seq_len(N), d, (as.integer(arm) - 1L) * D + d)] <- 1
+        X[, d, A * D + (d - 1L) * Q + seq_len(Q)] <- baseline
+    }
+    X
+}
+
 # Binary counterpart of rbmi::draws() and its draws.bayes() method.
 #
 # data: Long data with one row per subject and visit and a 0/1/NA outcome.
 # data_ice: Optional subject, first affected visit and strategy columns.
-# vars: Column mapping from rbmi::set_vars() for the saturated two-arm model.
+# vars: Column mapping from rbmi::set_vars() including optional baseline covariates.
 # method: method_bayes_binary() or rbmi::method_bayes() with unstructured correlations.
 # outcome: Endpoint selector, "binary" for this prototype.
 # fit: Optional section 2 fit for the same prepared data.
@@ -2307,7 +2352,6 @@ binary_draws <- function(
     stopifnot(
         inherits(vars, "ivars"),
         is.null(vars$period),
-        !length(vars$covariates),
         identical(vars$strata, vars$group),
         length(columns) == length(fields),
         !anyDuplicated(columns),
@@ -2350,6 +2394,22 @@ binary_draws <- function(
         !anyDuplicated(data[c("subjid", "visit")]),
         nrow(data) == length(ids) * length(visits)
     )
+    baseline <- NULL
+    if (length(vars$covariates)) {
+        stopifnot(all(vars$covariates %in% names(original)))
+        covariates <- original[vars$covariates]
+        first_row <- match(ids, data$subjid)
+        for (x in covariates) {
+            if (!(is.numeric(x) || is.factor(x) || is.character(x) || is.logical(x)) ||
+                !is.null(dim(x)) || anyNA(x) || (is.numeric(x) && any(!is.finite(x))) ||
+                !all(x == x[first_row[i]])) {
+                stop("Binary baseline covariates must be finite numeric or categorical values, complete and constant within subject.",
+                    call. = FALSE
+                )
+            }
+        }
+        baseline <- model.matrix(~ ., data = covariates[first_row, , drop = FALSE])[, -1L, drop = FALSE]
+    }
     Y <- matrix(
         NA_integer_,
         length(ids),
@@ -2377,6 +2437,7 @@ binary_draws <- function(
     Y_fit[col(Y) > last_on] <- NA_integer_
     prepared <- prepare_probit_data(
         Y_fit, as.integer(arm),
+        X = if (!is.null(baseline)) binary_baseline_design(Y_fit, arm, baseline),
         same_cov = method$same_cov, beta_sd = method$prior_beta_sd %||% 0
     )
     if (is.null(fit)) {
@@ -2396,6 +2457,7 @@ binary_draws <- function(
             vars = vars,
             index = cbind(i, j),
             Y = Y,
+            baseline = baseline,
             arm = arm,
             last_on = last_on,
             strategy = strategy,
@@ -2441,7 +2503,10 @@ binary_impute <- function(draws, references = NULL, seed = NULL, update_strategy
     references <- binary_references(references, draws$arm, any(strategy != "MAR"))
     p <- draws$parameters
     matrices <- if (anyNA(draws$Y)) {
-        impute_binary_fast(draws$Y, draws$arm, draws$last_on, p, references, strategy, seed)
+        impute_binary_fast(
+            draws$Y, draws$arm, draws$last_on, p, references, strategy, seed,
+            baseline = draws$baseline
+        )
     } else {
         rep(list(draws$Y), length(p$beta))
     }
@@ -2678,7 +2743,7 @@ reversed_draw$parameters$beta <- lapply(draw$parameters$beta, `[`, beta_order)
 reversed_draw$parameters$sigma <- lapply(draw$parameters$sigma, `[`, arm_order)
 reversed_imp <- binary_impute(reversed_draw, references = trial_references, seed = 20261103L)
 
-week8_contrast <- function(imputations, fit_method) {
+week8_contrast <- function(imputations, fit_method, vars = rbmi::set_vars()) {
     rbmi::pool(binary_analyse(
         imputations,
         binary_logistic,
@@ -2699,6 +2764,89 @@ for (fit_method in c("ml", "firth")) {
         week8_contrast(reversed_imp, fit_method)
     ))
 }
+```
+
+### Baseline-adjusted imputation
+
+Use baseline HAMD17 in the imputation model, centered at the patient-level
+mean and measured in five-point units. Each visit has its own baseline
+slope. The adjusted model is fitted afresh with a latent coefficient prior
+standard deviation of 2. The Week 8 analysis fits the same treatment-only logistic
+model, so its odds ratio has the same marginal interpretation as in the
+unadjusted imputation example.
+
+```{r}
+#| label: binary-covariate-trial
+baseline_hamd <- with(antidepressant, basval[match(rownames(Ycat), PATIENT)])
+stopifnot(all(is.finite(baseline_hamd)))
+trial$baseline_hamd <- (baseline_hamd[match(trial$subjid, rownames(Ycat))] -
+    mean(baseline_hamd)) / 5
+adjusted_vars <- rbmi::set_vars(covariates = "baseline_hamd")
+adjusted_draw <- binary_draws(
+    trial, ice, adjusted_vars,
+    method_bayes_binary(same_cov = FALSE, n_samples = n_imp, prior_beta_sd = 2),
+    seed = 20261104L
+)
+adjusted_imp <- binary_impute(
+    adjusted_draw, references = trial_references, seed = 20261103L
+)
+stopifnot(all(vapply(adjusted_imp$imputations, function(completed) {
+    observed <- !is.na(trial$outcome)
+    identical(completed$outcome[observed], trial$outcome[observed]) &&
+        !anyNA(completed$outcome) &&
+        identical(completed$baseline_hamd, trial$baseline_hamd)
+}, logical(1))))
+adjusted_contrasts <- lapply(c("ml", "firth"), function(fit_method) {
+    week8_contrast(adjusted_imp, fit_method, vars = adjusted_vars)
+})
+knitr::kable(data.frame(
+    Method = c("Maximum likelihood", "Firth"),
+    Odds_ratio = vapply(adjusted_contrasts, function(x) exp(x$est), numeric(1)),
+    Lower_95 = vapply(adjusted_contrasts, function(x) exp(x$ci[1]), numeric(1)),
+    Upper_95 = vapply(adjusted_contrasts, function(x) exp(x$ci[2]), numeric(1))
+), digits = 3)
+```
+
+The following check gives two patients the same arm, missingness pattern and
+ICE time, with opposite baseline values. The coefficients make their
+pre-ICE randomized-arm means identical. After the ICE, CIR uses different
+reference-arm increments for the two patients. A separate treatment setting
+in the design matrix verifies that the coefficient order matches the
+imputer's calculations. Reversing the arm levels and their intercept blocks
+leaves the covariate slopes and completed outcomes unchanged.
+
+```{r}
+#| label: binary-covariate-check
+check_y <- matrix(NA_integer_, 2, 2, dimnames = list(NULL, c("early", "late")))
+check_arm <- factor(rep("Active", 2), levels = c("Placebo", "Active"))
+check_baseline <- matrix(c(-1, 1), ncol = 1, dimnames = list(NULL, "baseline"))
+check_beta <- c(5, -5, 10, 20, 0, 30)
+check_parameters <- list(
+    beta = list(check_beta), sigma = list(list(diag(2))),
+    metadata = list(arm_levels = levels(check_arm))
+)
+for (arm_name in levels(check_arm)) {
+    check_design <- binary_baseline_design(
+        check_y, factor(rep(arm_name, 2), levels = levels(check_arm)), check_baseline
+    )
+    check_means <- matrix(matrix(check_design, nrow = 4) %*% check_beta, 2, 2)
+    intercept <- if (arm_name == "Placebo") c(5, -5) else c(10, 20)
+    expected <- rep(1, 2) %o% intercept + check_baseline %*% rbind(c(0, 30))
+    stopifnot(identical(check_means, expected))
+}
+check_completed <- impute_binary_fast(
+    check_y, check_arm, c(1L, 1L), check_parameters, trial_references,
+    rep("CIR", 2), seed = 42L, baseline = check_baseline
+)[[1]]
+stopifnot(identical(unname(check_completed), cbind(c(1L, 1L), c(0L, 1L))))
+check_reversed_levels <- rev(levels(check_arm))
+check_parameters$metadata$arm_levels <- check_reversed_levels
+check_parameters$beta[[1]] <- check_beta[c(3L, 4L, 1L, 2L, 5L, 6L)]
+stopifnot(identical(check_completed, impute_binary_fast(
+    check_y, factor(check_arm, levels = check_reversed_levels), c(1L, 1L),
+    check_parameters, trial_references, rep("CIR", 2),
+    seed = 42L, baseline = check_baseline
+)[[1]]))
 ```
 
 ### Separation example
@@ -2909,7 +3057,7 @@ for (strategy_name in c("JR", "CR", "CIR")) {
 3. To be done in production — Adding an endpoint selector will not make the prototype compatible with analyse() or extract_imputed_dfs(). Binary imputation stores a full data frame per draw and returns only imputations and method. The shared analysis path reads imputations$data$vars, validates individual imputations, and reconstructs each completed dataset through extract_imputed_df(). The local binary_analyse() bypasses all three steps with lapply(). It also bypasses the package’s per-imputation warning capture. Specify the binary object representation and extraction path first. Acceptance should include a custom callback through public analyse(), extraction of selected completed datasets, and explicit rejection of additive continuous-outcome delta adjustments. [Binary object (line 2186)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2186) · [Local adapter (line 2269)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2269) · [Shared analysis (line 244)](/Users/daniel/git/rbmi/R/analyse.R:244) · [Public extraction (line 427)](/Users/daniel/git/rbmi/R/analyse.R:427)
 4. done: Required — The design needs a precise strategy contract, particularly for repeat sensitivity analyses. The mathematical section defines five assumptions. The adapter accepts only CIR records, stores last_on without a strategy identifier, and gives binary_impute() no way to change strategies on an existing fit. Count imputation already supports update_strategy. Two differences from continuous rbmi also matter scientifically. Continuous CIR uses the reference distribution when the first visit is affected, while binary CIR rejects that case. Continuous CR returns the full reference parameters, while the proposed binary CR retains the active pre-ICE covariance. The binary choices have an explicit rationale. Document them under the public strategy names, distinguish supported from deferred strategies, and specify which changes can reuse a fit given its original masking rule. [Binary strategy definitions (line 1274)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1274) · [CIR-only validation (line 2136)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2136) · [Continuous CR and CIR (line 163)](/Users/daniel/git/rbmi/R/strategies.R:163) · [Count strategy updates (line 284)](/Users/daniel/git/rbmi/R/impute_count.R:284)
 5. Required — method_bayes() can describe a different fit from the one actually run. The adapter accepts and stores the method object, but fits with the helper’s chain, warmup, sampling and seed defaults. It uses method$n_samples only afterward to subsample retained rows without replacement. A large request can therefore fail after fitting. The returned binary object also discards the fit needed to inspect diagnostics, whereas the existing Bayesian draw object retains fit and initialization information. Define which controls binary supports, validate the requested draw count before sampling, and retain diagnostics. The fixed default seed in binary_impute() also means repeated calls restart the same random stream, which should be an explicit API decision. [Fitting controls (line 646)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:646) · [Draw selection (line 691)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:691) · [Binary return object (line 2151)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2151) · [Existing Bayesian return object (line 720)](/Users/daniel/git/rbmi/R/draws.R:720)
-6. Required before supporting covariates — The fast imputer caches patient means at the wrong level for the general model. The model section defines patient-specific means and prepare_probit_data() accepts a custom design array. The fast imputer reshapes coefficients directly into a visit-by-arm matrix and computes one mean vector per arm and discontinuation time. That is valid for the prototype’s saturated two-arm model, and the adapter currently guards it by rejecting covariates. Relaxing that guard would give patients with different baseline values the same mean or misinterpret the coefficient layout. Preserve the guard for the first release. For adjusted imputation, retain the design information needed to evaluate each patient under both assigned and reference treatment, and cache only quantities shared across those patients. [Patient-specific target (line 1260)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1260) · [Fast imputer (line 1768)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1768) · [Current guard (line 2083)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2083)
+6. Done in the prototype — The fast imputer caches patient means at the wrong level for the general model. The model section defines patient-specific means and prepare_probit_data() accepts a custom design array. The fast imputer reshapes coefficients directly into a visit-by-arm matrix and computes one mean vector per arm and discontinuation time. That is valid for the prototype’s saturated two-arm model, and the adapter currently guards it by rejecting covariates. Relaxing that guard would give patients with different baseline values the same mean or misinterpret the coefficient layout. Preserve the guard for the first release. For adjusted imputation, retain the design information needed to evaluate each patient under both assigned and reference treatment, and cache only quantities shared across those patients. [Patient-specific target (line 1260)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1260) · [Fast imputer (line 1768)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1768) · [Current guard (line 2083)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2083)
 Highest-value validation change
 Add an end-to-end fixture with a recorded ICE, an observed post-ICE response, and a later missing response in the same patient. The trial example derives cessation from the last observation, so by construction it cannot exercise the feature that motivates the extension. Verify separately that the observed post-ICE value is excluded from the draw-model input, survives extraction unchanged, and changes the conditional probability of the later missing response by the amount predicted by a small analytic example. Run that fixture through draws() → impute() → extract_imputed_dfs() / analyse() → pool(), including the pooled interval. The existing example’s equality check against the earlier CIR implementation is a useful regression check, but both paths share the same imputation assumptions. [Trial ICE construction (line 2296)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2296) · [Current equality checks (line 2357)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2357) · [Count full-workflow test pattern (line 63)](/Users/daniel/git/rbmi/tests/testthat/test-counts-fullusage.R:63)
 
