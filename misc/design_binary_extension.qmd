@@ -80,17 +80,17 @@ The low-dropout dataset, `low1.sas7bdat`, is not used here.
 ```{r}
 #| label: import-antidepressant-data
 archive <- if (file.exists("high_low_datasets.zip")) {
-  "high_low_datasets.zip"
+    "high_low_datasets.zip"
 } else {
-  file.path("misc", "high_low_datasets.zip")
+    file.path("misc", "high_low_datasets.zip")
 }
 stopifnot(file.exists(archive))
 extraction_dir <- tempfile("antidepressant-")
 dir.create(extraction_dir)
 sas_file <- unzip(
-  archive,
-  files = "high1.sas7bdat",
-  exdir = extraction_dir
+    archive,
+    files = "high1.sas7bdat",
+    exdir = extraction_dir
 )
 antidepressant_raw <- haven::read_sas(sas_file)
 unlink(extraction_dir, recursive = TRUE)
@@ -98,18 +98,18 @@ unlink(extraction_dir, recursive = TRUE)
 # Keep the original fields and derive the binary response without imputation.
 antidepressant <- antidepressant_raw
 antidepressant$arm <- factor(
-  antidepressant$TRT,
-  levels = c("1", "2"),
-  labels = c("Placebo", "Active")
+    antidepressant$TRT,
+    levels = c("1", "2"),
+    labels = c("Placebo", "Active")
 )
 antidepressant$response <- with(
-  antidepressant,
-  as.integer(-change / basval > 0.5)
+    antidepressant,
+    as.integer(-change / basval > 0.5)
 )
 stopifnot(
-  !anyDuplicated(antidepressant[c("PATIENT", "week")]),
-  !anyNA(antidepressant$arm),
-  all(antidepressant$basval > 0)
+    !anyDuplicated(antidepressant[c("PATIENT", "week")]),
+    !anyNA(antidepressant$arm),
+    all(antidepressant$basval > 0)
 )
 patients <- unique(antidepressant[c("PATIENT", "arm")])
 visit_weeks <- sort(unique(antidepressant$week))
@@ -163,19 +163,19 @@ the resulting missing percentages with the published values.
 #| label: compare-table-3
 comparison <- data.frame(Week = c(1, 2, 4, 6, 8))
 for (arm in c("Placebo", "Active")) {
-  n_arm <- sum(patients$arm == arm)
-  observed <- vapply(comparison$Week, function(w) {
-    sum(antidepressant$arm == arm & antidepressant$week == w &
-          !is.na(antidepressant$change))
-  }, integer(1))
-  comparison[[paste(arm, "observed n")]] <- observed
-  comparison[[paste(arm, "missing %")]] <- 100 * (n_arm - observed) / n_arm
+    n_arm <- sum(patients$arm == arm)
+    observed <- vapply(comparison$Week, function(w) {
+        sum(antidepressant$arm == arm & antidepressant$week == w &
+            !is.na(antidepressant$change))
+    }, integer(1))
+    comparison[[paste(arm, "observed n")]] <- observed
+    comparison[[paste(arm, "missing %")]] <- 100 * (n_arm - observed) / n_arm
 }
 comparison[["Placebo published %"]] <- c(0, 8, 15, 27, 39)
 comparison[["Active published %"]] <- c(0, 10, 15, 25, 30)
 stopifnot(
-  all(comparison[["Placebo missing %"]] == comparison[["Placebo published %"]]),
-  all(comparison[["Active missing %"]] == comparison[["Active published %"]])
+    all(comparison[["Placebo missing %"]] == comparison[["Placebo published %"]]),
+    all(comparison[["Active missing %"]] == comparison[["Active published %"]])
 )
 knitr::kable(comparison, caption = "High-dropout data versus Cro et al. Table 3")
 ```
@@ -200,17 +200,17 @@ retains the strict threshold from Table 2.
 
 ```{r}
 #| label: compare-response-thresholds
-threshold_comparison <- antidepressant |> 
-  dplyr::filter(week == 8) |>
-  dplyr::group_by(arm) |>
-  dplyr::summarise(
-    `Reduction >50%` = sum(response, na.rm = TRUE),
-    `Reduction >=50%` = sum(-change / basval >= 0.5, na.rm = TRUE)
-  ) |>
-  dplyr::rename(Arm = arm) |>
-  dplyr::mutate(`Published responders` = c(25L, 39L))
+threshold_comparison <- antidepressant |>
+    dplyr::filter(week == 8) |>
+    dplyr::group_by(arm) |>
+    dplyr::summarise(
+        `Reduction >50%` = sum(response, na.rm = TRUE),
+        `Reduction >=50%` = sum(-change / basval >= 0.5, na.rm = TRUE)
+    ) |>
+    dplyr::rename(Arm = arm) |>
+    dplyr::mutate(`Published responders` = c(25L, 39L))
 stopifnot(
-  all(threshold_comparison[["Reduction >=50%"]] ==
+    all(threshold_comparison[["Reduction >=50%"]] ==
         threshold_comparison[["Published responders"]])
 )
 knitr::kable(threshold_comparison, caption = "Week 8 responders by threshold")
@@ -439,7 +439,7 @@ First let's check whether we want to run the probit validation:
 run_probit_validation <- identical(Sys.getenv("RBMI_RUN_PROBIT_VALIDATION"), "true")
 original_library <- Sys.getenv("RBMI_JOMO_ORIGINAL_LIBRARY")
 if (run_probit_validation && !dir.exists(file.path(original_library, "jomo"))) {
-  stop("Set RBMI_JOMO_ORIGINAL_LIBRARY to the library containing original jomo.")
+    stop("Set RBMI_JOMO_ORIGINAL_LIBRARY to the library containing original jomo.")
 }
 ```
 
@@ -542,72 +542,90 @@ The default coefficient order is arm first, then visit.
 # lkj_eta: Shape parameter for the LKJ prior on correlation matrices. Must be positive.
 prepare_probit_data <- function(Y, arm, X = NULL, same_cov = FALSE,
                                 beta_sd = 0, lkj_eta = 1) {
-  Y <- as.matrix(Y)
-  stopifnot(is.numeric(Y), length(dim(Y)) == 2L,
-            nrow(Y) > 0L, ncol(Y) > 0L,
-            all(Y[!is.na(Y)] %in% 0:1), length(arm) == nrow(Y),
-            !anyNA(arm), length(same_cov) == 1L, is.logical(same_cov),
-            !is.na(same_cov), length(beta_sd) == 1L,
-            is.finite(beta_sd), beta_sd >= 0,
-            length(lkj_eta) == 1L, is.finite(lkj_eta), lkj_eta > 0)
-  arm <- droplevels(factor(arm))
-  N <- nrow(Y); D <- ncol(Y); A <- nlevels(arm)
-  saturated <- is.null(X)
-  if (saturated) {
-    # X[i, d, p] gives subject i's design row at visit d.
-    X <- array(0, c(N, D, A * D))
-    for (i in seq_len(N)) for (d in seq_len(D))
-      X[i, d, (as.integer(arm[i]) - 1L) * D + d] <- 1
-    coefficient_names <- paste(rep(levels(arm), each = D),
-                               rep(colnames(Y) %||% seq_len(D), A), sep = ":")
-  } else {
-    stopifnot(is.array(X), length(dim(X)) == 3L,
-              identical(dim(X)[1:2], c(N, D)), dim(X)[3] > 0L,
-              is.numeric(X), all(is.finite(X)))
-    coefficient_names <- dimnames(X)[[3]] %||% paste0("beta", seq_len(dim(X)[3]))
-  }
-  if (beta_sd == 0) {
-    if (!saturated) stop("Use a proper beta_sd > 0 with a custom design.")
-    for (a in levels(arm)) for (d in seq_len(D)) {
-      yy <- Y[arm == a, d]
-      if (!all(0:1 %in% yy))
-        stop("Flat priors require both outcomes in every arm and visit.")
+    Y <- as.matrix(Y)
+    stopifnot(
+        is.numeric(Y), length(dim(Y)) == 2L,
+        nrow(Y) > 0L, ncol(Y) > 0L,
+        all(Y[!is.na(Y)] %in% 0:1), length(arm) == nrow(Y),
+        !anyNA(arm), length(same_cov) == 1L, is.logical(same_cov),
+        !is.na(same_cov), length(beta_sd) == 1L,
+        is.finite(beta_sd), beta_sd >= 0,
+        length(lkj_eta) == 1L, is.finite(lkj_eta), lkj_eta > 0
+    )
+    arm <- droplevels(factor(arm))
+    N <- nrow(Y)
+    D <- ncol(Y)
+    A <- nlevels(arm)
+    saturated <- is.null(X)
+    if (saturated) {
+        # X[i, d, p] gives subject i's design row at visit d.
+        X <- array(0, c(N, D, A * D))
+        for (i in seq_len(N)) {
+            for (d in seq_len(D)) {
+                X[i, d, (as.integer(arm[i]) - 1L) * D + d] <- 1
+            }
+        }
+        coefficient_names <- paste(rep(levels(arm), each = D),
+            rep(colnames(Y) %||% seq_len(D), A),
+            sep = ":"
+        )
+    } else {
+        stopifnot(
+            is.array(X), length(dim(X)) == 3L,
+            identical(dim(X)[1:2], c(N, D)), dim(X)[3] > 0L,
+            is.numeric(X), all(is.finite(X))
+        )
+        coefficient_names <- dimnames(X)[[3]] %||% paste0("beta", seq_len(dim(X)[3]))
     }
-  }
-  observed <- !is.na(Y)
-  keep <- which(rowSums(observed) > 0L)
-  if (!length(keep)) stop("No observed outcomes.")
-  cg <- if (same_cov) rep(1L, N) else as.integer(arm)
-  # Group patients by covariance group and arbitrary observed-visit pattern.
-  key <- paste(cg, apply(observed, 1, paste0, collapse = ""), sep = ":")
-  blocks <- split(keep, factor(key[keep], levels = unique(key[keep])))
-  K <- vapply(blocks, function(ii) sum(observed[ii[1], ]), integer(1))
-  n_subject <- lengths(blocks)
-  visit <- matrix(1L, length(blocks), D)
-  rows <- lapply(seq_along(blocks), function(b) {
-    ii <- blocks[[b]]
-    # Reverse only the internal integration order; output visit order is unchanged.
-    vv <- rev(which(observed[ii[1], ]))
-    visit[b, seq_along(vv)] <<- vv
-    cbind(subject = rep(ii, each = length(vv)), visit = rep(vv, length(ii)))
-  })
-  cells <- do.call(rbind, rows)
-  P <- dim(X)[3]
-  x_obs <- vapply(seq_len(P), function(p) matrix(X[, , p], N, D)[cells], numeric(nrow(cells)))
-  x_obs <- matrix(x_obs, nrow(cells), P)
-  y_obs <- Y[cells]
-  if (qr(x_obs)$rank < P && beta_sd == 0) stop("Rank-deficient flat-prior design.")
-  data <- list(D = D, P = P, G = if (same_cov) 1L else A,
-               R = length(y_obs), B = length(blocks), U = length(y_obs) - length(keep), X = x_obs,
-               sign_y = 2 * y_obs - 1,
-               K = unname(K), visit = visit, n_subject = unname(n_subject),
-               start = as.integer(cumsum(c(1L, head(K * n_subject, -1L)))),
-               cov_group = vapply(blocks, function(ii) cg[ii[1]], integer(1)),
-               beta_sd = beta_sd, lkj_eta = lkj_eta)
-  list(data = data, coefficient_names = coefficient_names,
-       arm_levels = levels(arm), visit_names = colnames(Y) %||% as.character(seq_len(D)),
-       cells = cells, excluded_subjects = setdiff(seq_len(N), keep),
-       same_cov = same_cov, saturated = saturated)
+    if (beta_sd == 0) {
+        if (!saturated) stop("Use a proper beta_sd > 0 with a custom design.")
+        for (a in levels(arm)) {
+            for (d in seq_len(D)) {
+                yy <- Y[arm == a, d]
+                if (!all(0:1 %in% yy)) {
+                    stop("Flat priors require both outcomes in every arm and visit.")
+                }
+            }
+        }
+    }
+    observed <- !is.na(Y)
+    keep <- which(rowSums(observed) > 0L)
+    if (!length(keep)) stop("No observed outcomes.")
+    cg <- if (same_cov) rep(1L, N) else as.integer(arm)
+    # Group patients by covariance group and arbitrary observed-visit pattern.
+    key <- paste(cg, apply(observed, 1, paste0, collapse = ""), sep = ":")
+    blocks <- split(keep, factor(key[keep], levels = unique(key[keep])))
+    K <- vapply(blocks, function(ii) sum(observed[ii[1], ]), integer(1))
+    n_subject <- lengths(blocks)
+    visit <- matrix(1L, length(blocks), D)
+    rows <- lapply(seq_along(blocks), function(b) {
+        ii <- blocks[[b]]
+        # Reverse only the internal integration order; output visit order is unchanged.
+        vv <- rev(which(observed[ii[1], ]))
+        visit[b, seq_along(vv)] <<- vv
+        cbind(subject = rep(ii, each = length(vv)), visit = rep(vv, length(ii)))
+    })
+    cells <- do.call(rbind, rows)
+    P <- dim(X)[3]
+    x_obs <- vapply(seq_len(P), function(p) matrix(X[, , p], N, D)[cells], numeric(nrow(cells)))
+    x_obs <- matrix(x_obs, nrow(cells), P)
+    y_obs <- Y[cells]
+    if (qr(x_obs)$rank < P && beta_sd == 0) stop("Rank-deficient flat-prior design.")
+    data <- list(
+        D = D, P = P, G = if (same_cov) 1L else A,
+        R = length(y_obs), B = length(blocks), U = length(y_obs) - length(keep), X = x_obs,
+        sign_y = 2 * y_obs - 1,
+        K = unname(K), visit = visit, n_subject = unname(n_subject),
+        start = as.integer(cumsum(c(1L, head(K * n_subject, -1L)))),
+        cov_group = vapply(blocks, function(ii) cg[ii[1]], integer(1)),
+        beta_sd = beta_sd, lkj_eta = lkj_eta
+    )
+    list(
+        data = data, coefficient_names = coefficient_names,
+        arm_levels = levels(arm), visit_names = colnames(Y) %||% as.character(seq_len(D)),
+        cells = cells, excluded_subjects = setdiff(seq_len(N), keep),
+        same_cov = same_cov, saturated = saturated
+    )
 }
 ```
 
@@ -625,34 +643,41 @@ existing `rstan` infrastructure is deferred.
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
 fit_probit_draws <- function(prepared, model, chains = 4L, parallel_chains = chains,
-                            iter_warmup = 1500L, iter_sampling = 2000L,
-                            seed = 20261026L, adapt_delta = 0.99,
-                            step_size_cap = 0.005, ...) {
-  stopifnot(length(step_size_cap) == 1L, is.finite(step_size_cap), step_size_cap > 0)
-  # Adapt the metric, then sample with a conservative fixed step size.
-  warm <- model$sample(data = prepared$data, chains = chains,
-    parallel_chains = parallel_chains, iter_warmup = iter_warmup,
-    iter_sampling = 1L, seed = seed, adapt_delta = adapt_delta,
-    max_treedepth = 12L, step_size = 0.05, refresh = 0, sig_figs = 18, diagnostics = NULL, ...)
-  dat <- prepared$data
-  variables <- c("beta", "L_Omega", if (dat$U > 0L) "u_raw")
-  d <- posterior::as_draws_matrix(warm$draws(variables))
-  initial <- lapply(seq_len(chains), function(ch) list(
-    beta = as.numeric(d[ch, paste0("beta[", seq_len(dat$P), "]")]),
-    L_Omega = lapply(seq_len(dat$G), function(g) {
-      nm <- outer(seq_len(dat$D), seq_len(dat$D), function(j, k)
-        sprintf("L_Omega[%d,%d,%d]", g, j, k))
-      matrix(as.numeric(d[ch, as.vector(nm)]), dat$D, dat$D)
-    }),
-    u_raw = if (dat$U > 0L) as.numeric(d[ch, paste0("u_raw[", seq_len(dat$U), "]")]) else numeric()
-  ))
-  fit <- model$sample(data = dat, chains = chains, parallel_chains = parallel_chains,
-    iter_warmup = 0L, iter_sampling = iter_sampling, seed = seed + 1L,
-    init = initial, metric = "diag_e", inv_metric = warm$inv_metric(matrix = FALSE),
-    adapt_engaged = FALSE,
-    step_size = pmin(step_size_cap, warm$metadata()$step_size_adaptation),
-    max_treedepth = 12L, refresh = 0)
-  structure(list(fit = fit, warmup_fit = warm, prepared = prepared), class = "probit_draw_fit")
+                             iter_warmup = 1500L, iter_sampling = 2000L,
+                             seed = 20261026L, adapt_delta = 0.99,
+                             step_size_cap = 0.005, ...) {
+    stopifnot(length(step_size_cap) == 1L, is.finite(step_size_cap), step_size_cap > 0)
+    # Adapt the metric, then sample with a conservative fixed step size.
+    warm <- model$sample(
+        data = prepared$data, chains = chains,
+        parallel_chains = parallel_chains, iter_warmup = iter_warmup,
+        iter_sampling = 1L, seed = seed, adapt_delta = adapt_delta,
+        max_treedepth = 12L, step_size = 0.05, refresh = 0, sig_figs = 18, diagnostics = NULL, ...
+    )
+    dat <- prepared$data
+    variables <- c("beta", "L_Omega", if (dat$U > 0L) "u_raw")
+    d <- posterior::as_draws_matrix(warm$draws(variables))
+    initial <- lapply(seq_len(chains), function(ch) {
+        list(
+            beta = as.numeric(d[ch, paste0("beta[", seq_len(dat$P), "]")]),
+            L_Omega = lapply(seq_len(dat$G), function(g) {
+                nm <- outer(seq_len(dat$D), seq_len(dat$D), function(j, k) {
+                    sprintf("L_Omega[%d,%d,%d]", g, j, k)
+                })
+                matrix(as.numeric(d[ch, as.vector(nm)]), dat$D, dat$D)
+            }),
+            u_raw = if (dat$U > 0L) as.numeric(d[ch, paste0("u_raw[", seq_len(dat$U), "]")]) else numeric()
+        )
+    })
+    fit <- model$sample(
+        data = dat, chains = chains, parallel_chains = parallel_chains,
+        iter_warmup = 0L, iter_sampling = iter_sampling, seed = seed + 1L,
+        init = initial, metric = "diag_e", inv_metric = warm$inv_metric(matrix = FALSE),
+        adapt_engaged = FALSE,
+        step_size = pmin(step_size_cap, warm$metadata()$step_size_adaptation),
+        max_treedepth = 12L, refresh = 0
+    )
+    structure(list(fit = fit, warmup_fit = warm, prepared = prepared), class = "probit_draw_fit")
 }
 ```
 
@@ -663,25 +688,35 @@ extraction:
 ```{r}
 #| label: extract-probit-draws
 extract_probit_draws <- function(object, n_samples = NULL, seed = 123L) {
-  # Select paired beta/Omega rows; retain full chains in object$fit for diagnostics.
-  d <- posterior::as_draws_matrix(object$fit$draws(c("beta", "Omega")))
-  if (is.null(n_samples)) n_samples <- nrow(d)
-  stopifnot(length(n_samples) == 1L, is.finite(n_samples), n_samples >= 1L,
-            n_samples == as.integer(n_samples), n_samples <= nrow(d))
-  set.seed(seed)
-  take <- sample.int(nrow(d), n_samples, replace = FALSE)
-  dat <- object$prepared$data
-  beta <- lapply(take, function(i) setNames(
-    as.numeric(d[i, paste0("beta[", seq_len(dat$P), "]")]),
-    object$prepared$coefficient_names))
-  sigma <- lapply(take, function(i) lapply(seq_len(dat$G), function(g) {
-    nm <- outer(seq_len(dat$D), seq_len(dat$D), function(j, k)
-      sprintf("Omega[%d,%d,%d]", g, j, k))
-    matrix(as.numeric(d[i, as.vector(nm)]), dat$D, dat$D,
-           dimnames = rep(list(object$prepared$visit_names), 2))
-  }))
-  list(beta = beta, sigma = sigma, metadata = object$prepared[
-    c("coefficient_names", "arm_levels", "visit_names", "same_cov")])
+    # Select paired beta/Omega rows; retain full chains in object$fit for diagnostics.
+    d <- posterior::as_draws_matrix(object$fit$draws(c("beta", "Omega")))
+    if (is.null(n_samples)) n_samples <- nrow(d)
+    stopifnot(
+        length(n_samples) == 1L, is.finite(n_samples), n_samples >= 1L,
+        n_samples == as.integer(n_samples), n_samples <= nrow(d)
+    )
+    set.seed(seed)
+    take <- sample.int(nrow(d), n_samples, replace = FALSE)
+    dat <- object$prepared$data
+    beta <- lapply(take, function(i) {
+        setNames(
+            as.numeric(d[i, paste0("beta[", seq_len(dat$P), "]")]),
+            object$prepared$coefficient_names
+        )
+    })
+    sigma <- lapply(take, function(i) {
+        lapply(seq_len(dat$G), function(g) {
+            nm <- outer(seq_len(dat$D), seq_len(dat$D), function(j, k) {
+                sprintf("Omega[%d,%d,%d]", g, j, k)
+            })
+            matrix(as.numeric(d[i, as.vector(nm)]), dat$D, dat$D,
+                dimnames = rep(list(object$prepared$visit_names), 2)
+            )
+        })
+    })
+    list(beta = beta, sigma = sigma, metadata = object$prepared[
+        c("coefficient_names", "arm_levels", "visit_names", "same_cov")
+    ])
 }
 ```
 
@@ -697,8 +732,10 @@ probit_fit <- fit_probit_draws(probit_input, probit_model, init = 0)
 probit_fit$fit$diagnostic_summary()
 probit_fit$fit$summary(c("beta", "Omega"))
 probit_parameters <- extract_probit_draws(probit_fit, n_samples = 1000L)
-stopifnot(length(probit_parameters$beta) == 1000L,
-          length(probit_parameters$sigma[[1]]) == 2L)
+stopifnot(
+    length(probit_parameters$beta) == 1000L,
+    length(probit_parameters$sigma[[1]]) == 2L
+)
 ```
 
 Note that the MCMC sampling takes about 7 minutes here for the used number of warm up and sampling iterations.
@@ -743,23 +780,23 @@ inclusive-threshold responder counts.
 cro_script <- file.path(dirname(archive), "cro_latent_mvn.R")
 source(cro_script)
 Ycat <- matrix(
-  NA_integer_, 
-  nrow = nrow(patients), 
-  ncol = length(visit_weeks),
-  dimnames = list(
-    as.character(patients$PATIENT), 
-    paste0("week", visit_weeks)
-  )
+    NA_integer_,
+    nrow = nrow(patients),
+    ncol = length(visit_weeks),
+    dimnames = list(
+        as.character(patients$PATIENT),
+        paste0("week", visit_weeks)
+    )
 )
 Ycat[cbind(
-  match(antidepressant$PATIENT, patients$PATIENT),
-  match(antidepressant$week, visit_weeks)
+    match(antidepressant$PATIENT, patients$PATIENT),
+    match(antidepressant$week, visit_weeks)
 )] <- antidepressant$response
 treat1 <- as.integer(patients$arm)
 stopifnot(
-  all(treat1 %in% 1:2),
-  all(Ycat[!is.na(Ycat)] %in% 0:1),
-  all(colSums(is.na(Ycat)) == c(0, 18, 30, 52, 69))
+    all(treat1 %in% 1:2),
+    all(Ycat[!is.na(Ycat)] %in% 0:1),
+    all(colSums(is.na(Ycat)) == c(0, 18, 30, 52, 69))
 )
 ```
 
@@ -777,27 +814,29 @@ reference arm 1. It has not been generalized to other input configurations.
 ```{r}
 #| label: run-cro-probit-example
 cro_draws <- cro_latent_mvn(
-  Ycat = Ycat, 
-  treat1 = treat1, 
-  Method = "J2R", 
-  Reference = 1,
-  nburn = 100, 
-  nbetween = 10, 
-  nimp = 5, 
-  seed = 123435
+    Ycat = Ycat,
+    treat1 = treat1,
+    Method = "J2R",
+    Reference = 1,
+    nburn = 100,
+    nbetween = 10,
+    nimp = 5,
+    seed = 123435
 )
 # Imputation 0 contains the original data; positive indices are completed data.
 cro_completed <- subset(cro_draws$imp, Imputation == 1)
 stopifnot(
-  nrow(cro_completed) == nrow(Ycat),
-  !anyNA(cro_completed[colnames(Ycat)]),
-  all(as.matrix(cro_completed[colnames(Ycat)])[!is.na(Ycat)] ==
+    nrow(cro_completed) == nrow(Ycat),
+    !anyNA(cro_completed[colnames(Ycat)]),
+    all(as.matrix(cro_completed[colnames(Ycat)])[!is.na(Ycat)] ==
         Ycat[!is.na(Ycat)])
 )
 knitr::kable(
-  aggregate(week8 ~ Imputation + Treat, data = cro_draws$imp,
-            FUN = mean, subset = Imputation > 0),
-  caption = "Week 8 response proportions in the short J2R example"
+    aggregate(week8 ~ Imputation + Treat,
+        data = cro_draws$imp,
+        FUN = mean, subset = Imputation > 0
+    ),
+    caption = "Week 8 response proportions in the short J2R example"
 )
 # Retained parameter draws for the subsequent rbmi comparison:
 dim(cro_draws$beta$reference)
@@ -830,50 +869,62 @@ run loads its selected package in a separate R process.
 ```{r}
 #| label: reference-draw-functions
 run_reference_chain <- function(chain, input) {
-  set.seed(input$seed + chain)
-  lapply(seq_len(nlevels(factor(input$arm))), function(a) {
-    yy <- as.data.frame(input$Y[as.integer(factor(input$arm)) == a, , drop = FALSE])
-    yy[] <- lapply(yy, factor, levels = 0:1)
-    # Mirrors Cro's two draw-stage jomo calls; no reference-based imputation.
-    f <- jomo::jomo1cat.MCMCchain(
-      Y.cat = yy, Y.numcat = rep(2L, ncol(yy)),
-      nburn = input$warmup + input$iterations, output = 0
-    )
-    take <- seq.int(input$warmup + input$thin,
-                    input$warmup + input$iterations, by = input$thin)
-    list(beta = f$collectbeta[, , take, drop = FALSE],
-         omega = f$collectomega[, , take, drop = FALSE])
-  })
+    set.seed(input$seed + chain)
+    lapply(seq_len(nlevels(factor(input$arm))), function(a) {
+        yy <- as.data.frame(input$Y[as.integer(factor(input$arm)) == a, , drop = FALSE])
+        yy[] <- lapply(yy, factor, levels = 0:1)
+        # Mirrors Cro's two draw-stage jomo calls; no reference-based imputation.
+        f <- jomo::jomo1cat.MCMCchain(
+            Y.cat = yy, Y.numcat = rep(2L, ncol(yy)),
+            nburn = input$warmup + input$iterations, output = 0
+        )
+        take <- seq.int(input$warmup + input$thin,
+            input$warmup + input$iterations,
+            by = input$thin
+        )
+        list(
+            beta = f$collectbeta[, , take, drop = FALSE],
+            omega = f$collectomega[, , take, drop = FALSE]
+        )
+    })
 }
 
 run_reference_draws <- function(Y, arm, library = NULL, chains = 4L,
                                 warmup = 100000L, iterations = 1000000L,
                                 thin = 100L, seed = 123435L) {
-  stopifnot(ncol(Y) >= 2L, length(arm) == nrow(Y), !anyNA(arm),
-            all(Y[!is.na(Y)] %in% 0:1), chains >= 1L,
-            warmup >= 1L, iterations >= thin, thin >= 1L)
-  # This comparison adapter deliberately stays within Cro's example scope.
-  for (a in unique(arm)) {
-    yy <- Y[arm == a, , drop = FALSE]
-    stopifnot(anyNA(yy), all(rowSums(!is.na(yy)) > 0L),
-              all(vapply(seq_len(ncol(yy)), function(j)
-                all(0:1 %in% yy[, j]), logical(1))))
-  }
-  expected_version <- if (is.null(library)) "2.7.6.9000" else "2.7.6"
-  input <- list(Y = Y, arm = arm, library = library, version = expected_version,
-                chains = chains,
-                warmup = warmup, iterations = iterations, thin = thin, seed = seed)
-  callr::r(function(input, run_chain) {
-    if (!is.null(input$library)) .libPaths(c(input$library, .libPaths()))
-    stopifnot(as.character(utils::packageVersion("jomo")) == input$version)
-    cores <- if (.Platform$OS.type == "windows") 1L else input$chains
-    out <- parallel::mclapply(seq_len(input$chains), run_chain,
-                              input = input, mc.cores = cores)
-    if (any(vapply(out, inherits, logical(1), "try-error"))) {
-      stop("Reference chain failed")
+    stopifnot(
+        ncol(Y) >= 2L, length(arm) == nrow(Y), !anyNA(arm),
+        all(Y[!is.na(Y)] %in% 0:1), chains >= 1L,
+        warmup >= 1L, iterations >= thin, thin >= 1L
+    )
+    # This comparison adapter deliberately stays within Cro's example scope.
+    for (a in unique(arm)) {
+        yy <- Y[arm == a, , drop = FALSE]
+        stopifnot(
+            anyNA(yy), all(rowSums(!is.na(yy)) > 0L),
+            all(vapply(seq_len(ncol(yy)), function(j) {
+                all(0:1 %in% yy[, j])
+            }, logical(1)))
+        )
     }
-    out
-  }, args = list(input = input, run_chain = run_reference_chain))
+    expected_version <- if (is.null(library)) "2.7.6.9000" else "2.7.6"
+    input <- list(
+        Y = Y, arm = arm, library = library, version = expected_version,
+        chains = chains,
+        warmup = warmup, iterations = iterations, thin = thin, seed = seed
+    )
+    callr::r(function(input, run_chain) {
+        if (!is.null(input$library)) .libPaths(c(input$library, .libPaths()))
+        stopifnot(as.character(utils::packageVersion("jomo")) == input$version)
+        cores <- if (.Platform$OS.type == "windows") 1L else input$chains
+        out <- parallel::mclapply(seq_len(input$chains), run_chain,
+            input = input, mc.cores = cores
+        )
+        if (any(vapply(out, inherits, logical(1), "try-error"))) {
+            stop("Reference chain failed")
+        }
+        out
+    }, args = list(input = input, run_chain = run_reference_chain))
 }
 ```
 
@@ -888,37 +939,45 @@ constant diagonal entries and duplicated upper triangles are excluded.
 ```{r}
 #| label: compare-probit-functions
 jomo_array <- function(chains) {
-  S <- dim(chains[[1]][[1]]$beta)[3]
-  A <- length(chains[[1]])
-  D <- dim(chains[[1]][[1]]$omega)[1]
-  pair <- which(lower.tri(matrix(0,D,D)),arr.ind=TRUE)
-  nm <- c(paste0("beta[",seq_len(A*D),"]"), unlist(lapply(seq_len(A),function(a)
-    sprintf("Omega[%d,%d,%d]",a,pair[,1],pair[,2]))))
-  arr <- array(NA_real_,c(S,length(chains),length(nm)),dimnames=list(NULL,NULL,nm))
-  for (ch in seq_along(chains)) {
-    values <- c(lapply(seq_len(A),function(a) -t(chains[[ch]][[a]]$beta[1,,])),
-                lapply(seq_len(A),function(a) t(vapply(seq_len(S), function(s)
-                  chains[[ch]][[a]]$omega[,,s][pair], numeric(nrow(pair))))))
-    arr[,ch,] <- do.call(cbind,values)
-  }
-  posterior::as_draws_array(arr)
+    S <- dim(chains[[1]][[1]]$beta)[3]
+    A <- length(chains[[1]])
+    D <- dim(chains[[1]][[1]]$omega)[1]
+    pair <- which(lower.tri(matrix(0, D, D)), arr.ind = TRUE)
+    nm <- c(paste0("beta[", seq_len(A * D), "]"), unlist(lapply(seq_len(A), function(a) {
+        sprintf("Omega[%d,%d,%d]", a, pair[, 1], pair[, 2])
+    })))
+    arr <- array(NA_real_, c(S, length(chains), length(nm)), dimnames = list(NULL, NULL, nm))
+    for (ch in seq_along(chains)) {
+        values <- c(
+            lapply(seq_len(A), function(a) -t(chains[[ch]][[a]]$beta[1, , ])),
+            lapply(seq_len(A), function(a) {
+                t(vapply(seq_len(S), function(s) {
+                    chains[[ch]][[a]]$omega[, , s][pair]
+                }, numeric(nrow(pair))))
+            })
+        )
+        arr[, ch, ] <- do.call(cbind, values)
+    }
+    posterior::as_draws_array(arr)
 }
 summarize_parameters <- function(draws) {
-  as.data.frame(posterior::summarise_draws(draws, mean=mean, sd=sd,
-    q025=function(x) unname(quantile(x,.025)),
-    q975=function(x) unname(quantile(x,.975)),
-    mcse=posterior::mcse_mean, rhat=posterior::rhat,
-    ess_bulk=posterior::ess_bulk, ess_tail=posterior::ess_tail))
+    as.data.frame(posterior::summarise_draws(draws,
+        mean = mean, sd = sd,
+        q025 = function(x) unname(quantile(x, .025)),
+        q975 = function(x) unname(quantile(x, .975)),
+        mcse = posterior::mcse_mean, rhat = posterior::rhat,
+        ess_bulk = posterior::ess_bulk, ess_tail = posterior::ess_tail
+    ))
 }
 compare_parameters <- function(stan, reference) {
-  a <- summarize_parameters(stan)
-  b <- summarize_parameters(reference)
-  z <- merge(a,b,by="variable",suffixes=c("_stan","_reference"),sort=FALSE)
-  z$difference <- z$mean_stan-z$mean_reference
-  z$combined_mcse <- sqrt(z$mcse_stan^2+z$mcse_reference^2)
-  z$mcse_units <- z$difference/z$combined_mcse
-  z$sd_units <- z$difference/z$sd_stan
-  z
+    a <- summarize_parameters(stan)
+    b <- summarize_parameters(reference)
+    z <- merge(a, b, by = "variable", suffixes = c("_stan", "_reference"), sort = FALSE)
+    z$difference <- z$mean_stan - z$mean_reference
+    z$combined_mcse <- sqrt(z$mcse_stan^2 + z$mcse_reference^2)
+    z$mcse_units <- z$difference / z$combined_mcse
+    z$sd_units <- z$difference / z$sd_stan
+    z
 }
 ```
 
@@ -928,12 +987,18 @@ compare_parameters <- function(stan, reference) {
 reference_original <- run_reference_draws(Ycat, treat1, library = original_library)
 reference_corrected <- run_reference_draws(Ycat, treat1)
 comparison_original <- compare_parameters(
-  probit_fit$fit$draws(c("beta", "Omega")), jomo_array(reference_original))
+    probit_fit$fit$draws(c("beta", "Omega")), jomo_array(reference_original)
+)
 comparison_corrected <- compare_parameters(
-  probit_fit$fit$draws(c("beta", "Omega")), jomo_array(reference_corrected))
-knitr::kable(comparison_corrected[, c("variable", "mean_stan", "mean_reference",
-                                    "difference", "combined_mcse", "mcse_units")],
-             digits = 4)
+    probit_fit$fit$draws(c("beta", "Omega")), jomo_array(reference_corrected)
+)
+knitr::kable(
+    comparison_corrected[, c(
+        "variable", "mean_stan", "mean_reference",
+        "difference", "combined_mcse", "mcse_units"
+    )],
+    digits = 4
+)
 # Also inspect posterior SDs, interval endpoints, R-hat, and both ESS estimates:
 comparison_corrected
 ```
@@ -1072,70 +1137,89 @@ model <- probit_model
 
 # Deterministic two-visit orthant check, including all four sign patterns.
 mu <- c(-.7, .3)
-Omega <- matrix(c(1,.6,.6,1),2)
+Omega <- matrix(c(1, .6, .6, 1), 2)
 L <- t(chol(Omega))
-signs <- as.matrix(expand.grid(c(-1,1),c(-1,1)))
-err <- apply(signs,1,function(s) {
-  p1 <- pnorm(s[1]*mu[1])
-  value <- integrate(function(u) {
-    e1 <- -s[1]*qnorm(u*p1)
-    p1*pnorm(s[2]*(mu[2]+L[2,1]*e1)/L[2,2])
-  },0,1,rel.tol=1e-10)$value
-  truth <- as.numeric(mvtnorm::pmvnorm(lower=c(0,0),
-    upper=c(Inf,Inf),mean=s*mu,sigma=Omega*outer(s,s),algorithm=mvtnorm::TVPACK()))
-  value-truth
+signs <- as.matrix(expand.grid(c(-1, 1), c(-1, 1)))
+err <- apply(signs, 1, function(s) {
+    p1 <- pnorm(s[1] * mu[1])
+    value <- integrate(function(u) {
+        e1 <- -s[1] * qnorm(u * p1)
+        p1 * pnorm(s[2] * (mu[2] + L[2, 1] * e1) / L[2, 2])
+    }, 0, 1, rel.tol = 1e-10)$value
+    truth <- as.numeric(mvtnorm::pmvnorm(
+        lower = c(0, 0),
+        upper = c(Inf, Inf), mean = s * mu, sigma = Omega * outer(s, s), algorithm = mvtnorm::TVPACK()
+    ))
+    value - truth
 })
 stopifnot(max(abs(err)) < 1e-8)
 
 # One visit: no augmentation variables; compare against numerical quadrature.
-y <- matrix(c(rep(1,7),rep(0,13)),ncol=1)
-p <- prepare_probit_data(y,rep(1,nrow(y)))
-stopifnot(p$data$U==0L,p$data$R==20L,p$data$P==1L)
-f <- fit_probit_draws(p,model,chains=4,iter_warmup=500,iter_sampling=2000,seed=883L)
+y <- matrix(c(rep(1, 7), rep(0, 13)), ncol = 1)
+p <- prepare_probit_data(y, rep(1, nrow(y)))
+stopifnot(p$data$U == 0L, p$data$R == 20L, p$data$P == 1L)
+f <- fit_probit_draws(p, model, chains = 4, iter_warmup = 500, iter_sampling = 2000, seed = 883L)
 sm <- summarize_parameters(f$fit$draws("beta"))
-density <- function(b) exp(7*pnorm(b,log.p=TRUE)+13*pnorm(-b,log.p=TRUE))
-constant <- integrate(density,-Inf,Inf)$value
-exact_mean <- integrate(function(b) b*density(b),-Inf,Inf)$value/constant
-exact_sd <- sqrt(integrate(function(b) (b-exact_mean)^2*density(b),-Inf,Inf)$value/constant)
-stopifnot(abs(sm$mean-exact_mean) < 4*sm$mcse,
-          abs(sm$sd-exact_sd) < .02)
-ex <- extract_probit_draws(f,10)
-stopifnot(length(ex$beta)==10L,length(ex$sigma)==10L,
-          identical(dim(ex$sigma[[1]][[1]]),c(1L,1L)),
-          ex$sigma[[1]][[1]][1,1]==1)
+density <- function(b) exp(7 * pnorm(b, log.p = TRUE) + 13 * pnorm(-b, log.p = TRUE))
+constant <- integrate(density, -Inf, Inf)$value
+exact_mean <- integrate(function(b) b * density(b), -Inf, Inf)$value / constant
+exact_sd <- sqrt(integrate(function(b) (b - exact_mean)^2 * density(b), -Inf, Inf)$value / constant)
+stopifnot(
+    abs(sm$mean - exact_mean) < 4 * sm$mcse,
+    abs(sm$sd - exact_sd) < .02
+)
+ex <- extract_probit_draws(f, 10)
+stopifnot(
+    length(ex$beta) == 10L, length(ex$sigma) == 10L,
+    identical(dim(ex$sigma[[1]][[1]]), c(1L, 1L)),
+    ex$sigma[[1]][[1]][1, 1] == 1
+)
 
 # Data preparation: arbitrary missing patterns, all-missing subjects, custom X.
 set.seed(443)
-N <- 180L; D <- 3L
-arm <- rep(1:2,each=N/2)
+N <- 180L
+D <- 3L
+arm <- rep(1:2, each = N / 2)
 x <- rnorm(N)
-X <- array(0,c(N,D,7L))
-for (i in seq_len(N)) for (j in seq_len(D)) {
-  X[i,j,j] <- 1
-  X[i,j,3+j] <- arm[i]==2
-  X[i,j,7] <- x[i]
+X <- array(0, c(N, D, 7L))
+for (i in seq_len(N)) {
+    for (j in seq_len(D)) {
+        X[i, j, j] <- 1
+        X[i, j, 3 + j] <- arm[i] == 2
+        X[i, j, 7] <- x[i]
+    }
 }
-truth <- c(-.6,-.3,.1,.4,.5,.6,.3)
-Sigma <- matrix(c(1,.55,.3,.55,1,.4,.3,.4,1),3)
-eta <- matrix(matrix(X,N*D,7L)%*%truth,N,D)
-Z <- eta + matrix(rnorm(N*D),N,D)%*%chol(Sigma)
-Y <- 1L*(Z>0)
-Y[matrix(runif(N*D)<.2,N,D)] <- NA
-Y[1,] <- NA
-p2 <- prepare_probit_data(Y,arm,X,same_cov=TRUE,beta_sd=2)
-stopifnot(1L %in% p2$excluded_subjects,p2$data$G==1L,
-  all(p2$data$sign_y==2*Y[p2$cells]-1),
-  isTRUE(all.equal(p2$data$X,
-    sapply(1:7,function(k) matrix(X[,,k],N,D)[p2$cells]),check.attributes=FALSE)))
-stopifnot(inherits(try(prepare_probit_data(Y,arm,X,beta_sd=0),silent=TRUE),"try-error"),
-  inherits(try(prepare_probit_data(matrix(0,10,2),rep(1,10)),silent=TRUE),"try-error"))
-f2 <- fit_probit_draws(p2,model,chains=4,iter_warmup=1000,iter_sampling=1500,seed=884L)
+truth <- c(-.6, -.3, .1, .4, .5, .6, .3)
+Sigma <- matrix(c(1, .55, .3, .55, 1, .4, .3, .4, 1), 3)
+eta <- matrix(matrix(X, N * D, 7L) %*% truth, N, D)
+Z <- eta + matrix(rnorm(N * D), N, D) %*% chol(Sigma)
+Y <- 1L * (Z > 0)
+Y[matrix(runif(N * D) < .2, N, D)] <- NA
+Y[1, ] <- NA
+p2 <- prepare_probit_data(Y, arm, X, same_cov = TRUE, beta_sd = 2)
+stopifnot(
+    1L %in% p2$excluded_subjects, p2$data$G == 1L,
+    all(p2$data$sign_y == 2 * Y[p2$cells] - 1),
+    isTRUE(all.equal(p2$data$X,
+        sapply(1:7, function(k) matrix(X[, , k], N, D)[p2$cells]),
+        check.attributes = FALSE
+    ))
+)
+stopifnot(
+    inherits(try(prepare_probit_data(Y, arm, X, beta_sd = 0), silent = TRUE), "try-error"),
+    inherits(try(prepare_probit_data(matrix(0, 10, 2), rep(1, 10)), silent = TRUE), "try-error")
+)
+f2 <- fit_probit_draws(p2, model, chains = 4, iter_warmup = 1000, iter_sampling = 1500, seed = 884L)
 sm2 <- summarize_parameters(f2$fit$draws("beta"))
-stopifnot(all(sm2$rhat < 1.01),all(sm2$ess_bulk > 400),
-  all(truth > sm2$q025 & truth < sm2$q975))
+stopifnot(
+    all(sm2$rhat < 1.01), all(sm2$ess_bulk > 400),
+    all(truth > sm2$q025 & truth < sm2$q975)
+)
 
-list(bivariate_errors = err, univariate = cbind(sm, exact_mean, exact_sd),
-     synthetic = cbind(sm2, truth))
+list(
+    bivariate_errors = err, univariate = cbind(sm, exact_mean, exact_sd),
+    synthetic = cbind(sm2, truth)
+)
 f$fit$diagnostic_summary()
 f2$fit$diagnostic_summary()
 ```
@@ -1149,17 +1233,19 @@ check; rounding CSV output must not be mistaken for function error.
 #| label: validate-probit-log-quantile
 #| eval: !expr run_probit_validation
 code <- strsplit(probit_stan_code, "\n", fixed = TRUE)[[1]]
-code <- code[seq_len(which(code=="data {")[1]-1L)]
-code <- c(code,"data { int<lower=1> N; vector[N] lp; }",
-          "generated quantities { vector[N] q; for (i in 1:N) q[i] = std_normal_quantile_log(lp[i]); }")
+code <- code[seq_len(which(code == "data {")[1] - 1L)]
+code <- c(
+    code, "data { int<lower=1> N; vector[N] lp; }",
+    "generated quantities { vector[N] q; for (i in 1:N) q[i] = std_normal_quantile_log(lp[i]); }"
+)
 m <- cmdstanr::cmdstan_model(cmdstanr::write_stan_file(code))
-lp <- c(-1e-16,-1e-10,-.1,log(.5),-2,-36+1e-8,-36-1e-8,-50,-100,-700,-1000,-1e6)
-f <- m$sample(data=list(N=length(lp),lp=lp),fixed_param=TRUE,chains=1,iter_sampling=1,refresh=0,sig_figs=18)
-q <- as.numeric(posterior::as_draws_matrix(f$draws('q'))[1,])
-truth <- qnorm(lp,log.p=TRUE)
-z <- data.frame(lp,q,truth,error=q-truth)
+lp <- c(-1e-16, -1e-10, -.1, log(.5), -2, -36 + 1e-8, -36 - 1e-8, -50, -100, -700, -1000, -1e6)
+f <- m$sample(data = list(N = length(lp), lp = lp), fixed_param = TRUE, chains = 1, iter_sampling = 1, refresh = 0, sig_figs = 18)
+q <- as.numeric(posterior::as_draws_matrix(f$draws("q"))[1, ])
+truth <- qnorm(lp, log.p = TRUE)
+z <- data.frame(lp, q, truth, error = q - truth)
 print(z)
-stopifnot(max(abs(z$error))<1e-9)
+stopifnot(max(abs(z$error)) < 1e-9)
 ```
 
 ## Imputation method and prototype implementation
@@ -1385,33 +1471,35 @@ for the target; the discrepancy is much larger than Monte Carlo error.
 ```{r}
 #| label: compare-sequential-joint-imputation
 local({
-  set.seed(917)
-  n <- 1000000L
-  rho <- 0.7
-  Sigma <- matrix(rho, 3, 3)
-  diag(Sigma) <- 1
-  exact <- (1/8 + 3 * asin(rho)/(4*pi)) /
-    (1/4 + asin(rho)/(2*pi))
+    set.seed(917)
+    n <- 1000000L
+    rho <- 0.7
+    Sigma <- matrix(rho, 3, 3)
+    diag(Sigma) <- 1
+    exact <- (1 / 8 + 3 * asin(rho) / (4 * pi)) /
+        (1 / 4 + asin(rho) / (2 * pi))
 
-  # Joint rejection: reject the entire vector unless both observed signs match.
-  z <- matrix(rnorm(n * 3), n, 3) %*% chol(Sigma)
-  joint_response <- z[z[, 1] > 0 & z[, 2] > 0, 3] > 0
+    # Joint rejection: reject the entire vector unless both observed signs match.
+    z <- matrix(rnorm(n * 3), n, 3) %*% chol(Sigma)
+    joint_response <- z[z[, 1] > 0 & z[, 2] > 0, 3] > 0
 
-  # Original forward sampler: independently enforce each successive sign.
-  z1 <- -qnorm(runif(n) / 2)
-  m2 <- rho * z1
-  s2 <- sqrt(1 - rho^2)
-  z2 <- m2 - s2 * qnorm(runif(n) * pnorm(m2 / s2))
-  b <- drop(Sigma[3, 1:2] %*% solve(Sigma[1:2, 1:2]))
-  v3 <- Sigma[3, 3] - sum(b * Sigma[1:2, 3])
-  sequential_probability <- pnorm((b[1] * z1 + b[2] * z2) / sqrt(v3))
+    # Original forward sampler: independently enforce each successive sign.
+    z1 <- -qnorm(runif(n) / 2)
+    m2 <- rho * z1
+    s2 <- sqrt(1 - rho^2)
+    z2 <- m2 - s2 * qnorm(runif(n) * pnorm(m2 / s2))
+    b <- drop(Sigma[3, 1:2] %*% solve(Sigma[1:2, 1:2]))
+    v3 <- Sigma[3, 3] - sum(b * Sigma[1:2, 3])
+    sequential_probability <- pnorm((b[1] * z1 + b[2] * z2) / sqrt(v3))
 
-  data.frame(
-    Method = c("Exact", "Joint rejection", "Original sequential"),
-    Probability = c(exact, mean(joint_response), mean(sequential_probability)),
-    MCSE = c(0, sd(joint_response) / sqrt(length(joint_response)),
-             sd(sequential_probability) / sqrt(n))
-  )
+    data.frame(
+        Method = c("Exact", "Joint rejection", "Original sequential"),
+        Probability = c(exact, mean(joint_response), mean(sequential_probability)),
+        MCSE = c(
+            0, sd(joint_response) / sqrt(length(joint_response)),
+            sd(sequential_probability) / sqrt(n)
+        )
+    )
 })
 ```
 
@@ -1472,7 +1560,7 @@ upper <- rep(Inf, length(y))
 lower[which(y == 1)] <- 0
 upper[which(y == 0)] <- 0
 z <- as.numeric(TruncatedNormal::rtmvnorm(
-  n = 1, mu = mu_ref, sigma = Sigma_ref, lb = lower, ub = upper
+    n = 1, mu = mu_ref, sigma = Sigma_ref, lb = lower, ub = upper
 ))
 completed <- y
 completed[is.na(y)] <- as.integer(z[is.na(y)] > 0)
@@ -1512,7 +1600,7 @@ and validated rather than being established by the sampler alone.
 ### Prototype and example
 
 This prototype uses the saturated arm-by-visit model above, with placebo as
-reference and CIR for active patients. We infer discontinuation after the last
+reference and copy increments in reference (CIR) for active patients. We infer discontinuation after the last
 observed visit because no cessation dates are supplied. Intermittent
 missing visits are therefore imputed under the on-treatment model; this convention
 would need replacing by recorded cessation times in a real analysis.
@@ -1526,20 +1614,20 @@ No latent variables from the fitting stage are reused.
 n_imp <- 500L
 probit_input <- prepare_probit_data(Ycat, treat1, same_cov = FALSE)
 if (!exists("probit_fit")) {
-  saved_fit <- file.path(dirname(archive), "rbmi-binary-prototype", "stan_release.rds")
-  if (file.exists(saved_fit)) {
-    saved <- readRDS(saved_fit)
-    saved_data <- readRDS(file.path(dirname(saved_fit), "data.rds"))
-    stopifnot(identical(Ycat, saved_data$Y), identical(treat1, saved_data$arm))
-    # Supply the same draw interface used by extract_probit_draws().
-    probit_fit <- list(prepared = probit_input, fit = list(
-      draws = function(variables) posterior::subset_draws(saved$draws, variable = variables)
-    ))
-  } else {
-    probit_model <- cmdstanr::cmdstan_model(cmdstanr::write_stan_file(probit_stan_code))
-    probit_fit <- fit_probit_draws(probit_input, probit_model, init = 0)
-    print(probit_fit$fit$diagnostic_summary())
-  }
+    saved_fit <- file.path(dirname(archive), "rbmi-binary-prototype", "stan_release.rds")
+    if (file.exists(saved_fit)) {
+        saved <- readRDS(saved_fit)
+        saved_data <- readRDS(file.path(dirname(saved_fit), "data.rds"))
+        stopifnot(identical(Ycat, saved_data$Y), identical(treat1, saved_data$arm))
+        # Supply the same draw interface used by extract_probit_draws().
+        probit_fit <- list(prepared = probit_input, fit = list(
+            draws = function(variables) posterior::subset_draws(saved$draws, variable = variables)
+        ))
+    } else {
+        probit_model <- cmdstanr::cmdstan_model(cmdstanr::write_stan_file(probit_stan_code))
+        probit_fit <- fit_probit_draws(probit_input, probit_model, init = 0)
+        print(probit_fit$fit$diagnostic_summary())
+    }
 }
 cir_parameters <- extract_probit_draws(probit_fit, n_samples = n_imp, seed = 20261102)
 ```
@@ -1555,72 +1643,76 @@ Sampler warnings stop execution rather than silently accepting a questionable dr
 #| label: cir-imputation-function
 #| time_it: true
 impute_cir <- function(Y, arm, last_on, parameters, seed = 20261103) {
-  D <- ncol(Y)
-  stopifnot(length(arm) == nrow(Y), all(arm %in% 1:2),
-            length(last_on) == nrow(Y), all(last_on %in% seq_len(D)),
-            all(Y[!is.na(Y)] %in% 0:1),
-            identical(parameters$metadata$arm_levels, c("1", "2")),
-            !parameters$metadata$same_cov,
-            length(parameters$beta[[1]]) == 2L * D)
-  set.seed(seed)
-  incomplete <- which(rowSums(is.na(Y)) > 0L)
-  lapply(seq_along(parameters$beta), function(m) {
-    # Each completed dataset shares ONE joint parameter draw across patients.
-    means <- matrix(parameters$beta[[m]], nrow = D, ncol = 2)
-    # The covariance matrix for arm 1:
-    R <- parameters$sigma[[m]][[1]]
-    # Covariance for arm 2:
-    A <- parameters$sigma[[m]][[2]]
-    completed <- Y
-    for (i in incomplete) {
-      mu <- means[, arm[i]]
-      Sigma <- parameters$sigma[[m]][[arm[i]]]
-      d <- last_on[i]
-      if (arm[i] == 2L && d < D) {
-        pre <- seq_len(d)
-        post <- seq.int(d + 1L, D)
-        # Here we use the copy increments approach to adjust the mean vector
-        # for the post-discontinuation visits based on the last observed visit.
-        mu[post] <- means[d, 2] + means[post, 1] - means[d, 1]
-        # Compute the conditional covariance for the post-discontinuation visits.
-        B <- R[post, pre, drop = FALSE] %*% solve(R[pre, pre, drop = FALSE])
-        V <- R[post, post, drop = FALSE] - B %*% R[pre, post, drop = FALSE]
-        cross <- B %*% A[pre, pre, drop = FALSE]
-        Sigma[post, pre] <- cross
-        Sigma[pre, post] <- t(cross)
-        Sigma[post, post] <- V + cross %*% t(B)
-      }
-      Sigma <- (Sigma + t(Sigma)) / 2 # Remove floating-point asymmetry only.
-      y <- Y[i, ]
-      # Joint truncated multivariate normal sampling of the latent variables
-      # corresponding to the observed binary responses.
-      lower <- rep(-Inf, D)
-      upper <- rep(Inf, D)
-      lower[which(y == 1)] <- 0
-      upper[which(y == 0)] <- 0
-      z <- withCallingHandlers(
-        as.numeric(TruncatedNormal::rtmvnorm(
-          n = 1, mu = mu, sigma = Sigma, lb = lower, ub = upper
-        )),
-        warning = function(w) stop(conditionMessage(w), call. = FALSE)
-      )
-      stopifnot(length(z) == D, all(is.finite(z)), all(z >= lower & z <= upper))
-      # Impute the missing binary responses based on the sampled latent variables.
-      missing <- is.na(y)
-      completed[i, missing] <- as.integer(z[missing] > 0)
-    }
-    completed
-  })
+    D <- ncol(Y)
+    stopifnot(
+        length(arm) == nrow(Y), all(arm %in% 1:2),
+        length(last_on) == nrow(Y), all(last_on %in% seq_len(D)),
+        all(Y[!is.na(Y)] %in% 0:1),
+        identical(parameters$metadata$arm_levels, c("1", "2")),
+        !parameters$metadata$same_cov,
+        length(parameters$beta[[1]]) == 2L * D
+    )
+    set.seed(seed)
+    incomplete <- which(rowSums(is.na(Y)) > 0L)
+    lapply(seq_along(parameters$beta), function(m) {
+        # Each completed dataset shares ONE joint parameter draw across patients.
+        means <- matrix(parameters$beta[[m]], nrow = D, ncol = 2)
+        # The covariance matrix for arm 1:
+        R <- parameters$sigma[[m]][[1]]
+        # Covariance for arm 2:
+        A <- parameters$sigma[[m]][[2]]
+        completed <- Y
+        for (i in incomplete) {
+            mu <- means[, arm[i]]
+            Sigma <- parameters$sigma[[m]][[arm[i]]]
+            d <- last_on[i]
+            if (arm[i] == 2L && d < D) {
+                pre <- seq_len(d)
+                post <- seq.int(d + 1L, D)
+                # Here we use the copy increments approach to adjust the mean vector
+                # for the post-discontinuation visits based on the last observed visit.
+                mu[post] <- means[d, 2] + means[post, 1] - means[d, 1]
+                # Compute the conditional covariance for the post-discontinuation visits.
+                B <- R[post, pre, drop = FALSE] %*% solve(R[pre, pre, drop = FALSE])
+                V <- R[post, post, drop = FALSE] - B %*% R[pre, post, drop = FALSE]
+                cross <- B %*% A[pre, pre, drop = FALSE]
+                Sigma[post, pre] <- cross
+                Sigma[pre, post] <- t(cross)
+                Sigma[post, post] <- V + cross %*% t(B)
+            }
+            Sigma <- (Sigma + t(Sigma)) / 2 # Remove floating-point asymmetry only.
+            y <- Y[i, ]
+            # Joint truncated multivariate normal sampling of the latent variables
+            # corresponding to the observed binary responses.
+            lower <- rep(-Inf, D)
+            upper <- rep(Inf, D)
+            lower[which(y == 1)] <- 0
+            upper[which(y == 0)] <- 0
+            z <- withCallingHandlers(
+                as.numeric(TruncatedNormal::rtmvnorm(
+                    n = 1, mu = mu, sigma = Sigma, lb = lower, ub = upper
+                )),
+                warning = function(w) stop(conditionMessage(w), call. = FALSE)
+            )
+            stopifnot(length(z) == D, all(is.finite(z)), all(z >= lower & z <= upper))
+            # Impute the missing binary responses based on the sampled latent variables.
+            missing <- is.na(y)
+            completed[i, missing] <- as.integer(z[missing] > 0)
+        }
+        completed
+    })
 }
 
 last_on <- apply(Ycat, 1, function(y) max(which(!is.na(y))))
 cir_completed <- impute_cir(Ycat, treat1, last_on, cir_parameters)
 
-stopifnot(length(cir_completed) == n_imp,
-          all(vapply(cir_completed, function(y) {
-            !anyNA(y) && all(y %in% 0:1) &&
-              all(y[!is.na(Ycat)] == Ycat[!is.na(Ycat)])
-          }, logical(1))))
+stopifnot(
+    length(cir_completed) == n_imp,
+    all(vapply(cir_completed, function(y) {
+        !anyNA(y) && all(y %in% 0:1) &&
+            all(y[!is.na(Ycat)] == Ycat[!is.na(Ycat)])
+    }, logical(1)))
+)
 ```
 
 Note that this is fast compared to the MCMC sampling above, it only took `r runtime_seconds("cir-imputation-function")` seconds.
@@ -1643,74 +1735,79 @@ are unchanged, allowing an exact comparison with the same seed.
 ```{r}
 #| label: cir-fast-function
 impute_cir_fast <- function(Y, arm, last_on, parameters, seed = 20261103) {
-  D <- ncol(Y)
-  stopifnot(length(arm) == nrow(Y), all(arm %in% 1:2),
-            length(last_on) == nrow(Y), all(last_on %in% seq_len(D)),
-            all(Y[!is.na(Y)] %in% 0:1),
-            identical(parameters$metadata$arm_levels, c("1", "2")),
-            !parameters$metadata$same_cov,
-            length(parameters$beta[[1]]) == 2L * D)
-  set.seed(seed)
-  incomplete <- which(rowSums(is.na(Y)) > 0L)
+    D <- ncol(Y)
+    stopifnot(
+        length(arm) == nrow(Y), all(arm %in% 1:2),
+        length(last_on) == nrow(Y), all(last_on %in% seq_len(D)),
+        all(Y[!is.na(Y)] %in% 0:1),
+        identical(parameters$metadata$arm_levels, c("1", "2")),
+        !parameters$metadata$same_cov,
+        length(parameters$beta[[1]]) == 2L * D
+    )
+    set.seed(seed)
+    incomplete <- which(rowSums(is.na(Y)) > 0L)
 
-  # Placebo patients share one distribution regardless of discontinuation time.
-  group_key <- paste(arm[incomplete], ifelse(arm[incomplete] == 1L, D,
-                                            last_on[incomplete]), sep = ":")
-  group <- match(group_key, unique(group_key))
-  representatives <- incomplete[!duplicated(group_key)]
-  pattern_key <- apply(Y[incomplete, , drop = FALSE], 1, paste, collapse = ":")
-  pattern <- match(pattern_key, unique(pattern_key))
-  bounds <- lapply(incomplete[!duplicated(pattern_key)], function(i) {
-    y <- Y[i, ]
-    lower <- rep(-Inf, D)
-    upper <- rep(Inf, D)
-    lower[which(y == 1)] <- 0
-    upper[which(y == 0)] <- 0
-    list(lower = lower, upper = upper, missing = which(is.na(y)))
-  })
-
-  lapply(seq_along(parameters$beta), function(m) {
-    means <- matrix(parameters$beta[[m]], nrow = D, ncol = 2)
-    R <- parameters$sigma[[m]][[1]]
-    A <- parameters$sigma[[m]][[2]]
-    distributions <- lapply(representatives, function(i) {
-      mu <- means[, arm[i]]
-      Sigma <- parameters$sigma[[m]][[arm[i]]]
-      d <- last_on[i]
-      if (arm[i] == 2L && d < D) {
-        pre <- seq_len(d)
-        post <- seq.int(d + 1L, D)
-        mu[post] <- means[d, 2] + means[post, 1] - means[d, 1]
-        B <- R[post, pre, drop = FALSE] %*% solve(R[pre, pre, drop = FALSE])
-        V <- R[post, post, drop = FALSE] - B %*% R[pre, post, drop = FALSE]
-        cross <- B %*% A[pre, pre, drop = FALSE]
-        Sigma[post, pre] <- cross
-        Sigma[pre, post] <- t(cross)
-        Sigma[post, post] <- V + cross %*% t(B)
-      }
-      Sigma <- (Sigma + t(Sigma)) / 2
-      # These are rtmvnorm's covariance checks, done once per group.
-      stopifnot(isSymmetric(Sigma), all(diag(Sigma) > 0),
-                all(eigen(Sigma, only.values = TRUE)$values > 0))
-      list(mu = mu, Sigma = Sigma)
+    # Placebo patients share one distribution regardless of discontinuation time.
+    group_key <- paste(arm[incomplete], ifelse(arm[incomplete] == 1L, D,
+        last_on[incomplete]
+    ), sep = ":")
+    group <- match(group_key, unique(group_key))
+    representatives <- incomplete[!duplicated(group_key)]
+    pattern_key <- apply(Y[incomplete, , drop = FALSE], 1, paste, collapse = ":")
+    pattern <- match(pattern_key, unique(pattern_key))
+    bounds <- lapply(incomplete[!duplicated(pattern_key)], function(i) {
+        y <- Y[i, ]
+        lower <- rep(-Inf, D)
+        upper <- rep(Inf, D)
+        lower[which(y == 1)] <- 0
+        upper[which(y == 0)] <- 0
+        list(lower = lower, upper = upper, missing = which(is.na(y)))
     })
-    completed <- Y
-    for (k in seq_along(incomplete)) {
-      i <- incomplete[k]
-      distribution <- distributions[[group[k]]]
-      b <- bounds[[pattern[k]]]
-      z <- withCallingHandlers(
-        as.numeric(TruncatedNormal::rtmvnorm(
-          n = 1, mu = distribution$mu, sigma = distribution$Sigma,
-          lb = b$lower, ub = b$upper, check = FALSE
-        )),
-        warning = function(w) stop(conditionMessage(w), call. = FALSE)
-      )
-      stopifnot(length(z) == D, all(is.finite(z)), all(z >= b$lower & z <= b$upper))
-      completed[i, b$missing] <- as.integer(z[b$missing] > 0)
-    }
-    completed
-  })
+
+    lapply(seq_along(parameters$beta), function(m) {
+        means <- matrix(parameters$beta[[m]], nrow = D, ncol = 2)
+        R <- parameters$sigma[[m]][[1]]
+        A <- parameters$sigma[[m]][[2]]
+        distributions <- lapply(representatives, function(i) {
+            mu <- means[, arm[i]]
+            Sigma <- parameters$sigma[[m]][[arm[i]]]
+            d <- last_on[i]
+            if (arm[i] == 2L && d < D) {
+                pre <- seq_len(d)
+                post <- seq.int(d + 1L, D)
+                mu[post] <- means[d, 2] + means[post, 1] - means[d, 1]
+                B <- R[post, pre, drop = FALSE] %*% solve(R[pre, pre, drop = FALSE])
+                V <- R[post, post, drop = FALSE] - B %*% R[pre, post, drop = FALSE]
+                cross <- B %*% A[pre, pre, drop = FALSE]
+                Sigma[post, pre] <- cross
+                Sigma[pre, post] <- t(cross)
+                Sigma[post, post] <- V + cross %*% t(B)
+            }
+            Sigma <- (Sigma + t(Sigma)) / 2
+            # These are rtmvnorm's covariance checks, done once per group.
+            stopifnot(
+                isSymmetric(Sigma), all(diag(Sigma) > 0),
+                all(eigen(Sigma, only.values = TRUE)$values > 0)
+            )
+            list(mu = mu, Sigma = Sigma)
+        })
+        completed <- Y
+        for (k in seq_along(incomplete)) {
+            i <- incomplete[k]
+            distribution <- distributions[[group[k]]]
+            b <- bounds[[pattern[k]]]
+            z <- withCallingHandlers(
+                as.numeric(TruncatedNormal::rtmvnorm(
+                    n = 1, mu = distribution$mu, sigma = distribution$Sigma,
+                    lb = b$lower, ub = b$upper, check = FALSE
+                )),
+                warning = function(w) stop(conditionMessage(w), call. = FALSE)
+            )
+            stopifnot(length(z) == D, all(is.finite(z)), all(z >= b$lower & z <= b$upper))
+            completed[i, b$missing] <- as.integer(z[b$missing] > 0)
+        }
+        completed
+    })
 }
 ```
 
@@ -1722,15 +1819,17 @@ uses the public package API and avoids copying package internals.
 ```{r}
 #| label: cir-speed-comparison
 cir_time_original <- system.time(
-  cir_original_check <- impute_cir(Ycat, treat1, last_on, cir_parameters)
+    cir_original_check <- impute_cir(Ycat, treat1, last_on, cir_parameters)
 )[["elapsed"]]
 cir_rng_original <- .Random.seed
 cir_time_fast <- system.time(
-  cir_completed_fast <- impute_cir_fast(Ycat, treat1, last_on, cir_parameters)
+    cir_completed_fast <- impute_cir_fast(Ycat, treat1, last_on, cir_parameters)
 )[["elapsed"]]
-stopifnot(identical(cir_original_check, cir_completed_fast),
-          identical(cir_rng_original, .Random.seed),
-          identical(cir_completed, cir_completed_fast))
+stopifnot(
+    identical(cir_original_check, cir_completed_fast),
+    identical(cir_rng_original, .Random.seed),
+    identical(cir_completed, cir_completed_fast)
+)
 ```
 
 For `r length(cir_completed_fast)` imputations, the original took
@@ -1751,32 +1850,39 @@ note, so it is not a replication of the paper's inclusive-threshold analysis.
 #| label: cir-week8-analysis
 #| time_it: true
 week8_fits <- lapply(cir_completed, function(y) {
-  fit <- glm(response ~ active, family = binomial(), data = data.frame(
-    response = y[, "week8"], active = as.integer(treat1 == 2L)
-  ))
-  c(estimate = unname(coef(fit)["active"]), variance = vcov(fit)["active", "active"])
+    fit <- glm(response ~ active, family = binomial(), data = data.frame(
+        response = y[, "week8"], active = as.integer(treat1 == 2L)
+    ))
+    c(estimate = unname(coef(fit)["active"]), variance = vcov(fit)["active", "active"])
 })
 week8_fits <- do.call(rbind, week8_fits)
 pooled <- mice::pool.scalar(week8_fits[, "estimate"], week8_fits[, "variance"],
-                           n = nrow(Ycat), k = 2)
+    n = nrow(Ycat), k = 2
+)
 se <- sqrt(pooled$t)
 ci <- pooled$qbar + c(-1, 1) * qt(0.975, pooled$df) * se
 cir_result <- data.frame(
-  Imputations = n_imp, Odds_ratio = exp(pooled$qbar),
-  Lower_95 = exp(ci[1]), Upper_95 = exp(ci[2]),
-  P_value = 2 * pt(-abs(pooled$qbar / se), pooled$df)
+    Imputations = n_imp, Odds_ratio = exp(pooled$qbar),
+    Lower_95 = exp(ci[1]), Upper_95 = exp(ci[2]),
+    P_value = 2 * pt(-abs(pooled$qbar / se), pooled$df)
 )
 knitr::kable(cir_result, digits = 3)
 
 # Descriptive MI-averaged response proportions (not pooled confidence intervals).
 cir_rates <- rowMeans(vapply(cir_completed, function(y) {
-  c(Placebo = mean(y[treat1 == 1L, "week8"]),
-    Active = mean(y[treat1 == 2L, "week8"]))
+    c(
+        Placebo = mean(y[treat1 == 1L, "week8"]),
+        Active = mean(y[treat1 == 2L, "week8"])
+    )
 }, numeric(2)))
 knitr::kable(data.frame(Arm = names(cir_rates), Response = cir_rates), digits = 3)
-saveRDS(list(completed = cir_completed, last_on = last_on,
-             parameters = cir_parameters, result = cir_result, rates = cir_rates),
-        file.path(dirname(archive), "cir_example.rds"))
+saveRDS(
+    list(
+        completed = cir_completed, last_on = last_on,
+        parameters = cir_parameters, result = cir_result, rates = cir_rates
+    ),
+    file.path(dirname(archive), "cir_example.rds")
+)
 ```
 
 This takes a little bit of time only: `r runtime_seconds("cir-week8-analysis")` seconds.
@@ -1793,5 +1899,319 @@ All `r sum(!is.na(Ycat))` observed responses were preserved
 in every dataset; all `r sum(is.na(Ycat))` missing responses were imputed. The completed datasets,
 selected parameter draws, and summaries are saved in `cir_example.rds` beside
 this document. These results depend on CIR and the inferred cessation times.
+
+## `rbmi` integration prototype
+
+The proposed entry point is `draws(..., outcome = "binary")`, following the
+branch's `draws()` spelling and endpoint selector. Use one row per subject and
+scheduled visit, including rows with missing outcomes. Visit factor levels
+give chronological order. The first group level is the reference arm.
+`data_ice` gives the **first affected visit** for each subject assigned CIR.
+Subjects without an ICE record follow their randomized-arm distribution (MAR).
+
+The local functions below implement the four steps with column names supplied through
+`set_vars()`. This first version supports two arms, saturated
+arm-by-visit means, separate unstructured latent correlations, and a Bayesian
+draw method. It uses the section 2 Stan settings. A package implementation
+would add binary dispatch to `draws()` and `impute()`, expose sampler controls,
+and let `analyse()` recognize the binary imputation class. Rubin pooling
+already accepts the analysis result.
+
+### Draw and impute
+
+Keep two versions of the outcomes. The draw model estimates on-treatment
+parameters, so it masks observed CIR outcomes from the first affected visit.
+Imputation conditions on the original observations, including any recorded
+after discontinuation. An optional fitted model lets the example reuse the
+earlier Stan run after checking its prepared inputs.
+
+```{r}
+#| label: binary-integration-draws
+# Binary counterpart of rbmi::draws() and its draws.bayes() method.
+#
+# data: Long data with one row per subject and visit and a 0/1/NA outcome.
+# data_ice: Optional subject, first affected visit and CIR strategy columns.
+# vars: Column mapping from rbmi::set_vars() for the saturated two-arm model.
+# method: rbmi::method_bayes() with separate unstructured correlations.
+# outcome: Endpoint selector, "binary" for this prototype.
+# fit: Optional section 2 fit for the same prepared data.
+# seed: Random seed for fitting and selecting paired posterior draws.
+binary_draws <- function(
+  data,
+  data_ice = NULL,
+  vars,
+  method,
+  outcome = "binary",
+  fit = NULL,
+  seed = 20261102L
+) {
+    original <- data
+    fields <- c("subjid", "visit", "group", "outcome")
+    columns <- unlist(vars[fields], use.names = FALSE)
+    stopifnot(
+        inherits(vars, "ivars"),
+        is.null(vars$period),
+        !length(vars$covariates),
+        identical(vars$strata, vars$group),
+        length(columns) == length(fields),
+        !anyDuplicated(columns),
+        all(columns %in% names(data))
+    )
+    data <- setNames(data[columns], fields)
+    if (is.null(data_ice)) {
+        data_ice <- data.frame(
+            subjid = character(),
+            visit = character(),
+            strategy = character()
+        )
+    } else {
+        ice_fields <- c("subjid", "visit", "strategy")
+        data_ice <- setNames(
+            data_ice[unlist(vars[ice_fields], use.names = FALSE)],
+            ice_fields
+        )
+    }
+    stopifnot(
+        identical(outcome, "binary"),
+        inherits(method, "bayes"),
+        identical(method$covariance, "us"),
+        identical(method$same_cov, FALSE),
+        is.factor(data$visit),
+        is.factor(data$group),
+        nlevels(data$group) == 2L,
+        !anyNA(data[c("subjid", "visit", "group")]),
+        is.numeric(data$outcome),
+        all(na.omit(data$outcome) %in% 0:1)
+    )
+    ids <- unique(as.character(data$subjid))
+    visits <- levels(data$visit)
+    i <- match(data$subjid, ids)
+    j <- as.integer(data$visit)
+    arm <- as.integer(data$group[match(ids, data$subjid)])
+    stopifnot(
+        all(as.integer(data$group) == arm[i]),
+        !anyDuplicated(data[c("subjid", "visit")]),
+        nrow(data) == length(ids) * length(visits)
+    )
+    Y <- matrix(
+        NA_integer_,
+        length(ids),
+        length(visits),
+        dimnames = list(ids, visits)
+    )
+    Y[cbind(i, j)] <- as.integer(data$outcome)
+
+    subjects <- match(data_ice$subjid, ids)
+    first <- match(data_ice$visit, visits)
+    stopifnot(
+        all(c("subjid", "visit", "strategy") %in% names(data_ice)),
+        !anyNA(subjects),
+        !anyDuplicated(subjects),
+        !anyNA(first),
+        all(data_ice$strategy == "CIR"),
+        all(first > 1L)
+    )
+    last_on <- rep(length(visits), length(ids))
+    last_on[subjects] <- first - 1L
+    Y_fit <- Y
+    Y_fit[col(Y) > last_on] <- NA_integer_
+    prepared <- prepare_probit_data(Y_fit, arm, same_cov = FALSE)
+    if (is.null(fit)) {
+        model <- cmdstanr::cmdstan_model(cmdstanr::write_stan_file(
+            probit_stan_code
+        ))
+        fit <- fit_probit_draws(prepared, model, seed = seed, init = 0)
+    } else {
+        stopifnot(identical(prepared, fit$prepared))
+    }
+    structure(
+        list(
+            data = original,
+            vars = vars,
+            index = cbind(i, j),
+            Y = Y,
+            arm = arm,
+            last_on = last_on,
+            method = method,
+            parameters = extract_probit_draws(fit, method$n_samples, seed)
+        ),
+        class = "draws_binary"
+    )
+}
+
+# Binary counterpart of rbmi::impute(), following impute.draws_count().
+#
+# draws: Binary draws object with the original data and paired parameters.
+# seed: Random seed for conditional latent-response sampling.
+binary_impute <- function(draws, seed = 20261103L) {
+    stopifnot(inherits(draws, "draws_binary"))
+    p <- draws$parameters
+    matrices <- if (anyNA(draws$Y)) {
+        impute_cir_fast(draws$Y, draws$arm, draws$last_on, p, seed)
+    } else {
+        rep(list(draws$Y), length(p$beta))
+    }
+    completed <- lapply(matrices, function(y) {
+        dat <- draws$data
+        dat[[draws$vars$outcome]] <- y[draws$index]
+        dat
+    })
+    structure(
+        list(imputations = completed, method = draws$method),
+        class = "imputation_binary"
+    )
+}
+```
+
+### Analyse and pool
+
+The callback receives one completed long dataset and returns the usual named
+parameter list with an estimate, standard error and complete-data degrees of
+freedom. For this unadjusted two-arm model, an empty arm-by-response cell
+precludes a finite maximum-likelihood treatment contrast. The prototype stops
+in that case. Firth logistic regression will be handled in the next design
+iteration.
+
+```{r}
+#| label: binary-integration-analysis
+# Binary endpoint callback corresponding to rbmi::ancova() in rbmi::analyse().
+#
+# data: One completed long dataset.
+# vars: The same rbmi::set_vars() mapping used for draws.
+# visit: Single visit label at which to estimate the treatment contrast.
+binary_logistic <- function(data, vars, visit) {
+    stopifnot(length(visit) == 1L, visit %in% levels(data[[vars$visit]]))
+    at_visit <- data[[vars$visit]] == visit
+    endpoint <- data.frame(
+        group = data[[vars$group]][at_visit],
+        outcome = data[[vars$outcome]][at_visit]
+    )
+    cells <- table(endpoint$group, factor(endpoint$outcome, levels = 0:1))
+    if (any(cells == 0L)) {
+        stop("Week-specific logistic contrast is not estimable.")
+    }
+    endpoint$active <- as.integer(endpoint$group) - 1L
+    fit <- glm(outcome ~ active, data = endpoint, family = binomial())
+    stopifnot(fit$converged)
+    list(
+        log_odds_ratio = list(
+            est = unname(coef(fit)["active"]),
+            se = sqrt(vcov(fit)["active", "active"]),
+            df = df.residual(fit)
+        )
+    )
+}
+
+# Binary counterpart of rbmi::analyse(), using its analysis constructor.
+#
+# imputations: Completed datasets returned by binary_impute().
+# fun: Analysis callback applied to each completed dataset.
+# transform: Optional rbmi transformation specification attached to the callback.
+# ...: Extra callback arguments, such as vars and visit.
+binary_analyse <- function(
+  imputations,
+  fun = binary_logistic,
+  transform = attr(fun, "transform"),
+  ...
+) {
+    stopifnot(inherits(imputations, "imputation_binary"))
+    results <- lapply(imputations$imputations, fun, ...)
+    analysis <- rbmi:::as_analysis(
+        results,
+        imputations$method,
+        fun = fun,
+        fun_name = deparse(substitute(fun)),
+        transform = transform
+    )
+    class(analysis)[1] <- "analysis_binary"
+    rbmi:::validate(analysis)
+    analysis
+}
+```
+
+The local adapter uses the branch's internal analysis constructor. In the
+package, adding `"binary"` to its endpoint selector would assign the subclass
+directly. Call `rbmi::pool()` on the result to combine log odds ratios and
+their within-imputation variances. Exponentiate the pooled estimate and
+interval endpoints for reporting.
+
+## Example data analysis
+
+Recreate the antidepressant trial's scheduled rows and translate the section 3
+cessation assumption into ICE records. Here the last observed visit serves as
+the last on-treatment visit. In a trial with recorded discontinuation dates,
+derive the first affected visit from those dates.
+
+```{r}
+#| label: binary-integration-trial
+trial <- expand.grid(
+    subjid = rownames(Ycat),
+    visit = colnames(Ycat),
+    stringsAsFactors = FALSE
+)
+trial$visit <- factor(trial$visit, levels = colnames(Ycat))
+trial$group <- factor(
+    treat1[match(trial$subjid, rownames(Ycat))],
+    levels = 1:2,
+    labels = c("Placebo", "Active")
+)
+trial$outcome <- as.vector(Ycat)
+off <- which(last_on < ncol(Ycat))
+ice <- data.frame(
+    subjid = rownames(Ycat)[off],
+    visit = colnames(Ycat)[last_on[off] + 1L],
+    strategy = rep("CIR", length(off))
+)
+
+method <- rbmi::method_bayes(
+    covariance = "us",
+    same_cov = FALSE,
+    n_samples = n_imp
+)
+vars <- rbmi::set_vars()
+draw <- binary_draws(
+    trial,
+    ice,
+    vars,
+    method,
+    outcome = "binary",
+    fit = probit_fit
+)
+imp <- binary_impute(draw)
+ana <- binary_analyse(imp, binary_logistic, vars = vars, visit = "week8")
+result <- rbmi::pool(ana)
+contrast <- result$pars$log_odds_ratio
+odds <- exp(c(contrast$est, contrast$ci))
+# Check that the imputed outcomes match the completed responses
+# and the pooled odds ratio matches the reference result
+stopifnot(
+    all(vapply(
+        seq_len(n_imp),
+        function(m) {
+            identical(
+                imp$imputations[[m]]$outcome,
+                as.vector(cir_completed[[m]])
+            )
+        },
+        logical(1)
+    )),
+    isTRUE(all.equal(odds[1], cir_result$Odds_ratio, check.attributes = FALSE))
+)
+knitr::kable(
+    data.frame(
+        Imputations = n_imp,
+        Odds_ratio = odds[1],
+        Lower_95 = odds[2],
+        Upper_95 = odds[3]
+    ),
+    digits = 3
+)
+```
+
+With the same posterior draws and imputation seed, the check compares every
+completed response with section 3 and verifies the pooled point estimate.
+The table reports the Week 8 active-versus-placebo odds ratio for a strict
+greater-than-50% response under CIR, using the branch's default Barnard–Rubin
+degrees of freedom.
 
 ## References
