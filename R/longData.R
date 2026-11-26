@@ -575,18 +575,13 @@ longDataConstructor <- R6::R6Class(
                 unique(c(vars$visit, extract_covariates(vars$covariates)))
             )
             if (uses_period(vars)) {
-                periods <- period_levels(data_nochar, vars)
-                data_nochar[[vars$period]] <- factor(
-                    data_nochar[[vars$period]],
-                    levels = periods
-                )
                 # rerun as_dataframe to reset the rownames
                 self$data <- as_dataframe(sort_by(
                     data_nochar,
                     c(vars$subjid, vars$period)
                 ))
                 self$vars <- vars
-                self$periods <- periods
+                self$periods <- visit_levels(self$data, vars)
                 frmvars <- c(
                     ife(
                         nlevels(self$data[[vars$group]]) >= 2,

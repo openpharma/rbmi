@@ -20,8 +20,7 @@
 #' in the `data`
 #'
 #' - `validate_datalong_types` - Checks that the types of each key variable is as expected
-#' i.e. that visit is a factor variable, or period is a character, factor, or
-#' numeric variable when `period` is specified via [set_vars()]
+#' e.g. that the visit or period column specified via [set_vars()] is a factor
 #'
 #' - `validate_datalong_notMissing` - Checks that none of the key variables (except the outcome variable)
 #' contain any missing values
@@ -114,36 +113,20 @@ validate_datalong_types <- function(data, vars) {
         )
     )
 
-    if (uses_period(vars)) {
-        period_values <- data[[vars$period]]
-        period_values <- period_values[!is.na(period_values)]
-        valid_type <- is.character(data[[vars$period]]) ||
-            is.factor(data[[vars$period]]) ||
-            is.numeric(data[[vars$period]])
-        finite_numeric <- !is.numeric(data[[vars$period]]) ||
-            all(is.finite(period_values))
-        assert_that(
-            valid_type,
-            finite_numeric,
-            msg = sprintf(
-                "Variable `%s` should be of type character, factor or numeric",
-                vars$period
-            )
-        )
-    } else {
-        assert_that(
-            is.factor(data[[vars$visit]]),
-            msg = sprintf("Variable `%s` should be of type factor", vars$visit)
-        )
+    time_var <- if (uses_period(vars)) vars$period else vars$visit
+    time_values <- data[[time_var]]
+    assert_that(
+        is.factor(time_values),
+        msg = sprintf("Variable `%s` should be of type factor", time_var)
+    )
 
-        assert_that(
-            length(unique(data[[vars$visit]])) == nlevels(data[[vars$visit]]),
-            msg = sprintf(
-                "The number of levels in variable `%s` is different than the number of observed levels",
-                vars$visit
-            )
+    assert_that(
+        length(unique(time_values)) == nlevels(time_values),
+        msg = sprintf(
+            "The number of levels in variable `%s` is different than the number of observed levels",
+            time_var
         )
-    }
+    )
 
     assert_that(
         is.numeric(data[[vars$outcome]]),
@@ -337,28 +320,6 @@ uses_period <- function(vars) {
     !is.null(vars$period)
 }
 
-#' Get ordered period levels from longitudinal data
-#'
-#' @param data A longitudinal data frame.
-#' @param vars An `ivars` object created by [set_vars()].
-#'
-#' @return A character vector containing observed period levels. Factor level
-#'   order is retained, numeric periods are sorted numerically, and otherwise
-#'   periods are sorted lexicographically.
-#'
-#' @keywords internal
-period_levels <- function(data, vars) {
-    period <- data[[vars$period]]
-    observed <- unique(as.character(period))
-    if (is.factor(period)) {
-        levels(period)[levels(period) %in% observed]
-    } else if (is.numeric(period)) {
-        as.character(sort(unique(period)))
-    } else {
-        sort(observed)
-    }
-}
-
 #' Get visit or period levels from longitudinal data
 #'
 #' @param data A longitudinal data frame.
@@ -368,9 +329,6 @@ period_levels <- function(data, vars) {
 #'
 #' @keywords internal
 visit_levels <- function(data, vars) {
-    if (uses_period(vars)) {
-        period_levels(data, vars)
-    } else {
-        levels(data[[vars$visit]])
-    }
+    time_var <- if (uses_period(vars)) vars$period else vars$visit
+    levels(data[[time_var]])
 }

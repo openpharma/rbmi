@@ -389,7 +389,7 @@ built and will vary with the computing environment.</p>
 <span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a>    ) <span class="sc">%&gt;%</span> </span>
 <span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
 <span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a>        <span class="at">patient =</span> <span class="fu">factor</span>(patient),</span>
-<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a>        <span class="at">period =</span> <span class="fu">as.character</span>(period),</span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a>        <span class="at">period =</span> <span class="fu">factor</span>(period, <span class="at">levels =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>),</span>
 <span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a>        <span class="at">TreatLab =</span> <span class="fu">factor</span>(TreatLab, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">&quot;Placebo&quot;</span>, <span class="st">&quot;100mg&quot;</span>, <span class="st">&quot;300mg&quot;</span>)),</span>
 <span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a>        <span class="at">OnOff =</span> <span class="fu">factor</span>(OnOff, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">&quot;On&quot;</span>, <span class="st">&quot;Off&quot;</span>))</span>
 <span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a>    ) <span class="sc">%&gt;%</span> </span>
@@ -413,10 +413,11 @@ built and will vary with the computing environment.</p>
 <li><code>Observed_Count</code>: observed number of events during the period; this is missing for period 3 because that period occurs after withdrawal.</li>
 </ul>
 <p>The source data omit periods with zero length. We use <code>expand_locf()</code> to add these rows so that every patient has all three periods. The treatment arm and baseline count are carried forward, while <code>OnOff</code> is derived from the period. Added rows have zero length and a missing observed count.</p>
+<p>The period column supplied to <code>draws()</code> must be a factor with no unused levels. Set the levels in the order in which periods should be processed. <code>rbmi</code> keeps the factor’s ordered status and any custom contrasts. To model a continuous trend, include a separate numeric period column as a covariate.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>dat_count_filled <span class="ot">&lt;-</span> dat_count <span class="sc">%&gt;%</span></span>
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>    <span class="fu">expand_locf</span>(</span>
 <span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>        <span class="at">patient =</span> <span class="fu">levels</span>(dat_count<span class="sc">$</span>patient),</span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>        <span class="at">period =</span> <span class="fu">as.character</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>),</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>        <span class="at">period =</span> <span class="fu">levels</span>(dat_count<span class="sc">$</span>period),</span>
 <span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>        <span class="at">vars =</span> <span class="fu">c</span>(<span class="st">&quot;TreatLab&quot;</span>, <span class="st">&quot;BaseCount&quot;</span>),</span>
 <span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>        <span class="at">group =</span> <span class="st">&quot;patient&quot;</span>,</span>
 <span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>        <span class="at">order =</span> <span class="fu">c</span>(<span class="st">&quot;patient&quot;</span>, <span class="st">&quot;period&quot;</span>)</span>

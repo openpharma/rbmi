@@ -76,12 +76,16 @@
 #'
 #' The argument `data` contains the longitudinal data. It must have at least the following variables:
 #' - `subjid`: a factor vector containing the subject ids.
-#' - `visit`: a factor vector containing the visit the outcome was observed on.
+#' - `visit`: for continuous outcomes, a factor vector containing the visit the outcome was observed on.
+#' - `period`: for count outcomes, a factor vector containing the period, with no missing
+#'   values or unused levels. Its levels determine period order. Its contrasts and ordered
+#'   status are retained.
+#' - `duration`: for count outcomes, a numeric vector containing the exposure duration for each period.
 #' - `group`: a factor vector containing the group that the subject belongs to.
 #' - `outcome`: a numeric vector containing the outcome variable. It might contain missing values.
 #' Additional baseline or time-varying covariates must be included in `data`.
 #'
-#' `data` must have one row per visit per subject. This means that incomplete
+#' For continuous outcomes, `data` must have one row per visit per subject. This means that incomplete
 #' outcome data must be set as `NA` instead of having the related row missing. Missing values
 #' in the covariates are not allowed.
 #' If `data` is incomplete
@@ -154,9 +158,11 @@
 #' - `outcome`: name of the column in `data` which contains the outcome variable.
 #' - `covariates`: vector of characters which contains the covariates to be included
 #'   in the model (including interactions which are specified as `"covariateName1*covariateName2"`).
-#'   If no covariates are provided the default model specification of `outcome ~ 1 + visit + group` will be used.
-#'   Please note that the `group*visit` interaction
-#'   is **not** included in the model by default.
+#'   For continuous outcomes the default is `outcome ~ 1 + visit + group`.
+#'   Please note that the `group*visit` interaction is **not** included in the model by default.
+#'   (Add `group*visit` to include it.)
+#'   For count outcomes, you can include the period factor in `covariates` to fit period
+#'   effects, or e.g. include a separate numeric period covariate to fit a continuous period trend.
 #' - `strata`: for continuous outcomes, covariates used as stratification variables in the bootstrap sampling.
 #'   By default only the `vars$group` is set as stratification variable.
 #'   Needed only for `method_condmean(type = "bootstrap")` and `method_approxbayes()`.
@@ -284,7 +290,9 @@ validate_draws_outcome <- function(vars, outcome) {
         assert_that(
             outcome == "count",
             msg = paste0(
-                '`outcome = "', outcome, '"` is incompatible with `vars$period` ',
+                '`outcome = "',
+                outcome,
+                '"` is incompatible with `vars$period` ',
                 'and `vars$duration`; use `outcome = "count"`.'
             )
         )
@@ -292,7 +300,9 @@ validate_draws_outcome <- function(vars, outcome) {
         assert_that(
             outcome == "continuous",
             msg = paste0(
-                '`outcome = "', outcome, '"` is incompatible with `vars$visit`; ',
+                '`outcome = "',
+                outcome,
+                '"` is incompatible with `vars$visit`; ',
                 'use `outcome = "continuous"` or specify `period` and `duration` in `set_vars()`.'
             )
         )

@@ -170,7 +170,7 @@ test_that("count MCMC returns named group-specific dispersion draws", {
         "Observed_Count"
     )]
     dat$patient <- factor(dat$patient)
-    dat$period <- as.character(dat$period)
+    dat$period <- factor(dat$period, levels = 1:3)
     dat$TreatLab <- factor(
         dat$TreatLab,
         levels = c("Placebo", "100mg", "300mg")
@@ -178,7 +178,7 @@ test_that("count MCMC returns named group-specific dispersion draws", {
     dat <- expand_locf(
         dat,
         patient = levels(dat$patient),
-        period = as.character(1:3),
+        period = levels(dat$period),
         vars = c("TreatLab", "BaseCount"),
         group = "patient",
         order = c("patient", "period")

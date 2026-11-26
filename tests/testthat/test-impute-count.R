@@ -9,7 +9,7 @@ make_count_draws <- function(strategy = "JR", phi = 0.5) {
             rep(c("control", "active"), each = 3),
             levels = c("control", "active")
         ),
-        period = rep(as.character(1:3), 2),
+        period = factor(rep(1:3, 2)),
         duration = c(1, 1, 1, 1, 1, 1),
         outcome = c(2, 3, NA, 1, 2, NA),
         group = factor(
@@ -589,7 +589,7 @@ test_that("non-MAR count strategies retain all observed draw-model cells", {
 test_that("count reference designs keep the coding of the treatment factor", {
     dat <- data.frame(
         id = factor(rep(c("a", "b"), each = 2)),
-        period = rep(c("1", "2"), 2),
+        period = factor(rep(1:2, 2)),
         duration = 1,
         outcome = c(1, NA, 1, NA),
         group = factor(rep(c("A", "B"), each = 2))

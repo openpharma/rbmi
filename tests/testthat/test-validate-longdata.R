@@ -53,7 +53,7 @@ vars <- set_vars(
 
 dat_period <- dat %>%
     mutate(
-        period = as.character(as.integer(visit)),
+        period = factor(as.integer(visit)),
         duration = rep(c(2, 0, 1), times = n)
     )
 
@@ -69,30 +69,100 @@ vars_period <- set_vars(
 )
 
 
-test_that("period_levels orders periods according to their type", {
-    period_data <- tibble(period = c(2, 10, 1))
-
-    expect_equal(period_levels(period_data, vars_period), c("1", "2", "10"))
-
-    period_data$period <- as.character(period_data$period)
-    expect_equal(period_levels(period_data, vars_period), c("1", "10", "2"))
-
-    period_data$period <- factor(
-        period_data$period,
-        levels = c("2", "10", "1")
+make_period_review_data <- function() {
+    data.frame(
+        id = factor(rep(c("a", "b"), each = 3)),
+        group = factor(
+            rep(c("Control", "Active"), each = 3),
+            levels = c("Control", "Active")
+        ),
+        period = rep(c(2, 6, 12), 2),
+        duration = 1,
+        outcome = c(3, 4, NA, 4, 5, NA)
     )
-    expect_equal(period_levels(period_data, vars_period), c("2", "10", "1"))
+}
+
+
+test_that("numeric periods are rejected and a separate numeric trend is preserved", {
+    withr::local_options(contrasts = c("contr.treatment", "contr.poly"))
+    data <- make_period_review_data()
+    vars <- set_vars(
+        subjid = "id", period = "period", duration = "duration", covariates = "period"
+    )
+
+    expect_error(
+        longDataConstructor$new(data, vars),
+        "Variable `period` should be of type factor"
+    )
+
+    data$time <- data$period
+    data$period <- factor(data$period, levels = c(2, 6, 12))
+    vars$covariates <- "time"
+    ld <- longDataConstructor$new(data, vars)
+    design <- as_model_df(ld$data, ld$formula)[, -1, drop = FALSE]
+    expect_identical(
+        model_term_names(ld$data, ld$formula),
+        c("(Intercept)", "groupActive", "time")
+    )
+    # Period 12 has no observed counts, but the time trend is identifiable.
+    stan_data <- prepare_stan_data_count(
+        design, ld$data$id, ld$data$duration, ld$data$outcome, ld$data$group,
+        same_cov = TRUE
+    )
+    expect_equal(stan_data$P, 3)
+
+    completed <- ld$get_data(imputation_df(
+        imputation_single(id = "a", values = 5),
+        imputation_single(id = "b", values = 6)
+    ))
+    expect_identical(completed$time, rep(c(2, 6, 12), 2))
+    expect_identical(completed$time >= 6, rep(c(FALSE, TRUE, TRUE), 2))
 })
 
 
-test_that("character periods are sorted in ragged data", {
-    period_data <- tibble(
-        subjid = c(1, 1, 2, 2, 2),
-        period = c("1", "3", "1", "2", "3")
+test_that("period factors retain custom contrasts and ordered status", {
+    withr::local_options(contrasts = c("contr.treatment", "contr.poly"))
+    data <- make_period_review_data()
+    vars <- set_vars(
+        subjid = "id", period = "period", duration = "duration", covariates = "period"
     )
 
-    expect_equal(period_levels(period_data, vars_period), c("1", "2", "3"))
-    expect_equal(visit_levels(period_data, vars_period), c("1", "2", "3"))
+    for (ordered in c(FALSE, TRUE)) {
+        data$period <- factor(data$period, levels = c(2, 6, 12), ordered = ordered)
+        stats::contrasts(data$period, how.many = 1) <-
+            stats::contr.poly(3)[, 1, drop = FALSE]
+
+        ld <- longDataConstructor$new(data, vars)
+        expect_identical(ld$get_data()$period, data$period)
+        expect_identical(
+            model_term_names(ld$get_data(), ld$formula),
+            c("(Intercept)", "groupActive", "period.L")
+        )
+
+        completed <- ld$get_data(imputation_df(
+            imputation_single(id = "a", values = 5),
+            imputation_single(id = "b", values = 6)
+        ))
+        expect_identical(completed$period, data$period)
+    }
+})
+
+
+test_that("character periods require explicit factor order in ragged data", {
+    data <- make_period_review_data()
+    data$period <- rep(c("1", "2", "10"), 2)
+    data <- data[c(6, 3, 4, 2, 1), ]
+    vars <- set_vars(subjid = "id", period = "period", duration = "duration")
+
+    expect_error(
+        longDataConstructor$new(data, vars),
+        "Variable `period` should be of type factor"
+    )
+
+    data$period <- factor(data$period, levels = c("1", "2", "10"))
+    ld <- longDataConstructor$new(data, vars)
+    expect_identical(ld$periods, c("1", "2", "10"))
+    expect_identical(as.character(ld$get_data()$period), c("1", "2", "10", "1", "10"))
 })
 
 
@@ -275,14 +345,7 @@ test_that("validate_datalong_types", {
     dat2$visit <- factor("A")
     expect_true(validate_datalong_types(dat2, vars))
 
-    # The period can be character, factor, or numeric, with arbitrary values.
-    dat2 <- dat_period
-    dat2$period <- factor(dat2$period)
-    expect_true(validate_datalong_types(dat2, vars_period))
-    dat2$period <- as.numeric(as.character(dat2$period))
-    expect_true(validate_datalong_types(dat2, vars_period))
-
-    # Test that if group or visit variables have unobserved levels return error
+    # Group, visit and period variables must have data rows for every level.
     dat2 <- dat[dat$visit != "Visit 1", ]
     expect_error(
         validate_datalong_types(dat2, vars),
@@ -294,9 +357,11 @@ test_that("validate_datalong_types", {
         "`group`"
     )
 
-    dat2 <- dat_period
-    dat2$period[1] <- "4"
-    expect_true(validate_datalong_types(dat2, vars_period))
+    dat2 <- dat_period[dat_period$period != "3", ]
+    expect_error(
+        validate_datalong_types(dat2, vars_period),
+        "The number of levels in variable `period` is different than the number of observed levels"
+    )
 
     dat2 <- dat_period
     dat2$duration[1] <- -1
@@ -368,9 +433,6 @@ test_that("validate_datalong_complete", {
     ### Completely remove 1 visit (should check against the levels)
     dat2 <- dat %>% dplyr::filter(visit != "Visit 1")
     expect_error(validate_datalong_complete(dat2, vars))
-
-    dat2 <- dat_period %>% dplyr::filter(period != "3")
-    expect_true(validate_datalong_complete(dat2, vars_period))
 
     dat2 <- dat_period[-1, ]
     expect_true(validate_datalong_complete(dat2, vars_period))

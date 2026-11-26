@@ -425,8 +425,10 @@ sort_by <- function(df, vars = NULL, decreasing = FALSE) {
 #' @param visit The name of the "Visit" variable. A length 1 character vector.
 #'
 #' @param period Alternatively to `visit`, the name of the "Period" variable.
-#' A length 1 character vector. The corresponding data column contains the periods
-#' which are typically character or factor valued.
+#' A length 1 character vector. The corresponding column in the longitudinal data
+#' must be a factor with no missing values or unused levels. Set the factor levels
+#' in the order in which periods should be processed. The supplied factor, including
+#' its contrasts and ordered status, is retained in the imputation data.
 #'
 #' @param duration The name of the "Duration" variable. A length 1 character
 #' vector or `NULL`. If `period` is specified, this argument is required. The

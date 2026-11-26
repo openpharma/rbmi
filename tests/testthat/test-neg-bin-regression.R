@@ -18,7 +18,7 @@ make_count_analysis_data <- function() {
 
     data.frame(
         subject = subject,
-        period = rep(as.character(seq_len(periods)), number_subjects),
+        period = factor(rep(seq_len(periods), number_subjects)),
         duration = duration,
         count = stats::rpois(
             number_subjects * periods,
