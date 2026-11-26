@@ -76,12 +76,16 @@
 #'
 #' The argument `data` contains the longitudinal data. It must have at least the following variables:
 #' - `subjid`: a factor vector containing the subject ids.
-#' - `visit`: a factor vector containing the visit the outcome was observed on.
+#' - `visit`: for continuous outcomes, a factor vector containing the visit the outcome was observed on.
+#' - `period`: for count outcomes, a factor vector containing the period, with no missing
+#'   values or unused levels. Its levels determine period order. Its contrasts and ordered
+#'   status are retained.
+#' - `duration`: for count outcomes, a numeric vector containing the exposure duration for each period.
 #' - `group`: a factor vector containing the group that the subject belongs to.
 #' - `outcome`: a numeric vector containing the outcome variable. It might contain missing values.
 #' Additional baseline or time-varying covariates must be included in `data`.
 #'
-#' `data` must have one row per visit per subject. This means that incomplete
+#' For continuous outcomes, `data` must have one row per visit per subject. This means that incomplete
 #' outcome data must be set as `NA` instead of having the related row missing. Missing values
 #' in the covariates are not allowed.
 #' If `data` is incomplete
@@ -154,9 +158,11 @@
 #' - `outcome`: name of the column in `data` which contains the outcome variable.
 #' - `covariates`: vector of characters which contains the covariates to be included
 #'   in the model (including interactions which are specified as `"covariateName1*covariateName2"`).
-#'   If no covariates are provided the default model specification of `outcome ~ 1 + visit + group` will be used.
-#'   Please note that the `group*visit` interaction
-#'   is **not** included in the model by default.
+#'   For continuous outcomes the default is `outcome ~ 1 + visit + group`.
+#'   Please note that the `group*visit` interaction is **not** included in the model by default.
+#'   (Add `group*visit` to include it.)
+#'   For count outcomes, you can include the period factor in `covariates` to fit period
+#'   effects, or e.g. include a separate numeric period covariate to fit a continuous period trend.
 #' - `strata`: for continuous outcomes, covariates used as stratification variables in the bootstrap sampling.
 #'   By default only the `vars$group` is set as stratification variable.
 #'   Needed only for `method_condmean(type = "bootstrap")` and `method_approxbayes()`.
@@ -165,6 +171,8 @@
 #' - `duration`: for count outcomes, name of the column in `data` which contains the duration variable.
 #'
 #' The `outcome` argument allows to select either the continuous outcome or the count outcome.
+#' It must agree with `vars`: use `"continuous"` (the default) with `vars$visit`,
+#' or `"count"` with `vars$period` and `vars$duration`.
 #' Please see the corresponding statistical specification vignettes for details on the methods.
 #'
 #' In our experience, Bayesian MI (`method = method_bayes()`) with a relatively low number of
@@ -275,6 +283,34 @@ draws <- function(
 }
 
 
+# Validate compatibility before preparing data or fitting a model.
+validate_draws_outcome <- function(vars, outcome) {
+    validate(vars)
+    if (uses_period(vars)) {
+        assert_that(
+            outcome == "count",
+            msg = paste0(
+                '`outcome = "',
+                outcome,
+                '"` is incompatible with `vars$period` ',
+                'and `vars$duration`; use `outcome = "count"`.'
+            )
+        )
+    } else {
+        assert_that(
+            outcome == "continuous",
+            msg = paste0(
+                '`outcome = "',
+                outcome,
+                '"` is incompatible with `vars$visit`; ',
+                'use `outcome = "continuous"` or specify `period` and `duration` in `set_vars()`.'
+            )
+        )
+    }
+    invisible(TRUE)
+}
+
+
 #' @rdname draws
 #' @export
 draws.approxbayes <- function(
@@ -287,6 +323,7 @@ draws.approxbayes <- function(
     quiet = FALSE
 ) {
     outcome <- match.arg(outcome)
+    validate_draws_outcome(vars, outcome)
     assert_that(
         outcome == "continuous",
         msg = "Only continuous outcomes are supported for approximate Bayesian MI"
@@ -320,6 +357,7 @@ draws.condmean <- function(
     quiet = FALSE
 ) {
     outcome <- match.arg(outcome)
+    validate_draws_outcome(vars, outcome)
     assert_that(
         outcome == "continuous",
         msg = "Only continuous outcomes are supported for conditional mean MI"
@@ -369,6 +407,7 @@ draws.bmlmi <- function(
     quiet = FALSE
 ) {
     outcome <- match.arg(outcome)
+    validate_draws_outcome(vars, outcome)
     assert_that(
         outcome == "continuous",
         msg = "Only continuous outcomes are supported for BMLMI"
@@ -628,6 +667,7 @@ draws.bayes <- function(
     quiet = FALSE
 ) {
     outcome <- match.arg(outcome)
+    validate_draws_outcome(vars, outcome)
     longdata <- longDataConstructor$new(data, vars)
     longdata$set_strategies(data_ice)
 
@@ -650,12 +690,12 @@ draws.bayes <- function(
         outcome_unscaled = model_df[, 1, drop = TRUE],
         group = data2[[vars$group]],
         visit = data2[[vars$visit]],
-        period = data2[[vars$period]],
         duration = data2[[vars$duration]],
         subjid = data2[[vars$subjid]],
         method = method,
         scaler = scaler,
-        quiet = quiet
+        quiet = quiet,
+        term_names = model_term_names(data2, longdata$formula)
     )
 
     samples <- if (outcome == "continuous") {
@@ -681,6 +721,7 @@ draws.bayes <- function(
         samples = sample_list(samples),
         data = longdata,
         fit = fit$fit,
+        initialisation = fit$initialisation,
         formula = longdata$formula,
         n_failures = 0
     )
@@ -708,7 +749,6 @@ print.draws_count <- function(x, ...) {
         x,
         endpoint_type = "count",
         exclude_method = c("covariance", "prior_cov"),
-        exclude_control = "init",
         offset = x$data$vars$duration
     )
 }
@@ -738,6 +778,19 @@ print_draws <- function(
 
     control_args <- if ("control" %in% names(method)) {
         control <- method$control
+        if (!is.null(x$initialisation)) {
+            init <- x$initialisation
+            control$init <- if (is.function(init)) {
+                "custom (function)"
+            } else if (is.list(init)) {
+                "custom (list)"
+            } else {
+                as.character(init)
+            }
+            if (identical(method$control$init, "auto")) {
+                control$init <- paste0(control$init, " (auto)")
+            }
+        }
         control <- control[!names(control) %in% exclude_control]
         method <- method[!(names(method) == "control")]
         format_method_descriptions(control)
@@ -801,6 +854,8 @@ print_draws <- function(
 #' @param formula Fixed effects formula object used for the model specification.
 #' @param n_failures Absolute number of failures of the model fit.
 #' @param fit If `method_bayes()` is chosen, returns the MCMC Stan fit object. Otherwise `NULL`.
+#' @param initialisation Resolved Bayesian initialisation policy or custom Stan
+#'   initial values. Defaults to `NULL` when unavailable or not applicable.
 #'
 #' @return
 #' A `draws` object which is a named list containing the following:
@@ -819,6 +874,8 @@ print_draws <- function(
 #' - `n_failures`: absolute number of failures of the model fit.
 #' Relevant only for `method_condmean(type = "bootstrap")`, `method_approxbayes()` and `method_bmlmi()`.
 #' - `formula`: fixed effects formula object used for the model specification.
+#' - `initialisation`: resolved Bayesian initialisation policy or custom Stan
+#'   initial values, or `NULL` when unavailable or not applicable.
 #'
 as_draws <- function(
     method,
@@ -826,7 +883,8 @@ as_draws <- function(
     data,
     formula,
     n_failures = NULL,
-    fit = NULL
+    fit = NULL,
+    initialisation = NULL
 ) {
     x <- list(
         data = data,
@@ -834,7 +892,8 @@ as_draws <- function(
         samples = samples,
         fit = fit,
         n_failures = n_failures,
-        formula = formula
+        formula = formula,
+        initialisation = initialisation
     )
 
     next_class <- switch(

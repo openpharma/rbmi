@@ -130,7 +130,7 @@ test_that("ancova", {
         out = rnorm(n, mean = 50 + 3 * f2n(grp) + 4 * age1 + 8 * age2, sd = 20)
     )
 
-    mod <- lm(out ~ age1 + age2 + grp, data = filter(dat, vis == "visit 1"))
+    mod <- lm(out ~ age1 + age2 + grp, data = dplyr::filter(dat, vis == "visit 1"))
 
     result_expected <- list(
         "trt_visit 1" = list(
@@ -177,7 +177,7 @@ test_that("ancova", {
         visits = c("visit 1", "visit 2")
     )
 
-    mod <- lm(out ~ age1 + age2 + grp, data = filter(dat, vis == "visit 2"))
+    mod <- lm(out ~ age1 + age2 + grp, data = dplyr::filter(dat, vis == "visit 2"))
 
     result_expected <- list(
         "trt_visit 2" = list(

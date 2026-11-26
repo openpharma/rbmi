@@ -45,8 +45,7 @@ to be used in \code{\link[=draws]{draws()}}, \code{\link[=impute]{impute()}}, \c
 \item \code{validate_datalong_varExists} - Checks that each variable listed in \code{vars} actually exists
 in the \code{data}
 \item \code{validate_datalong_types} - Checks that the types of each key variable is as expected
-i.e. that visit is a factor variable, or period is a character, factor, or
-numeric variable when \code{period} is specified via \code{\link[=set_vars]{set_vars()}}
+e.g. that the visit or period column specified via \code{\link[=set_vars]{set_vars()}} is a factor
 \item \code{validate_datalong_notMissing} - Checks that none of the key variables (except the outcome variable)
 contain any missing values
 \item \code{validate_datalong_complete} - Checks that \code{data} is complete i.e. there is 1 row for each subject *

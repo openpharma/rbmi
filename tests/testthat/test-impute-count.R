@@ -9,7 +9,7 @@ make_count_draws <- function(strategy = "JR", phi = 0.5) {
             rep(c("control", "active"), each = 3),
             levels = c("control", "active")
         ),
-        period = rep(as.character(1:3), 2),
+        period = factor(rep(1:3, 2)),
         duration = c(1, 1, 1, 1, 1, 1),
         outcome = c(2, 3, NA, 1, 2, NA),
         group = factor(
@@ -40,7 +40,8 @@ make_count_draws <- function(strategy = "JR", phi = 0.5) {
         samples = sample_list(sample),
         data = longdata,
         formula = longdata$formula,
-        n_failures = 0
+        n_failures = 0,
+        initialisation = "random"
     )
     class(result) <- c("draws_count", class(result))
     result
@@ -61,29 +62,38 @@ test_that("count draws print endpoint-specific settings", {
     expect_true(any(output == "    same_cov: TRUE"))
     expect_false(any(grepl("covariance:", output, fixed = TRUE)))
     expect_false(any(grepl("prior_cov:", output, fixed = TRUE)))
-    expect_false(any(grepl("init:", output, fixed = TRUE)))
+    expect_true(any(output == "    init: random (auto)"))
 })
 
 
 test_that("count draws print the log of the configured duration as an offset", {
     result <- make_count_draws()
     result$data$vars$duration <- "Length"
-    result$formula <- Observed_Count ~ 1 + TreatLab + TreatLab * OnOff + BaseCount
+    result$formula <- Observed_Count ~ 1 +
+        TreatLab +
+        TreatLab * OnOff +
+        BaseCount
     original_formula <- result$formula
 
     output <- capture.output(print(result))
 
-    expect_true(any(output == paste0(
-        "Model Formula: Observed_Count ~ 1 + TreatLab + TreatLab * OnOff + ",
-        "BaseCount + offset(log(Length))"
-    )))
+    expect_true(any(
+        output ==
+            paste0(
+                "Model Formula: Observed_Count ~ 1 + TreatLab + TreatLab * OnOff + ",
+                "BaseCount + offset(log(Length))"
+            )
+    ))
     expect_identical(result$formula, original_formula)
 
     continuous_output <- capture.output(print.draws(result))
-    expect_true(any(continuous_output == paste0(
-        "Model Formula: Observed_Count ~ 1 + TreatLab + TreatLab * OnOff + ",
-        "BaseCount"
-    )))
+    expect_true(any(
+        continuous_output ==
+            paste0(
+                "Model Formula: Observed_Count ~ 1 + TreatLab + TreatLab * OnOff + ",
+                "BaseCount"
+            )
+    ))
 })
 
 
@@ -337,7 +347,43 @@ test_that("count rate multiplier adjusts only selected subjects and periods", {
 })
 
 
-test_that("fixed lambda rate uses the posterior dispersion draw", {
+test_that("count imputation remains exact near the Poisson limit", {
+    # One subject: one observed cell (1 event, mean 0.1) and one missing cell
+    # (mean 0.1). With dispersion at the Stan lower bound the conditional
+    # distribution is Poisson(0.1); the former prob parameterisation rounded
+    # to prob = 1 here and returned only zeros.
+    prepared <- list(
+        id = c("a", "a"),
+        subject_ids = "a",
+        subject_index = c(1L, 1L),
+        period_index = 1:2,
+        duration = c(1, 1),
+        outcome = c(1, NA),
+        is_missing = c(FALSE, TRUE),
+        own_group = c("A", "A"),
+        reference_group = c("A", "A"),
+        strategy = c("MAR", "MAR"),
+        design_observed = matrix(1, 2, 1),
+        design_missing = matrix(1, 2, 1)
+    )
+    sample <- sample_single_count(
+        ids = c("a", "b"),
+        beta = log(0.1),
+        phi = 2 * .Machine$double.eps
+    )
+
+    set.seed(4040)
+    imputed <- replicate(4000, sample_count_outcomes(prepared, sample)[2])
+
+    # Poisson(0.1): mean 0.1, P(Y > 0) = 0.095; 4000 draws give SE 0.005.
+    # Explicit bounds: expect_equal() compares absolutely for targets below
+    # its tolerance, which would accept the former all-zero draws.
+    expect_lt(abs(mean(imputed) - 0.1), 0.02)
+    expect_lt(abs(mean(imputed > 0) - (-expm1(-0.1))), 0.02)
+})
+
+
+test_that("SAS lambda fixed rate divides by the posterior dispersion draw", {
     draws <- make_count_draws(strategy = "MAR", phi = 0.5)
     updated_strategy <- data.frame(
         id = "active",
@@ -346,7 +392,8 @@ test_that("fixed lambda rate uses the posterior dispersion draw", {
     strategies <- get_count_strategies(
         FIXED_LAMBDA = count_strategy(
             base = "MAR",
-            fixed_lambda_rate = 0.25,
+            fixed_rate = 0.25,
+            fixed_rate_scale = "lambda",
             period = "3"
         )
     )
@@ -372,6 +419,65 @@ test_that("fixed lambda rate uses the posterior dispersion draw", {
 })
 
 
+test_that("default fixed rate is a marginal rate independent of dispersion", {
+    strategies <- get_count_strategies(
+        FIXED_RATE = count_strategy(
+            base = "MAR",
+            fixed_rate = 0.25,
+            period = "3"
+        )
+    )
+    updated_strategy <- data.frame(id = "active", strategy = "FIXED_RATE")
+
+    # The active subject observed 3 events with model-based mean 8; its missing
+    # cell has exposure 1 and fixed mean 0.25 for every dispersion value.
+    for (phi in c(0.5, 2, 1e-12)) {
+        draws <- make_count_draws(strategy = "MAR", phi = phi)
+        set.seed(906)
+        expected <- stats::rnbinom(
+            n = 2,
+            size = c(1 / phi + 5, 1 / phi + 3),
+            mu = c(
+                (1 / phi + 5) * 2 / (1 / phi + 4),
+                (1 / phi + 3) * 0.25 / (1 / phi + 8)
+            )
+        )
+        set.seed(906)
+        actual <- impute(
+            draws,
+            update_strategy = updated_strategy,
+            strategies = strategies
+        )
+        completed <- extract_imputed_dfs(actual)[[1]]
+        expect_equal(completed$outcome[completed$period == "3"], expected)
+    }
+})
+
+
+test_that("SAS lambda fixed rate warns near the Poisson limit", {
+    draws <- make_count_draws(strategy = "MAR", phi = 1e-12)
+    updated_strategy <- data.frame(id = "active", strategy = "FIXED")
+    sas <- get_count_strategies(
+        FIXED = count_strategy(
+            fixed_rate = 0.25,
+            fixed_rate_scale = "lambda",
+            period = "3"
+        )
+    )
+    rate <- get_count_strategies(
+        FIXED = count_strategy(fixed_rate = 0.25, period = "3")
+    )
+
+    expect_warning(
+        impute(draws, update_strategy = updated_strategy, strategies = sas),
+        "lambda"
+    )
+    expect_silent(
+        impute(draws, update_strategy = updated_strategy, strategies = rate)
+    )
+})
+
+
 test_that("controlled count strategy inputs are validated", {
     expect_error(
         count_strategy(rate_multiplier = -1),
@@ -380,9 +486,22 @@ test_that("controlled count strategy inputs are validated", {
     expect_error(
         count_strategy(
             rate_multiplier = 2,
-            fixed_lambda_rate = 0.1
+            fixed_rate = 0.1
         ),
         "Only one"
+    )
+    expect_error(
+        count_strategy(fixed_rate_scale = "lambda"),
+        "only be specified together with `fixed_rate`"
+    )
+    expect_error(
+        count_strategy(fixed_rate = 0.1, fixed_rate_scale = "invalid"),
+        "should be one of"
+    )
+    expect_identical(count_strategy(fixed_rate = 0.1)$fixed_rate_scale, "rate")
+    expect_identical(
+        count_strategy(fixed_rate = 0.1, fixed_rate_scale = "lambda")$fixed_rate_scale,
+        "lambda"
     )
     expect_error(
         get_count_strategies(count_strategy()),
@@ -464,4 +583,79 @@ test_that("non-MAR count strategies retain all observed draw-model cells", {
 
     expect_equal(nrow(actual), 6)
     expect_false(anyNA(actual$outcome[actual$period %in% c("1", "2")]))
+})
+
+
+test_that("count reference designs keep the coding of the treatment factor", {
+    dat <- data.frame(
+        id = factor(rep(c("a", "b"), each = 2)),
+        period = factor(rep(1:2, 2)),
+        duration = 1,
+        outcome = c(1, NA, 1, NA),
+        group = factor(rep(c("A", "B"), each = 2))
+    )
+    vars <- set_vars(
+        subjid = "id",
+        period = "period",
+        duration = "duration",
+        outcome = "outcome",
+        group = "group"
+    )
+    sum_coded <- dat$group
+    stats::contrasts(sum_coded) <- stats::contr.sum(2)
+    for (group in list(sum_coded, factor(dat$group, ordered = TRUE))) {
+        dat$group <- group
+        longdata <- longDataConstructor$new(dat, vars)
+        fit_design <- as.matrix(
+            as_model_df(longdata$data, longdata$formula)[, -1, drop = FALSE]
+        )
+
+        # Identity mapping: the reference design equals the fitted design
+        identity <- prepare_count_imputation_data(
+            longdata,
+            c(A = "A", B = "B"),
+            c(a = "JR", b = "JR")
+        )
+        expect_equal(unname(identity$design_missing), unname(fit_design))
+
+        # Mapping B to A: subject b's missing cell is coded like arm A
+        mapped <- prepare_count_imputation_data(
+            longdata,
+            c(A = "A", B = "A"),
+            c(a = "JR", b = "JR")
+        )
+        expect_equal(
+            unname(mapped$design_missing[4, ]),
+            unname(fit_design[1, ])
+        )
+    }
+})
+
+
+test_that("additive count deltas are rejected at all entry points", {
+    error <- paste0(
+        "Additive delta adjustments are not supported for count outcomes.*",
+        "count_strategy"
+    )
+    fun <- function(data) list(total = list(est = sum(data$outcome), se = 1, df = Inf))
+    for (phi in c(0.1, 0.5)) {
+        draws <- make_count_draws(strategy = "MAR", phi = phi)
+        obj <- impute(draws)
+        for (input in list(draws, obj)) {
+            expect_error(delta_template(input), error)
+            expect_error(delta_template(input, delta = c(0, 0, 1)), error)
+            expect_error(get_delta_template(input), error)
+        }
+        # Reject even empty, zero-valued or malformed plans before processing them.
+        plan <- data.frame(id = "active", period = "3", delta = 1)
+        for (delta in list(plan, transform(plan, delta = 0), plan[FALSE, ], data.frame())) {
+            expect_error(analyse(obj, fun, delta = delta), error)
+            expect_error(analyse(obj, fun, delta = delta, .validate = FALSE), error)
+            expect_error(extract_imputed_dfs(obj, delta = delta), error)
+            expect_error(extract_imputed_dfs(obj, index = integer(), delta = delta), error)
+            expect_error(extract_imputed_df(obj$imputations[[1]], obj$data, delta), error)
+        }
+        expect_no_error(analyse(obj, fun, delta = NULL))
+        expect_no_error(extract_imputed_dfs(obj, delta = NULL))
+    }
 })

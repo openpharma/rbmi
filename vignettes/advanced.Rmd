@@ -303,7 +303,7 @@ Here, `pars_group` contains the predicted mean trajectory (`pars_group$mu`, a nu
 As an example, the user can check how the CIR strategy was implemented by looking at function `strategy_CIR()`.
 
 ```{r}
-strategy_CIR
+cat(deparse(strategy_CIR), sep = "\n")
 ```
 
 To further illustrate this for a simple example, assume that a new strategy is to be implemented as follows:

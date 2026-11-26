@@ -8,7 +8,8 @@
 count_strategy(
   base = c("MAR", "JR", "CR"),
   rate_multiplier = 1,
-  fixed_lambda_rate = NULL,
+  fixed_rate = NULL,
+  fixed_rate_scale = c("rate", "lambda"),
   period = NULL
 )
 
@@ -21,15 +22,14 @@ get_count_strategies(...)
 \item{rate_multiplier}{A non-negative numeric scalar multiplying the
 model-based mean for affected missing cells.}
 
-\item{fixed_lambda_rate}{\code{NULL} or a non-negative numeric scalar. When set,
-it replaces the model-based rate on the SAS negative-multinomial lambda
-scale. For exposure \code{L} and the strategy-selected dispersion \code{phi}, the
-Poisson mean supplied to the negative-binomial imputation is
-\code{L * fixed_lambda_rate / phi}. MAR selects \code{phi} from the subject's arm;
-JR and CR select it from the mapped reference arm. This is the unconditional
-marginal mean for that cell in the joint count model; the mean of the
-imputation distribution conditional on the other observed cells also
-depends on their counts and fitted means.}
+\item{fixed_rate}{\code{NULL} or a non-negative numeric scalar. When set, it
+replaces the model-based rate of affected missing cells. Its meaning
+depends on \code{fixed_rate_scale}; see the section on fixed rates.}
+
+\item{fixed_rate_scale}{The scale of \code{fixed_rate}: \code{"rate"} (default), an
+event rate per unit of duration, or \code{"lambda"}, the
+negative-multinomial lambda scale. Must
+only be specified together with \code{fixed_rate}.}
 
 \item{period}{\code{NULL} or a vector of period values. If supplied, the rate
 adjustment is restricted to missing cells in these periods. The base
@@ -46,8 +46,7 @@ the \code{strategies} argument of \code{\link[=impute]{impute()}}.
 \code{count_strategy()} defines how the model-based mean for a missing count is
 obtained and optionally adjusted during imputation. The \code{base} strategy is
 applied first. A \code{rate_multiplier} then multiplies its model-based mean, or
-\code{fixed_lambda_rate} replaces that mean using the negative-multinomial lambda
-parameterisation described below.
+\code{fixed_rate} replaces that mean by a fixed event rate.
 }
 \details{
 \code{get_count_strategies()} returns the built-in MAR, JR and CR count strategies
@@ -57,10 +56,40 @@ to every missing positive-duration period for that subject. No ICE time is
 supplied or inferred; consequently, JR and CR are not restricted to periods
 after an ICE.
 }
+\section{Fixed rates and SAS compatibility}{
+
+With the default \code{fixed_rate_scale = "rate"}, \code{fixed_rate} is a marginal
+event rate per unit of the duration variable: a missing cell with exposure
+\code{L} has unconditional mean \code{L * fixed_rate}, the same for every posterior
+draw, treatment arm and base strategy.
+
+\code{fixed_rate_scale = "lambda"} reproduces the fixed-rate option of the
+SAS macro \code{NM_Rand13.sas} (Roger, 2021), which fixes the rate on the
+negative-multinomial lambda scale. The unconditional mean is then
+\code{L * fixed_rate / phi}, where \code{phi} is the dispersion parameter of the
+current posterior draw (from the subject's arm for MAR, and from the mapped
+reference arm for JR and CR). The implied event rate therefore changes from
+draw to draw and between arms, and becomes arbitrarily large as \code{phi}
+approaches zero (nearly Poisson data). \code{\link[=impute]{impute()}} warns when the SAS lambda
+implies a rate more than 100 times the model-based rate of the same cell in
+any posterior draw. Use this scale only to reproduce SAS results.
+
+For both scales, the imputed count is drawn conditionally on the subject's
+observed cells. Its conditional mean is the unconditional mean multiplied by
+\code{(1 / phi + y_obs) / (1 / phi + mu_obs)}, where \code{y_obs} and \code{mu_obs} are the
+subject's observed total count and its model-based mean.
+}
+
 \examples{
+fixed_rate <- count_strategy(
+    base = "MAR",
+    fixed_rate = 0.003,
+    period = "3"
+)
 fixed_lambda <- count_strategy(
     base = "MAR",
-    fixed_lambda_rate = 0.0021,
+    fixed_rate = 0.0021,
+    fixed_rate_scale = "lambda",
     period = "3"
 )
 double_rate <- count_strategy(
@@ -69,8 +98,14 @@ double_rate <- count_strategy(
     period = "3"
 )
 get_count_strategies(
+    FIXED_RATE = fixed_rate,
     FIXED_LAMBDA = fixed_lambda,
     DOUBLE_RATE = double_rate
 )
 
+}
+\references{
+Roger JH (2021). NegMult20210313: SAS macros for imputation of
+recurrent event data for partially observed off-treatment data.
+DIA Missing Data Working Group.
 }

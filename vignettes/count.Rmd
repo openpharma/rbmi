@@ -77,7 +77,7 @@ dat_count <- dat_count_raw %>%
     ) %>% 
     mutate(
         patient = factor(patient),
-        period = as.character(period),
+        period = factor(period, levels = 1:3),
         TreatLab = factor(TreatLab, levels = c("Placebo", "100mg", "300mg")),
         OnOff = factor(OnOff, levels = c("On", "Off"))
     ) %>% 
@@ -97,11 +97,13 @@ The variables retained for this example are:
 
 The source data omit periods with zero length. We use `expand_locf()` to add these rows so that every patient has all three periods. The treatment arm and baseline count are carried forward, while `OnOff` is derived from the period. Added rows have zero length and a missing observed count.
 
+The period column supplied to `draws()` must be a factor with no unused levels. Set the levels in the order in which periods should be processed. `rbmi` keeps the factor's ordered status and any custom contrasts. To model a continuous trend, include a separate numeric period column as a covariate.
+
 ```{r}
 dat_count_filled <- dat_count %>%
     expand_locf(
         patient = levels(dat_count$patient),
-        period = as.character(1:3),
+        period = levels(dat_count$period),
         vars = c("TreatLab", "BaseCount"),
         group = "patient",
         order = c("patient", "period")
@@ -115,9 +117,10 @@ dat_count_filled <- dat_count %>%
     )
 ```
 
-The SAS reference results for the models illustrated below are included as
-a CSV file with the package. We retain the two active-treatment versus placebo
-contrasts, so they can be compared directly with the pooled `rbmi` estimates.
+SAS reference results for the models illustrated below were computed with the 
+SAS macros `NM_Reg22.sas` and `NM_Rand13.sas` by James H. Roger (2021). Note
+that these can be downloaded as part of the archive `NegMult20210313` [here](https://lshtm.sharepoint.com/:u:/s/MissingDataPublicFiles/EVXl7TLAirxPvKQsdKoU25YBiG3enVCAOZm_8TOBq0DYAA?e=abaKGl) available under "Imputation of Recurrent event data for partial observed off-treatment data" on the [DIA Missing Data website](https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data).
+The results are included as a CSV file with the package. We retain the two active-treatment versus placebo contrasts, so they can be compared directly with the pooled `rbmi` estimates.
 The assertions below stop vignette precompilation if any relative difference
 from SAS exceeds `0.005` for rate ratios and confidence limits, or `0.10` for
 p-values. These tolerances allow for Monte Carlo variation between the two
@@ -323,12 +326,16 @@ anaObj <- analyse(
 )
 ```
 
+Additive delta adjustments to completed counts are not supported. For count
+sensitivity analyses, use rate multipliers in `count_strategy()` when specifying
+the imputation strategies.
+
 ## Pool
 
 Finally we can pool all regression coefficients across the multiple
 imputations. Pooling is performed on the log-rate scale using Rubin's rules,
-with confidence intervals and p-values based on the standard normal
-distribution.
+with confidence intervals and p-values based on a t distribution with the
+pooled degrees of freedom.
 
 ```{r pool-shared, time_it = TRUE}
 poolObj <- pool(
@@ -551,10 +558,15 @@ the `Separate each Treat. Shared frai` model in the SAS reference analysis.
 
 #### Draw and impute
 
-The model formula is `~ 0 + TreatLab:OnOff + TreatLab:BaseCount`. The
+`rbmi` adds an intercept and the `TreatLab` main effect to the requested
+interactions, so the model formula is
+`~ 1 + TreatLab + TreatLab:OnOff + TreatLab:BaseCount` (printed below). The
 interactions with `TreatLab` give each randomized treatment arm a separate
 coefficient for every covariate; `same_cov = TRUE` (the default) retains the
 shared count-model dispersion parameter.
+
+For this comparison we use four chains and 4,000 imputations to reduce Monte
+Carlo variation in the confidence limits relative to the SAS tolerance.
 
 ```{r}
 vars_all_treatment_interactions <- set_vars(
@@ -571,14 +583,24 @@ vars_all_treatment_interactions <- set_vars(
 ```
 
 ```{r draw-all-treatment-interactions, time_it = TRUE}
+set.seed(987)
 drawObj_all_treatment_interactions <- draws(
     outcome = "count",
     data = dat_count_filled,
     data_ice = dat_ice,
     vars = vars_all_treatment_interactions,
-    method = method,
+    method = method_bayes(
+        n_samples = 4000,
+        control = control_bayes(
+            chains = 4,
+            warmup = 500,
+            thin = 1,
+            seed = 1821
+        )
+    ),
     quiet = TRUE
 )
+drawObj_all_treatment_interactions$formula
 ```
 
 ```{r impute-all-treatment-interactions, time_it = TRUE}
@@ -875,19 +897,26 @@ The next controlled-imputation analysis retains the estimated off-treatment
 rate for placebo, but replaces the model-based period-3 rate for both active
 arms with a fixed value.
 
-There is an important parameterization detail. The executed SAS code fixes
-`0.0021` on its negative-multinomial lambda scale. If
-$r = \phi^{-1}$ is the negative-multinomial shape parameter, the
-Poisson mean supplied for period 3 is therefore
+There is an important parameterization detail. `count_strategy()` offers two
+scales for `fixed_rate`:
 
-$$
-\mu_{i3} = r L_{i3} \times 0.0021
-          = \frac{L_{i3} \times 0.0021}{\phi}.
-$$
+- `fixed_rate_scale = "rate"` (the default): `fixed_rate` is an event rate per
+  unit of duration, so the unconditional mean of the missing cell is
+  $\mu_{i3} = L_{i3} \times \text{fixed\_rate}$, the same for every posterior
+  draw and treatment arm.
+- `fixed_rate_scale = "lambda"`: reproduces the SAS macro `NM_Rand13.sas`,
+  which fixes the value on its negative-multinomial lambda scale. If
+  $r = \phi^{-1}$ is the negative-multinomial shape parameter, the mean is
+  $\mu_{i3} = r L_{i3} \times \text{fixed\_rate} = L_{i3} \times \text{fixed\_rate} / \phi$.
+  The implied event rate therefore varies with each posterior draw of $\phi$
+  and grows without bound when $\phi$ is close to zero (nearly Poisson data);
+  `impute()` warns when this implies rates more than 100 times the model-based
+  rate.
 
-Consequently, `0.0021` is not a fixed marginal event rate. A genuinely fixed
-Poisson event rate would instead use
-$\mu_{i3} = L_{i3} \times 0.0021$, i.e. without the division by $\phi$. 
+To reproduce the SAS results, we select the SAS scale explicitly. For new
+analyses, the default rate scale is recommended because the specified value
+is then an interpretable event rate.
+
 In the joint count model, $\mu_{i3}$ is the
 unconditional marginal mean of $Y_{i3}$. The actual imputation distribution,
 however, conditions on the observed counts $y_{i1},y_{i2}$. Given these counts
@@ -900,7 +929,7 @@ $$
      {r + \hat\mu_{i1} + \hat\mu_{i2}}\,\mu_{i3}.
 $$
 
-For a `fixed_lambda_rate` strategy based on JR or CR, $r$ is calculated from
+For a fixed-rate strategy based on JR or CR, $r$ is calculated from
 the mapped reference arm's `phi`; under JR this is so even though the fitted
 observed-cell means in the denominator use the subject's randomized-arm
 design.
@@ -927,7 +956,8 @@ active_period3_strategy <- dat_count_filled %>%
 fixed_lambda_strategies <- get_count_strategies(
     FIXED_LAMBDA = count_strategy(
         base = "MAR",
-        fixed_lambda_rate = 0.0021,
+        fixed_rate = 0.0021,
+        fixed_rate_scale = "lambda",
         period = "3"
     )
 )

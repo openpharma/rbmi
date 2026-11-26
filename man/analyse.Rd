@@ -92,6 +92,12 @@ Please note that the \code{vars$subjid} column (as defined in the original call 
 This is to say they will not contain the original subject values and as such
 any hard coding of subject ids is strictly to be avoided.
 
+Warnings raised by \code{fun} are collected for each imputed dataset and stored
+as unique messages in the \code{rbmi_warnings} attribute of its result (accessible
+via \code{analysis$results}). After analysis, one summary warning lists each
+distinct message and the number of datasets affected. This also applies
+when running in parallel. Errors from \code{fun} still stop the analysis.
+
 By default \code{fun} is the \code{\link[=ancova]{ancova()}} function.
 Please note that this function
 requires that a \code{vars} object, as created by \code{\link[=set_vars]{set_vars()}}, is provided via
@@ -124,6 +130,11 @@ imputed. Care must be taken when defining offsets. It is recommend that you
 use the helper function \code{\link[=delta_template]{delta_template()}} to define the delta datasets as
 this provides utility variables such as \code{is_missing} which can be used to identify
 exactly which visits have been imputed.
+
+Additive delta adjustments are supported only for continuous outcomes.
+For count outcomes, \code{delta} must be \code{NULL} in both this function and
+\code{\link[=extract_imputed_dfs]{extract_imputed_dfs()}}. Use rate multipliers in \code{\link[=count_strategy]{count_strategy()}} for
+count sensitivity analyses.
 
 The optional \code{transform} argument specifies a transformation to apply to all
 pooled parameters for reporting. It defaults to the \code{"transform"} attribute

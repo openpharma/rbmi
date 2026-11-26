@@ -325,7 +325,7 @@ test_that("Parallisation works with analyse and produces identical results", {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%
@@ -452,13 +452,68 @@ test_that("Parallisation works with analyse and produces identical results", {
     ## future results
 
     # First assert consistency
-    expect_true(identical(anaobj_d1_t1$results, anaobj_d1_t3$results))
-    expect_true(identical(anaobj_d2_t1$results, anaobj_d2_t3$results))
-    expect_true(identical(anaobj_d3_t1$results, anaobj_d3_t3$results))
+    expect_equal(anaobj_d1_t1$results, anaobj_d1_t3$results)
+    expect_equal(anaobj_d2_t1$results, anaobj_d2_t3$results)
+    expect_equal(anaobj_d3_t1$results, anaobj_d3_t3$results)
 
     # The ensure they are different
     expect_false(identical(anaobj_d1_t1$results, anaobj_d2_t1$results))
     expect_false(identical(anaobj_d1_t1$results, anaobj_d3_t1$results))
     expect_false(identical(anaobj_d2_t1$results, anaobj_d3_t1$results))
     parallel::stopCluster(cl)
+})
+
+
+test_that("analyse summarises arbitrary warnings in serial and parallel", {
+    imputations <- list(
+        data = list(
+            vars = list(),
+            get_data = function(imputation, ...) data.frame(index = imputation)
+        ),
+        imputations = as.list(1:3),
+        method = method_bayes(n_samples = 3)
+    )
+    fun <- function(data) {
+        if (data$index != 2) {
+            warning("first warning")
+            warning("first warning")
+        }
+        if (data$index == 3) warning("second warning")
+        result <- list(beta = list(est = data$index, se = 0.2, df = Inf))
+        attr(result, "custom_metadata") <- "retained"
+        result
+    }
+    run <- function(ncores) {
+        messages <- character()
+        result <- withCallingHandlers(
+            analyse(imputations, fun, ncores = ncores, .validate = FALSE),
+            warning = function(w) {
+                messages <<- c(messages, conditionMessage(w))
+                invokeRestart("muffleWarning")
+            }
+        )
+        expect_length(messages, 1)
+        expect_match(messages, "2/3: first warning", fixed = TRUE)
+        expect_match(messages, "1/3: second warning", fixed = TRUE)
+        expect_identical(attr(result$results[[1]], "rbmi_warnings"), "first warning")
+        expect_null(attr(result$results[[2]], "rbmi_warnings"))
+        expect_identical(
+            attr(result$results[[3]], "rbmi_warnings"),
+            c("first warning", "second warning")
+        )
+        expect_identical(attr(result$results[[1]], "custom_metadata"), "retained")
+        result
+    }
+    serial <- run(1)
+    parallel <- run(2)
+    expect_equal(serial, parallel)
+    expect_s3_class(serial, "analysis_continuous")
+    expect_no_warning(analyse(
+        imputations,
+        function(data) list(beta = list(est = 1, se = 0.2, df = Inf)),
+        .validate = FALSE
+    ))
+    expect_error(analyse(
+        imputations, function(data) stop("analysis failed"), .validate = FALSE
+    ), "analysis failed")
 })

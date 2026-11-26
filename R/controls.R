@@ -12,7 +12,7 @@
 #'
 #' @param chains a numeric, the number of chains to run in parallel.
 #'
-#' @param init a character string, the method used to initialise the MCMC sampler, see the details.
+#' @param init Initialisation policy or Stan initial values; see the details.
 #'
 #' @param seed a numeric, the seed used to initialise the MCMC sampler.
 #'
@@ -22,9 +22,21 @@
 #'
 #' Currently only the Bayesian imputation via [method_bayes()] uses a control function:
 #'
-#' - The `init` argument can be set to `"random"` to randomly initialise the sampler with `rstan`
-#' default values or to `"mmrm"` to initialise the sampler with the maximum likelihood estimate
-#' values of the MMRM.
+#' - The default `init = "auto"` uses MMRM estimates for continuous outcomes with one chain,
+#' and random initialisation otherwise. (With more than one chain, `"mmrm"` starts
+#' all chains at the same values, which makes convergence diagnostics such as R-hat
+#' less reliable, so a warning is given.) Explicit `"mmrm"` initialisation
+#' is only supported for continuous outcomes. Other `init` values are passed
+#' unchanged to [rstan::sampling()]: `"random"`,
+#' `0` or `"0"` (zero on Stan's unconstrained scale), a list of named lists
+#' (one per chain), or a function returning a named list, optionally accepting
+#' `chain_id`. Omitted parameters use Stan's random initialisation.
+#' Custom lists and functions must use the internal Stan parameterisation and
+#' constrained parameter scales. For counts, `beta` follows the internally scaled
+#' design matrix column order, and `phi` has one value per dispersion group
+#' (one when `same_cov = TRUE`), strictly greater than `.Machine$double.eps`.
+#' For continuous outcomes, initial values use `theta` and covariance-specific
+#' parameters. Note that these are not coefficients on the original data scale.
 #' - The `seed` argument is used to set the seed for the MCMC sampler. By default, a random seed
 #' is generated, such that outside invocation of the `set.seed()` call can effectively set the
 #' seed.
@@ -63,7 +75,7 @@ control_bayes <- function(
     warmup = 200,
     thin = 50,
     chains = 1,
-    init = ifelse(chains > 1, "random", "mmrm"),
+    init = "auto",
     seed = sample.int(.Machine$integer.max, 1),
     ...
 ) {
@@ -82,6 +94,16 @@ control_bayes <- function(
             " directly to `draws()`"
         )
     }
+    if (identical(init, "mmrm") && chains > 1) {
+        warning(
+            "`init = \"mmrm\"` starts all ",
+            chains,
+            " chains at the same values, ",
+            "which makes convergence diagnostics such as R-hat less reliable. ",
+            "Consider `init = \"random\"`.",
+            call. = FALSE
+        )
+    }
     list(
         warmup = warmup,
         thin = thin,
@@ -95,14 +117,18 @@ control_bayes <- function(
 #' Preparation of Initial Values for MCMC Sampler
 #'
 #' This function is used by [complete_control_bayes()] when the `init` argument is set to `"mmrm"`.
+#' It converts the MMRM estimates to the names and shapes of the parameters of the Stan model:
+#' `theta`, plus `Sigma` (`"us"`), `corr_chol` and `vars` (`"us"` with LKJ prior), `var_const`
+#' (homogeneous variance structures) or `vars` (heterogeneous variance structures), and `rho` or
+#' `rhos` (correlation parameters).
 #'
-#' @param stan_data A list containing the Stan data.
+#' @param stan_data A list containing the Stan data, including the number of covariance groups `G`.
 #' @param mmrm_initial A list containing the initial values from the MMRM, including attribute `cov_param_names`
 #'   specifying the names of the covariance parameters.
 #' @param chains The number of chains.
 #' @param covariance A character string indicating the type of covariance structure.
 #' @param prior_cov A character string indicating the type of prior for the covariance parameters.
-#' @return A list of initial values for the MCMC sampler.
+#' @return A list of initial values for the MCMC sampler, one per chain.
 #'
 #' @keywords internal
 prepare_init_vals <- function(
@@ -113,27 +139,44 @@ prepare_init_vals <- function(
     prior_cov
 ) {
     assert_that(is.list(stan_data))
+    assert_that(assertthat::is.count(stan_data$G))
     assert_that(is.list(mmrm_initial))
     assert_that(assertthat::is.count(chains))
     assert_that(assertthat::is.string(covariance))
     assert_that(assertthat::is.string(prior_cov))
 
-    cov_param_names <- attr(mmrm_initial, "cov_param_names")
-    init_vals <- c(
-        list(
-            theta = as.vector(stan_data$R %*% mmrm_initial$beta)
-        ),
-        mmrm_initial[cov_param_names]
+    # fit_mmrm() repeats shared estimates per group, while Stan then has G = 1.
+    params <- lapply(
+        mmrm_initial[attr(mmrm_initial, "cov_param_names")],
+        `[`,
+        seq_len(stan_data$G)
+    )
+
+    init_vals <- list(
+        theta = as.vector(stan_data$R %*% mmrm_initial$beta)
     )
     if (covariance == "us" && prior_cov == "lkj") {
-        init_vals$sds <- lapply(
-            mmrm_initial$sigma,
-            function(sigma) sqrt(diag(sigma))
-        )
-        init_vals$corr_chol <- lapply(
-            mmrm_initial$sigma,
+        init_vals$vars <- stack_by_group(lapply(params[["sigma"]], diag))
+        init_vals$corr_chol <- stack_by_group(lapply(
+            params[["sigma"]],
             function(sigma) t(chol(stats::cov2cor(sigma)))
-        )
+        ))
+    } else if (covariance == "us") {
+        init_vals$Sigma <- stack_by_group(params[["sigma"]])
+    } else {
+        if (covariance %in% c("ar1", "cs", "ad", "toep")) {
+            init_vals$var_const <- array(
+                unlist(params[["sd"]])^2,
+                dim = stan_data$G
+            )
+        } else {
+            init_vals$vars <- stack_by_group(params[["sds"]])^2
+        }
+        if (covariance %in% c("ar1", "ar1h", "cs", "csh")) {
+            init_vals$rho <- array(unlist(params[["rho"]]), dim = stan_data$G)
+        } else {
+            init_vals$rhos <- stack_by_group(params[["rhos"]])
+        }
     }
     replicate(
         chains,
@@ -142,22 +185,49 @@ prepare_init_vals <- function(
     )
 }
 
+#' Stack Per-Group Values into a Stan Array
+#'
+#' @param x A list with one numeric vector or one matrix per group.
+#' @return A matrix (vectors) or 3-dimensional array (matrices) with the groups
+#'   along the first dimension, as expected by `rstan` for Stan variables declared
+#'   as `array[G] vector` or `array[G] matrix`.
+#'
+#' @keywords internal
+stack_by_group <- function(x) {
+    assert_that(is.list(x), length(x) > 0)
+    assert_that(all(vapply(x, is.numeric, logical(1))))
+    if (is.matrix(x[[1]])) {
+        stacked <- array(unlist(x), dim = c(dim(x[[1]]), length(x)))
+        return(aperm(stacked, c(3, 1, 2)))
+    }
+    # rbind() keeps a G x 1 matrix for length-1 vectors, unlike simplification.
+    unname(do.call(rbind, x))
+}
+
 #' Complete Common Stan Control Options for Bayesian Methods
+#'
+#' This function completes the control options list for Bayesian methods by setting
+#' the number of iterations, refresh rate, and initial values based on the provided arguments.
 #'
 #' @param control A list containing part of the control options. Must not contain
 #'   `iter`, `refresh`, `object`, `data`, or `pars`.
 #' @param n_samples Number of samples to be drawn.
 #' @param quiet A logical indicating whether to suppress output during sampling.
 #'
+#' @param outcome Outcome type used to resolve the initialisation policy.
+#'
 #' @return A completed control options list including computed `iter` and
-#'   `refresh` values.
+#'   `refresh` values and resolved `init`. The `initialisation` attribute retains
+#'   the resolved policy before model-specific expansion of starting values.
 #'
 #' @keywords internal
 complete_control_bayes_common <- function(
     control,
     n_samples,
-    quiet
+    quiet,
+    outcome = c("continuous", "count")
 ) {
+    outcome <- match.arg(outcome)
     assertthat::assert_that(is.list(control))
     control_pars <- names(control)
     if ("iter" %in% control_pars) {
@@ -189,6 +259,21 @@ complete_control_bayes_common <- function(
             " in `method$control`"
         )
     }
+    # Resolve policies without evaluating user-supplied initialisers.
+    if (identical(control$init, "auto")) {
+        control$init <- if (outcome == "continuous" && control$chains == 1) {
+            "mmrm"
+        } else {
+            "random"
+        }
+    }
+    if (identical(control$init, "mmrm") && outcome == "count") {
+        stop(
+            'init = "mmrm" requires continuous outcomes; use "auto" or "random".'
+        )
+    }
+    # Keep the policy before model-specific code expands MMRM starting values.
+    attr(control, "initialisation") <- control$init
     control
 }
 

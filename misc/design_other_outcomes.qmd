@@ -16,7 +16,7 @@ Here is a first high level overview of important references for the non-continuo
 - @keene2014 is the basic proposal for Bayesian multiple imputation for negative binomial count data, covering two time periods: before and after discontinuing the trial and treatment at the same time.
 - @roger2019 extends this to more than two time periods, in particular a third time period where patients are still continuing the trial, but have stopped treatment already. So this is the more general setting.
 
-Time to recurrent events can also be analyzed with Andersen-Gill models, but we will not pursue this further here.
+Time to recurrent events can also be analysed with Andersen-Gill models, but we will not pursue this further here.
 
 ### Survival outcomes 
 

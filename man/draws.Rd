@@ -99,6 +99,8 @@ Each element of \code{samples} is a named list containing the following:
 \item \code{n_failures}: absolute number of failures of the model fit.
 Relevant only for \code{method_condmean(type = "bootstrap")}, \code{method_approxbayes()} and \code{method_bmlmi()}.
 \item \code{formula}: fixed effects formula object used for the model specification.
+\item \code{initialisation}: resolved Bayesian initialisation policy or custom Stan
+initial values, or \code{NULL} when unavailable or not applicable.
 }
 }
 \description{
@@ -165,13 +167,17 @@ Bootstrapped Maximum Likelihood MI is described in Von Hippel & Bartlett (2021).
 The argument \code{data} contains the longitudinal data. It must have at least the following variables:
 \itemize{
 \item \code{subjid}: a factor vector containing the subject ids.
-\item \code{visit}: a factor vector containing the visit the outcome was observed on.
+\item \code{visit}: for continuous outcomes, a factor vector containing the visit the outcome was observed on.
+\item \code{period}: for count outcomes, a factor vector containing the period, with no missing
+values or unused levels. Its levels determine period order. Its contrasts and ordered
+status are retained.
+\item \code{duration}: for count outcomes, a numeric vector containing the exposure duration for each period.
 \item \code{group}: a factor vector containing the group that the subject belongs to.
 \item \code{outcome}: a numeric vector containing the outcome variable. It might contain missing values.
 Additional baseline or time-varying covariates must be included in \code{data}.
 }
 
-\code{data} must have one row per visit per subject. This means that incomplete
+For continuous outcomes, \code{data} must have one row per visit per subject. This means that incomplete
 outcome data must be set as \code{NA} instead of having the related row missing. Missing values
 in the covariates are not allowed.
 If \code{data} is incomplete
@@ -249,9 +255,11 @@ The \code{vars} argument is a named list that specifies the names of key variabl
 \item \code{outcome}: name of the column in \code{data} which contains the outcome variable.
 \item \code{covariates}: vector of characters which contains the covariates to be included
 in the model (including interactions which are specified as \code{"covariateName1*covariateName2"}).
-If no covariates are provided the default model specification of \code{outcome ~ 1 + visit + group} will be used.
-Please note that the \code{group*visit} interaction
-is \strong{not} included in the model by default.
+For continuous outcomes the default is \code{outcome ~ 1 + visit + group}.
+Please note that the \code{group*visit} interaction is \strong{not} included in the model by default.
+(Add \code{group*visit} to include it.)
+For count outcomes, you can include the period factor in \code{covariates} to fit period
+effects, or e.g. include a separate numeric period covariate to fit a continuous period trend.
 \item \code{strata}: for continuous outcomes, covariates used as stratification variables in the bootstrap sampling.
 By default only the \code{vars$group} is set as stratification variable.
 Needed only for \code{method_condmean(type = "bootstrap")} and \code{method_approxbayes()}.
@@ -261,6 +269,8 @@ Needed only for \code{method_condmean(type = "bootstrap")} and \code{method_appr
 }
 
 The \code{outcome} argument allows to select either the continuous outcome or the count outcome.
+It must agree with \code{vars}: use \code{"continuous"} (the default) with \code{vars$visit},
+or \code{"count"} with \code{vars$period} and \code{vars$duration}.
 Please see the corresponding statistical specification vignettes for details on the methods.
 
 In our experience, Bayesian MI (\code{method = method_bayes()}) with a relatively low number of

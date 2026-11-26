@@ -193,7 +193,6 @@ test_that("count Stan data supports shared and group-specific dispersion", {
     shared <- prepare_stan_data_count(
         ddat = design,
         subjid = subjid,
-        period = period,
         duration = duration,
         outcome = outcome,
         group = group,
@@ -202,7 +201,6 @@ test_that("count Stan data supports shared and group-specific dispersion", {
     separate <- prepare_stan_data_count(
         ddat = design,
         subjid = subjid,
-        period = period,
         duration = duration,
         outcome = outcome,
         group = group,
@@ -232,7 +230,6 @@ test_that("count Stan data supports ragged observed cells", {
     actual <- prepare_stan_data_count(
         ddat = design,
         subjid = subjid,
-        period = period,
         duration = duration,
         outcome = outcome,
         group = group,
@@ -264,7 +261,6 @@ test_that("count Stan data drops subjects without observed positive-duration cel
         actual <- prepare_stan_data_count(
             ddat = design,
             subjid = subjid,
-            period = period,
             duration = duration,
             outcome = outcome,
             group = group,
@@ -297,7 +293,6 @@ test_that("count Stan data requires full rank in observed positive-duration cell
                 prepare_stan_data_count(
                     ddat = design,
                     subjid = subjid,
-                    period = period,
                     duration = if (missing_active) rep(1, 4) else c(1, 1, 0, 0),
                     outcome = if (missing_active) {
                         c(1, 2, NA, NA)
@@ -330,9 +325,11 @@ test_that("count Stan data requires positive counts for period-specific effects"
         for (outcome in outcomes) {
             expect_error(
                 prepare_stan_data_count(
-                    ddat = cbind(intercept = 1, period2 = as.integer(period == "2")),
+                    ddat = cbind(
+                        intercept = 1,
+                        period2 = as.integer(period == "2")
+                    ),
                     subjid = c("1", "1", "2", "2"),
-                    period = period,
                     duration = rep(1, 4),
                     outcome = outcome,
                     group = factor(rep("Control", 4)),
@@ -349,7 +346,6 @@ test_that("count Stan data allows zero-count periods with shared coefficients", 
     actual <- prepare_stan_data_count(
         ddat = matrix(1, nrow = 4, ncol = 1),
         subjid = c("1", "1", "2", "2"),
-        period = c("1", "2", "1", "2"),
         duration = rep(1, 4),
         outcome = c(1, 0, 2, 0),
         group = factor(rep("Control", 4)),
@@ -372,9 +368,12 @@ test_that("count Stan data ignores periods without observed positive-duration ce
             actual <- prepare_stan_data_count(
                 ddat = matrix(1, nrow = 4, ncol = 1),
                 subjid = c("1", "1", "2", "2"),
-                period = period,
                 duration = if (missing_period) rep(1, 4) else c(1, 0, 1, 0),
-                outcome = if (missing_period) c(1, NA, 2, NA) else c(1, 0, 2, 0),
+                outcome = if (missing_period) {
+                    c(1, NA, 2, NA)
+                } else {
+                    c(1, 0, 2, 0)
+                },
                 group = factor(rep("Control", 4)),
                 same_cov = TRUE
             )
@@ -394,12 +393,14 @@ test_that("ragged and fixed-period negative-multinomial likelihoods agree", {
     shape <- 2
     probability <- mu / (shape + sum(mu))
 
-    fixed_period <- lgamma(shape + sum(count)) - lgamma(shape) -
+    fixed_period <- lgamma(shape + sum(count)) -
+        lgamma(shape) -
         sum(lgamma(count + 1)) +
         sum(count * log(probability)) +
         shape * log1p(-sum(probability))
     ragged <- sum(count * log(mu) - lgamma(count + 1)) +
-        lgamma(shape + sum(count)) - lgamma(shape) +
+        lgamma(shape + sum(count)) -
+        lgamma(shape) +
         shape * log(shape) -
         (shape + sum(count)) * log(shape + sum(mu))
 
@@ -681,10 +682,17 @@ test_prepare_prior_params <- function(cov_struct, expected_params_dim) {
         is.list(result) && setequal(names(result), expected_params)
     )
     for (param in expected_params) {
+        is_matrix_res <- is.matrix(result[[param]]) &&
+            nrow(result[[param]]) == 1
         is_list_res <- is.list(result[[param]]) && length(result[[param]]) == 1
         is_array_res <- is.array(result[[param]]) &&
             length(result[[param]]) == 1
-        if (is_list_res) {
+        if (is_matrix_res) {
+            expect_equal(
+                ncol(result[[param]]),
+                unname(expected_params_dim[param])
+            )
+        } else if (is_list_res) {
             expect_true(
                 length(result[[param]][[1]]) == expected_params_dim[param]
             )
@@ -720,12 +728,42 @@ test_prepare_prior_params <- function(cov_struct, expected_params_dim) {
         is.list(result) && setequal(names(result), expected_params)
     )
     for (param in expected_params) {
+        is_matrix_res <- is.matrix(result[[param]]) &&
+            nrow(result[[param]]) == 2
         is_list_res <- is.list(result[[param]]) && length(result[[param]]) == 2
         is_array_res <- is.array(result[[param]]) &&
             length(result[[param]]) == 2
-        expect_true(is_list_res || is_array_res)
+        expect_true(is_list_res || is_array_res || is_matrix_res)
     }
 }
+
+test_that("prepare_prior_params gives one row of correlations per group with two visits", {
+    set.seed(2152)
+    mcoefs <- list("int" = 10, "age" = 3, "sex" = 6, "trtslope" = 7)
+    dat <- get_mcmc_sim_dat(200, mcoefs, as_vcov(c(3, 5), 0.4))
+    mat <- model.matrix(data = dat, ~ 1 + sex + age + group + visit)
+    for (cov_struct in c("ad", "adh", "toep", "toeph")) {
+        for (same_cov in c(TRUE, FALSE)) {
+            mmrm_initial <- fit_mmrm(
+                designmat = mat,
+                outcome = dat$outcome,
+                subjid = dat$id,
+                visit = dat$visit,
+                group = dat$group,
+                cov_struct = cov_struct,
+                same_cov = same_cov
+            )
+            result <- prepare_prior_params(
+                stan_data = list(),
+                covariance = cov_struct,
+                prior_cov = "default",
+                mmrm_initial = mmrm_initial,
+                same_cov = same_cov
+            )
+            expect_equal(dim(result$rhos_par), c(ifelse(same_cov, 1, 2), 1))
+        }
+    }
+})
 
 test_that("prepare_prior_params works for AR1", {
     skip_if_not(is_extended_test())
@@ -803,7 +841,7 @@ test_that("fit_mcmc can recover known values with same_cov = TRUE", {
     )
 
     method <- method_bayes(
-        n_samples = 200,
+        n_samples = 600,
         same_cov = TRUE,
         control = control_bayes(
             warmup = 200,
@@ -929,7 +967,11 @@ test_that("fit_mcmc returns error if mmrm on original sample fails", {
         data = dat,
         ~ 1 + sex + age + group + visit + group * visit
     )
-    mat[, 2] <- 1
+    # Keep the design full rank so validation reaches the MMRM failure path.
+    local_mocked_bindings(
+        fit_mmrm = function(...) list(failed = TRUE),
+        .package = "rbmi"
+    )
 
     method <- method_bayes(
         n_samples = 2,
@@ -969,6 +1011,50 @@ test_that("fit_mcmc returns error if mmrm on original sample fails", {
     )
 })
 
+test_that("fit_mcmc reports an informative error if Stan cannot sample", {
+    set.seed(101)
+    skip_if_not(is_core_test())
+    mcoefs <- list(
+        "int" = 10,
+        "age" = 3,
+        "sex" = 6,
+        "trtslope" = 7
+    )
+    sigma <- as_vcov(c(3, 5, 7), c(0.1, 0.4, 0.7))
+
+    dat <- get_mcmc_sim_dat(100, mcoefs, sigma)
+    mat <- model.matrix(
+        data = dat,
+        ~ 1 + sex + age + group + visit + group * visit
+    )
+
+    # `theta` has one element per design column, so this initial value is rejected.
+    method <- method_bayes(
+        n_samples = 2,
+        control = control_bayes(
+            warmup = 10,
+            thin = 1,
+            init = function() list(theta = 1)
+        )
+    )
+
+    expect_error(
+        capture.output(
+            fit_mcmc(
+                designmat = mat,
+                outcome = dat$outcome,
+                group = dat$group,
+                subjid = dat$id,
+                visit = dat$visit,
+                method = method,
+                quiet = TRUE
+            )
+        ),
+        "Stan sampling failed (error occurred during calling the sampler; sampling not done)",
+        fixed = TRUE
+    )
+})
+
 
 test_that("fit_mcmc can recover known values with same_cov = FALSE", {
     skip_if_not(is_extended_test())
@@ -986,11 +1072,11 @@ test_that("fit_mcmc can recover known values with same_cov = FALSE", {
 
     dat <- bind_rows(
         get_mcmc_sim_dat(1200, mcoefs, sigma_a) %>%
-            filter(group == "A") %>%
+            dplyr::filter(group == "A") %>%
             mutate(id = paste0(id, "A")),
 
         get_mcmc_sim_dat(1200, mcoefs, sigma_b) %>%
-            filter(group == "B") %>%
+            dplyr::filter(group == "B") %>%
             mutate(id = paste0(id, "B"))
     )
 
@@ -1176,17 +1262,30 @@ test_fit_mcmc <- function(
         ~ 1 + sex + age + group + visit + group * visit
     )
 
-    method <- method_bayes(
-        covariance = cov_struct,
-        n_samples = 500,
-        same_cov = same_cov,
-        prior_cov = prior_cov,
-        control = control_bayes(
+    if (init == "mmrm") {
+        expect_warning(
+            control <- control_bayes(
+                warmup = 200,
+                thin = 3,
+                chains = 3,
+                init = init
+            ),
+            "starts all 3 chains at the same values"
+        )
+    } else {
+        control <- control_bayes(
             warmup = 200,
             thin = 3,
             chains = 3,
             init = init
         )
+    }
+    method <- method_bayes(
+        covariance = cov_struct,
+        n_samples = 500,
+        same_cov = same_cov,
+        prior_cov = prior_cov,
+        control = control
     )
 
     fit <- fit_mcmc(
@@ -1205,7 +1304,11 @@ test_fit_mcmc <- function(
     assert_that(all(beta_within$inside))
 
     sigma_within <- get_within(
-        if (same_cov) get_shared_sigma_draws(fit$samples$sigma) else fit$samples$sigma,
+        if (same_cov) {
+            get_shared_sigma_draws(fit$samples$sigma)
+        } else {
+            fit$samples$sigma
+        },
         rep(unlist(as.list(sigma)), ifelse(same_cov, 1, 2))
     )
     assert_that(all(sigma_within$inside))
@@ -1286,6 +1389,15 @@ test_that("fit_mcmc works with compound symmetry covariance model", {
 
     set.seed(3459)
     test_fit_mcmc("cs", sigma = sigma, same_cov = FALSE)
+
+    # The smallest eigenvalue of cs_matrix(rho, n) is 1 + (n - 1) * rho.
+    n_visits <- 3
+    rho_min <- -1 / (n_visits - 1)
+    expect_equal(min(eigen(cs_matrix(rho_min, n_visits))$values), 0)
+
+    # At rho_min itself the covariance matrix is singular.
+    set.seed(3459)
+    test_fit_mcmc("cs", sigma = sd^2 * cs_matrix(rho_min + 0.1, n_visits))
 })
 
 test_that("fit_mcmc works with heterogeneous compound symmetry covariance model", {
@@ -1304,6 +1416,14 @@ test_that("fit_mcmc works with heterogeneous compound symmetry covariance model"
 
     set.seed(3459)
     test_fit_mcmc("csh", sigma = sigma, same_cov = FALSE, init = "mmrm")
+
+    n_visits <- 3
+    rho_min <- -1 / (n_visits - 1)
+    set.seed(3459)
+    test_fit_mcmc(
+        "csh",
+        sigma = diag(sds) %*% cs_matrix(rho_min + 0.1, n_visits) %*% diag(sds)
+    )
 })
 
 test_that("fit_mcmc works with antedependence covariance model", {
@@ -1376,4 +1496,213 @@ test_that("fit_mcmc works with heterogeneous Toeplitz covariance model", {
 
     set.seed(6459)
     test_fit_mcmc("toeph", sigma = sigma, same_cov = FALSE)
+})
+
+expect_mmrm_init <- function(
+    covariance,
+    prior_cov = "default",
+    same_cov = FALSE,
+    group_levels = c("A", "B")
+) {
+    set.seed(5112)
+    mcoefs <- list("int" = 10, "age" = 3, "sex" = 6, "trtslope" = 7)
+    dat <- get_mcmc_sim_dat(200, mcoefs, as_vcov(c(3, 5, 7), c(0.1, 0.4, 0.7)))
+    dat$group <- factor(dat$group, levels = group_levels)
+    mat <- model.matrix(
+        data = dat,
+        ~ 1 + sex + age + group + visit + group * visit
+    )
+
+    method <- method_bayes(
+        covariance = covariance,
+        prior_cov = prior_cov,
+        same_cov = same_cov,
+        n_samples = 20,
+        control = control_bayes(warmup = 20, thin = 1, init = "mmrm")
+    )
+    fit <- suppressWarnings(fit_mcmc(
+        designmat = mat,
+        outcome = dat$outcome,
+        group = dat$group,
+        subjid = dat$id,
+        visit = dat$visit,
+        method = method,
+        quiet = TRUE
+    ))
+    # Fit the reference MMRM on the same scale as Stan's stored initial values.
+    model_df <- cbind(dat$outcome, mat)
+    scaled <- scalerConstructor$new(model_df)$scale(model_df)
+    mmrm <- fit_mmrm(
+        designmat = scaled[, -1, drop = FALSE],
+        outcome = scaled[, 1],
+        subjid = dat$id,
+        visit = dat$visit,
+        group = dat$group,
+        cov_struct = covariance,
+        REML = TRUE,
+        same_cov = same_cov
+    )
+
+    inits <- rstan::get_inits(fit$fit)[[1]]
+    expect_equal(as.vector(inits$beta), mmrm$beta, tolerance = 1e-6)
+    for (g in seq_len(ifelse(same_cov, 1, 2))) {
+        expect_equal(
+            inits$Sigma[g, , ],
+            mmrm$sigma[[g]],
+            tolerance = 1e-6,
+            ignore_attr = TRUE
+        )
+    }
+}
+
+test_that("fit_mcmc starts the chain at the MMRM estimates with init = 'mmrm'", {
+    skip_if_not(is_core_test())
+    expect_mmrm_init("us")
+    expect_mmrm_init("us", same_cov = TRUE)
+})
+
+test_that("fit_mcmc starts all covariance models at the MMRM estimates", {
+    skip_if_not(is_extended_test())
+    expect_mmrm_init("us", prior_cov = "lkj")
+    expect_mmrm_init("us", prior_cov = "lkj", same_cov = TRUE)
+    structures <- c("ar1", "ar1h", "cs", "csh", "ad", "adh", "toep", "toeph")
+    for (covariance in structures) {
+        expect_mmrm_init(covariance)
+        # Stan indexes groups by factor level, not alphabetically.
+        expect_mmrm_init(covariance, group_levels = c("B", "A"))
+    }
+    expect_mmrm_init("ar1h", same_cov = TRUE)
+})
+
+
+test_that("unidentified design terms handles rank and empty matrices", {
+    design <- cbind(intercept = 1, x = 1:4)
+    expect_identical(unidentified_design_terms(design), character(0))
+    expect_identical(
+        unidentified_design_terms(cbind(design, duplicate = 2 * design[, 2])),
+        "duplicate"
+    )
+    expect_identical(
+        unidentified_design_terms(design[FALSE, ]),
+        colnames(design)
+    )
+    expect_identical(
+        unidentified_design_terms(matrix(0, 4, 2)),
+        c("column 1", "column 2")
+    )
+    expect_identical(
+        unidentified_design_terms(matrix(numeric(), 4, 0)),
+        character(0)
+    )
+})
+
+
+test_that("unidentified design terms supports data frames and name overrides", {
+    design <- data.frame(intercept = rep(1, 4), absent = rep(0, 4))
+    expect_identical(unidentified_design_terms(design), "absent")
+    expect_identical(unidentified_design_terms(design, c("a", "b")), "b")
+    expect_identical(
+        unidentified_design_terms(unname(as.matrix(design))),
+        "column 2"
+    )
+})
+
+
+test_that("continuous rank checks use all observed outcomes", {
+    design <- cbind(intercept = 1, groupB = c(0, 0, 1, 1))
+    expect_null(check_continuous_design_rank(design, c(-1, 0, -2, 0)))
+    expect_null(check_continuous_design_rank(
+        as.data.frame(design),
+        c(NA, 0, -2, NA)
+    ))
+    expect_error(
+        check_continuous_design_rank(design, c(-1, 0, NA, NA)),
+        "observed-outcome design matrix is rank deficient.*`groupB`"
+    )
+    expect_error(
+        check_continuous_design_rank(design, rep(NA_real_, 4)),
+        "`intercept`, `groupB`"
+    )
+})
+
+
+test_that("continuous rank checks name linearly dependent columns", {
+    design <- cbind(intercept = 1, x = 1:4, duplicate = 2 * (1:4))
+    expect_error(
+        check_continuous_design_rank(design, 1:4),
+        "`duplicate`"
+    )
+})
+
+
+test_that("continuous rank checks use supplied, matrix, or fallback names", {
+    design <- cbind(intercept = 1, groupB = c(0, 0, 1, 1))
+    outcome <- c(-1, 0, NA, NA)
+    expect_error(
+        check_continuous_design_rank(design, outcome, c("(Intercept)", "armB")),
+        "`armB`"
+    )
+    expect_error(check_continuous_design_rank(design, outcome), "`groupB`")
+    expect_error(
+        check_continuous_design_rank(unname(design), outcome),
+        "`column 2`"
+    )
+})
+
+
+test_that("continuous MCMC names terms without observed-outcome support", {
+    design <- cbind(intercept = 1, groupB = c(0, 0, 1, 1))
+    fit <- function(y, x = design, terms = colnames(x)) {
+        fit_mcmc(
+            outcome_type = "continuous",
+            designmat = x,
+            outcome = y,
+            group = factor(c("A", "A", "B", "B")),
+            subjid = factor(c("a", "a", "b", "b")),
+            visit = factor(rep(1:2, 2)),
+            duration = NULL,
+            method = list(covariance = "us", same_cov = TRUE),
+            scaler = list(),
+            term_names = terms
+        )
+    }
+
+    expect_error(
+        fit(c(-1, 0, NA, NA)),
+        "observed-outcome design matrix is rank deficient.*`groupB`"
+    )
+    # Reaching the initial MMRM verifies that zero and negative observations
+    # contribute to the rank check, without running Stan sampling.
+    local_mocked_bindings(
+        fit_mmrm = function(...) stop("Reached initial MMRM"),
+        .package = "rbmi"
+    )
+    expect_error(fit(c(-1, 0, -2, 0)), "Reached initial MMRM")
+})
+
+
+test_that("count Stan data names the model terms without positive-count support", {
+    # Arm B has events only in period 1, so its period-2 interaction is not
+    # identified by any positive count.
+    subjid <- factor(rep(c("a", "b", "c", "d"), each = 2))
+    group <- factor(rep(c("A", "A", "B", "B"), each = 2))
+    period2 <- rep(c(0, 1), 4)
+    design <- cbind(
+        intercept = 1,
+        groupB = as.integer(group == "B"),
+        period2 = period2,
+        groupB_period2 = as.integer(group == "B") * period2
+    )
+    expect_error(
+        prepare_stan_data_count(
+            ddat = design,
+            subjid = subjid,
+            duration = rep(1, 8),
+            outcome = c(1, 2, 3, 1, 2, 0, 1, 0),
+            group = group,
+            same_cov = TRUE,
+            term_names = c("(Intercept)", "groupB", "period2", "groupB:period2")
+        ),
+        "not identified by cells with positive counts.*`groupB:period2`"
+    )
 })

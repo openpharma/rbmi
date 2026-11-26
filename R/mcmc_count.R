@@ -5,10 +5,11 @@
 #'
 #' @param ddat A design matrix
 #' @param subjid A vector of subject IDs
-#' @param period A vector of period values
 #' @param duration A vector of duration values
 #' @param outcome A vector of integer outcome values (unscaled, i.e. raw counts)
 #' @param group A factor containing the treatment group for each row.
+#' @param term_names `NULL` or the model-matrix column names of `ddat`, used
+#'   to name unidentified terms in error messages.
 #' @param same_cov Logical. If `TRUE`, use one shared dispersion parameter. If
 #'   `FALSE`, estimate a separate dispersion parameter for each treatment group.
 #'
@@ -29,20 +30,18 @@
 prepare_stan_data_count <- function(
     ddat,
     subjid,
-    period,
     duration,
     outcome,
     group,
-    same_cov
+    same_cov,
+    term_names = colnames(ddat)
 ) {
     assert_that(
-        is.factor(period) | is.character(period) | is.numeric(period),
         is.numeric(duration) & all(duration >= 0),
         is.character(subjid) | is.factor(subjid),
         is.numeric(outcome) &
             all((outcome == trunc(outcome) & (outcome >= 0)) | is.na(outcome)),
         is.data.frame(ddat) | is.matrix(ddat),
-        length(period) == length(duration),
         length(duration) == length(outcome),
         length(outcome) == length(subjid),
         length(group) == length(subjid),
@@ -87,14 +86,20 @@ prepare_stan_data_count <- function(
     # Check the fitted design rather than period IDs: ragged time cells can
     # have no events while sharing all their coefficients with other cells.
     positive_design <- ddat[outcome[observed] > 0, , drop = FALSE]
-    assert_that(
-        nrow(positive_design) > 0 &&
-            qr(positive_design)$rank == ncol(ddat),
-        msg = paste(
-            "The positive-count design matrix must have full column rank",
-            "to ensure a proper posterior under flat coefficient priors"
+    unidentified <- unidentified_design_terms(positive_design, term_names)
+    if (length(unidentified) > 0) {
+        stop(
+            paste(
+                "The positive-count design matrix must have full column rank",
+                "to ensure a proper posterior under flat coefficient priors.",
+                "The following model terms are not identified by cells with",
+                "positive counts (they are zero, or linear combinations of",
+                "other terms, in every such cell):",
+                paste0("`", unidentified, "`", collapse = ", ")
+            ),
+            call. = FALSE
         )
-    )
+    }
     subjid_observed <- subject_all[observed]
     outcome <- outcome[observed]
     duration <- duration[observed]
@@ -184,8 +189,6 @@ validate.stan_data_count <- function(x, ...) {
 #' @param control A named list of arguments passed to [rstan::sampling()].
 #' @param n_samples Number of retained posterior draws requested by the user.
 #' @param quiet Logical indicating whether Stan progress output is suppressed.
-#' @param stan_data A `stan_data_count` object. Currently unused, but retained
-#'   for a common control-completion interface across outcome types.
 #'
 #' @return The completed `control` list, including calculated `iter` and
 #'   `refresh` values and a count-compatible initialization setting.
@@ -194,17 +197,14 @@ validate.stan_data_count <- function(x, ...) {
 complete_control_bayes_count <- function(
     control,
     n_samples,
-    quiet,
-    stan_data
+    quiet
 ) {
-    control <- complete_control_bayes_common(
+    complete_control_bayes_common(
         control = control,
         n_samples = n_samples,
-        quiet = quiet
+        quiet = quiet,
+        outcome = "count"
     )
-
-    control$init <- "random"
-    control
 }
 
 #' Compile the Stan model for count outcomes

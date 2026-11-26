@@ -7,19 +7,17 @@
 prepare_stan_data_count(
   ddat,
   subjid,
-  period,
   duration,
   outcome,
   group,
-  same_cov
+  same_cov,
+  term_names = colnames(ddat)
 )
 }
 \arguments{
 \item{ddat}{A design matrix}
 
 \item{subjid}{A vector of subject IDs}
-
-\item{period}{A vector of period values}
 
 \item{duration}{A vector of duration values}
 
@@ -29,6 +27,9 @@ prepare_stan_data_count(
 
 \item{same_cov}{Logical. If \code{TRUE}, use one shared dispersion parameter. If
 \code{FALSE}, estimate a separate dispersion parameter for each treatment group.}
+
+\item{term_names}{\code{NULL} or the model-matrix column names of \code{ddat}, used
+to name unidentified terms in error messages.}
 }
 \value{
 A \code{stan_data_count} object. A named list containing all the

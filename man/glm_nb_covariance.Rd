@@ -19,4 +19,17 @@ and the negative binomial shape parameter. Unlike the usual covariance
 returned by \code{glm.nb}, this calculation does not assume that the regression
 coefficients and the estimated dispersion are independent.
 }
+\details{
+The inverse is computed blockwise through the Schur complement of the
+coefficient block, i.e. the information about the shape parameter that is
+not shared with the coefficients. When the data are close to Poisson, the
+shape estimate is very large and this information is a small difference of
+nearly equal terms; inverting the full matrix then fails or returns
+negative variances. A nonpositive or nonfinite Schur complement can reflect
+numerical cancellation or an invalid fitted optimum; it does not by itself
+establish that the shape parameter is unidentified. In this case, the
+coefficient covariance is computed with the shape parameter held fixed,
+and the \code{dispersion} row and column are set to \code{NA}. This fallback is not
+the inverse of the joint observed information.
+}
 \keyword{internal}

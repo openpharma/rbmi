@@ -33,9 +33,12 @@ with the utility variables \code{is_mar}, \code{is_missing}, \code{is_post_ice} 
 \description{
 Creates a \code{data.frame} in the format required by \code{\link[=analyse]{analyse()}} for the use
 of applying a delta adjustment.
+
+Additive delta adjustments are supported only for continuous outcomes.
+For count sensitivity analyses, use rate multipliers in \code{\link[=count_strategy]{count_strategy()}}.
 }
 \details{
-To apply a delta adjustment the \code{\link[=analyse]{analyse()}} function expects
+For continuous outcomes, the \code{\link[=analyse]{analyse()}} function expects
 a delta \code{data.frame} with 3 variables: \code{vars$subjid}, \code{vars$visit} and \code{delta}
 (where \code{vars} is the object supplied in the original call to \code{\link[=draws]{draws()}}
 as created by the \code{\link[=set_vars]{set_vars()}} function).

@@ -305,7 +305,7 @@ test_that("generate_data_single", {
     res <- generate_data_single(pars_group, strategy_fun, distr_pars_ref = NULL)
     test_data_basics(res, n_visits, n)
     expect_true(all(!is.na(res)))
-    expect_true(identical(res$outcome_noICE, res$outcome))
+    expect_equal(res$outcome_noICE, res$outcome)
     expect_true(all(c(res$ind_ice1, res$dropout_ice1, res$ind_ice2) == 0))
 
     # only ICE1
@@ -497,9 +497,9 @@ test_that("generic tests to ensure simulate_data is working as expected", {
     )
 
     control_nrow <- dat %>%
-        filter(group == "Control") %>%
-        filter(!is.na(outcome)) %>%
-        filter(outcome_noICE != outcome) %>%
+        dplyr::filter(group == "Control") %>%
+        dplyr::filter(!is.na(outcome)) %>%
+        dplyr::filter(outcome_noICE != outcome) %>%
         nrow()
 
     expect_equal(
@@ -508,7 +508,7 @@ test_that("generic tests to ensure simulate_data is working as expected", {
     )
 
     stat_c <- dat %>%
-        filter(group == "Control") %>%
+        dplyr::filter(group == "Control") %>%
         group_by(visit) %>%
         summarise(
             m = mean(outcome, na.rm = TRUE),
@@ -518,7 +518,7 @@ test_that("generic tests to ensure simulate_data is working as expected", {
         )
 
     stat_t <- dat %>%
-        filter(group == "Intervention") %>%
+        dplyr::filter(group == "Intervention") %>%
         group_by(visit) %>%
         summarise(
             m = mean(outcome),

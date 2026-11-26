@@ -18,7 +18,7 @@ make_count_analysis_data <- function() {
 
     data.frame(
         subject = subject,
-        period = rep(as.character(seq_len(periods)), number_subjects),
+        period = factor(rep(seq_len(periods), number_subjects)),
         duration = duration,
         count = stats::rpois(
             number_subjects * periods,
@@ -95,7 +95,7 @@ test_that("negative binomial regression accepts more than two treatment groups",
 })
 
 
-test_that("negative binomial regression coefficients pool with normal inference", {
+test_that("negative binomial regression coefficients pool with t inference", {
     data <- make_count_analysis_data()
     vars <- set_vars(
         subjid = "subject",
@@ -139,17 +139,18 @@ test_that("negative binomial regression coefficients pool with normal inference"
             Inf,
             method = "barnard-rubin"
         )
+        expect_true(is.finite(rubin$df))
         expected_se <- sqrt(rubin$var_t)
 
         expect_equal(observed$pars[[coefficient]]$est, rubin$est_point)
         expect_equal(observed$pars[[coefficient]]$se, expected_se)
         expect_equal(
             observed$pars[[coefficient]]$ci,
-            rubin$est_point + c(-1, 1) * qnorm(0.975) * expected_se
+            rubin$est_point + c(-1, 1) * qt(0.975, df = rubin$df) * expected_se
         )
         expect_equal(
             observed$pars[[coefficient]]$pvalue,
-            2 * pnorm(-abs(rubin$est_point / expected_se))
+            2 * pt(-abs(rubin$est_point / expected_se), df = rubin$df)
         )
     }
 })
@@ -186,4 +187,86 @@ test_that("negative binomial regression validates count-analysis inputs", {
         neg_bin_regression(data_zero_duration, vars),
         "greater than zero"
     )
+})
+
+
+test_that("negative binomial regression handles nearly Poisson data", {
+    # Equidispersed totals with mean 30: glm.nb returns a very large shape
+    # estimate. Inverting the full observed information used to fail with
+    # "system is computationally singular" for this dataset.
+    set.seed(2)
+    dat <- data.frame(
+        id = factor(seq_len(400)),
+        period = "1",
+        duration = 1,
+        group = factor(rep(c("A", "B"), 200)),
+        outcome = stats::rpois(400, 30)
+    )
+    vars <- set_vars(
+        subjid = "id",
+        period = "period",
+        duration = "duration",
+        outcome = "outcome",
+        group = "group"
+    )
+
+    result <- suppressWarnings(neg_bin_regression(dat, vars))
+    imputations <- list(
+        data = list(vars = vars, get_data = function(...) dat),
+        imputations = list(NULL, NULL),
+        method = method_bayes(n_samples = 2)
+    )
+    messages <- character()
+    analysis <- withCallingHandlers(
+        analyse(imputations, neg_bin_regression, vars = vars, .validate = FALSE),
+        warning = function(w) {
+            messages <<- c(messages, conditionMessage(w))
+            invokeRestart("muffleWarning")
+        }
+    )
+    expect_length(messages, 1)
+    expect_match(messages, "2/2: iteration limit reached", fixed = TRUE)
+    expect_true("iteration limit reached" %in%
+        attr(analysis$results[[1]], "rbmi_warnings"))
+    recorded <- analysis$results[[1]]
+    attr(recorded, "rbmi_warnings") <- NULL
+    expect_equal(recorded, result)
+    se <- vapply(result, `[[`, numeric(1), "se")
+    poisson_se <- sqrt(diag(stats::vcov(
+        stats::glm(outcome ~ group, family = stats::poisson, data = dat)
+    )))
+
+    expect_true(all(is.finite(se)))
+    # Nearly Poisson: SEs at least the Poisson SEs and within 10% of them
+    expect_true(all(se / poisson_se >= 1 - 1e-8))
+    expect_true(all(se / poisson_se < 1.1))
+})
+
+
+
+test_that("negative binomial covariance falls back for invalid shape information", {
+    # Deliberately constructed information, independent of glm.nb convergence:
+    # theta = 1 gives A = 1/4, b = 1/4, d = -1/4, hence Schur = -1/2.
+    # theta = Inf gives a nonfinite Schur complement and A = 1.
+    for (theta in c(1, Inf)) {
+        model <- structure(
+            list(
+                coefficients = c("(Intercept)" = 0),
+                fitted.values = 1,
+                theta = theta,
+                y = 0,
+                x = matrix(1, dimnames = list(NULL, "(Intercept)"))
+            ),
+            class = c("negbin", "glm", "lm")
+        )
+        covariance <- glm_nb_covariance(model)
+
+        expect_equal(covariance[1, 1], if (is.finite(theta)) 4 else 1)
+        expect_true(all(is.na(covariance["dispersion", ])))
+        expect_true(all(is.na(covariance[, "dispersion"])))
+        expect_identical(
+            dimnames(covariance),
+            rep(list(c("(Intercept)", "dispersion")), 2)
+        )
+    }
 })

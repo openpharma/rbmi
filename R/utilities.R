@@ -131,6 +131,51 @@ as_model_df <- function(dat, frm) {
 }
 
 
+#' Column names of the model matrix used by `as_model_df()`
+#'
+#' `as_model_df()` renames the design columns to `V1`, `V2`, ...; this returns
+#' the original term names, e.g. for error messages.
+#'
+#' @inheritParams as_model_df
+#'
+#' @return A character vector of model-matrix column names.
+#'
+#' @keywords internal
+model_term_names <- function(dat, frm) {
+    outcome <- as.character(attr(stats::terms(frm), "variables")[[2]])
+    dat[[outcome]][is.na(dat[[outcome]])] <- 999
+    colnames(stats::model.matrix(frm, dat))
+}
+
+
+#' Replace the values of a factor while keeping its coding
+#'
+#' Reference-based imputation evaluates the fitted model with the treatment
+#' group replaced by the reference group. Constructing a new factor would drop
+#' the original factor's `contrasts` attribute and `ordered` class, so the
+#' design matrix would no longer be expressed in the basis in which the
+#' coefficients were estimated. Replacing the values in place keeps both.
+#'
+#' @param x A factor.
+#' @param values Values to assign; must be levels of `x`. Recycled if of
+#'   length 1.
+#'
+#' @return `x` with its values replaced and all other attributes unchanged.
+#'
+#' @keywords internal
+replace_factor_values <- function(x, values) {
+    values <- as.character(values)
+    assert_that(
+        is.factor(x),
+        length(values) %in% c(1, length(x)),
+        all(values %in% levels(x)),
+        msg = "`values` must be levels of the factor `x`"
+    )
+    x[] <- values
+    x
+}
+
+
 #' Convert character variables to factor
 #'
 #' Provided a vector of variable names this function converts any
@@ -380,8 +425,10 @@ sort_by <- function(df, vars = NULL, decreasing = FALSE) {
 #' @param visit The name of the "Visit" variable. A length 1 character vector.
 #'
 #' @param period Alternatively to `visit`, the name of the "Period" variable.
-#' A length 1 character vector. The corresponding data column contains the periods
-#' which are typically character or factor valued.
+#' A length 1 character vector. The corresponding column in the longitudinal data
+#' must be a factor with no missing values or unused levels. Set the factor levels
+#' in the order in which periods should be processed. The supplied factor, including
+#' its contrasts and ordered status, is retained in the imputation data.
 #'
 #' @param duration The name of the "Duration" variable. A length 1 character
 #' vector or `NULL`. If `period` is specified, this argument is required. The

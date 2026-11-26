@@ -35,7 +35,7 @@ The package focuses on multiple imputation (MI) for count outcomes following the
 1. @Keene2014 is the basic proposal for Bayesian MI for negative binomial count data, covering two time periods: before and after discontinuing the trial and treatment at the same time.
 1. @Roger2019 extends this to more than two time periods, in particular a third time period where patients are still continuing the trial, but have stopped treatment already. This is the more general setting, which is implemented in `rbmi`.
 
-Note that time to recurrent events can also be analyzed with Andersen-Gill models, but this is not available in the package at this point.
+Note that time to recurrent events can also be analysed with Andersen-Gill models, but this is not available in the package at this point.
 
 ## Statistical methodology {#sec:statsMethods}
 
@@ -110,7 +110,7 @@ important when a subject has missing values in other periods.
 The available assumptions are therefore:
 
 - MAR: Missing periods use the patient's randomized-arm design.
-- CR: Missing periods use the reference-arm design. Observed periods also use the reference-arm design when fitting the count model.
+- CR: Missing periods use the reference-arm design. In the imputation step, the means of the observed periods that the subject's frailty is conditioned on are also computed with the reference-arm design. The posterior fit of the count model is the same for all strategies; it always uses the randomized-arm design for the observed periods.
 - JR: Missing periods use the reference-arm design, while observed periods retain the patient's randomized-arm design.
 
 Thus, count-outcome `JR` is not a post-ICE-only J2R implementation: it applies
@@ -163,6 +163,43 @@ arm. With a shared dispersion parameter, the group index can be dropped.
 
 Note that in the second parameter of the negative binomial distribution we have the actually observed number of events $y_{i1}$ and $y_{i2}$.
 
+More generally, let $a_i = \phi_{g_i^*}^{-1} + \sum_{j \in O_i} y_{ij}$ and
+$b_i = \phi_{g_i^*}^{-1} + \sum_{j \in O_i} \hat{\mu}_{ij}$ for the observed
+positive-duration periods $O_i$ of patient $i$. Its frailty then follows a
+$\text{Gamma}(a_i, b_i)$ distribution given the observed counts, and a missing
+period $j$ with unconditional mean $m_{ij}$ is imputed from a negative binomial
+distribution with size $a_i$ and mean $a_i m_{ij} / b_i$. Missing periods are
+imputed one after another in period order; after each imputed count $y$ with
+unconditional mean $m$, $a_i$ increases by $y$ and $b_i$ by $m$, so that the
+joint distribution of all imputed periods is the one implied by the shared
+frailty. The implementation passes the mean $a_i m_{ij} / b_i$ directly to the
+sampler. The equivalent probability parameter $b_i / (b_i + m_{ij})$ rounds to
+one when $\phi$ is close to zero and must not be formed.
+
+### Controlled imputation strategies {#sec:countStrategies}
+
+In addition to the reference-based assumptions, `count_strategy()` modifies the
+unconditional mean $m_{ij}$ of selected missing periods; the conditional
+sampling above is unchanged.
+
+- Rate multiplier $c \geq 0$: $m_{ij} = c\,\hat{\mu}_{ij}$, where
+  $\hat{\mu}_{ij}$ is the mean under the base strategy (MAR, JR or CR).
+- Fixed rate $\rho \geq 0$ (`fixed_rate_scale = "rate"`, the default):
+  $m_{ij} = T_{ij}\,\rho$. The rate is the same for every posterior draw,
+  treatment arm and base strategy.
+- Fixed rate on the SAS lambda scale (`fixed_rate_scale = "lambda"`):
+  $m_{ij} = T_{ij}\,\lambda / \phi_{g_i^*}$, reproducing the macro
+  `NM_Rand13.sas`, which fixes $\lambda = \phi \times \text{rate}$ in its
+  negative-multinomial parameterisation. The implied event rate
+  $\lambda / \phi$ varies between posterior draws and arms and is unbounded
+  as $\phi \to 0$. `impute()` warns if $m_{ij}$ exceeds 100 times
+  $\hat{\mu}_{ij}$ for any period and posterior draw.
+
+The base strategy still determines the observed-period means and the
+dispersion parameter used in $a_i$ and $b_i$, so with a fixed rate the
+conditional mean $a_i m_{ij} / b_i$ still depends on the patient's observed
+counts.
+
 ### Analysis
 
 The analysis model is actually simpler than the imputation model. Since we want to use a treatment policy estimand, we do not differentiate any longer between the three periods, and we just want to model the total number of events $Y_i = Y_{i1} + Y_{i2} + Y_{i3}$ for each patient $i$ using a negative binomial regression model with an offset for the total follow-up time $T_i = T_{i1} + T_{i2} + T_{i3}$.
@@ -175,8 +212,188 @@ We fit this with maximum likelihood estimation for each imputed dataset (e.g. wi
 
 We need to be careful how to obtain the standard error. As reported in the CAMIS repository [here](https://psiaims.github.io/CAMIS/Comp/r-sas_negbin.html), we need to recalculate the variance-covariance matrix for the model parameters with a custom function in order to match the `SAS PROC GENMOD` results.
 
+Additive delta adjustments to completed counts are not supported. For count
+sensitivity analyses, use rate multipliers in `count_strategy()` when specifying
+the imputation strategies.
+
 ### Pooling
 
 Finally, Rubin's rules are applied to pool the estimates (on the log-rate scale, i.e. the regression coefficients $\beta$) across the imputed datasets, and we can then exponentiate the pooled estimates and confidence intervals to get the results for the rate ratios.
+
+## Appendix: Numerical evaluation of the count likelihood {#sec:countLikelihood}
+
+The Stan implementation in
+[`inst/stan/count_model.stan`](https://github.com/openpharma/rbmi/blob/main/inst/stan/count_model.stan)
+integrates out the patient-specific gamma frailty before evaluating the likelihood. This appendix describes how that likelihood
+is evaluated efficiently while retaining numerical accuracy for small
+dispersion parameters and large event totals. These numerical choices leave
+the statistical model unchanged.
+
+### Observed-data likelihood
+
+Let $O_i$ denote the observed positive-duration periods for patient $i$, and
+write
+
+$$
+\mu_{ij} = t_{ij}\exp(x_{ij}^{\top}\beta), \qquad
+s_i = \sum_{j\in O_i} y_{ij}, \qquad
+M_i = \sum_{j\in O_i} \mu_{ij}.
+$$
+
+Here $\mu_{ij}$ is the mean *before* multiplication by the frailty (and hence
+also the marginal mean, since the frailty has mean one). Let
+$\phi_i = \phi_{g_i}$ be the dispersion for the patient's randomized-arm group
+in the posterior fit; with common dispersion, $\phi_i = \phi$. Conditional on
+$\gamma_i$, the observed counts are independent Poisson variables with means
+$\gamma_i\mu_{ij}$, and
+$\gamma_i\sim\mathrm{Gamma}(\phi_i^{-1},\phi_i^{-1})$ in shape/rate notation.
+Integrating their joint density over $\gamma_i$ gives
+
+$$
+p(\{y_{ij}\}_{j\in O_i}\mid\beta,\phi_i)
+= \left\{\prod_{j\in O_i}\frac{\mu_{ij}^{y_{ij}}}{y_{ij}!}\right\}
+\frac{\Gamma(\phi_i^{-1}+s_i)}{\Gamma(\phi_i^{-1})}
+\frac{\phi_i^{s_i}}{(1+\phi_i M_i)^{\phi_i^{-1}+s_i}}.
+$$
+
+Thus the patient's log-likelihood contribution is
+
+$$
+\ell_i = \sum_{j\in O_i}\{y_{ij}\log\mu_{ij}-\log\Gamma(y_{ij}+1)\}
++ D(s_i,\phi_i)
+- (\phi_i^{-1}+s_i)\log(1+\phi_i M_i),
+$$
+
+where the gamma recurrence yields
+
+$$
+D(s,\phi)
+= \log\Gamma(\phi^{-1}+s)-\log\Gamma(\phi^{-1})+s\log\phi
+= \sum_{k=1}^{s-1}\log(1+k\phi).
+$$
+
+The sum is empty and $D(s,\phi)=0$ for $s=0$ or $s=1$. Only the totals $s_i$
+and $M_i$ enter the shared-frailty part of the likelihood; the individual
+observed cells enter the first sum.
+
+### Evaluation of the gamma ratio
+
+The Stan function `log_rising_ratio()` evaluates $D(s,\phi)$, using
+`stirling_remainder()` in the Stirling branch.
+
+Direct summation of $D$ requires work proportional to the event total.
+Conversely, directly subtracting log-gamma values can lose precision when
+$\phi^{-1}$ is large. The implementation uses the following branches, in the
+order shown.
+
+1. **Small totals ($s\leq32$).** Evaluate the finite sum using
+   `log1p(k * phi)`, which computes $\log(1+k\phi)$ accurately even when
+   $k\phi$ is small.
+2. **Near the Poisson limit ($s>32$ and $s\phi<10^{-2}$).** Expand each
+   logarithm and collect powers of $\phi$:
+
+   $$
+   D(s,\phi) = \sum_{p=1}^{\infty}
+   \frac{(-1)^{p+1}\phi^p}{p}S_p(s-1), \qquad
+   S_p(n)=\sum_{k=1}^{n}k^p.
+   $$
+
+   The implementation retains $p=1,\ldots,6$. The power sums have closed
+   polynomial forms (Faulhaber's formulas), so no loop over events is needed:
+
+   $$
+   \begin{aligned}
+   S_1(n)&=n(n+1)/2,\\
+   S_2(n)&=n(n+1)(2n+1)/6,\\
+   S_3(n)&=\{n(n+1)/2\}^2,\\
+   S_4(n)&=n(n+1)(2n+1)(3n^2+3n-1)/30,\\
+   S_5(n)&=n^2(n+1)^2(2n^2+2n-1)/12,\\
+   S_6(n)&=n(n+1)(2n+1)(3n^4+6n^3-3n+1)/42.
+   \end{aligned}
+   $$
+
+   Since $k\phi<10^{-2}$ throughout the sum, the alternating-series
+   remainder has magnitude at most $\phi^7 S_7(s-1)/7$. This controls the
+   truncation error without subtracting large log-gamma values.
+3. **Large inverse dispersion (remaining cases with $\phi\leq10^{-2}$).**
+   Put $a=\phi^{-1}\geq100$ and write the Stirling expansion as
+
+   $$
+   \log\Gamma(a)=(a-\tfrac12)\log a-a+\tfrac12\log(2\pi)+\delta(a).
+   $$
+
+   Substituting into $D$ and cancelling the $\log a$ terms algebraically gives
+
+   $$
+   D(s,\phi)=(a+s-\tfrac12)\log(1+s\phi)-s
+   +\delta(a+s)-\delta(a).
+   $$
+
+   The logarithm is evaluated with `log1p`, and the remainder is approximated
+   by
+
+   $$
+   \delta(a)\approx\frac{1}{12a}-\frac{1}{360a^3}
+   +\frac{1}{1260a^5}-\frac{1}{1680a^7}.
+   $$
+
+   For $a\geq100$, the first omitted term $1/(1188a^9)$ bounds the
+   absolute error of this remainder approximation and is less than
+   $10^{-21}$. This form avoids subtracting two large log-gamma values;
+   the near-Poisson branch handles the cases where $s\phi$ is small.
+4. **Remaining cases ($\phi>10^{-2}$).** Use the log-gamma expression for
+   $D$ directly. Here $\phi^{-1}<100$, avoiding the large inverse-dispersion
+   cancellation that motivates the preceding branches.
+
+The finite-sum branch is capped at 31 terms, and the other branches have a
+fixed number of operations. Consequently, the work to evaluate $D$ does not
+grow with the event total. Evaluating the whole likelihood still requires
+work proportional to the number of observed cells and patients.
+
+### Stable evaluation near the Poisson limit
+
+The Stan function `log1p_minus_x()` evaluates the correction $h(w)$ below,
+which is used in the patient-level loop in the `model` block.
+The remaining likelihood term also needs care. With $w=\phi M$, use the exact
+identity
+
+$$
+-(\phi^{-1}+s)\log(1+w)
+= -M-s\log(1+w)-\frac{h(w)}{\phi}, \qquad
+h(w)=\log(1+w)-w.
+$$
+
+For $w<10^{-3}$, the implementation evaluates
+
+$$
+h(w)\approx-\frac{w^2}{2}+\frac{w^3}{3}-\frac{w^4}{4}
++\frac{w^5}{5}-\frac{w^6}{6};
+$$
+
+otherwise it uses `log1p(w) - w`. In the series branch, the absolute
+truncation error is at most $w^7/7$ for $0\leq w<10^{-3}$.
+Separating the leading term $-M$ and evaluating the small correction directly
+avoids cancellation in derivatives with respect to $\phi$, which Stan needs
+for posterior sampling.
+
+For example, with $s$ and $M$ fixed, the expansions give
+
+$$
+D(s,\phi)=\frac{s(s-1)}{2}\phi+O(\phi^2), \qquad
+-\frac{h(\phi M)}{\phi}=\frac{M^2}{2}\phi+O(\phi^2).
+$$
+
+It follows that
+
+$$
+\ell_i = \sum_{j\in O_i}
+\{y_{ij}\log\mu_{ij}-\log\Gamma(y_{ij}+1)-\mu_{ij}\}
++\frac{\phi_i}{2}\{s_i(s_i-1)-2s_i M_i+M_i^2\}
++O(\phi_i^2).
+$$
+
+The leading term is the log-likelihood for independent Poisson counts. This
+makes the Poisson limit explicit and shows why the dispersion-dependent
+corrections should be evaluated directly when $\phi_i$ is small.
 
 ## References

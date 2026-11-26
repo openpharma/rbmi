@@ -508,14 +508,6 @@ longDataConstructor <- R6::R6Class(
         },
 
         #' @description
-        #' Legacy period-data validation method. Count data may be ragged, so
-        #' this now checks that subject-period cells are unique.
-        check_has_all_periods = function() {
-            validate_datalong_complete(self$data, self$vars)
-            invisible(self)
-        },
-
-        #' @description
         #' Ensures that all visits have at least 1 observed "MAR" observation. Throws
         #' an error if this criteria is not met. This is to ensure that the initial
         #' MMRM can be resolved.
@@ -583,18 +575,13 @@ longDataConstructor <- R6::R6Class(
                 unique(c(vars$visit, extract_covariates(vars$covariates)))
             )
             if (uses_period(vars)) {
-                periods <- period_levels(data_nochar, vars)
-                data_nochar[[vars$period]] <- factor(
-                    data_nochar[[vars$period]],
-                    levels = periods
-                )
                 # rerun as_dataframe to reset the rownames
                 self$data <- as_dataframe(sort_by(
                     data_nochar,
                     c(vars$subjid, vars$period)
                 ))
                 self$vars <- vars
-                self$periods <- periods
+                self$periods <- visit_levels(self$data, vars)
                 frmvars <- c(
                     ife(
                         nlevels(self$data[[vars$group]]) >= 2,

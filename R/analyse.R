@@ -48,6 +48,12 @@
 #' This is to say they will not contain the original subject values and as such
 #' any hard coding of subject ids is strictly to be avoided.
 #'
+#' Warnings raised by `fun` are collected for each imputed dataset and stored
+#' as unique messages in the `rbmi_warnings` attribute of its result (accessible
+#' via `analysis$results`). After analysis, one summary warning lists each
+#' distinct message and the number of datasets affected. This also applies
+#' when running in parallel. Errors from `fun` still stop the analysis.
+#'
 #' By default `fun` is the [ancova()] function.
 #' Please note that this function
 #' requires that a `vars` object, as created by [set_vars()], is provided via
@@ -81,6 +87,11 @@
 #' use the helper function [delta_template()] to define the delta datasets as
 #' this provides utility variables such as `is_missing` which can be used to identify
 #' exactly which visits have been imputed.
+#'
+#' Additive delta adjustments are supported only for continuous outcomes.
+#' For count outcomes, `delta` must be `NULL` in both this function and
+#' [extract_imputed_dfs()]. Use rate multipliers in [count_strategy()] for
+#' count sensitivity analyses.
 #'
 #' The optional `transform` argument specifies a transformation to apply to all
 #' pooled parameters for reporting. It defaults to the `"transform"` attribute
@@ -239,6 +250,7 @@ analyse <- function(
     }
 
     if (!is.null(delta)) {
+        assert_delta_supported(vars)
         expected_vars <- c(
             vars$subjid,
             vars$visit,
@@ -309,7 +321,18 @@ analyse <- function(
                     ..rbmi..analysis..imputations$data,
                     ..rbmi..analysis..delta
                 )
-                ..rbmi..analysis..fun(dat2, ...)
+                warnings <- character()
+                result <- withCallingHandlers(
+                    ..rbmi..analysis..fun(dat2, ...),
+                    warning = function(w) {
+                        warnings <<- c(warnings, conditionMessage(w))
+                        invokeRestart("muffleWarning")
+                    }
+                )
+                if (length(warnings)) {
+                    attr(result, "rbmi_warnings") <- unique(warnings)
+                }
+                result
             }
             lapply(indicies, inner_fun, ...)
         },
@@ -352,6 +375,23 @@ analyse <- function(
         }
     )
     validate(ret)
+    warning_messages <- lapply(results, function(result) {
+        unique(attr(result, "rbmi_warnings", exact = TRUE))
+    })
+    distinct_messages <- unique(unlist(warning_messages, use.names = FALSE))
+    if (length(distinct_messages)) {
+        counts <- vapply(distinct_messages, function(message) {
+            sum(vapply(warning_messages, function(messages) {
+                message %in% messages
+            }, logical(1)))
+        }, integer(1))
+        warning(paste0(
+            "Analysis warnings (datasets affected out of ", length(results), "):\n",
+            paste0("- ", counts, "/", length(results), ": ", distinct_messages,
+                   collapse = "\n"),
+            '\nSee attr(result, "rbmi_warnings") for each entry in $results.'
+        ), call. = FALSE)
+    }
     return(ret)
 }
 
@@ -367,7 +407,7 @@ analyse <- function(
 #' all datasets within the `imputations` object will be returned.
 #' @param delta A `data.frame` containing the delta transformation to be
 #' applied to the imputed dataset. See [analyse()] for details on the
-#' format and specification of this `data.frame`.
+#' format and specification of this `data.frame`. Must be `NULL` for count outcomes.
 #' @param idmap Logical. The subject IDs in the imputed `data.frame`'s are
 #' replaced with new IDs to ensure they are unique. Setting this argument to
 #' `TRUE` attaches an attribute, called `idmap`, to the returned `data.frame`'s
@@ -390,6 +430,7 @@ extract_imputed_dfs <- function(
     delta = NULL,
     idmap = FALSE
 ) {
+    if (!is.null(delta)) assert_delta_supported(imputations$data$vars)
     x <- imputations$imputations[index]
     lapply(
         x,
@@ -419,6 +460,7 @@ extract_imputed_dfs <- function(
 #' @returns A `data.frame`.
 extract_imputed_df <- function(imputation, ld, delta = NULL, idmap = FALSE) {
     vars <- ld$vars
+    if (!is.null(delta)) assert_delta_supported(vars)
     dat <- ld$get_data(imputation, idmap = TRUE)
     id_map <- attr(dat, "idmap")
 

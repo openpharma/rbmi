@@ -18,7 +18,8 @@ split_time(
 \arguments{
 \item{data}{A data frame with one row per original count period.}
 
-\item{start}{Name of the row start variable. It must be numeric or a \code{Date}.}
+\item{start}{Name of the row start variable. It must be a \code{Date} or a
+whole-number numeric time (time is measured in whole days or units).}
 
 \item{duration}{Name of the non-negative duration variable, measured in days
 for \code{Date} starts and in the same units as a numeric \code{start}.}
@@ -26,14 +27,15 @@ for \code{Date} starts and in the same units as a numeric \code{start}.}
 \item{outcome}{Name of the aggregate count variable.}
 
 \item{event_times}{Optional character vector naming columns that contain
-one-based event-time offsets from \code{start}. These are required to allocate
-a positive observed count when a row intersects more than one interval.}
+one-based, whole-number event-time offsets from \code{start}. These are
+required to allocate a positive observed count when a row intersects more
+than one interval.}
 
 \item{interval}{A positive whole number giving a fixed interval width, or
 one of \code{"day"}, \code{"week"}, \code{"month"}, \code{"quarter"}, or \code{"year"}.
 Calendar months, quarters, and years require \code{Date} starts.}
 
-\item{origin}{Optional interval origin. For fixed intervals this is the
+\item{origin}{Optional whole-number interval origin. For fixed intervals this is the
 boundary immediately before interval zero. For calendar intervals it must
 be the first day of a month. Defaults to \code{0} for numeric starts and
 \code{1970-01-01} for \code{Date} starts. (Note that \code{interval = "week"} with the default

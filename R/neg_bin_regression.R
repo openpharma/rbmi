@@ -193,6 +193,18 @@ attr(neg_bin_regression, "transform") <- list(
 #' returned by `glm.nb`, this calculation does not assume that the regression
 #' coefficients and the estimated dispersion are independent.
 #'
+#' The inverse is computed blockwise through the Schur complement of the
+#' coefficient block, i.e. the information about the shape parameter that is
+#' not shared with the coefficients. When the data are close to Poisson, the
+#' shape estimate is very large and this information is a small difference of
+#' nearly equal terms; inverting the full matrix then fails or returns
+#' negative variances. A nonpositive or nonfinite Schur complement can reflect
+#' numerical cancellation or an invalid fitted optimum; it does not by itself
+#' establish that the shape parameter is unidentified. In this case, the
+#' coefficient covariance is computed with the shape parameter held fixed,
+#' and the `dispersion` row and column are set to `NA`. This fallback is not
+#' the inverse of the joint observed information.
+#'
 #' @param model A model fitted by [MASS::glm.nb()] with `x = TRUE`.
 #'
 #' @return A covariance matrix containing the regression coefficients and an
@@ -207,40 +219,45 @@ glm_nb_covariance <- function(model) {
     )
 
     number_coefficients <- length(stats::coef(model))
-    observed_information <- matrix(
-        0,
-        nrow = number_coefficients + 1,
-        ncol = number_coefficients + 1
-    )
     mu <- model$fitted.values
     theta <- model$theta
     y <- model$y
     design <- model$x
 
     beta_weights <- (1 + y / theta) * mu / (1 + mu / theta)^2
-    observed_information[
-        seq_len(number_coefficients),
-        seq_len(number_coefficients)
-    ] <- crossprod(design, design * beta_weights)
-
-    dispersion_index <- number_coefficients + 1
-    observed_information[dispersion_index, dispersion_index] <- -sum(
+    information_beta <- crossprod(design, design * beta_weights)
+    information_dispersion <- -sum(
         trigamma(theta + y) -
             trigamma(theta) -
             2 / (mu + theta) +
             (theta + y) / (theta + mu)^2 +
             1 / theta
     )
-
-    beta_dispersion <- -colSums(
+    information_cross <- -colSums(
         design * ((y - mu) * mu / (theta + mu)^2)
     )
-    observed_information[dispersion_index, seq_len(number_coefficients)] <-
-        beta_dispersion
-    observed_information[seq_len(number_coefficients), dispersion_index] <-
-        beta_dispersion
 
     parameter_names <- c(names(stats::coef(model)), "dispersion")
-    dimnames(observed_information) <- list(parameter_names, parameter_names)
-    solve(observed_information)
+    index <- seq_len(number_coefficients)
+    dispersion_index <- number_coefficients + 1
+    covariance <- matrix(
+        NA_real_,
+        nrow = dispersion_index,
+        ncol = dispersion_index,
+        dimnames = list(parameter_names, parameter_names)
+    )
+
+    joint_covariance <- schur_inverse(
+        information_beta,
+        information_cross,
+        information_dispersion
+    )
+    if (!is.null(joint_covariance) &&
+        is.finite(joint_covariance[dispersion_index, dispersion_index]) &&
+        joint_covariance[dispersion_index, dispersion_index] > 0) {
+        covariance[,] <- joint_covariance
+    } else {
+        covariance[index, index] <- solve(information_beta)
+    }
+    covariance
 }

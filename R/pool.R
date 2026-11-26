@@ -35,13 +35,13 @@
 #' call to [draws()]; In particular:
 #'
 #' - `method_approxbayes()` & `method_bayes()` both use Rubin's rules to pool estimates
-#'  and variances across multiple imputed datasets. Analyses with finite complete-data
-#'  degrees of freedom, and continuous outcomes with infinite complete-data degrees
-#'  of freedom, use a t distribution. By default, the Barnard-Rubin (1999)
+#'  and variances across multiple imputed datasets. Confidence intervals and p-values
+#'  use a t distribution with the pooled degrees of freedom for all outcome types,
+#'  including when the complete-data degrees of freedom are infinite.
+#'  By default, the Barnard-Rubin (1999)
 #'  rule is used to pool the degrees of freedom for the t distribution;
 #'  set `rubin_df_method = "rubin"` to use the original approximation from Rubin (1987).
-#'  See Little & Rubin (2002) for more details. Non-continuous outcomes with infinite
-#'  complete-data degrees of freedom use the standard normal distribution.
+#'  See Little & Rubin (2002) for more details.
 #'  Here, the `mcse()` function can compute the Monte Carlo standard error (MCSE) of the
 #'  pooled estimates, via a Jackknife variance estimator for all parameters; see
 #'  Efron & Gong (1983) and Royston, Carlin & White (2009).
@@ -186,11 +186,6 @@ pool <- function(
     )
 
     pool_type <- class(results$results)[[1]]
-    outcome_type <- if (has_class(results, "analysis_count")) {
-        "count"
-    } else {
-        "continuous"
-    }
 
     results_transpose <- transpose_results(
         results$results,
@@ -204,8 +199,7 @@ pool <- function(
         alternative = alternative,
         type = type,
         D = results$method$D,
-        rubin_df_method = rubin_df_method,
-        outcome_type = outcome_type
+        rubin_df_method = rubin_df_method
     )
 
     if (pool_type == "bootstrap") {
@@ -374,14 +368,12 @@ get_pool_components <- function(x) {
 #' @name pool_internal
 #' @keywords internal
 #' @export
-#' @param outcome_type A character string specifying the endpoint type.
 pool_internal <- function(
     results,
     conf.level,
     alternative,
     type,
     D,
-    outcome_type = "continuous",
     ...
 ) {
     UseMethod("pool_internal")
@@ -397,7 +389,6 @@ pool_internal.jackknife <- function(
     alternative,
     type,
     D,
-    outcome_type = "continuous",
     ...
 ) {
     alpha <- 1 - conf.level
@@ -420,7 +411,6 @@ pool_internal.bootstrap <- function(
     alternative,
     type = c("percentile", "normal"),
     D,
-    outcome_type = "continuous",
     ...
 ) {
     type <- match.arg(type)
@@ -444,7 +434,6 @@ pool_internal.bmlmi <- function(
     alternative,
     type,
     D,
-    outcome_type = "continuous",
     ...
 ) {
     ests <- results$est
@@ -525,7 +514,7 @@ get_ests_bmlmi <- function(ests, D) {
     return(ret_obj)
 }
 
-#' @importFrom stats qnorm pnorm qt pt
+#' @importFrom stats qt pt
 #' @rdname pool_internal
 #' @export
 pool_internal.rubin <- function(
@@ -534,7 +523,6 @@ pool_internal.rubin <- function(
     alternative,
     type,
     D,
-    outcome_type = "continuous",
     rubin_df_method,
     ...
 ) {
@@ -557,28 +545,15 @@ pool_internal.rubin <- function(
         method = rubin_df_method
     )
 
-    if (outcome_type != "continuous" && is.infinite(v_com)) {
-        ret <- parametric_ci(
-            point = res_rubin$est_point,
-            se = sqrt(res_rubin$var_t),
-            alpha = alpha,
-            alternative = alternative,
-            qfun = qnorm,
-            pfun = pnorm
-        )
-    } else {
-        ret <- parametric_ci(
-            point = res_rubin$est_point,
-            se = sqrt(res_rubin$var_t),
-            alpha = alpha,
-            alternative = alternative,
-            qfun = qt,
-            pfun = pt,
-            df = res_rubin$df
-        )
-    }
-
-    return(ret)
+    parametric_ci(
+        point = res_rubin$est_point,
+        se = sqrt(res_rubin$var_t),
+        alpha = alpha,
+        alternative = alternative,
+        qfun = qt,
+        pfun = pt,
+        df = res_rubin$df
+    )
 }
 
 
@@ -1131,7 +1106,11 @@ print.pool <- function(
         if (x$method == "rubin") {
             sprintf(
                 "Rubin df method: %s",
-                if (is.null(x$rubin_df_method)) "barnard-rubin" else x$rubin_df_method
+                if (is.null(x$rubin_df_method)) {
+                    "barnard-rubin"
+                } else {
+                    x$rubin_df_method
+                }
             )
         },
         sprintf("Confidence Level: %s", x$conf.level),
