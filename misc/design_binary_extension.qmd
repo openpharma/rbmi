@@ -1643,13 +1643,30 @@ Sampler warnings stop execution rather than silently accepting a questionable dr
 ```{r}
 #| label: cir-imputation-function
 #| time_it: true
-impute_cir <- function(Y, arm, last_on, parameters, seed = 20261103) {
+binary_references <- function(references, arm, has_cir) {
+    if (is.null(references)) {
+        if (has_cir) {
+            stop("Please specify `references` for CIR imputation.", call. = FALSE)
+        }
+        references <- setNames(levels(arm), levels(arm))
+    }
+    rbmi:::validate(rbmi:::add_class(references, "references"), arm)
+    if (!all(levels(arm) %in% names(references))) {
+        stop("`references` must provide a mapping for every treatment group.", call. = FALSE)
+    }
+    references
+}
+
+impute_cir <- function(Y, arm, last_on, parameters, references, seed = 20261103) {
     D <- ncol(Y)
+    arm_levels <- parameters$metadata$arm_levels
+    arm <- match(as.character(arm), arm_levels)
+    reference_arm <- match(unname(references[arm_levels]), arm_levels)[arm]
     stopifnot(
-        length(arm) == nrow(Y), all(arm %in% 1:2),
+        length(arm) == nrow(Y), !anyNA(arm), !anyNA(reference_arm),
         length(last_on) == nrow(Y), all(last_on %in% seq_len(D)),
         all(Y[!is.na(Y)] %in% 0:1),
-        identical(parameters$metadata$arm_levels, c("1", "2")),
+        length(arm_levels) == 2L,
         !parameters$metadata$same_cov,
         length(parameters$beta[[1]]) == 2L * D
     )
@@ -1658,21 +1675,20 @@ impute_cir <- function(Y, arm, last_on, parameters, seed = 20261103) {
     lapply(seq_along(parameters$beta), function(m) {
         # Each completed dataset shares ONE joint parameter draw across patients.
         means <- matrix(parameters$beta[[m]], nrow = D, ncol = 2)
-        # The covariance matrix for arm 1:
-        R <- parameters$sigma[[m]][[1]]
-        # Covariance for arm 2:
-        A <- parameters$sigma[[m]][[2]]
         completed <- Y
         for (i in incomplete) {
             mu <- means[, arm[i]]
             Sigma <- parameters$sigma[[m]][[arm[i]]]
             d <- last_on[i]
-            if (arm[i] == 2L && d < D) {
+            ref <- reference_arm[i]
+            if (ref != arm[i] && d < D) {
+                A <- Sigma
+                R <- parameters$sigma[[m]][[ref]]
                 pre <- seq_len(d)
                 post <- seq.int(d + 1L, D)
                 # Here we use the copy increments approach to adjust the mean vector
                 # for the post-discontinuation visits based on the last observed visit.
-                mu[post] <- means[d, 2] + means[post, 1] - means[d, 1]
+                mu[post] <- means[d, arm[i]] + means[post, ref] - means[d, ref]
                 # Compute the conditional covariance for the post-discontinuation visits.
                 B <- R[post, pre, drop = FALSE] %*% solve(R[pre, pre, drop = FALSE])
                 V <- R[post, post, drop = FALSE] - B %*% R[pre, post, drop = FALSE]
@@ -1705,7 +1721,8 @@ impute_cir <- function(Y, arm, last_on, parameters, seed = 20261103) {
 }
 
 last_on <- apply(Ycat, 1, function(y) max(which(!is.na(y))))
-cir_completed <- impute_cir(Ycat, treat1, last_on, cir_parameters)
+cir_references <- c("1" = "1", "2" = "1")
+cir_completed <- impute_cir(Ycat, treat1, last_on, cir_parameters, cir_references)
 
 stopifnot(
     length(cir_completed) == n_imp,
@@ -1735,23 +1752,25 @@ are unchanged, allowing an exact comparison with the same seed.
 
 ```{r}
 #| label: cir-fast-function
-impute_cir_fast <- function(Y, arm, last_on, parameters, seed = 20261103) {
+impute_cir_fast <- function(Y, arm, last_on, parameters, references, seed = 20261103) {
     D <- ncol(Y)
+    arm_levels <- parameters$metadata$arm_levels
+    arm <- match(as.character(arm), arm_levels)
+    reference_arm <- match(unname(references[arm_levels]), arm_levels)[arm]
     stopifnot(
-        length(arm) == nrow(Y), all(arm %in% 1:2),
+        length(arm) == nrow(Y), !anyNA(arm), !anyNA(reference_arm),
         length(last_on) == nrow(Y), all(last_on %in% seq_len(D)),
         all(Y[!is.na(Y)] %in% 0:1),
-        identical(parameters$metadata$arm_levels, c("1", "2")),
+        length(arm_levels) == 2L,
         !parameters$metadata$same_cov,
         length(parameters$beta[[1]]) == 2L * D
     )
     set.seed(seed)
     incomplete <- which(rowSums(is.na(Y)) > 0L)
 
-    # Placebo patients share one distribution regardless of discontinuation time.
-    group_key <- paste(arm[incomplete], ifelse(arm[incomplete] == 1L, D,
-        last_on[incomplete]
-    ), sep = ":")
+    # Patients mapped to their own arm share its distribution across all ICE times.
+    effective_last_on <- ifelse(arm == reference_arm, D, last_on)
+    group_key <- paste(arm[incomplete], effective_last_on[incomplete], sep = ":")
     group <- match(group_key, unique(group_key))
     representatives <- incomplete[!duplicated(group_key)]
     pattern_key <- apply(Y[incomplete, , drop = FALSE], 1, paste, collapse = ":")
@@ -1767,16 +1786,17 @@ impute_cir_fast <- function(Y, arm, last_on, parameters, seed = 20261103) {
 
     lapply(seq_along(parameters$beta), function(m) {
         means <- matrix(parameters$beta[[m]], nrow = D, ncol = 2)
-        R <- parameters$sigma[[m]][[1]]
-        A <- parameters$sigma[[m]][[2]]
         distributions <- lapply(representatives, function(i) {
             mu <- means[, arm[i]]
             Sigma <- parameters$sigma[[m]][[arm[i]]]
             d <- last_on[i]
-            if (arm[i] == 2L && d < D) {
+            ref <- reference_arm[i]
+            if (ref != arm[i] && d < D) {
+                A <- Sigma
+                R <- parameters$sigma[[m]][[ref]]
                 pre <- seq_len(d)
                 post <- seq.int(d + 1L, D)
-                mu[post] <- means[d, 2] + means[post, 1] - means[d, 1]
+                mu[post] <- means[d, arm[i]] + means[post, ref] - means[d, ref]
                 B <- R[post, pre, drop = FALSE] %*% solve(R[pre, pre, drop = FALSE])
                 V <- R[post, post, drop = FALSE] - B %*% R[pre, post, drop = FALSE]
                 cross <- B %*% A[pre, pre, drop = FALSE]
@@ -1820,11 +1840,11 @@ uses the public package API and avoids copying package internals.
 ```{r}
 #| label: cir-speed-comparison
 cir_time_original <- system.time(
-    cir_original_check <- impute_cir(Ycat, treat1, last_on, cir_parameters)
+    cir_original_check <- impute_cir(Ycat, treat1, last_on, cir_parameters, cir_references)
 )[["elapsed"]]
 cir_rng_original <- .Random.seed
 cir_time_fast <- system.time(
-    cir_completed_fast <- impute_cir_fast(Ycat, treat1, last_on, cir_parameters)
+    cir_completed_fast <- impute_cir_fast(Ycat, treat1, last_on, cir_parameters, cir_references)
 )[["elapsed"]]
 stopifnot(
     identical(cir_original_check, cir_completed_fast),
@@ -1842,7 +1862,8 @@ All completed datasets and the final RNG states were identical.
 ### Analysis and Pooling
 
 Analyze Week 8 using an unadjusted logistic
-regression in each dataset, then pool the log odds ratios and their variances
+regression in each dataset, with Active as the numerator and Placebo as the
+denominator, then pool the log odds ratios and their variances
 with Rubin's rules (`mice::pool.scalar`, including its finite-sample degrees of
 freedom). This retains the strict >50% response definition used throughout this
 note, so it is not a replication of the paper's inclusive-threshold analysis.
@@ -1850,9 +1871,10 @@ note, so it is not a replication of the paper's inclusive-threshold analysis.
 ```{r}
 #| label: cir-week8-analysis
 #| time_it: true
+cir_arm <- factor(treat1, levels = 1:2, labels = c("Placebo", "Active"))
 week8_fits <- lapply(cir_completed, function(y) {
     fit <- glm(response ~ active, family = binomial(), data = data.frame(
-        response = y[, "week8"], active = as.integer(treat1 == 2L)
+        response = y[, "week8"], active = as.integer(cir_arm == "Active")
     ))
     c(estimate = unname(coef(fit)["active"]), variance = vcov(fit)["active", "active"])
 })
@@ -2037,9 +2059,14 @@ through `glm()`. See the [`brglm2` fitting example](https://github.com/ikosmidis
 The proposed entry point is `draws(..., outcome = "binary")`, following the
 branch's `draws()` spelling and endpoint selector. Use one row per subject and
 scheduled visit, including rows with missing outcomes. Visit factor levels
-give chronological order. The first group level is the reference arm.
+give chronological order.
 `data_ice` gives the **first affected visit** for each subject assigned CIR.
 Subjects without an ICE record follow their randomized-arm distribution (MAR).
+As in the continuous and count workflows, `binary_impute()` requires a named
+character vector `references` when any subject is assigned CIR. Supply one
+entry per treatment group, with the assigned arm as the name and its reference
+arm as the value. Mapping an arm to itself uses its own distribution. For MAR-only
+imputation, the default maps each arm to itself.
 
 The local functions below implement the four steps with column names supplied through
 `set_vars()`. This first version supports two arms, saturated
@@ -2119,9 +2146,9 @@ binary_draws <- function(
     visits <- levels(data$visit)
     i <- match(data$subjid, ids)
     j <- as.integer(data$visit)
-    arm <- as.integer(data$group[match(ids, data$subjid)])
+    arm <- data$group[match(ids, data$subjid)]
     stopifnot(
-        all(as.integer(data$group) == arm[i]),
+        all(data$group == arm[i]),
         !anyDuplicated(data[c("subjid", "visit")]),
         nrow(data) == length(ids) * length(visits)
     )
@@ -2147,7 +2174,7 @@ binary_draws <- function(
     last_on[subjects] <- first - 1L
     Y_fit <- Y
     Y_fit[col(Y) > last_on] <- NA_integer_
-    prepared <- prepare_probit_data(Y_fit, arm, same_cov = FALSE)
+    prepared <- prepare_probit_data(Y_fit, as.integer(arm), same_cov = FALSE)
     if (is.null(fit)) {
         model <- cmdstanr::cmdstan_model(cmdstanr::write_stan_file(
             probit_stan_code
@@ -2156,6 +2183,9 @@ binary_draws <- function(
     } else {
         stopifnot(identical(prepared, fit$prepared))
     }
+    parameters <- extract_probit_draws(fit, method$n_samples, seed)
+    # The fit uses numeric arm codes. Attach the corresponding treatment labels.
+    parameters$metadata$arm_levels <- levels(arm)
     structure(
         list(
             data = original,
@@ -2165,7 +2195,7 @@ binary_draws <- function(
             arm = arm,
             last_on = last_on,
             method = method,
-            parameters = extract_probit_draws(fit, method$n_samples, seed)
+            parameters = parameters
         ),
         class = "draws_binary"
     )
@@ -2174,12 +2204,14 @@ binary_draws <- function(
 # Binary counterpart of rbmi::impute(), following impute.draws_count().
 #
 # draws: Binary draws object with the original data and paired parameters.
+# references: Named mapping from randomized arms to reference arms.
 # seed: Random seed for conditional latent-response sampling.
-binary_impute <- function(draws, seed = 20261103L) {
+binary_impute <- function(draws, references = NULL, seed = 20261103L) {
     stopifnot(inherits(draws, "draws_binary"))
+    references <- binary_references(references, draws$arm, any(draws$last_on < ncol(draws$Y)))
     p <- draws$parameters
     matrices <- if (anyNA(draws$Y)) {
-        impute_cir_fast(draws$Y, draws$arm, draws$last_on, p, seed)
+        impute_cir_fast(draws$Y, draws$arm, draws$last_on, p, references, seed)
     } else {
         rep(list(draws$Y), length(p$beta))
     }
@@ -2189,7 +2221,7 @@ binary_impute <- function(draws, seed = 20261103L) {
         dat
     })
     structure(
-        list(imputations = completed, method = draws$method),
+        list(imputations = completed, method = draws$method, references = references),
         class = "imputation_binary"
     )
 }
@@ -2202,7 +2234,9 @@ parameter list with an estimate, standard error and complete-data degrees of
 freedom. Both methods fit the same unadjusted two-arm model. With
 `method = "ml"`, an empty arm-by-response cell stops the fit. With
 `method = "firth"`, a fit can proceed under separation when both arms are
-represented. See @sec-binary-firth for the rationale.
+represented. Supply the numerator and denominator treatment labels as
+`treatment` and `comparator`. The odds ratio compares the named treatment
+with the named comparator. See @sec-binary-firth for the rationale.
 
 ```{r}
 #| label: binary-integration-analysis
@@ -2211,12 +2245,15 @@ represented. See @sec-binary-firth for the rationale.
 # data: One completed long dataset.
 # vars: Column mapping from rbmi::set_vars().
 # visit: Single endpoint visit label.
+# treatment, comparator: Numerator and denominator arm labels for the odds ratio.
 # method: "ml" for maximum likelihood or "firth" for mean bias reduction.
 binary_logistic <- function(
-    data,
-    vars,
-    visit,
-    method = c("ml", "firth")
+  data,
+  vars,
+  visit,
+  treatment,
+  comparator,
+  method = c("ml", "firth")
 ) {
     method <- match.arg(method)
     if (method == "firth" && !requireNamespace("brglm2", quietly = TRUE)) {
@@ -2227,6 +2264,12 @@ binary_logistic <- function(
     }
 
     stopifnot(length(visit) == 1L, visit %in% levels(data[[vars$visit]]))
+    stopifnot(
+        is.character(treatment), length(treatment) == 1L,
+        is.character(comparator), length(comparator) == 1L,
+        treatment != comparator,
+        setequal(c(treatment, comparator), levels(data[[vars$group]]))
+    )
     at_visit <- data[[vars$visit]] == visit
     endpoint <- data.frame(
         group = data[[vars$group]][at_visit],
@@ -2240,7 +2283,7 @@ binary_logistic <- function(
         stop("Week-specific logistic contrast is not estimable.")
     }
 
-    endpoint$active <- as.integer(endpoint$group) - 1L
+    endpoint$active <- as.integer(endpoint$group == treatment)
     fit_method <- if (method == "firth") brglm2::brglmFit else "glm.fit"
     fit_control <- if (method == "firth") list(type = "AS_mean") else list()
     fit <- glm(
@@ -2267,10 +2310,10 @@ binary_logistic <- function(
 # transform: Optional rbmi transformation specification attached to the callback.
 # ...: Extra callback arguments, such as vars and visit.
 binary_analyse <- function(
-    imputations,
-    fun = binary_logistic,
-    transform = attr(fun, "transform"),
-    ...
+  imputations,
+  fun = binary_logistic,
+  transform = attr(fun, "transform"),
+  ...
 ) {
     stopifnot(inherits(imputations, "imputation_binary"))
     results <- lapply(imputations$imputations, fun, ...)
@@ -2336,13 +2379,16 @@ draw <- binary_draws(
     outcome = "binary",
     fit = probit_fit
 )
-imp <- binary_impute(draw)
+trial_references <- c(Placebo = "Placebo", Active = "Placebo")
+imp <- binary_impute(draw, references = trial_references)
 fits <- lapply(c("ml", "firth"), function(fit_method) {
     analysis <- binary_analyse(
         imp,
         binary_logistic,
         vars = vars,
         visit = "week8",
+        treatment = "Active",
+        comparator = "Placebo",
         method = fit_method
     )
     contrast <- rbmi::pool(analysis)$pars$log_odds_ratio
@@ -2378,6 +2424,49 @@ ratios for a strict greater-than-50% response under CIR are similar. The
 imputation check and the ML point estimate reproduce the earlier imputation
 example.
 
+### Factor order regression check
+
+Reverse the treatment levels and reorder the posterior mean and covariance
+blocks to match. Reuse the same parameter draws, reference mapping, and
+Active-versus-Placebo contrast. With the same imputation seed, the completed
+outcomes and pooled log odds ratio, including its interval, should agree exactly.
+
+```{r}
+#| label: binary-reference-order-check
+reversed_draw <- draw
+arm_order <- rev(seq_along(levels(draw$arm)))
+reversed_levels <- levels(draw$arm)[arm_order]
+reversed_draw$arm <- factor(draw$arm, levels = reversed_levels)
+reversed_draw$data[[vars$group]] <- factor(trial$group, levels = reversed_levels)
+reversed_draw$parameters$metadata$arm_levels <- reversed_levels
+beta_order <- as.vector(matrix(seq_len(2L * ncol(draw$Y)), ncol = 2)[, arm_order])
+reversed_draw$parameters$beta <- lapply(draw$parameters$beta, `[`, beta_order)
+reversed_draw$parameters$sigma <- lapply(draw$parameters$sigma, `[`, arm_order)
+reversed_imp <- binary_impute(reversed_draw, references = trial_references)
+
+week8_contrast <- function(imputations, fit_method) {
+    rbmi::pool(binary_analyse(
+        imputations,
+        binary_logistic,
+        vars = vars,
+        visit = "week8",
+        treatment = "Active",
+        comparator = "Placebo",
+        method = fit_method
+    ))$pars$log_odds_ratio
+}
+stopifnot(identical(
+    lapply(imp$imputations, `[[`, vars$outcome),
+    lapply(reversed_imp$imputations, `[[`, vars$outcome)
+))
+for (fit_method in c("ml", "firth")) {
+    stopifnot(identical(
+        week8_contrast(imp, fit_method),
+        week8_contrast(reversed_imp, fit_method)
+    ))
+}
+```
+
 ### Separation example
 
 To illustrate separation, take a copy of the first completed dataset and set
@@ -2391,13 +2480,16 @@ separated$outcome[
     separated$visit == "week8" & separated$group == "Placebo"
 ] <- 0L
 ml_fit <- tryCatch(
-    binary_logistic(separated, vars, visit = "week8", method = "ml"),
+    binary_logistic(separated, vars, visit = "week8", treatment = "Active",
+        comparator = "Placebo", method = "ml"),
     error = identity
 )
 firth_fit <- binary_logistic(
     separated,
     vars,
     visit = "week8",
+    treatment = "Active",
+    comparator = "Placebo",
     method = "firth"
 )$log_odds_ratio
 stopifnot(
@@ -2412,5 +2504,17 @@ active-versus-placebo maximum likelihood estimate is infinite. With
 `method = "firth"`, it returns a finite odds ratio
 of `r sprintf("%.2f", exp(firth_fit$est))` and a log odds ratio standard error
 of `r sprintf("%.2f", firth_fit$se)`.
+
+## Review results
+
+1. Blocking — Factor order silently selects both the imputation reference and the direction of the reported effect. The fast imputer treats arm 1 as the reference and applies active-arm CIR only to arm 2. The endpoint analysis separately reports arm 2 versus arm 1. For example, factor(c("Active", "Placebo")) puts Active first by default. An active patient assigned CIR would then receive the active-arm distribution, and the reported odds ratio would be placebo versus active. Both results can look plausible. The existing count workflow requires a named references mapping for non-MAR strategies. Use that contract for binary imputation and name the endpoint contrast explicitly. A regression test should reverse the factor levels while holding both scientific choices fixed and recover the same target. [Binary imputer (line 1751)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1751) · [Endpoint contrast (line 2243)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2243) · [Count reference validation (line 310)](/Users/daniel/git/rbmi/R/impute_count.R:310)
+2. Required — The advertised Firth option cannot rescue an important sparse-data case. binary_draws() calls prepare_probit_data() with its default flat coefficient prior. The helper requires both 0 and 1 in every arm-by-visit cell after ICE masking. One arm with zero observed responders at an early visit therefore stops the entire analysis before the Week 8 Firth callback runs. The separation example changes an already completed dataset, so it misses this failure. Expose the existing proper-prior option at the draw entry point, document its statistical meaning, and test a sparse cell through the full workflow. An entirely unobserved arm-by-visit cell also deserves a separate test and an explicit account of what identifies its mean. [Prior check (line 581)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:581) · [Draw entry point (line 2148)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2148) · [Separation example (line 2383)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2383)
+3. Required — Adding an endpoint selector will not make the prototype compatible with analyse() or extract_imputed_dfs(). Binary imputation stores a full data frame per draw and returns only imputations and method. The shared analysis path reads imputations$data$vars, validates individual imputations, and reconstructs each completed dataset through extract_imputed_df(). The local binary_analyse() bypasses all three steps with lapply(). It also bypasses the package’s per-imputation warning capture. Specify the binary object representation and extraction path first. Acceptance should include a custom callback through public analyse(), extraction of selected completed datasets, and explicit rejection of additive continuous-outcome delta adjustments. [Binary object (line 2186)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2186) · [Local adapter (line 2269)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2269) · [Shared analysis (line 244)](/Users/daniel/git/rbmi/R/analyse.R:244) · [Public extraction (line 427)](/Users/daniel/git/rbmi/R/analyse.R:427)
+4. Required — The design needs a precise strategy contract, particularly for repeat sensitivity analyses. The mathematical section defines five assumptions. The adapter accepts only CIR records, stores last_on without a strategy identifier, and gives binary_impute() no way to change strategies on an existing fit. Count imputation already supports update_strategy. Two differences from continuous rbmi also matter scientifically. Continuous CIR uses the reference distribution when the first visit is affected, while binary CIR rejects that case. Continuous CR returns the full reference parameters, while the proposed binary CR retains the active pre-ICE covariance. The binary choices have an explicit rationale. Document them under the public strategy names, distinguish supported from deferred strategies, and specify which changes can reuse a fit given its original masking rule. [Binary strategy definitions (line 1274)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1274) · [CIR-only validation (line 2136)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2136) · [Continuous CR and CIR (line 163)](/Users/daniel/git/rbmi/R/strategies.R:163) · [Count strategy updates (line 284)](/Users/daniel/git/rbmi/R/impute_count.R:284)
+5. Required — method_bayes() can describe a different fit from the one actually run. The adapter accepts and stores the method object, but fits with the helper’s chain, warmup, sampling and seed defaults. It uses method$n_samples only afterward to subsample retained rows without replacement. A large request can therefore fail after fitting. The returned binary object also discards the fit needed to inspect diagnostics, whereas the existing Bayesian draw object retains fit and initialization information. Define which controls binary supports, validate the requested draw count before sampling, and retain diagnostics. The fixed default seed in binary_impute() also means repeated calls restart the same random stream, which should be an explicit API decision. [Fitting controls (line 646)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:646) · [Draw selection (line 691)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:691) · [Binary return object (line 2151)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2151) · [Existing Bayesian return object (line 720)](/Users/daniel/git/rbmi/R/draws.R:720)
+6. Required before supporting covariates — The fast imputer caches patient means at the wrong level for the general model. The model section defines patient-specific means and prepare_probit_data() accepts a custom design array. The fast imputer reshapes coefficients directly into a visit-by-arm matrix and computes one mean vector per arm and discontinuation time. That is valid for the prototype’s saturated two-arm model, and the adapter currently guards it by rejecting covariates. Relaxing that guard would give patients with different baseline values the same mean or misinterpret the coefficient layout. Preserve the guard for the first release. For adjusted imputation, retain the design information needed to evaluate each patient under both assigned and reference treatment, and cache only quantities shared across those patients. [Patient-specific target (line 1260)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1260) · [Fast imputer (line 1768)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1768) · [Current guard (line 2083)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2083)
+Highest-value validation change
+Add an end-to-end fixture with a recorded ICE, an observed post-ICE response, and a later missing response in the same patient. The trial example derives cessation from the last observation, so by construction it cannot exercise the feature that motivates the extension. Verify separately that the observed post-ICE value is excluded from the draw-model input, survives extraction unchanged, and changes the conditional probability of the later missing response by the amount predicted by a small analytic example. Run that fixture through draws() → impute() → extract_imputed_dfs() / analyse() → pool(), including the pooled interval. The existing example’s equality check against the earlier CIR implementation is a useful regression check, but both paths share the same imputation assumptions. [Trial ICE construction (line 2296)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2296) · [Current equality checks (line 2357)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2357) · [Count full-workflow test pattern (line 63)](/Users/daniel/git/rbmi/tests/testthat/test-counts-fullusage.R:63)
+
 
 ## References
