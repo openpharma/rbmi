@@ -2525,6 +2525,21 @@ binary_impute <- function(draws, references = NULL, seed = NULL, update_strategy
 }
 ```
 
+### Extract completed datasets
+
+The prototype stores completed datasets directly. Use
+`binary_extract_imputed_dfs()` to retrieve all or selected imputations.
+
+```{r}
+#| label: binary-integration-extraction
+binary_extract_imputed_dfs <- function(
+    imputations, index = seq_along(imputations$imputations)
+) {
+    stopifnot(inherits(imputations, "imputation_binary"))
+    imputations$imputations[index]
+}
+```
+
 ### Analyse and pool
 
 The callback receives one completed long dataset and returns the usual named
@@ -2613,8 +2628,7 @@ binary_analyse <- function(
   transform = attr(fun, "transform"),
   ...
 ) {
-    stopifnot(inherits(imputations, "imputation_binary"))
-    results <- lapply(imputations$imputations, fun, ...)
+    results <- lapply(binary_extract_imputed_dfs(imputations), fun, ...)
     analysis <- rbmi:::as_analysis(
         results,
         imputations$method,
@@ -3050,6 +3064,166 @@ for (strategy_name in c("JR", "CR", "CIR")) {
 }
 ```
 
+### Recorded ICE with a later observed response
+
+Treatment discontinuation and the end of outcome collection can occur at
+different times. A patient may stop treatment, return for a follow-up visit,
+and then miss a later assessment. In this fixture, subject 24 has a recorded
+ICE at Week 2, an observed response at Week 4, and a missing response at Week 8.
+
+The Week 4 response has two distinct roles in reference-based imputation.
+
+- **Fitting the model.** The draw model estimates the on-treatment
+  trajectories and latent correlations used to construct the CIR distribution.
+  Because Week 4 falls after the recorded ICE, its response is excluded from
+  the fit. Including it would let an off-treatment outcome inform the
+  on-treatment parameters used to impute outcomes across patients.
+- **Imputing the missing response.** The original Week 4 response is still
+  known for this patient. The imputer conditions on it when drawing the
+  missing Week 8 response, and the completed dataset retains it unchanged.
+  Positive latent correlation makes a Week 8 response more likely after a
+  Week 4 response than after a Week 4 nonresponse. Dropping the Week 4 value
+  during imputation would discard that information. In the analytic example
+  below, the Week 8 probability would be 50% with Week 4 unobserved, versus
+  75% after an observed response and 25% after an observed nonresponse.
+
+The antidepressant example infers the ICE from the last observed visit, so
+every observed value falls before its inferred ICE. It therefore cannot
+check whether the two steps handle an observed post-ICE response correctly.
+This fixture checks each step separately. Flipping Week 4 leaves the fit input
+identical, while the change in the Week 8 imputation probability agrees with
+the analytic calculation. The workflow uses the local binary adapters through
+analysis, followed by the package's Rubin pooling.
+
+```{r}
+#| label: binary-post-ice-workflow
+post_ice_trial <- expand.grid(
+    subjid = seq_len(24L), visit = factor(c("week1", "week2", "week4", "week8"),
+        levels = c("week1", "week2", "week4", "week8"))
+)
+post_ice_trial$group <- factor(
+    ifelse(post_ice_trial$subjid <= 12L, "Placebo", "Active"),
+    levels = c("Placebo", "Active")
+)
+post_ice_trial$outcome <- post_ice_trial$subjid %% 2L
+retrieved <- with(post_ice_trial, subjid == 24L & visit == "week4")
+endpoint_missing <- with(post_ice_trial, subjid == 24L & visit == "week8")
+post_ice_trial$outcome[retrieved] <- 1L
+post_ice_trial$outcome[endpoint_missing] <- NA_integer_
+recorded_ice <- data.frame(subjid = 24L, visit = "week2", strategy = "CIR")
+post_ice_vars <- rbmi::set_vars()
+post_ice_references <- c(Placebo = "Placebo", Active = "Placebo")
+post_ice_method <- method_bayes_binary(
+    same_cov = FALSE, n_samples = 40L, prior_beta_sd = 1,
+    control = rbmi::control_bayes(warmup = 500L, chains = 2L,
+        iter_sampling = 500L, thin = 2L, seed = 20261105L)
+)
+post_ice_draw <- binary_draws(
+    post_ice_trial, recorded_ice, post_ice_vars, post_ice_method
+)
+prepared <- post_ice_draw$fit$prepared
+retrieved_cell <- post_ice_draw$index[retrieved, ]
+stopifnot(
+    !any(prepared$cells[, "subject"] == retrieved_cell[1] &
+        prepared$cells[, "visit"] == retrieved_cell[2]),
+    any(prepared$cells[, "subject"] == retrieved_cell[1] & prepared$cells[, "visit"] == 1L)
+)
+flipped_trial <- post_ice_trial
+flipped_trial$outcome[retrieved] <- 0L
+flipped_draw <- binary_draws(
+    flipped_trial, recorded_ice, post_ice_vars, post_ice_method, fit = post_ice_draw$fit
+)
+stopifnot(identical(post_ice_draw$parameters, flipped_draw$parameters))
+
+post_ice_imp <- binary_impute(
+    post_ice_draw, references = post_ice_references, seed = 20261106L
+)
+post_ice_completed <- binary_extract_imputed_dfs(post_ice_imp)
+observed <- !is.na(post_ice_trial$outcome)
+stopifnot(
+    length(post_ice_completed) == post_ice_method$n_samples,
+    identical(binary_extract_imputed_dfs(post_ice_imp, c(2L, 1L)),
+        post_ice_completed[c(2L, 1L)]),
+    all(vapply(post_ice_completed, function(dat) {
+        !anyNA(dat$outcome) &&
+            identical(dat$outcome[observed], post_ice_trial$outcome[observed])
+    }, logical(1)))
+)
+post_ice_analysis <- binary_analyse(
+    post_ice_imp, binary_logistic, vars = post_ice_vars, visit = "week8",
+    treatment = "Active", comparator = "Placebo"
+)
+post_ice_pooled <- rbmi::pool(post_ice_analysis)$pars$log_odds_ratio
+
+# Independent complete-data estimates and variances from the endpoint 2 x 2 tables.
+endpoint_counts <- vapply(post_ice_completed, function(dat) {
+    at_week8 <- dat$visit == "week8"
+    counts <- table(dat$group[at_week8], dat$outcome[at_week8])
+    c(log_or = log(counts["Active", "1"] / counts["Active", "0"]) -
+        log(counts["Placebo", "1"] / counts["Placebo", "0"]),
+        variance = sum(1 / counts))
+}, numeric(2))
+M <- ncol(endpoint_counts)
+estimate <- mean(endpoint_counts["log_or", ])
+between <- var(endpoint_counts["log_or", ])
+total <- mean(endpoint_counts["variance", ]) + (1 + 1 / M) * between
+lambda <- (1 + 1 / M) * between / total
+complete_df <- sum(post_ice_trial$visit == "week8") - 2L
+observed_df <- complete_df * (complete_df + 1) / (complete_df + 3) * (1 - lambda)
+pooled_df <- 1 / (1 / observed_df + lambda^2 / (M - 1))
+interval <- estimate + c(-1, 1) * qt(.975, pooled_df) * sqrt(total)
+stopifnot(
+    between > 0,
+    isTRUE(all.equal(post_ice_pooled$est, estimate, tolerance = 1e-7)),
+    isTRUE(all.equal(unname(post_ice_pooled$ci), interval, tolerance = 1e-7))
+)
+```
+
+For a separate probability check on the same fixture, hold the latent
+parameters fixed at zero means and unit variances. The Active covariance is
+the identity matrix. The only Placebo correlation is
+$\rho = \sin(\pi/4)$ between Week 4 and Week 8. The earlier visits are
+independent of this pair, so conditioning on them does not change the
+probabilities. For a centered bivariate standard normal the probability of
+two positive signs is $1/4 + \arcsin(\rho)/(2\pi)$. Dividing by the probability
+$1/2$ of the Week 4 sign gives a Week 8 response probability of $0.75$
+after an observed response and $0.25$ after an observed nonresponse.
+The predicted difference is $0.50$. Repeated imputation at the fixed
+parameters checks this target independently of the fitted posterior.
+
+```{r}
+#| label: binary-post-ice-probability
+fixed_covariance <- diag(4)
+fixed_covariance[3, 4] <- fixed_covariance[4, 3] <- sin(pi / 4)
+n_replicates <- 4000L
+check_retrieved_response <- function(draws, observed_value, seed) {
+    draws$parameters$beta <- rep(list(numeric(8)), n_replicates)
+    draws$parameters$sigma <- rep(list(list(fixed_covariance, diag(4))), n_replicates)
+    completed <- binary_extract_imputed_dfs(binary_impute(
+        draws, references = post_ice_references, seed = seed
+    ))
+    stopifnot(all(vapply(completed, function(dat) {
+        identical(dat$outcome[retrieved], observed_value)
+    }, logical(1))))
+    mean(vapply(completed, function(dat) dat$outcome[endpoint_missing], integer(1)))
+}
+rates <- c(check_retrieved_response(post_ice_draw, 1L, 20261107L),
+    check_retrieved_response(flipped_draw, 0L, 20261108L))
+target <- c(.75, .25)
+mcse <- sqrt(target * (1 - target) / n_replicates)
+stopifnot(
+    all(abs(rates - target) < 5 * mcse),
+    abs((rates[1] - rates[2]) - .50) < 5 * sqrt(sum(mcse^2))
+)
+```
+
+The simulated Week 8 probabilities were `r sprintf("%.3f", rates[1])` after
+a Week 4 response and `r sprintf("%.3f", rates[2])` after a Week 4 nonresponse.
+In the fitted-model workflow the pooled Week 8 odds ratio was
+`r sprintf("%.2f", exp(post_ice_pooled$est))` with a 95% confidence interval
+from `r sprintf("%.2f", exp(post_ice_pooled$ci[1]))` to
+`r sprintf("%.2f", exp(post_ice_pooled$ci[2]))`.
+
 ## Review results
 
 1. done: Blocking — Factor order silently selects both the imputation reference and the direction of the reported effect. The fast imputer treats arm 1 as the reference and applies active-arm CIR only to arm 2. The endpoint analysis separately reports arm 2 versus arm 1. For example, factor(c("Active", "Placebo")) puts Active first by default. An active patient assigned CIR would then receive the active-arm distribution, and the reported odds ratio would be placebo versus active. Both results can look plausible. The existing count workflow requires a named references mapping for non-MAR strategies. Use that contract for binary imputation and name the endpoint contrast explicitly. A regression test should reverse the factor levels while holding both scientific choices fixed and recover the same target. [Binary imputer (line 1751)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1751) · [Endpoint contrast (line 2243)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2243) · [Count reference validation (line 310)](/Users/daniel/git/rbmi/R/impute_count.R:310)
@@ -3058,7 +3232,7 @@ for (strategy_name in c("JR", "CR", "CIR")) {
 4. done: Required — The design needs a precise strategy contract, particularly for repeat sensitivity analyses. The mathematical section defines five assumptions. The adapter accepts only CIR records, stores last_on without a strategy identifier, and gives binary_impute() no way to change strategies on an existing fit. Count imputation already supports update_strategy. Two differences from continuous rbmi also matter scientifically. Continuous CIR uses the reference distribution when the first visit is affected, while binary CIR rejects that case. Continuous CR returns the full reference parameters, while the proposed binary CR retains the active pre-ICE covariance. The binary choices have an explicit rationale. Document them under the public strategy names, distinguish supported from deferred strategies, and specify which changes can reuse a fit given its original masking rule. [Binary strategy definitions (line 1274)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1274) · [CIR-only validation (line 2136)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2136) · [Continuous CR and CIR (line 163)](/Users/daniel/git/rbmi/R/strategies.R:163) · [Count strategy updates (line 284)](/Users/daniel/git/rbmi/R/impute_count.R:284)
 5. Required — method_bayes() can describe a different fit from the one actually run. The adapter accepts and stores the method object, but fits with the helper’s chain, warmup, sampling and seed defaults. It uses method$n_samples only afterward to subsample retained rows without replacement. A large request can therefore fail after fitting. The returned binary object also discards the fit needed to inspect diagnostics, whereas the existing Bayesian draw object retains fit and initialization information. Define which controls binary supports, validate the requested draw count before sampling, and retain diagnostics. The fixed default seed in binary_impute() also means repeated calls restart the same random stream, which should be an explicit API decision. [Fitting controls (line 646)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:646) · [Draw selection (line 691)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:691) · [Binary return object (line 2151)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2151) · [Existing Bayesian return object (line 720)](/Users/daniel/git/rbmi/R/draws.R:720)
 6. Done in the prototype — The fast imputer caches patient means at the wrong level for the general model. The model section defines patient-specific means and prepare_probit_data() accepts a custom design array. The fast imputer reshapes coefficients directly into a visit-by-arm matrix and computes one mean vector per arm and discontinuation time. That is valid for the prototype’s saturated two-arm model, and the adapter currently guards it by rejecting covariates. Relaxing that guard would give patients with different baseline values the same mean or misinterpret the coefficient layout. Preserve the guard for the first release. For adjusted imputation, retain the design information needed to evaluate each patient under both assigned and reference treatment, and cache only quantities shared across those patients. [Patient-specific target (line 1260)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1260) · [Fast imputer (line 1768)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1768) · [Current guard (line 2083)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2083)
-Highest-value validation change
+Highest-value validation change (done in the prototype)
 Add an end-to-end fixture with a recorded ICE, an observed post-ICE response, and a later missing response in the same patient. The trial example derives cessation from the last observation, so by construction it cannot exercise the feature that motivates the extension. Verify separately that the observed post-ICE value is excluded from the draw-model input, survives extraction unchanged, and changes the conditional probability of the later missing response by the amount predicted by a small analytic example. Run that fixture through draws() → impute() → extract_imputed_dfs() / analyse() → pool(), including the pooled interval. The existing example’s equality check against the earlier CIR implementation is a useful regression check, but both paths share the same imputation assumptions. [Trial ICE construction (line 2296)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2296) · [Current equality checks (line 2357)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2357) · [Count full-workflow test pattern (line 63)](/Users/daniel/git/rbmi/tests/testthat/test-counts-fullusage.R:63)
 
 
