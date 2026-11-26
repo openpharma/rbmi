@@ -1274,7 +1274,7 @@ mean vector is defined componentwise as follows, following Section 3.2.1 of
 | Assumption | $j\leq d_i$ | $j>d_i$ |
 |:-----------|:------------|:---------|
 | MAR | $\mu_{a,ij}$ | $\mu_{a,ij}$ |
-| J2R | $\mu_{a,ij}$ | $\mu_{r,ij}$ |
+| JR (J2R) | $\mu_{a,ij}$ | $\mu_{r,ij}$ |
 | LMCF | $\mu_{a,ij}$ | $\mu_{a,i d_i}$ |
 | CIR | $\mu_{a,ij}$ | $\mu_{a,i d_i}+\mu_{r,ij}-\mu_{r,i d_i}$ |
 | CR | $\mu_{r,ij}$ | $\mu_{r,ij}$ |
@@ -1324,10 +1324,12 @@ constructed diagonal rather than forcing it to one. A common fitted covariance
 also makes the hybrid equal to that common covariance.
 
 For $d_i=D$ there is no post-discontinuation block and the ordinary randomized-arm
-model is used. For $d_i=0$, J2R and CR use the reference distribution throughout;
-MAR retains the randomized-arm distribution. CIR and LMCF require an explicit
-anchor mean if no pre-discontinuation visit is modeled; do not silently index
-visit zero. The formulas above assume $1\leq d_i<D$.
+model is used. When the ICE affects the first scheduled visit ($d_i=0$), JR,
+CR, and CIR use the reference distribution throughout, matching continuous
+`rbmi` at this boundary. MAR retains the randomized-arm distribution. LMCF
+requires a scheduled pre-ICE visit whose modeled mean can be carried forward.
+That visit's outcome may be missing. The joint sampler conditions on the
+observed signs at any visits, including when the first outcome is missing.
 
 ### Original imputation algorithm
 
@@ -1637,16 +1639,16 @@ The helper below implements the corrected full-vector sampler using
 [`TruncatedNormal::rtmvnorm`](https://lbelzile.github.io/TruncatedNormal/reference/rtmvnorm.html).
 It accepts missing visits and observed post-discontinuation visits in any order;
 `last_on` must be supplied separately from the observed/missing pattern.
-CIR needs an anchor visit, so this small prototype requires `last_on >= 1`.
+This CIR comparison uses `last_on >= 1`. The integration sampler below also handles an ICE at the first scheduled visit.
 Sampler warnings stop execution rather than silently accepting a questionable draw.
 
 ```{r}
 #| label: cir-imputation-function
 #| time_it: true
-binary_references <- function(references, arm, has_cir) {
+binary_references <- function(references, arm, has_non_mar) {
     if (is.null(references)) {
-        if (has_cir) {
-            stop("Please specify `references` for CIR imputation.", call. = FALSE)
+        if (has_non_mar) {
+            stop("Please specify `references` for non-MAR imputation.", call. = FALSE)
         }
         references <- setNames(levels(arm), levels(arm))
     }
@@ -1742,8 +1744,8 @@ patient IDs and visit names retained.
 
 #### Reusing covariance and missingness calculations
 
-`impute_cir_fast()` retains the original version above. Within each posterior
-draw, it computes the mean and covariance once per arm/discontinuation group,
+`impute_binary_fast()` extends the CIR sampler to all five strategies. Within each
+posterior draw, it computes the mean and covariance once per arm, strategy, and ICE time,
 and checks positive definiteness once per group. Bounds and missing indices
 are prepared once per observed response pattern, including the observed signs.
 Covariances must still be recomputed for each new posterior draw; missingness
@@ -1752,25 +1754,88 @@ are unchanged, allowing an exact comparison with the same seed.
 
 ```{r}
 #| label: cir-fast-function
-impute_cir_fast <- function(Y, arm, last_on, parameters, references, seed = 20261103) {
+binary_strategy <- function(strategy) {
+    stopifnot(is.character(strategy), !anyNA(strategy))
+    strategy[strategy == "J2R"] <- "JR"
+    if (!all(strategy %in% c("MAR", "JR", "CR", "CIR", "LMCF"))) {
+        stop("Binary strategies are MAR, JR (J2R), CR, CIR, and LMCF.", call. = FALSE)
+    }
+    strategy
+}
+
+binary_distribution <- function(means, covariances, arm, ref, d, strategy) {
+    D <- nrow(means)
+    mu <- means[, arm]
+    Sigma <- covariances[[arm]]
+    if (strategy == "MAR" || d == D) {
+        return(list(mu = mu, Sigma = Sigma))
+    }
+
+    post <- seq.int(d + 1L, D)
+    if (strategy == "LMCF") {
+        mu[post] <- means[d, arm]
+        return(list(mu = mu, Sigma = Sigma))
+    }
+    if (ref == arm) {
+        return(list(mu = mu, Sigma = Sigma))
+    }
+
+    R <- covariances[[ref]]
+    if (d == 0L) {
+        return(list(mu = means[, ref], Sigma = R))
+    }
+
+    if (strategy == "CR") {
+        mu <- means[, ref]
+    } else {
+        mu[post] <- if (strategy == "JR") {
+            means[post, ref]
+        } else {
+            means[d, arm] + means[post, ref] - means[d, ref]
+        }
+    }
+
+    pre <- seq_len(d)
+    B <- R[post, pre, drop = FALSE] %*% solve(R[pre, pre, drop = FALSE])
+    V <- R[post, post, drop = FALSE] - B %*% R[pre, post, drop = FALSE]
+    cross <- B %*% Sigma[pre, pre, drop = FALSE]
+    Sigma[post, pre] <- cross
+    Sigma[pre, post] <- t(cross)
+    Sigma[post, post] <- V + cross %*% t(B)
+    list(mu = mu, Sigma = (Sigma + t(Sigma)) / 2)
+}
+
+impute_binary_fast <- function(
+  Y, arm, last_on, parameters, references, strategy, seed = 20261103
+) {
     D <- ncol(Y)
     arm_levels <- parameters$metadata$arm_levels
     arm <- match(as.character(arm), arm_levels)
     reference_arm <- match(unname(references[arm_levels]), arm_levels)[arm]
+    strategy <- binary_strategy(strategy)
     stopifnot(
         length(arm) == nrow(Y), !anyNA(arm), !anyNA(reference_arm),
-        length(last_on) == nrow(Y), all(last_on %in% seq_len(D)),
+        length(strategy) == nrow(Y),
+        length(last_on) == nrow(Y), all(last_on %in% 0:D),
         all(Y[!is.na(Y)] %in% 0:1),
         length(arm_levels) == 2L,
         !parameters$metadata$same_cov,
         length(parameters$beta[[1]]) == 2L * D
     )
+    if (any(strategy == "LMCF" & last_on == 0L)) {
+        stop("LMCF requires a scheduled visit before the ICE.", call. = FALSE)
+    }
     set.seed(seed)
     incomplete <- which(rowSums(is.na(Y)) > 0L)
 
-    # Patients mapped to their own arm share its distribution across all ICE times.
-    effective_last_on <- ifelse(arm == reference_arm, D, last_on)
-    group_key <- paste(arm[incomplete], effective_last_on[incomplete], sep = ":")
+    # Use a common cache entry whenever the distribution reduces to MAR.
+    effective_strategy <- strategy
+    effective_strategy[last_on == D | (arm == reference_arm & strategy != "LMCF")] <- "MAR"
+    effective_last_on <- ifelse(effective_strategy == "MAR", D, last_on)
+    group_key <- paste(arm[incomplete], effective_strategy[incomplete],
+        effective_last_on[incomplete],
+        sep = ":"
+    )
     group <- match(group_key, unique(group_key))
     representatives <- incomplete[!duplicated(group_key)]
     pattern_key <- apply(Y[incomplete, , drop = FALSE], 1, paste, collapse = ":")
@@ -1787,30 +1852,17 @@ impute_cir_fast <- function(Y, arm, last_on, parameters, references, seed = 2026
     lapply(seq_along(parameters$beta), function(m) {
         means <- matrix(parameters$beta[[m]], nrow = D, ncol = 2)
         distributions <- lapply(representatives, function(i) {
-            mu <- means[, arm[i]]
-            Sigma <- parameters$sigma[[m]][[arm[i]]]
-            d <- last_on[i]
-            ref <- reference_arm[i]
-            if (ref != arm[i] && d < D) {
-                A <- Sigma
-                R <- parameters$sigma[[m]][[ref]]
-                pre <- seq_len(d)
-                post <- seq.int(d + 1L, D)
-                mu[post] <- means[d, arm[i]] + means[post, ref] - means[d, ref]
-                B <- R[post, pre, drop = FALSE] %*% solve(R[pre, pre, drop = FALSE])
-                V <- R[post, post, drop = FALSE] - B %*% R[pre, post, drop = FALSE]
-                cross <- B %*% A[pre, pre, drop = FALSE]
-                Sigma[post, pre] <- cross
-                Sigma[pre, post] <- t(cross)
-                Sigma[post, post] <- V + cross %*% t(B)
-            }
-            Sigma <- (Sigma + t(Sigma)) / 2
+            distribution <- binary_distribution(
+                means, parameters$sigma[[m]], arm[i], reference_arm[i],
+                effective_last_on[i], effective_strategy[i]
+            )
+            Sigma <- distribution$Sigma
             # These are rtmvnorm's covariance checks, done once per group.
             stopifnot(
                 isSymmetric(Sigma), all(diag(Sigma) > 0),
                 all(eigen(Sigma, only.values = TRUE)$values > 0)
             )
-            list(mu = mu, Sigma = Sigma)
+            distribution
         })
         completed <- Y
         for (k in seq_along(incomplete)) {
@@ -1844,7 +1896,9 @@ cir_time_original <- system.time(
 )[["elapsed"]]
 cir_rng_original <- .Random.seed
 cir_time_fast <- system.time(
-    cir_completed_fast <- impute_cir_fast(Ycat, treat1, last_on, cir_parameters, cir_references)
+    cir_completed_fast <- impute_binary_fast(
+        Ycat, treat1, last_on, cir_parameters, cir_references, rep("CIR", nrow(Ycat))
+    )
 )[["elapsed"]]
 stopifnot(
     identical(cir_original_check, cir_completed_fast),
@@ -2060,13 +2114,32 @@ The proposed entry point is `draws(..., outcome = "binary")`, following the
 branch's `draws()` spelling and endpoint selector. Use one row per subject and
 scheduled visit, including rows with missing outcomes. Visit factor levels
 give chronological order.
-`data_ice` gives the **first affected visit** for each subject assigned CIR.
-Subjects without an ICE record follow their randomized-arm distribution (MAR).
-As in the continuous and count workflows, `binary_impute()` requires a named
-character vector `references` when any subject is assigned CIR. Supply one
-entry per treatment group, with the assigned arm as the name and its reference
-arm as the value. Mapping an arm to itself uses its own distribution. For MAR-only
-imputation, the default maps each arm to itself.
+`data_ice` gives the **first affected visit** and strategy for each subject
+with a recorded ICE. Subjects without an ICE use MAR. The prototype supports
+all five built-in strategies described in @sec-binary-reference-distribution.
+`JR` is the public `rbmi` name for Jump to Reference, and `J2R` is accepted
+as an alias. Custom strategies and delta adjustments are outside this prototype.
+
+| Strategy | Latent means | Latent covariance |
+|:---------|:-------------|:------------------|
+| MAR | Randomized arm throughout | Randomized arm |
+| JR (J2R) | Randomized arm before the ICE, reference arm from the ICE | Hybrid |
+| CR | Reference arm throughout | Hybrid |
+| CIR | Randomized arm before the ICE, reference increments from the last pre-ICE randomized-arm mean | Hybrid |
+| LMCF | Randomized arm before the ICE, last pre-ICE randomized-arm mean carried forward | Randomized arm |
+
+For the hybrid, the binary prototype retains the randomized-arm pre-ICE
+covariance and uses the reference-arm conditional regression and residual
+covariance after the ICE. Continuous `rbmi` CR instead uses the full reference
+covariance, so observed pre-ICE responses can inform binary CR predictions
+differently. When the first scheduled visit is affected, JR, CR, and CIR use
+the full reference distribution and LMCF is unavailable. A missing first
+outcome alone does not constrain strategy choice.
+
+Supply a named character vector `references` for non-MAR strategies, with one
+entry per randomized arm. Mapping an arm to itself reduces JR, CR, and CIR to
+that arm's distribution. LMCF uses the randomized-arm parameters for any
+mapping. For MAR-only imputation, the default maps each arm to itself.
 
 The local functions below implement the four steps with column names supplied through
 `set_vars()`. This first version supports two arms, saturated
@@ -2079,10 +2152,18 @@ already accepts the analysis result.
 ### Draw and impute
 
 Keep two versions of the outcomes. The draw model estimates on-treatment
-parameters, so it masks observed CIR outcomes from the first affected visit.
-Imputation conditions on the original observations, including any recorded
-after discontinuation. An optional fitted model lets the example reuse the
-earlier Stan run after checking its prepared inputs.
+parameters, so it masks outcomes from every recorded ICE onward, including
+ICEs assigned MAR. Imputation conditions on the original observations,
+including any recorded after the ICE. A MAR analysis that fits to those
+observations requires a fresh fit with the corresponding ICE records omitted.
+
+Use `binary_impute(update_strategy = ...)` with subject ID and strategy columns
+named by `vars` to change the strategy for an existing ICE. The fit can be
+reused for any supported strategy change at the same ICE time, including
+switches to and from MAR, because the fit mask stays fixed. A change to the
+reference mapping also reuses the fit. Adding, removing, or moving an ICE
+requires preparing the draw data again. An optional fitted model can be reused
+when its prepared inputs match.
 
 `binary_draws(beta_sd = 0)` uses flat priors and requires both outcomes in
 every arm-by-visit cell of the fit data after ICE masking. A positive
@@ -2102,7 +2183,7 @@ acts later, in the completed-data logistic regression.
 # Binary counterpart of rbmi::draws() and its draws.bayes() method.
 #
 # data: Long data with one row per subject and visit and a 0/1/NA outcome.
-# data_ice: Optional subject, first affected visit and CIR strategy columns.
+# data_ice: Optional subject, first affected visit and strategy columns.
 # vars: Column mapping from rbmi::set_vars() for the saturated two-arm model.
 # method: rbmi::method_bayes() with separate unstructured correlations.
 # outcome: Endpoint selector, "binary" for this prototype.
@@ -2181,12 +2262,15 @@ binary_draws <- function(
         all(c("subjid", "visit", "strategy") %in% names(data_ice)),
         !anyNA(subjects),
         !anyDuplicated(subjects),
-        !anyNA(first),
-        all(data_ice$strategy == "CIR"),
-        all(first > 1L)
+        !anyNA(first)
     )
+    strategy <- setNames(rep("MAR", length(ids)), ids)
+    strategy[subjects] <- binary_strategy(data_ice$strategy)
     last_on <- rep(length(visits), length(ids))
     last_on[subjects] <- first - 1L
+    if (any(strategy == "LMCF" & last_on == 0L)) {
+        stop("LMCF requires a scheduled visit before the ICE.", call. = FALSE)
+    }
     Y_fit <- Y
     Y_fit[col(Y) > last_on] <- NA_integer_
     prepared <- prepare_probit_data(
@@ -2212,6 +2296,7 @@ binary_draws <- function(
             Y = Y,
             arm = arm,
             last_on = last_on,
+            strategy = strategy,
             method = method,
             parameters = parameters
         ),
@@ -2224,12 +2309,32 @@ binary_draws <- function(
 # draws: Binary draws object with the original data and paired parameters.
 # references: Named mapping from randomized arms to reference arms.
 # seed: Random seed for conditional latent-response sampling.
-binary_impute <- function(draws, references = NULL, seed = 20261103L) {
+# update_strategy: Optional subject ID and strategy columns for existing ICEs.
+binary_impute <- function(draws, references = NULL, seed = 20261103L, update_strategy = NULL) {
     stopifnot(inherits(draws, "draws_binary"))
-    references <- binary_references(references, draws$arm, any(draws$last_on < ncol(draws$Y)))
+    strategy <- draws$strategy
+    if (!is.null(update_strategy)) {
+        fields <- unlist(draws$vars[c("subjid", "strategy")], use.names = FALSE)
+        stopifnot(
+            is.data.frame(update_strategy), length(update_strategy) == length(fields),
+            setequal(names(update_strategy), fields)
+        )
+        subjects <- match(update_strategy[[draws$vars$subjid]], names(strategy))
+        if (anyNA(subjects) || anyDuplicated(subjects) ||
+            any(draws$last_on[subjects] == ncol(draws$Y))) {
+            stop("`update_strategy` must identify distinct subjects with an existing ICE.",
+                call. = FALSE
+            )
+        }
+        strategy[subjects] <- binary_strategy(update_strategy[[draws$vars$strategy]])
+    }
+    if (any(strategy == "LMCF" & draws$last_on == 0L)) {
+        stop("LMCF requires a scheduled visit before the ICE.", call. = FALSE)
+    }
+    references <- binary_references(references, draws$arm, any(strategy != "MAR"))
     p <- draws$parameters
     matrices <- if (anyNA(draws$Y)) {
-        impute_cir_fast(draws$Y, draws$arm, draws$last_on, p, references, seed)
+        impute_binary_fast(draws$Y, draws$arm, draws$last_on, p, references, strategy, seed)
     } else {
         rep(list(draws$Y), length(p$beta))
     }
@@ -2239,7 +2344,10 @@ binary_impute <- function(draws, references = NULL, seed = 20261103L) {
         dat
     })
     structure(
-        list(imputations = completed, method = draws$method, references = references),
+        list(
+            imputations = completed, method = draws$method,
+            references = references, strategy = strategy
+        ),
         class = "imputation_binary"
     )
 }
@@ -2549,9 +2657,9 @@ empty_trial <- sparse_trial
 empty_trial$outcome[early_active] <- NA_integer_
 
 sparse_method <- rbmi::method_bayes(covariance = "us", same_cov = FALSE, n_samples = 30L)
-check_sparse_workflow <- function(data) {
+check_sparse_workflow <- function(data, data_ice = NULL) {
     flat_error <- tryCatch(
-        binary_draws(data, vars = vars, method = sparse_method),
+        binary_draws(data, data_ice, vars = vars, method = sparse_method),
         error = identity
     )
     stopifnot(
@@ -2559,7 +2667,7 @@ check_sparse_workflow <- function(data) {
         grepl("Flat priors require both outcomes", conditionMessage(flat_error), fixed = TRUE)
     )
 
-    draws <- binary_draws(data, vars = vars, method = sparse_method, beta_sd = 1)
+    draws <- binary_draws(data, data_ice, vars = vars, method = sparse_method, beta_sd = 1)
     completed <- binary_impute(draws)
     observed <- !is.na(data$outcome)
     stopifnot(
@@ -2571,19 +2679,95 @@ check_sparse_workflow <- function(data) {
     )
     pooled <- week8_contrast(completed, "firth")
     stopifnot(all(is.finite(c(pooled$est, pooled$ci))), length(pooled$ci) == 2L)
-    pooled
+    list(draws = draws, pooled = pooled)
 }
 
-sparse_week8 <- check_sparse_workflow(sparse_trial)
-empty_week8 <- check_sparse_workflow(empty_trial)
+sparse_ice <- data.frame(
+    subjid = c(13L, 24L), visit = c("week8", "week1"), strategy = "MAR"
+)
+sparse_check <- check_sparse_workflow(sparse_trial, sparse_ice)
+empty_check <- check_sparse_workflow(empty_trial)
+```
+
+### Strategy sensitivity checks
+
+Reuse the sparse example's fit. Subject 13 has a missing first outcome and an
+ICE at Week 8, with an observed response at the ICE. Subject 24 has an ICE at
+the first scheduled visit and a missing Week 8 outcome.
+
+```{r}
+#| label: binary-strategy-check
+strategy_draws <- sparse_check$draws
+for (strategy_name in c("MAR", "J2R", "CR", "CIR", "LMCF")) {
+    update <- data.frame(subjid = 13L, strategy = strategy_name)
+    if (strategy_name != "LMCF") {
+        update <- rbind(update, data.frame(subjid = 24L, strategy = strategy_name))
+    }
+    strategy_imp <- binary_impute(
+        strategy_draws,
+        references = trial_references, update_strategy = update
+    )
+    observed <- !is.na(sparse_trial$outcome)
+    stopifnot(
+        strategy_imp$strategy[["13"]] == if (strategy_name == "J2R") "JR" else strategy_name,
+        all(vapply(strategy_imp$imputations, function(dat) {
+            all(dat$outcome %in% 0:1) &&
+                identical(dat$outcome[observed], sparse_trial$outcome[observed])
+        }, logical(1))),
+        all(is.finite(week8_contrast(strategy_imp, "firth")$ci))
+    )
+}
+stopifnot(all(strategy_draws$strategy == "MAR"))
+invalid_lmcf <- tryCatch(binary_impute(
+    strategy_draws,
+    references = trial_references,
+    update_strategy = data.frame(subjid = 24L, strategy = "LMCF")
+), error = identity)
+stopifnot(
+    inherits(invalid_lmcf, "error"),
+    grepl("scheduled visit before the ICE", conditionMessage(invalid_lmcf), fixed = TRUE)
+)
+
+# Three visits with distinct randomized and reference pre-ICE correlations.
+fixture_means <- cbind(c(0, 1, 3), c(2, 4, 5))
+fixture_cov <- list(
+    matrix(c(1, .2, .1, .2, 1, .3, .1, .3, 1), 3),
+    matrix(c(1, .5, 0, .5, 1, 0, 0, 0, 1), 3)
+)
+targets <- lapply(c("MAR", "JR", "CR", "CIR", "LMCF"), function(strategy_name) {
+    binary_distribution(fixture_means, fixture_cov, 2L, 1L, 2L, strategy_name)
+})
+conditional_moments <- function(Sigma) {
+    cross <- Sigma[3, 1:2, drop = FALSE]
+    B <- cross %*% solve(Sigma[1:2, 1:2])
+    c(B, Sigma[3, 3] - B %*% t(cross))
+}
+stopifnot(
+    identical(lapply(targets, `[[`, "mu"), list(
+        c(2, 4, 5), c(2, 4, 3), c(0, 1, 3), c(2, 4, 6), c(2, 4, 4)
+    )),
+    identical(targets[[1]]$Sigma, targets[[5]]$Sigma),
+    identical(targets[[2]]$Sigma, targets[[3]]$Sigma),
+    identical(targets[[2]]$Sigma, targets[[4]]$Sigma),
+    targets[[3]]$Sigma[1, 2] == .5,
+    isTRUE(all.equal(
+        conditional_moments(targets[[3]]$Sigma), conditional_moments(fixture_cov[[1]])
+    ))
+)
+for (strategy_name in c("JR", "CR", "CIR")) {
+    stopifnot(identical(
+        binary_distribution(fixture_means, fixture_cov, 2L, 1L, 0L, strategy_name),
+        list(mu = fixture_means[, 1], Sigma = fixture_cov[[1]])
+    ))
+}
 ```
 
 ## Review results
 
 1. done: Blocking — Factor order silently selects both the imputation reference and the direction of the reported effect. The fast imputer treats arm 1 as the reference and applies active-arm CIR only to arm 2. The endpoint analysis separately reports arm 2 versus arm 1. For example, factor(c("Active", "Placebo")) puts Active first by default. An active patient assigned CIR would then receive the active-arm distribution, and the reported odds ratio would be placebo versus active. Both results can look plausible. The existing count workflow requires a named references mapping for non-MAR strategies. Use that contract for binary imputation and name the endpoint contrast explicitly. A regression test should reverse the factor levels while holding both scientific choices fixed and recover the same target. [Binary imputer (line 1751)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1751) · [Endpoint contrast (line 2243)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2243) · [Count reference validation (line 310)](/Users/daniel/git/rbmi/R/impute_count.R:310)
 2. done: Required — The advertised Firth option cannot rescue an important sparse-data case. binary_draws() calls prepare_probit_data() with its default flat coefficient prior. The helper requires both 0 and 1 in every arm-by-visit cell after ICE masking. One arm with zero observed responders at an early visit therefore stops the entire analysis before the Week 8 Firth callback runs. The separation example changes an already completed dataset, so it misses this failure. Expose the existing proper-prior option at the draw entry point, document its statistical meaning, and test a sparse cell through the full workflow. An entirely unobserved arm-by-visit cell also deserves a separate test and an explicit account of what identifies its mean. [Prior check (line 581)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:581) · [Draw entry point (line 2148)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2148) · [Separation example (line 2383)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2383)
-3. Required — Adding an endpoint selector will not make the prototype compatible with analyse() or extract_imputed_dfs(). Binary imputation stores a full data frame per draw and returns only imputations and method. The shared analysis path reads imputations$data$vars, validates individual imputations, and reconstructs each completed dataset through extract_imputed_df(). The local binary_analyse() bypasses all three steps with lapply(). It also bypasses the package’s per-imputation warning capture. Specify the binary object representation and extraction path first. Acceptance should include a custom callback through public analyse(), extraction of selected completed datasets, and explicit rejection of additive continuous-outcome delta adjustments. [Binary object (line 2186)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2186) · [Local adapter (line 2269)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2269) · [Shared analysis (line 244)](/Users/daniel/git/rbmi/R/analyse.R:244) · [Public extraction (line 427)](/Users/daniel/git/rbmi/R/analyse.R:427)
-4. Required — The design needs a precise strategy contract, particularly for repeat sensitivity analyses. The mathematical section defines five assumptions. The adapter accepts only CIR records, stores last_on without a strategy identifier, and gives binary_impute() no way to change strategies on an existing fit. Count imputation already supports update_strategy. Two differences from continuous rbmi also matter scientifically. Continuous CIR uses the reference distribution when the first visit is affected, while binary CIR rejects that case. Continuous CR returns the full reference parameters, while the proposed binary CR retains the active pre-ICE covariance. The binary choices have an explicit rationale. Document them under the public strategy names, distinguish supported from deferred strategies, and specify which changes can reuse a fit given its original masking rule. [Binary strategy definitions (line 1274)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1274) · [CIR-only validation (line 2136)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2136) · [Continuous CR and CIR (line 163)](/Users/daniel/git/rbmi/R/strategies.R:163) · [Count strategy updates (line 284)](/Users/daniel/git/rbmi/R/impute_count.R:284)
+3. To be done in production — Adding an endpoint selector will not make the prototype compatible with analyse() or extract_imputed_dfs(). Binary imputation stores a full data frame per draw and returns only imputations and method. The shared analysis path reads imputations$data$vars, validates individual imputations, and reconstructs each completed dataset through extract_imputed_df(). The local binary_analyse() bypasses all three steps with lapply(). It also bypasses the package’s per-imputation warning capture. Specify the binary object representation and extraction path first. Acceptance should include a custom callback through public analyse(), extraction of selected completed datasets, and explicit rejection of additive continuous-outcome delta adjustments. [Binary object (line 2186)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2186) · [Local adapter (line 2269)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2269) · [Shared analysis (line 244)](/Users/daniel/git/rbmi/R/analyse.R:244) · [Public extraction (line 427)](/Users/daniel/git/rbmi/R/analyse.R:427)
+4. done: Required — The design needs a precise strategy contract, particularly for repeat sensitivity analyses. The mathematical section defines five assumptions. The adapter accepts only CIR records, stores last_on without a strategy identifier, and gives binary_impute() no way to change strategies on an existing fit. Count imputation already supports update_strategy. Two differences from continuous rbmi also matter scientifically. Continuous CIR uses the reference distribution when the first visit is affected, while binary CIR rejects that case. Continuous CR returns the full reference parameters, while the proposed binary CR retains the active pre-ICE covariance. The binary choices have an explicit rationale. Document them under the public strategy names, distinguish supported from deferred strategies, and specify which changes can reuse a fit given its original masking rule. [Binary strategy definitions (line 1274)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1274) · [CIR-only validation (line 2136)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2136) · [Continuous CR and CIR (line 163)](/Users/daniel/git/rbmi/R/strategies.R:163) · [Count strategy updates (line 284)](/Users/daniel/git/rbmi/R/impute_count.R:284)
 5. Required — method_bayes() can describe a different fit from the one actually run. The adapter accepts and stores the method object, but fits with the helper’s chain, warmup, sampling and seed defaults. It uses method$n_samples only afterward to subsample retained rows without replacement. A large request can therefore fail after fitting. The returned binary object also discards the fit needed to inspect diagnostics, whereas the existing Bayesian draw object retains fit and initialization information. Define which controls binary supports, validate the requested draw count before sampling, and retain diagnostics. The fixed default seed in binary_impute() also means repeated calls restart the same random stream, which should be an explicit API decision. [Fitting controls (line 646)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:646) · [Draw selection (line 691)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:691) · [Binary return object (line 2151)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2151) · [Existing Bayesian return object (line 720)](/Users/daniel/git/rbmi/R/draws.R:720)
 6. Required before supporting covariates — The fast imputer caches patient means at the wrong level for the general model. The model section defines patient-specific means and prepare_probit_data() accepts a custom design array. The fast imputer reshapes coefficients directly into a visit-by-arm matrix and computes one mean vector per arm and discontinuation time. That is valid for the prototype’s saturated two-arm model, and the adapter currently guards it by rejecting covariates. Relaxing that guard would give patients with different baseline values the same mean or misinterpret the coefficient layout. Preserve the guard for the first release. For adjusted imputation, retain the design information needed to evaluate each patient under both assigned and reference treatment, and cache only quantities shared across those patients. [Patient-specific target (line 1260)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1260) · [Fast imputer (line 1768)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1768) · [Current guard (line 2083)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2083)
 Highest-value validation change
