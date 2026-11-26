@@ -13,6 +13,9 @@ format:
 ```{r}
 #| include: false
 
+# Register the shared chunks so their code is shown at each labeled block.
+knitr::read_chunk("binary_extension_shared.R")
+
 # Record chunk runtimes using the R Markdown Cookbook timing hook recipe:
 # https://pkg.yihui.org/rmarkdown-cookbook/time-chunk
 chunk_times <- list()
@@ -37,18 +40,31 @@ runtime_seconds <- function(label) {
 
 ## Overview
 
-This design doc works through the binary outcomes reference based multiple imputation approach, following @Cro2025 for the multivariate probit model and extending it to the situation in @Rehal2026, which treats the more general case where a part of the patients is still observed after treatment discontinuation.
+This design describes reference-based multiple imputation for longitudinal
+binary outcomes in `rbmi`. It uses the latent multivariate probit model in
+@Cro2025 and extends the imputation step to condition on observed outcomes
+after an intercurrent event (ICE), as motivated by @Rehal2026. The trial
+example shows the workflow from posterior draws through imputation, analysis,
+and pooling.
 
-The design doc has the following structure:
+The design proceeds in six sections.
 
-1. Example data introduction 
-2. Multivariate probit model implementation in Stan and comparison with @Cro2025 code
-3. Imputation method and prototype implementation
-4. Firth regression for the binary endpoint
-5. `rbmi` integration prototype
-6. Example data analysis
+1. [Example data](#example-data)
+2. [Multivariate probit draw model in Stan](#sec-binary-probit)
+3. [Imputation method and prototype implementation](#imputation-method-and-prototype-implementation)
+4. [Firth regression](#sec-binary-firth)
+5. [`rbmi` integration prototype](#rbmi-integration-prototype)
+6. [Example data analysis](#example-data-analysis)
 
-## Example Data
+The [companion research notes](research_binary_extension.html) cover validation
+against the Cro et al. sampler, the derivation of the joint imputation correction,
+sampler alternatives, and considerations for a standalone Firth implementation (which was discarded).
+
+Rendering the examples requires the `rbmi` version from this branch, a working
+CmdStan installation, and the R packages `cmdstanr`, `posterior`, `haven`,
+`dplyr`, `TruncatedNormal`, and `brglm2`.
+
+## Example data
 
 ### Case study and target estimand
 
@@ -68,7 +84,7 @@ placebo patients completing treatment. Table 3 gives cumulative off-treatment
 percentages, which coincide with missing outcome percentages in that case study.
 
 The data used below are the high-dropout example from the
-[LSHTM Missing Data website](https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data), which describes these as modified demonstration data: 
+[LSHTM Missing Data website](https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data#dia-missing-data), which describes these as modified demonstration data:
 the active group was sampled from the non-placebo arms, and the placebo group was expanded to 100
 by resampling patients, assigning new IDs, and perturbing their outcomes.
 
@@ -80,41 +96,7 @@ The low-dropout dataset, `low1.sas7bdat`, is not used here.
 
 ```{r}
 #| label: import-antidepressant-data
-archive <- if (file.exists("high_low_datasets.zip")) {
-    "high_low_datasets.zip"
-} else {
-    file.path("misc", "high_low_datasets.zip")
-}
-stopifnot(file.exists(archive))
-extraction_dir <- tempfile("antidepressant-")
-dir.create(extraction_dir)
-sas_file <- unzip(
-    archive,
-    files = "high1.sas7bdat",
-    exdir = extraction_dir
-)
-antidepressant_raw <- haven::read_sas(sas_file)
-unlink(extraction_dir, recursive = TRUE)
-
-# Keep the original fields and derive the binary response without imputation.
-antidepressant <- antidepressant_raw
-antidepressant$arm <- factor(
-    antidepressant$TRT,
-    levels = c("1", "2"),
-    labels = c("Placebo", "Active")
-)
-antidepressant$response <- with(
-    antidepressant,
-    as.integer(-change / basval > 0.5)
-)
-stopifnot(
-    !anyDuplicated(antidepressant[c("PATIENT", "week")]),
-    !anyNA(antidepressant$arm),
-    all(antidepressant$basval > 0)
-)
-patients <- unique(antidepressant[c("PATIENT", "arm")])
-visit_weeks <- sort(unique(antidepressant$week))
-visit_weeks
+#| echo: true
 ```
 
 The data set contains `r nrow(antidepressant)` observed patient-visit records for
@@ -127,12 +109,12 @@ head(antidepressant)
 - `r length(unique(antidepressant$PATIENT[antidepressant$arm == "Placebo"]))` placebo
 and `r length(unique(antidepressant$PATIENT[antidepressant$arm == "Active"]))`
 active
-- `PATIENT` identifies patients; 
-- `TRT` codes placebo as `1` and active as `2`; 
-- `week` gives scheduled follow-up week; 
+- `PATIENT` identifies patients;
+- `TRT` codes placebo as `1` and active as `2`;
+- `week` gives scheduled follow-up week;
 - `basval` is baseline HAMD17;
-- `change` is follow-up minus baseline HAMD17; 
-- `POOLINV` identifies the pooled investigator. 
+- `change` is follow-up minus baseline HAMD17;
+- `POOLINV` identifies the pooled investigator.
 
 Follow-up HAMD17 can be reconstructed as `basval + change`.
 The derived binary `response` uses a strict >50% reduction from baseline,
@@ -217,17 +199,25 @@ stopifnot(
 knitr::kable(threshold_comparison, caption = "Week 8 responders by threshold")
 ```
 
-So we see that replicating the paper's reported responder counts requires
-the inclusive threshold.
+### Prepare the longitudinal binary outcomes
 
-## Multivariate Probit Draw Model Implemented with Stan
+The draw model uses a matrix with one row per patient and one column per
+scheduled visit. Missing outcomes are `NA`. Treatment is coded 1 for Placebo
+and 2 for Active. The model and examples below use the strict response
+threshold (greater than 50%).
+
+```{r}
+#| label: prepare-probit-inputs
+#| echo: true
+```
+
+## Multivariate probit draw model in Stan {#sec-binary-probit}
 
 ### Scope and statistical target
 
-This is a draw-step prototype for binary outcomes. The target is
-Section 3.3 of @Cro2025, rather than numerical behavior specific to the supplied
-R code. Preparation, posterior sampling, and parameter
-extraction are separate operations to stay within the `rbmi` framework.
+The draw step implements the statistical model in Section 3.3 of @Cro2025.
+Preparation, posterior sampling, and parameter extraction follow the separate
+operations used in `rbmi`.
 
 To connect with Section 3.3, let a superscript $\mathrm{P}$ distinguish the
 paper's latent variables and parameters from those used below. The paper indexes
@@ -341,18 +331,15 @@ $$
 Missing visits are integrated out analytically before augmentation. Patients
 with no observed visits contribute one and are omitted from the likelihood,
 while their indices are retained in metadata. Monotone dropout is not required.
-In a later package implementation, the draw-stage data policy must determine
-which post-ICE observations to exclude; this prototype treats exactly the cells
-supplied as observed as its fitting data.
+The Stan model uses the observed cells supplied to it. The integration
+prototype masks outcomes from each recorded ICE onward before calling Stan
+and retains the original data for imputation.
 
 The returned draws contain coefficients and latent correlation matrices only.
 MAR/J2R/CR/CIR/LMCF assumptions belong to the later imputation step and must not
-feed back into this posterior. In particular, the auxiliary variables sampled
-below are computational devices, **not completed outcomes or latent values to
-reuse under a reference-based imputation assumption**. That step will need its
-own conditional latent sampling, respecting the observed binary signs. Agreement
-here does not validate the reference code's subsequent imputation algorithm or
-reproduce its pooled treatment-effect table.
+feed back into this posterior. The auxiliary variables support likelihood
+computation. Imputation draws fresh latent responses under the selected
+reference assumption, conditional on the observed signs.
 
 ### Stan implementation and parameterization
 
@@ -408,122 +395,12 @@ This is a prototype for
 moderate-dimensional longitudinal data, not a claim of robust sampling for
 arbitrary rare outcomes, separation, or nearly singular correlations.
 
-All implementation functions below are evaluated when rendering. The expensive
-fits are opt-in. The corrected reference sampler is maintained in the
-[rpact-com/jomo fork](https://github.com/rpact-com/jomo). Install the fork in
-the default R library and the original CRAN version in a separate library for
-comparison:
-
-```r
-remotes::install_github("rpact-com/jomo")
-dir.create("/tmp/rbmi-jomo-original-library", recursive = TRUE, showWarnings = FALSE)
-remotes::install_version("jomo", version = "2.7-6", lib = "/tmp/rbmi-jomo-original-library")
-```
-
-Then run from the rbmi repository root:
-
-```bash
-RBMI_JOMO_ORIGINAL_LIBRARY=/tmp/rbmi-jomo-original-library RBMI_RUN_PROBIT_VALIDATION=true quarto render misc/design_binary_extension.qmd --to html
-```
-
-The recorded results later in this section are a fixed validation snapshot,
-not output from the earlier five-imputation illustration. Dependencies are `cmdstanr` with a
-working CmdStan C++ toolchain, `posterior`, `mvtnorm`, `callr`, and the earlier example's
-R dependencies, including `remotes` for installation. The comparison uses original
-CRAN jomo 2.7-6 and the corrected fork (2.7.6.9000). Building the packages
-requires an R package compilation toolchain.
-
-First let's check whether we want to run the probit validation:
-
-```{r}
-#| label: probit-run-settings
-run_probit_validation <- identical(Sys.getenv("RBMI_RUN_PROBIT_VALIDATION"), "true")
-original_library <- Sys.getenv("RBMI_JOMO_ORIGINAL_LIBRARY")
-if (run_probit_validation && !dir.exists(file.path(original_library, "jomo"))) {
-    stop("Set RBMI_JOMO_ORIGINAL_LIBRARY to the library containing original jomo.")
-}
-```
-
-Here comes the Stan source code for the probit model:
-
 ```{r}
 #| label: probit-stan-source
-probit_stan_code <- r"(
-functions {
-  // Normal quantile from a log probability, without tail clipping.
-  real std_normal_quantile_log(real lp) {
-    real small_lp = lp < log(0.5) ? lp : log1m_exp(lp);
-    real q;
-    if (small_lp > -36) {
-      q = inv_Phi(exp(small_lp));
-    } else {
-      q = -sqrt(-2 * small_lp);
-      for (k in 1:6) {
-        real lcdf = normal_lcdf(q | 0, 1);
-        q -= (lcdf - small_lp) * exp(lcdf - normal_lpdf(q | 0, 1));
-      }
-    }
-    return lp < log(0.5) ? q : -q;
-  }
-}
-data {
-  int<lower=1> D; // number of visits
-  int<lower=1> P; // number of predictors
-  int<lower=1> G; // number of covariance groups
-  int<lower=1> R; // number of rows in the design matrix
-  int<lower=1> B; // number of blocks
-  int<lower=0> U; // number of auxiliary variables
-  matrix[R, P] X; // design matrix
-  vector[R] sign_y; // observed signs of the response
-  array[B] int<lower=1, upper=D> K; // number of visits per block
-  array[B, D] int<lower=1, upper=D> visit; // visit indices for each block
-  array[B] int<lower=1> n_subject; // number of subjects per block
-  array[B] int<lower=1, upper=R> start; // starting row index for each block
-  array[B] int<lower=1, upper=G> cov_group; // covariance group for each block
-  real<lower=0> beta_sd; // zero selects a flat coefficient prior
-  real<lower=0> lkj_eta; // LKJ correlation prior parameter
-}
-parameters {
-  vector[P] beta; // regression coefficients
-  array[G] cholesky_factor_corr[D] L_Omega; // Cholesky factors of correlation matrices
-  vector[U] u_raw; // auxiliary variables
-}
-transformed parameters {
-  array[G] corr_matrix[D] Omega; // correlation matrices for each group
-  for (g in 1:G) // compute correlation matrix for each group from its Cholesky factor
-    Omega[g] = multiply_lower_tri_self_transpose(L_Omega[g]);
-}
-model {
-  vector[R] mu = X * beta; // linear predictor for each row
-  int u_pos = 1; // initialize position index for auxiliary variables in u_raw
-  u_raw ~ std_normal(); // prior for auxiliary variables
-  if (beta_sd > 0) beta ~ normal(0, beta_sd); // prior for regression coefficients
-  for (g in 1:G) L_Omega[g] ~ lkj_corr_cholesky(lkj_eta); // prior for Cholesky factors of correlation matrices
-  for (b in 1:B) { // loop over blocks
-    array[K[b]] int v = visit[b, 1:K[b]]; // visit indices for this block
-    matrix[K[b], K[b]] L = cholesky_decompose( // Cholesky factor for this block's covariance submatrix
-      Omega[cov_group[b]][v, v]);
-    for (i in 1:n_subject[b]) { // loop over subjects within this block
-      vector[K[b] - 1] e; // auxiliary vector for conditional calculations
-      for (j in 1:K[b]) { // loop over visits within this subject
-        int r = start[b] + (i - 1) * K[b] + j - 1; // row index for this observation
-        real conditional_mu = mu[r]; // conditional mean for this observation
-        real log_mass; // log CDF mass for this observation
-        if (j > 1) conditional_mu += L[j, 1:(j - 1)] * head(e, j - 1); // update conditional mean
-        log_mass = normal_lcdf(sign_y[r] * conditional_mu / L[j, j] | 0, 1); // compute log CDF
-        target += log_mass; // increment target with log mass
-        if (j < K[b]) { // update auxiliary vector for next step if not the last visit
-          e[j] = -sign_y[r] * std_normal_quantile_log(normal_lcdf(u_raw[u_pos] | 0, 1) + log_mass);
-          u_pos += 1; // move to next auxiliary variable
-        }
-      }
-    }
-  }
-}
-)"
+#| echo: true
 ```
 
-### R side preparation, fitting, and extraction
+### Data preparation, fitting, and extraction in R
 
 `X`, when supplied, is an $N\times D\times P$ array: a design row for every
 subject and visit. This permits shared coefficients, arm effects, visit effects,
@@ -534,100 +411,7 @@ The default coefficient order is arm first, then visit.
 
 ```{r}
 #| label: probit-r-functions
-
-# Y: Binary response matrix of size N x D, where N is the number of subjects and D is the number of visits. Each entry should be 0 or 1.
-# arm: Factor or integer vector indicating the treatment arm for each subject.
-# X: Optional design array of size N x D x P, where P is the number of predictors. If NULL, a saturated design is used.
-# same_cov: Logical indicating whether all arms share the same covariance matrix.
-# beta_sd: Standard deviation for the normal prior on regression coefficients. Must be non-negative.
-# lkj_eta: Shape parameter for the LKJ prior on correlation matrices. Must be positive.
-prepare_probit_data <- function(Y, arm, X = NULL, same_cov = FALSE,
-                                beta_sd = 0, lkj_eta = 1) {
-    Y <- as.matrix(Y)
-    stopifnot(
-        is.numeric(Y), length(dim(Y)) == 2L,
-        nrow(Y) > 0L, ncol(Y) > 0L,
-        all(Y[!is.na(Y)] %in% 0:1), length(arm) == nrow(Y),
-        !anyNA(arm), length(same_cov) == 1L, is.logical(same_cov),
-        !is.na(same_cov), length(beta_sd) == 1L,
-        is.finite(beta_sd), beta_sd >= 0,
-        length(lkj_eta) == 1L, is.finite(lkj_eta), lkj_eta > 0
-    )
-    arm <- droplevels(factor(arm))
-    N <- nrow(Y)
-    D <- ncol(Y)
-    A <- nlevels(arm)
-    saturated <- is.null(X)
-    if (saturated) {
-        # X[i, d, p] gives subject i's design row at visit d.
-        X <- array(0, c(N, D, A * D))
-        for (i in seq_len(N)) {
-            for (d in seq_len(D)) {
-                X[i, d, (as.integer(arm[i]) - 1L) * D + d] <- 1
-            }
-        }
-        coefficient_names <- paste(rep(levels(arm), each = D),
-            rep(colnames(Y) %||% seq_len(D), A),
-            sep = ":"
-        )
-    } else {
-        stopifnot(
-            is.array(X), length(dim(X)) == 3L,
-            identical(dim(X)[1:2], c(N, D)), dim(X)[3] > 0L,
-            is.numeric(X), all(is.finite(X))
-        )
-        coefficient_names <- dimnames(X)[[3]] %||% paste0("beta", seq_len(dim(X)[3]))
-    }
-    if (beta_sd == 0) {
-        if (!saturated) stop("Use a proper beta_sd > 0 with a custom design.")
-        for (a in levels(arm)) {
-            for (d in seq_len(D)) {
-                yy <- Y[arm == a, d]
-                if (!all(0:1 %in% yy)) {
-                    stop("Flat priors require both outcomes in every arm and visit.")
-                }
-            }
-        }
-    }
-    observed <- !is.na(Y)
-    keep <- which(rowSums(observed) > 0L)
-    if (!length(keep)) stop("No observed outcomes.")
-    cg <- if (same_cov) rep(1L, N) else as.integer(arm)
-    # Group patients by covariance group and arbitrary observed-visit pattern.
-    key <- paste(cg, apply(observed, 1, paste0, collapse = ""), sep = ":")
-    blocks <- split(keep, factor(key[keep], levels = unique(key[keep])))
-    K <- vapply(blocks, function(ii) sum(observed[ii[1], ]), integer(1))
-    n_subject <- lengths(blocks)
-    visit <- matrix(1L, length(blocks), D)
-    rows <- lapply(seq_along(blocks), function(b) {
-        ii <- blocks[[b]]
-        # Reverse only the internal integration order; output visit order is unchanged.
-        vv <- rev(which(observed[ii[1], ]))
-        visit[b, seq_along(vv)] <<- vv
-        cbind(subject = rep(ii, each = length(vv)), visit = rep(vv, length(ii)))
-    })
-    cells <- do.call(rbind, rows)
-    P <- dim(X)[3]
-    x_obs <- vapply(seq_len(P), function(p) matrix(X[, , p], N, D)[cells], numeric(nrow(cells)))
-    x_obs <- matrix(x_obs, nrow(cells), P)
-    y_obs <- Y[cells]
-    if (qr(x_obs)$rank < P && beta_sd == 0) stop("Rank-deficient flat-prior design.")
-    data <- list(
-        D = D, P = P, G = if (same_cov) 1L else A,
-        R = length(y_obs), B = length(blocks), U = length(y_obs) - length(keep), X = x_obs,
-        sign_y = 2 * y_obs - 1,
-        K = unname(K), visit = visit, n_subject = unname(n_subject),
-        start = as.integer(cumsum(c(1L, head(K * n_subject, -1L)))),
-        cov_group = vapply(blocks, function(ii) cg[ii[1]], integer(1)),
-        beta_sd = beta_sd, lkj_eta = lkj_eta
-    )
-    list(
-        data = data, coefficient_names = coefficient_names,
-        arm_levels = levels(arm), visit_names = colnames(Y) %||% as.character(seq_len(D)),
-        cells = cells, excluded_subjects = setdiff(seq_len(N), keep),
-        same_cov = same_cov, saturated = saturated
-    )
-}
+#| echo: true
 ```
 
 For this strongly correlated example, the fit helper first adapts the NUTS metric,
@@ -641,52 +425,7 @@ existing `rstan` infrastructure is deferred.
 
 ```{r}
 #| label: probit_draws
-`%||%` <- function(x, y) if (is.null(x)) y else x
-
-fit_probit_draws <- function(prepared, model, chains = 4L, parallel_chains = chains,
-                             iter_warmup = 1500L, iter_sampling = 2000L,
-                             seed = 20261026L, adapt_delta = 0.99,
-                             step_size_cap = 0.005, thin = 1L, ...) {
-    stopifnot(length(step_size_cap) == 1L, is.finite(step_size_cap), step_size_cap > 0)
-    # Adapt the metric, then sample with a conservative fixed step size.
-    warm <- model$sample(
-        data = prepared$data, chains = chains,
-        parallel_chains = parallel_chains, iter_warmup = iter_warmup,
-        iter_sampling = 1L, seed = seed, adapt_delta = adapt_delta,
-        max_treedepth = 12L, step_size = 0.05, refresh = 0, sig_figs = 18, diagnostics = NULL, ...
-    )
-    dat <- prepared$data
-    variables <- c("beta", "L_Omega", if (dat$U > 0L) "u_raw")
-    d <- posterior::as_draws_matrix(warm$draws(variables))
-    initial <- lapply(seq_len(chains), function(ch) {
-        list(
-            beta = as.numeric(d[ch, paste0("beta[", seq_len(dat$P), "]")]),
-            L_Omega = lapply(seq_len(dat$G), function(g) {
-                nm <- outer(seq_len(dat$D), seq_len(dat$D), function(j, k) {
-                    sprintf("L_Omega[%d,%d,%d]", g, j, k)
-                })
-                matrix(as.numeric(d[ch, as.vector(nm)]), dat$D, dat$D)
-            }),
-            u_raw = if (dat$U > 0L) as.numeric(d[ch, paste0("u_raw[", seq_len(dat$U), "]")]) else numeric()
-        )
-    })
-    sampling_seed <- as.integer(seed %% .Machine$integer.max + 1)
-    fit <- model$sample(
-        data = dat, chains = chains, parallel_chains = parallel_chains,
-        iter_warmup = 0L, iter_sampling = iter_sampling, thin = thin, seed = sampling_seed,
-        init = initial, metric = "diag_e", inv_metric = warm$inv_metric(matrix = FALSE),
-        adapt_engaged = FALSE,
-        step_size = pmin(step_size_cap, warm$metadata()$step_size_adaptation),
-        max_treedepth = 12L, refresh = 0
-    )
-    structure(
-        list(
-            fit = fit, warmup_fit = warm, prepared = prepared,
-            initialisation = initial, diagnostics = fit$diagnostic_summary()
-        ),
-        class = "probit_draw_fit"
-    )
-}
+#| echo: true
 ```
 
 `extract_probit_draws()` returns a list of coefficient vectors and a paired list
@@ -695,577 +434,23 @@ extraction:
 
 ```{r}
 #| label: extract-probit-draws
-extract_probit_draws <- function(object, n_samples = NULL, seed = 123L) {
-    # Select paired beta/Omega rows; retain full chains in object$fit for diagnostics.
-    d <- posterior::as_draws_matrix(object$fit$draws(c("beta", "Omega")))
-    if (is.null(n_samples)) n_samples <- nrow(d)
-    stopifnot(
-        length(n_samples) == 1L, is.finite(n_samples), n_samples >= 1L,
-        n_samples == floor(n_samples)
-    )
-    if (n_samples > nrow(d)) {
-        stop("Requested ", n_samples, " posterior draws, but only ", nrow(d),
-            " are available.", call. = FALSE
-        )
-    }
-    set.seed(seed)
-    take <- sample.int(nrow(d), n_samples, replace = FALSE)
-    dat <- object$prepared$data
-    beta <- lapply(take, function(i) {
-        setNames(
-            as.numeric(d[i, paste0("beta[", seq_len(dat$P), "]")]),
-            object$prepared$coefficient_names
-        )
-    })
-    sigma <- lapply(take, function(i) {
-        lapply(seq_len(dat$G), function(g) {
-            nm <- outer(seq_len(dat$D), seq_len(dat$D), function(j, k) {
-                sprintf("Omega[%d,%d,%d]", g, j, k)
-            })
-            matrix(as.numeric(d[i, as.vector(nm)]), dat$D, dat$D,
-                dimnames = rep(list(object$prepared$visit_names), 2)
-            )
-        })
-    })
-    list(beta = beta, sigma = sigma, metadata = object$prepared[
-        c("coefficient_names", "arm_levels", "visit_names", "same_cov")
-    ])
-}
+#| echo: true
 ```
 
-Now we can fit the probit model and extract posterior draws for the coefficients and covariance matrices:
+### Validation summary
 
-```{r}
-#| label: fit-probit-trial
-#| eval: !expr run_probit_validation
-probit_model <- cmdstanr::cmdstan_model(cmdstanr::write_stan_file(probit_stan_code))
-probit_input <- prepare_probit_data(Ycat, treat1, same_cov = FALSE)
-stopifnot(probit_input$data$R == 831L, probit_input$data$U == 631L)
-probit_fit <- fit_probit_draws(probit_input, probit_model, init = 0)
-probit_fit$fit$diagnostic_summary()
-probit_fit$fit$summary(c("beta", "Omega"))
-probit_parameters <- extract_probit_draws(probit_fit, n_samples = 1000L)
-stopifnot(
-    length(probit_parameters$beta) == 1000L,
-    length(probit_parameters$sigma[[1]]) == 2L
-)
-```
-
-Note that the MCMC sampling takes about 7 minutes here for the used number of warm up and sampling iterations.
-
-The diagnostics are really good:
-
-````
-$num_divergent
-[1] 0 0 0 0
-
-$num_max_treedepth
-[1] 0 0 0 0
-
-$ebfmi
-[1] 0.9247542 0.9446987 0.9683167 0.9708581
-````
-
-So in practice one could go down a bit even further with the number of warm up and sampling iterations without compromising the diagnostics.
-
-### Cro et al. latent multivariate probit reference implementation
-
-The separate file `cro_latent_mvn_reference.R` preserves the supplied supplementary code from @Cro2025. 
-It includes the original trial-specific analysis and is retained for reference; source the
-lightly edited file `cro_latent_mvn.R`, which includes an R function, to run the imputation algorithm.
-The wrapper requires the `jomo`, `mice`, and `gear` packages from CRAN. It exposes the original
-settings as arguments and returns the binary imputations (`imp`), latent draws
-(`impZ`), and retained arm-specific regression and covariance draws (`beta` and
-`omega`). It omits the final trial-specific pooled GLM. The wrapper converts `Ycat` to
-a data frame before the original factor-conversion loop so that factor levels
-are retained when the caller supplies a matrix.
-
-#### Prepare the longitudinal binary outcomes
-
-Create one row per patient and one column per scheduled visit, leaving absent
-visits as `NA`. Treatment is coded 1 for placebo (reference) and 2 for active.
-We retain the strict response threshold defined above. This prepares inputs for
-a future implementation comparison, rather than reproducing the paper's
-inclusive-threshold responder counts.
-
-```{r}
-#| label: prepare-cro-probit-inputs
-cro_script <- file.path(dirname(archive), "cro_latent_mvn.R")
-source(cro_script)
-Ycat <- matrix(
-    NA_integer_,
-    nrow = nrow(patients),
-    ncol = length(visit_weeks),
-    dimnames = list(
-        as.character(patients$PATIENT),
-        paste0("week", visit_weeks)
-    )
-)
-Ycat[cbind(
-    match(antidepressant$PATIENT, patients$PATIENT),
-    match(antidepressant$week, visit_weeks)
-)] <- antidepressant$response
-treat1 <- as.integer(patients$arm)
-stopifnot(
-    all(treat1 %in% 1:2),
-    all(Ycat[!is.na(Ycat)] %in% 0:1),
-    all(colSums(is.na(Ycat)) == c(0, 18, 30, 52, 69))
-)
-```
-
-#### Run a short example
-
-This short J2R run demonstrates successful execution only; its chain is too short for
-inference. For the supplementary settings use `nburn = 500`, `nbetween = 500`,
-and `nimp = 1000`. The original internal seed is exposed as `seed`, retaining
-its default of 123435. The supplementary code uses the latent sign convention
-**Y = 0 when Z > 0**, which must be accounted for in future comparisons.
-The algorithm is retained as supplied, including its intercept-only imputation
-step and reference-group handling; the example uses monotone dropout and
-reference arm 1. It has not been generalized to other input configurations.
-
-```{r}
-#| label: run-cro-probit-example
-cro_draws <- cro_latent_mvn(
-    Ycat = Ycat,
-    treat1 = treat1,
-    Method = "J2R",
-    Reference = 1,
-    nburn = 100,
-    nbetween = 10,
-    nimp = 5,
-    seed = 123435
-)
-# Imputation 0 contains the original data; positive indices are completed data.
-cro_completed <- subset(cro_draws$imp, Imputation == 1)
-stopifnot(
-    nrow(cro_completed) == nrow(Ycat),
-    !anyNA(cro_completed[colnames(Ycat)]),
-    all(as.matrix(cro_completed[colnames(Ycat)])[!is.na(Ycat)] ==
-        Ycat[!is.na(Ycat)])
-)
-knitr::kable(
-    aggregate(week8 ~ Imputation + Treat,
-        data = cro_draws$imp,
-        FUN = mean, subset = Imputation > 0
-    ),
-    caption = "Week 8 response proportions in the short J2R example"
-)
-# Retained parameter draws for the subsequent rbmi comparison:
-dim(cro_draws$beta$reference)
-dim(cro_draws$omega$active)
-```
-
-For incomplete patients, `impZ` contains sequential latent draws at all visits;
-its imputation-0 block contains the original binary data, and complete patients'
-latent rows remain zero in the supplied algorithm. Use latent rows only for
-patients with missing outcomes and positive imputation indices.
-
-
-#### Reference draw sampler
-
-The comparison calls `jomo::jomo1cat.MCMCchain()` separately by arm, exactly as
-in the draw-stage calls inside `cro_latent_mvn()`. It skips the subsequent
-imputation loops. Thus the short J2R run above is not used to assess posterior
-agreement. Both methods use the same strict >50% response threshold, the same
-200 patients, and the same observed visits.
-
-The [rpact-com/jomo fork](https://github.com/rpact-com/jomo) contains the
-corrections used for the binary reference comparison. Their rationale, scope,
-and regression tests are documented in the fork's
-[changelog](https://github.com/rpact-com/jomo/blob/master/CHANGELOG.md).
-The intended binary model uses a flat mean prior and a flat prior on the free
-correlations, consistent with Section 3.3 and LKJ(1). The fork preserves those
-priors. This document uses the fork as a package dependency; each reference
-run loads its selected package in a separate R process.
-
-```{r}
-#| label: reference-draw-functions
-run_reference_chain <- function(chain, input) {
-    set.seed(input$seed + chain)
-    lapply(seq_len(nlevels(factor(input$arm))), function(a) {
-        yy <- as.data.frame(input$Y[as.integer(factor(input$arm)) == a, , drop = FALSE])
-        yy[] <- lapply(yy, factor, levels = 0:1)
-        # Mirrors Cro's two draw-stage jomo calls; no reference-based imputation.
-        f <- jomo::jomo1cat.MCMCchain(
-            Y.cat = yy, Y.numcat = rep(2L, ncol(yy)),
-            nburn = input$warmup + input$iterations, output = 0
-        )
-        take <- seq.int(input$warmup + input$thin,
-            input$warmup + input$iterations,
-            by = input$thin
-        )
-        list(
-            beta = f$collectbeta[, , take, drop = FALSE],
-            omega = f$collectomega[, , take, drop = FALSE]
-        )
-    })
-}
-
-run_reference_draws <- function(Y, arm, library = NULL, chains = 4L,
-                                warmup = 100000L, iterations = 1000000L,
-                                thin = 100L, seed = 123435L) {
-    stopifnot(
-        ncol(Y) >= 2L, length(arm) == nrow(Y), !anyNA(arm),
-        all(Y[!is.na(Y)] %in% 0:1), chains >= 1L,
-        warmup >= 1L, iterations >= thin, thin >= 1L
-    )
-    # This comparison adapter deliberately stays within Cro's example scope.
-    for (a in unique(arm)) {
-        yy <- Y[arm == a, , drop = FALSE]
-        stopifnot(
-            anyNA(yy), all(rowSums(!is.na(yy)) > 0L),
-            all(vapply(seq_len(ncol(yy)), function(j) {
-                all(0:1 %in% yy[, j])
-            }, logical(1)))
-        )
-    }
-    expected_version <- if (is.null(library)) "2.7.6.9000" else "2.7.6"
-    input <- list(
-        Y = Y, arm = arm, library = library, version = expected_version,
-        chains = chains,
-        warmup = warmup, iterations = iterations, thin = thin, seed = seed
-    )
-    callr::r(function(input, run_chain) {
-        if (!is.null(input$library)) .libPaths(c(input$library, .libPaths()))
-        stopifnot(as.character(utils::packageVersion("jomo")) == input$version)
-        cores <- if (.Platform$OS.type == "windows") 1L else input$chains
-        out <- parallel::mclapply(seq_len(input$chains), run_chain,
-            input = input, mc.cores = cores
-        )
-        if (any(vapply(out, inherits, logical(1), "try-error"))) {
-            stop("Reference chain failed")
-        }
-        out
-    }, args = list(input = input, run_chain = run_reference_chain))
-}
-```
-
-The reference runner discards 100,000 sweeps and retains every 100th sweep from
-one million subsequent sweeps, for each of four independent chains per arm.
-This thinning limits storage; it does not establish independence. Correlation
-mixing, rather than coefficient mixing, determines how long these runs need to
-be. All signs, parameter ordering, MCSEs, and diagnostics are harmonized below.
-The comparison includes all ten coefficients and twenty distinct correlations;
-constant diagonal entries and duplicated upper triangles are excluded.
-
-```{r}
-#| label: compare-probit-functions
-jomo_array <- function(chains) {
-    S <- dim(chains[[1]][[1]]$beta)[3]
-    A <- length(chains[[1]])
-    D <- dim(chains[[1]][[1]]$omega)[1]
-    pair <- which(lower.tri(matrix(0, D, D)), arr.ind = TRUE)
-    nm <- c(paste0("beta[", seq_len(A * D), "]"), unlist(lapply(seq_len(A), function(a) {
-        sprintf("Omega[%d,%d,%d]", a, pair[, 1], pair[, 2])
-    })))
-    arr <- array(NA_real_, c(S, length(chains), length(nm)), dimnames = list(NULL, NULL, nm))
-    for (ch in seq_along(chains)) {
-        values <- c(
-            lapply(seq_len(A), function(a) -t(chains[[ch]][[a]]$beta[1, , ])),
-            lapply(seq_len(A), function(a) {
-                t(vapply(seq_len(S), function(s) {
-                    chains[[ch]][[a]]$omega[, , s][pair]
-                }, numeric(nrow(pair))))
-            })
-        )
-        arr[, ch, ] <- do.call(cbind, values)
-    }
-    posterior::as_draws_array(arr)
-}
-summarize_parameters <- function(draws) {
-    as.data.frame(posterior::summarise_draws(draws,
-        mean = mean, sd = sd,
-        q025 = function(x) unname(quantile(x, .025)),
-        q975 = function(x) unname(quantile(x, .975)),
-        mcse = posterior::mcse_mean, rhat = posterior::rhat,
-        ess_bulk = posterior::ess_bulk, ess_tail = posterior::ess_tail
-    ))
-}
-compare_parameters <- function(stan, reference) {
-    a <- summarize_parameters(stan)
-    b <- summarize_parameters(reference)
-    z <- merge(a, b, by = "variable", suffixes = c("_stan", "_reference"), sort = FALSE)
-    z$difference <- z$mean_stan - z$mean_reference
-    z$combined_mcse <- sqrt(z$mcse_stan^2 + z$mcse_reference^2)
-    z$mcse_units <- z$difference / z$combined_mcse
-    z$sd_units <- z$difference / z$sd_stan
-    z
-}
-```
-
-```{r}
-#| label: compare-probit-reference
-#| eval: !expr run_probit_validation
-reference_original <- run_reference_draws(Ycat, treat1, library = original_library)
-reference_corrected <- run_reference_draws(Ycat, treat1)
-comparison_original <- compare_parameters(
-    probit_fit$fit$draws(c("beta", "Omega")), jomo_array(reference_original)
-)
-comparison_corrected <- compare_parameters(
-    probit_fit$fit$draws(c("beta", "Omega")), jomo_array(reference_corrected)
-)
-knitr::kable(
-    comparison_corrected[, c(
-        "variable", "mean_stan", "mean_reference",
-        "difference", "combined_mcse", "mcse_units"
-    )],
-    digits = 4
-)
-# Also inspect posterior SDs, interval endpoints, R-hat, and both ESS estimates:
-comparison_corrected
-```
-
-#### Recorded comparison (26 October 2026)
-
-This snapshot used R 4.6.1, CmdStanR 0.9.0, CmdStan 2.39.0, posterior 1.7.0,
-and jomo 2.7-6 with the two corrections now maintained in the
-[rpact-com/jomo fork](https://github.com/rpact-com/jomo). These recorded results
-predate the fork's development version; they have not been recomputed for this
-source migration. Stan used four chains, 1,500 warmup iterations per chain,
-and 2,000 retained sampling iterations per chain after the step-size cap;
-its warmup seed was 20261026 and sampling seed 20261027. Both reference
-runs used four chains per arm with seeds 123436 through 123439, 100,000
-burn-in sweeps, and one million further sweeps, retaining every 100th.
-
-**The corrected reference agrees with the paper-targeted Stan model:** the largest
-absolute posterior-mean difference was 2.09 combined MCSEs across all 30 parameters.
-The maximum absolute differences were 0.0036 for coefficients and 0.0062 for correlations.
-Posterior SDs differed by at most 2.4%, and the largest difference between
-corresponding 95% interval endpoints was 0.150 Stan posterior SDs.
-These are Monte Carlo comparisons, not a proof of equality of the two algorithms.
-
-The unmodified reference differs systematically: the placebo Week 1 coefficient
-is -1.742 versus -1.956 in Stan (83.0 combined MCSEs). The corrected value is -1.952.
-The two corrections described in the fork's changelog were applied together;
-this experiment does not attribute every discrepancy separately to either one.
-
-|Sampler        | Maximum R-hat| Minimum bulk ESS| Minimum tail ESS|
-|:--------------|-------------:|----------------:|----------------:|
-|Stan           |        1.0017|             3441|             4816|
-|Corrected jomo |        1.0072|             1320|             1987|
-|Original jomo  |        1.0016|             2252|             3399|
-
-Stan had **0 divergent transitions**, 0 maximum-treedepth hits, and E-BFMI
-between 0.925 and 0.971 in the retained chains. R-hat and ESS above summarize
-only the ten coefficients and twenty distinct correlations. Initial warmup
-rejections are not counted as retained-chain divergences. These diagnostics
-support this example; they do not guarantee adequate sampling on a new dataset.
-
-All reference coefficients in the following tables have been sign-reversed.
-“Difference / MCSE” is $(\bar\theta_{\mathrm{Stan}}-\bar\theta_{\mathrm{corrected}})/
-\sqrt{\mathrm{MCSE}_{\mathrm{Stan}}^2+\mathrm{MCSE}_{\mathrm{corrected}}^2}$.
-The interval columns describe the Stan posterior, not a Monte Carlo confidence interval.
-
-|Arm     | Week| Original jomo|   Stan|Stan 95% CrI     | Corrected jomo| Difference / MCSE|
-|:-------|----:|-------------:|------:|:----------------|--------------:|-----------------:|
-|Placebo |    1|        -1.742| -1.956|[-2.504, -1.488] |         -1.952|            -1.230|
-|Placebo |    2|        -0.911| -0.937|[-1.239, -0.645] |         -0.936|            -0.114|
-|Placebo |    4|        -0.673| -0.678|[-0.971, -0.389] |         -0.678|             0.301|
-|Placebo |    6|        -0.422| -0.423|[-0.724, -0.127] |         -0.425|             1.166|
-|Placebo |    8|        -0.376| -0.384|[-0.696, -0.072] |         -0.385|             0.753|
-|Active  |    1|        -1.434| -1.497|[-1.875, -1.147] |         -1.498|             0.355|
-|Active  |    2|        -0.861| -0.875|[-1.185, -0.578] |         -0.875|             0.046|
-|Active  |    4|        -0.469| -0.472|[-0.753, -0.196] |         -0.472|             0.252|
-|Active  |    6|        -0.244| -0.241|[-0.525, 0.045]  |         -0.242|             0.403|
-|Active  |    8|        -0.003|  0.005|[-0.290, 0.298]  |          0.005|            -0.140|
-
-|Arm     |Weeks | Original jomo|  Stan|Stan 95% CrI    | Corrected jomo| Difference / MCSE|
-|:-------|:-----|-------------:|-----:|:---------------|--------------:|-----------------:|
-|Placebo |2 / 1 |         0.580| 0.599|[0.182, 0.897]  |          0.602|            -0.617|
-|Placebo |4 / 1 |         0.107| 0.124|[-0.327, 0.545] |          0.123|             0.123|
-|Placebo |6 / 1 |         0.052| 0.072|[-0.364, 0.487] |          0.073|            -0.150|
-|Placebo |8 / 1 |         0.358| 0.381|[-0.075, 0.753] |          0.382|            -0.094|
-|Placebo |4 / 2 |         0.534| 0.545|[0.245, 0.785]  |          0.546|            -0.212|
-|Placebo |6 / 2 |         0.414| 0.424|[0.084, 0.710]  |          0.418|             1.537|
-|Placebo |8 / 2 |         0.678| 0.687|[0.389, 0.885]  |          0.684|             0.835|
-|Placebo |6 / 4 |         0.604| 0.610|[0.325, 0.826]  |          0.609|             0.150|
-|Placebo |8 / 4 |         0.634| 0.642|[0.357, 0.850]  |          0.644|            -0.587|
-|Placebo |8 / 6 |         0.813| 0.826|[0.636, 0.945]  |          0.822|             2.091|
-|Active  |2 / 1 |         0.657| 0.665|[0.348, 0.889]  |          0.662|             0.880|
-|Active  |4 / 1 |         0.629| 0.646|[0.250, 0.922]  |          0.648|            -0.209|
-|Active  |6 / 1 |         0.609| 0.636|[0.220, 0.929]  |          0.637|            -0.230|
-|Active  |8 / 1 |         0.501| 0.521|[0.055, 0.891]  |          0.527|            -1.060|
-|Active  |4 / 2 |         0.695| 0.694|[0.425, 0.883]  |          0.695|            -0.278|
-|Active  |6 / 2 |         0.717| 0.724|[0.446, 0.905]  |          0.725|            -0.446|
-|Active  |8 / 2 |         0.694| 0.706|[0.369, 0.928]  |          0.710|            -1.228|
-|Active  |6 / 4 |         0.839| 0.847|[0.679, 0.951]  |          0.846|             0.565|
-|Active  |8 / 4 |         0.463| 0.461|[0.157, 0.713]  |          0.464|            -0.658|
-|Active  |8 / 6 |         0.664| 0.668|[0.417, 0.851]  |          0.671|            -0.870|
-
-The independent bivariate identity check had maximum absolute error 3e-15.
-For the one-visit example (7 responses among 20 patients), the numerical posterior
-mean was -0.392807 versus -0.382052 in Stan (MCSE 0.006725); posterior SDs were 0.289319 and 0.285921.
-The log-quantile comparison with R had maximum absolute error 7.1e-15 over log
-probabilities from $-10^{-16}$ to $-10^6$. Both the one-visit fit and the
-covariate/intermittent-missingness fit had zero divergences and zero treedepth
-hits; all seven simulated coefficients were inside their 95% posterior intervals.
-
-### Performance considerations
-
-The current implementation parallelizes chains. Further optimizations could be
-benchmarked without changing the statistical target:
-
-- **Within-chain parallelism.** The block log-likelihood contributions can be
-  summed with Stan's [`reduce_sum`](https://mc-stan.org/docs/stan-users-guide/parallelization.html).
-  Replace the running `u_pos` counter with fixed block offsets so each task reads
-  the correct auxiliary parameters independently. Visits within a subject must
-  remain sequential because their conditional calculations depend on earlier
-  values. Compile with `cpp_options = list(stan_threads = TRUE)` and pass
-  `threads_per_chain` explicitly to both sampling calls in `fit_probit_draws()`;
-  its current `...` reaches only the adaptation stage. Budget cores across
-  `parallel_chains * threads_per_chain`.
-- **Balance the work.** This example has 11 blocks, but the two largest contain
-  61 and 69 complete patients, accounting for 650 of 831 observations. Splitting
-  large blocks into smaller subject batches may therefore scale better than
-  assigning whole blocks to tasks. Preserve one covariance factorization per
-  block and share it across batches, or benchmark the simpler alternative of
-  repeating the small factorization within each batch.
-- **Reduce serial work and improve sampling efficiency.** For the default
-  saturated design, direct coefficient indexing could replace the dense
-  `X * beta` multiplication. Alternative visit orders and less conservative
-  step-size caps may improve effective samples per second, but require renewed
-  divergence, treedepth, E-BFMI, and convergence checks before adoption.
-- **Measure before adopting.** Profile the likelihood and benchmark elapsed time
-  and effective samples per second with 1, 2, and 4 threads per chain. Start with
-  `grainsize = 1`, then tune batch size and grainsize if useful. At this example's
-  size, scheduling and automatic-differentiation overhead may outweigh threading
-  gains; larger datasets offer more opportunity.
-
-### Independent validation checks
-
-Agreement between two samplers is not sufficient on its own. The checks below
-also verify the bivariate orthant identity, the one-visit posterior against
-numerical integration, and the data mapping for a covariate-adjusted model with
-intermittent missingness and an entirely missing subject. The simulation uses a
-shared correlation matrix and checks coverage of the known coefficient vector;
-it is a small implementation check, not a simulation study of operating
-characteristics. Rejection of flat priors for separated cells or custom designs,
-and preservation of matrix dimensions during extraction, are also checked.
-
-```{r}
-#| label: validate-probit-independent
-#| eval: !expr run_probit_validation
-model <- probit_model
-
-# Deterministic two-visit orthant check, including all four sign patterns.
-mu <- c(-.7, .3)
-Omega <- matrix(c(1, .6, .6, 1), 2)
-L <- t(chol(Omega))
-signs <- as.matrix(expand.grid(c(-1, 1), c(-1, 1)))
-err <- apply(signs, 1, function(s) {
-    p1 <- pnorm(s[1] * mu[1])
-    value <- integrate(function(u) {
-        e1 <- -s[1] * qnorm(u * p1)
-        p1 * pnorm(s[2] * (mu[2] + L[2, 1] * e1) / L[2, 2])
-    }, 0, 1, rel.tol = 1e-10)$value
-    truth <- as.numeric(mvtnorm::pmvnorm(
-        lower = c(0, 0),
-        upper = c(Inf, Inf), mean = s * mu, sigma = Omega * outer(s, s), algorithm = mvtnorm::TVPACK()
-    ))
-    value - truth
-})
-stopifnot(max(abs(err)) < 1e-8)
-
-# One visit: no augmentation variables; compare against numerical quadrature.
-y <- matrix(c(rep(1, 7), rep(0, 13)), ncol = 1)
-p <- prepare_probit_data(y, rep(1, nrow(y)))
-stopifnot(p$data$U == 0L, p$data$R == 20L, p$data$P == 1L)
-f <- fit_probit_draws(p, model, chains = 4, iter_warmup = 500, iter_sampling = 2000, seed = 883L)
-sm <- summarize_parameters(f$fit$draws("beta"))
-density <- function(b) exp(7 * pnorm(b, log.p = TRUE) + 13 * pnorm(-b, log.p = TRUE))
-constant <- integrate(density, -Inf, Inf)$value
-exact_mean <- integrate(function(b) b * density(b), -Inf, Inf)$value / constant
-exact_sd <- sqrt(integrate(function(b) (b - exact_mean)^2 * density(b), -Inf, Inf)$value / constant)
-stopifnot(
-    abs(sm$mean - exact_mean) < 4 * sm$mcse,
-    abs(sm$sd - exact_sd) < .02
-)
-ex <- extract_probit_draws(f, 10)
-stopifnot(
-    length(ex$beta) == 10L, length(ex$sigma) == 10L,
-    identical(dim(ex$sigma[[1]][[1]]), c(1L, 1L)),
-    ex$sigma[[1]][[1]][1, 1] == 1
-)
-
-# Data preparation: arbitrary missing patterns, all-missing subjects, custom X.
-set.seed(443)
-N <- 180L
-D <- 3L
-arm <- rep(1:2, each = N / 2)
-x <- rnorm(N)
-X <- array(0, c(N, D, 7L))
-for (i in seq_len(N)) {
-    for (j in seq_len(D)) {
-        X[i, j, j] <- 1
-        X[i, j, 3 + j] <- arm[i] == 2
-        X[i, j, 7] <- x[i]
-    }
-}
-truth <- c(-.6, -.3, .1, .4, .5, .6, .3)
-Sigma <- matrix(c(1, .55, .3, .55, 1, .4, .3, .4, 1), 3)
-eta <- matrix(matrix(X, N * D, 7L) %*% truth, N, D)
-Z <- eta + matrix(rnorm(N * D), N, D) %*% chol(Sigma)
-Y <- 1L * (Z > 0)
-Y[matrix(runif(N * D) < .2, N, D)] <- NA
-Y[1, ] <- NA
-p2 <- prepare_probit_data(Y, arm, X, same_cov = TRUE, beta_sd = 2)
-stopifnot(
-    1L %in% p2$excluded_subjects, p2$data$G == 1L,
-    all(p2$data$sign_y == 2 * Y[p2$cells] - 1),
-    isTRUE(all.equal(p2$data$X,
-        sapply(1:7, function(k) matrix(X[, , k], N, D)[p2$cells]),
-        check.attributes = FALSE
-    ))
-)
-stopifnot(
-    inherits(try(prepare_probit_data(Y, arm, X, beta_sd = 0), silent = TRUE), "try-error"),
-    inherits(try(prepare_probit_data(matrix(0, 10, 2), rep(1, 10)), silent = TRUE), "try-error")
-)
-f2 <- fit_probit_draws(p2, model, chains = 4, iter_warmup = 1000, iter_sampling = 1500, seed = 884L)
-sm2 <- summarize_parameters(f2$fit$draws("beta"))
-stopifnot(
-    all(sm2$rhat < 1.01), all(sm2$ess_bulk > 400),
-    all(truth > sm2$q025 & truth < sm2$q975)
-)
-
-list(
-    bivariate_errors = err, univariate = cbind(sm, exact_mean, exact_sd),
-    synthetic = cbind(sm2, truth)
-)
-f$fit$diagnostic_summary()
-f2$fit$diagnostic_summary()
-```
-
-The log-quantile helper is checked separately against R's tail-aware `qnorm`,
-including probabilities whose ordinary floating-point representation underflows.
-Writing Stan's output at 18 significant figures is necessary for this numerical
-check; rounding CSV output must not be mistaken for function error.
-
-```{r}
-#| label: validate-probit-log-quantile
-#| eval: !expr run_probit_validation
-code <- strsplit(probit_stan_code, "\n", fixed = TRUE)[[1]]
-code <- code[seq_len(which(code == "data {")[1] - 1L)]
-code <- c(
-    code, "data { int<lower=1> N; vector[N] lp; }",
-    "generated quantities { vector[N] q; for (i in 1:N) q[i] = std_normal_quantile_log(lp[i]); }"
-)
-m <- cmdstanr::cmdstan_model(cmdstanr::write_stan_file(code))
-lp <- c(-1e-16, -1e-10, -.1, log(.5), -2, -36 + 1e-8, -36 - 1e-8, -50, -100, -700, -1000, -1e6)
-f <- m$sample(data = list(N = length(lp), lp = lp), fixed_param = TRUE, chains = 1, iter_sampling = 1, refresh = 0, sig_figs = 18)
-q <- as.numeric(posterior::as_draws_matrix(f$draws("q"))[1, ])
-truth <- qnorm(lp, log.p = TRUE)
-z <- data.frame(lp, q, truth, error = q - truth)
-print(z)
-stopifnot(max(abs(z$error)) < 1e-9)
-```
+In the recorded trial comparison, the posterior means of all 30 coefficients
+and correlations agreed with the corrected reference sampler within 2.09
+combined Monte Carlo standard errors. The Stan chains had no divergences or
+maximum-treedepth hits. The [research notes](research_binary_extension.html#sec-binary-probit-validation)
+give the reference implementation, reproduction instructions, independent
+checks and performance considerations.
 
 ## Imputation method and prototype implementation
 
-Now let's have a look at the imputation methodology. We follow again @Cro2025 but want to account for the @Rehal2026 situation with retrieved dropout models, where post-intercurrent
-event, the observed data can be used to multiply impute the missing post-intercurrent
-event data.
+The imputation step uses the fitted parameters to construct a latent
+distribution under a reference assumption. Then it conditions on all observed
+responses, including outcomes measured after treatment discontinuation.
 
 ### Means and hybrid covariance definition {#sec-binary-reference-distribution}
 
@@ -1329,10 +514,8 @@ patients retain $R$ under all five assumptions.
 Although $A$ and $R$ have unit diagonals, the hybrid post-discontinuation block
 need not: it equals $R_{QQ}+B(A_{PP}-R_{PP})B^{\mathsf T}$. With only one
 pre-discontinuation visit, $A_{PP}=R_{PP}=1$, so its diagonal is still one.
-This justifies the variance $1-(\sigma_{12}^{\mathrm{ref}})^2/
-\sigma_{11}^{\mathrm{ref}}$ in the two-visit formula below. With multiple
-pre-discontinuation visits the arm correlation blocks can differ; use the
-constructed diagonal rather than forcing it to one. A common fitted covariance
+With multiple pre-discontinuation visits, the arm correlation blocks can
+differ. Use the constructed diagonal when sampling. A common fitted covariance
 also makes the hybrid equal to that common covariance.
 
 For $d_i=D$ there is no post-discontinuation block and the ordinary randomized-arm
@@ -1343,185 +526,12 @@ requires a scheduled pre-ICE visit whose modeled mean can be carried forward.
 That visit's outcome may be missing. The joint sampler conditions on the
 observed signs at any visits, including when the first outcome is missing.
 
-### Original imputation algorithm
-
-For comparison, the sequential algorithm as written in Section 3.3 of @Cro2025
-is reproduced below. It does not generally sample the intended conditional
-joint distribution; the correction is given in @sec-binary-joint-sampling.
-
-0. Use one joint posterior draw of the coefficients and covariance matrices to
-   construct the full patient-specific mean and covariance for the chosen
-   assumption as defined in @sec-binary-reference-distribution.
-1. Start with time point $j = 1$, at which patient $i$ has been observed its outcome $y_{t,i,1}$.
-    - Draw the latent variable $Z^{\text{ref}}_{t,i,1}$ from the truncated univariate normal distribution with mean $\mu^{\text{ref}}_{t,i,1}$ and variance 1. The truncation is determined by the observed outcome $y_{t,i,1}$, i.e., truncated to positive values if $y_{t,i,1}=1$ and truncated to negative values if $y_{t,i,1}=0$. (@Cro2025 describe this with a rejection sampling scheme but we can directly sample from the truncated normal distribution.)
-    - In order to calculate the mean vector here and below we use the coefficient vector $\beta$ from the same posterior draw from the multivariate probit model fitted above.
-    - Note that only for the CR assumption the mean $\mu^{\text{ref}}_{t,i,1}$ is adjusted according to the reference arm, otherwise it is just the original mean $\mu_{t,i,1}$.
-2. Now for time point $j = 2$, first determine the conditional normal distribution of $Z^{\text{ref}}_{t,i,2}$ given the previously sampled latent variable $Z^{\text{ref}}_{t,i,1}$. 
-    - The mean and variance of this conditional distribution are obtained from the multivariate normal distribution implied by the probit model. In this case it is simpler because there was just one previous time point:
-
-    $$
-    Z^{\text{ref}}_{t,i,2} \mid Z^{\text{ref}}_{t,i,1} \sim \mathcal{N}\left( \\
-      \mu^{\text{ref}}_{t,i,2} + (Z^{\text{ref}}_{t,i,1} - \mu^{\text{ref}}_{t,i,1}) 
-      \sigma^{\text{ref}}_{t,12} / \sigma^{\text{ref}}_{t,11}, \\
-      1 - (\sigma^{\text{ref}}_{t,12})^2 / \sigma^{\text{ref}}_{t,11} \\
-    \right)
-    $$
-
-    where $\sigma^{\text{ref}}_{t,11}$ and $\sigma^{\text{ref}}_{t,12}$ are the elements of the covariance matrix implied by the probit model and the reference assumption.
-    - If $y_{t,i,2}$ is missing, just draw $Z^{\text{ref}}_{t,i,2}$ from the conditional normal distribution specified above. If it is observed, draw $Z^{\text{ref}}_{t,i,2}$ from the truncated conditional normal distribution, truncated to positive values if $y_{t,i,2}=1$ and truncated to negative values if $y_{t,i,2}=0$.
-3. Similarly for $j > 2$, determine the conditional normal distribution of $Z^{\text{ref}}_{t,i,j}$ given the previously sampled latent variables $Z^{\text{ref}}_{t,i,1}, \dots, Z^{\text{ref}}_{t,i,j-1}$.
-    - The mean and variance of this conditional distribution are obtained from the multivariate normal distribution implied by the probit model:
-
-    $$
-    Z^{\text{ref}}_{t,i,j} \mid Z^{\text{ref}}_{t,i,1}, \dots, Z^{\text{ref}}_{t,i,j-1} \sim \mathcal{N}(\mu^{\text{cond}}_{t,i,j}, \sigma^{\text{cond}}_{t,i,j})
-    $$
-    
-    where
-    
-    $$
-    \mu^{\text{cond}}_{t,i,j} = \mu^{\text{ref}}_{t,i,j} + \Sigma^{\text{ref}}_{t,j,1:(j-1)} (\Sigma^{\text{ref}}_{t,1:(j-1),1:(j-1)})^{-1} (Z^{\text{ref}}_{t,i,1:(j-1)} - \mu^{\text{ref}}_{t,i,1:(j-1)})
-    $$
-
-    and 
-
-    $$
-    \sigma^{\text{cond}}_{t,i,j} = \Sigma^{\text{ref}}_{t,j,j} - \Sigma^{\text{ref}}_{t,j,1:(j-1)} (\Sigma^{\text{ref}}_{t,1:(j-1),1:(j-1)})^{-1} \Sigma^{\text{ref}}_{t,1:(j-1),j}
-    $$
-
-    - If $y_{t,i,j}$ is missing, just draw $Z^{\text{ref}}_{t,i,j}$ from the conditional normal distribution specified above. If it is observed, draw $Z^{\text{ref}}_{t,i,j}$ from the truncated conditional normal distribution, truncated to positive values if $y_{t,i,j}=1$ and truncated to negative values if $y_{t,i,j}=0$.
-    - Repeat this process for all subsequent time points $j = 3, 4, \dots$ until the last time point for patient $i$.
-
-### Problem in original algorithm 
-
-The original sampler accepts each observed sign by resampling only the current
-latent variable, leaving earlier draws unchanged. Direct univariate truncated
-normal sampling is equivalent to that local rejection step, but neither
-conditions earlier latent values on later observed signs. To see why, consider
-two observed responses $Y_1=Y_2=1$. Hold the model parameters fixed and suppress
-the patient index and reference-assumption superscript. Let
-$\phi(z_1;\mu_1,\Sigma_{11})$ denote the marginal normal density of $Z_1$.
-
-1. Under our sign convention, observing $Y_1=Y_2=1$ is the event
-   $E=\{Z_1>0,Z_2>0\}$. Bayes' rule for the density of $Z_1$ conditional on
-   this event gives
-   $$
-   p(z_1\mid E)
-   =\frac{p(z_1)\Pr(E\mid Z_1=z_1)}{\Pr(E)}.
-   $$
-   Here conditioning on $Z_1=z_1$ uses the conditional distribution of $Z_2$;
-   it does not require the point event $\{Z_1=z_1\}$ to have positive probability.
-
-2. Once $Z_1=z_1$ is fixed, the first sign is already determined. If $z_1\leq0$,
-   the event $E$ is impossible; if $z_1>0$, only the second sign remains uncertain.
-   Therefore
-   $$
-   \Pr(E\mid Z_1=z_1)
-   =\mathbf{1}(z_1>0)\Pr(Z_2>0\mid Z_1=z_1).
-   $$
-
-3. Substitute this expression and the marginal normal density into Bayes' rule:
-   $$
-   p(z_1\mid Y_1=1,Y_2=1)
-   =\frac{
-     \phi(z_1;\mu_1,\Sigma_{11})\mathbf{1}(z_1>0)
-     \Pr(Z_2>0\mid Z_1=z_1)
-   }{\Pr(Z_1>0,Z_2>0)}.
-   $$
-   The denominator is constant with respect to $z_1$, so dropping it gives
-
-$$
-p(z_1\mid Y_1=1,Y_2=1)\propto
-\phi(z_1;\mu_1,\Sigma_{11})\mathbf{1}(z_1>0)
-\Pr(Z_2>0\mid Z_1=z_1).
-$$
-
-The extra factor can be written explicitly using normal conditioning. Define
-
-$$
-\mu_{2\mid1}(z_1)=\mu_2+
-\frac{\Sigma_{21}}{\Sigma_{11}}(z_1-\mu_1),\qquad
-s_{2\mid1}^2=\Sigma_{22}-\frac{\Sigma_{21}^2}{\Sigma_{11}}.
-$$
-
-Then $Z_2\mid Z_1=z_1\sim N(\mu_{2\mid1}(z_1),s_{2\mid1}^2)$, and hence
-
-$$
-\Pr(Z_2>0\mid Z_1=z_1)
-=1-\Phi\!\left(\frac{-\mu_{2\mid1}(z_1)}{s_{2\mid1}}\right)
-=\Phi\!\left(\frac{\mu_{2\mid1}(z_1)}{s_{2\mid1}}\right).
-$$
-
-By contrast, drawing $Z_1$ from its marginal normal truncated above zero uses
-only $p(z_1\mid Y_1=1)\propto
-\phi(z_1;\mu_1,\Sigma_{11})\mathbf{1}(z_1>0)$. It omits the probability of
-the second observed sign. With positive correlation, larger $z_1$ makes
-$Z_2>0$ more likely, so observing $Y_2=1$ gives those larger values additional
-weight. If the correlation is zero, this factor is constant and cancels in
-normalization; in general it depends on $z_1$ and cannot be omitted.
-
-Consequently,
-a single forward pass is not a joint truncated-normal draw, even with monotone
-dropout. This is a limitation of the paper's Step 5 as written, not a consequence
-of replacing its local rejection sampler with inverse-CDF sampling. The simple
-case of one observed visit followed only by missing visits does not have this
-problem.
-
-As a numerical example, take three zero-mean latent variables with unit
-variances and all correlations $\rho=0.7$, and observe $Y=(1,1,\mathrm{NA})$.
-The exact conditional response probability, using the bivariate and trivariate
-zero-mean normal orthant identities, is
-
-$$
-\Pr(Y_3=1\mid Y_1=Y_2=1)
-=\frac{1/8+3\arcsin(\rho)/(4\pi)}{1/4+\arcsin(\rho)/(2\pi)}
-=0.8304917.
-$$
-
-The following base-R example compares the original sampler with whole-vector
-rejection, which is an exact joint sampler and is inexpensive for this particular
-orthant. For the sequential estimate we integrate out the last normal draw to
-reduce Monte Carlo noise. The sequential estimate is about 0.811, versus 0.8305
-for the target; the discrepancy is much larger than Monte Carlo error.
-
-```{r}
-#| label: compare-sequential-joint-imputation
-local({
-    set.seed(917)
-    n <- 1000000L
-    rho <- 0.7
-    Sigma <- matrix(rho, 3, 3)
-    diag(Sigma) <- 1
-    exact <- (1 / 8 + 3 * asin(rho) / (4 * pi)) /
-        (1 / 4 + asin(rho) / (2 * pi))
-
-    # Joint rejection: reject the entire vector unless both observed signs match.
-    z <- matrix(rnorm(n * 3), n, 3) %*% chol(Sigma)
-    joint_response <- z[z[, 1] > 0 & z[, 2] > 0, 3] > 0
-
-    # Original forward sampler: independently enforce each successive sign.
-    z1 <- -qnorm(runif(n) / 2)
-    m2 <- rho * z1
-    s2 <- sqrt(1 - rho^2)
-    z2 <- m2 - s2 * qnorm(runif(n) * pnorm(m2 / s2))
-    b <- drop(Sigma[3, 1:2] %*% solve(Sigma[1:2, 1:2]))
-    v3 <- Sigma[3, 3] - sum(b * Sigma[1:2, 3])
-    sequential_probability <- pnorm((b[1] * z1 + b[2] * z2) / sqrt(v3))
-
-    data.frame(
-        Method = c("Exact", "Joint rejection", "Original sequential"),
-        Probability = c(exact, mean(joint_response), mean(sequential_probability)),
-        MCSE = c(
-            0, sd(joint_response) / sqrt(length(joint_response)),
-            sd(sequential_probability) / sqrt(n)
-        )
-    )
-})
-```
-
 ### Corrected imputation algorithm {#sec-binary-joint-sampling}
 
-For the corrected imputation algorithm, repeat the following for each completed
-dataset:
+A patient's observed responses constrain the signs of the corresponding
+latent variables. The [research notes](research_binary_extension.html#sec-binary-original-imputation)
+derive why imposing each sign in a single forward pass can change the
+imputation distribution. To generate each completed dataset:
 
 1. Take one joint posterior draw of the coefficients and covariance matrices,
    shared across patients, and construct each patient's full
@@ -1548,115 +558,61 @@ truncated sampling dimension when many visits are missing. Patients without
 observed outcomes need only an ordinary MVN draw; complete patients need no
 imputation.
 
-#### Choice of joint sampler
+The prototype uses `TruncatedNormal::rtmvnorm()` [@Botev2017] for the joint
+draw. See the [sampler comparison](research_binary_extension.html#sec-binary-sampler-choice).
 
-`tmvtnorm` [@Wilhelm2010] supports whole-vector rejection and Gibbs sampling.
-Ordinary rejection becomes expensive for rare observed sign patterns; Gibbs
-requires burn-in and mixing checks, particularly under strong correlations.
-Its updates condition on all other current latent coordinates and must be
-iterated to convergence; one forward pass is not a substitute.
-See the [current package documentation](https://stat.ethz.ch/CRAN/web/packages/tmvtnorm/refman/tmvtnorm.html#rtmvnorm).
-
-A stronger initial candidate is `TruncatedNormal::rtmvnorm`, which uses
-Botev's minimax exponential tilting accept-reject method [@Botev2017]. It targets
-independent draws without Gibbs burn-in and accepts infinite bounds, so observed
-and missing coordinates can be handled together. This is a provisional choice
-for the intended range of **5 to 30 visits**, not a claim of uniformly best
-performance. See the [package overview](https://lbelzile.github.io/TruncatedNormal/)
-and [sampling API](https://lbelzile.github.io/TruncatedNormal/reference/rtmvnorm.html).
-The illustrative call below requires the optional `TruncatedNormal` package;
-`y`, `mu_ref`, and `Sigma_ref` are one patient's outcomes and constructed parameters.
-
-```{r}
-#| label: joint-imputation-sampler-call
-#| eval: false
-lower <- rep(-Inf, length(y))
-upper <- rep(Inf, length(y))
-lower[which(y == 1)] <- 0
-upper[which(y == 0)] <- 0
-z <- as.numeric(TruncatedNormal::rtmvnorm(
-    n = 1, mu = mu_ref, sigma = Sigma_ref, lb = lower, ub = upper
-))
-completed <- y
-completed[is.na(y)] <- as.integer(z[is.na(y)] > 0)
-```
-
-Before selecting a production backend, benchmark 5, 10, 20, and 30 visits across
-posterior draws with common and rare sign patterns, weak and strong correlations,
-and varying fractions of missing visits. Measure setup plus sampling time per
-patient per imputation, numerical failures, and accuracy against orthant
-probabilities or small-dimensional rejection checks; for MCMC also measure
-burn-in and effective sample size. Compare full-vector tilting with the
-observed-block/conditional-Gaussian factorization. Matrix factorizations can be
-reused where covariance and coordinate patterns agree, but tilting optimization
-also depends on the centered bounds, which vary with means and observed signs.
-The [implementation](https://github.com/lbelzile/TruncatedNormal/blob/master/R/mvrandn.R)
-can warn about solver failure, near-singularity, or low acceptance and can return
-fewer draws than requested; production code must detect these cases rather than
-silently accepting the output. Hamiltonian alternatives such as
-[`hdtg`](https://arxiv.org/abs/2210.01097) are worth considering if these benchmarks
-show a bottleneck, but their published advantages concern much higher dimensions
-and do not establish superiority at 20--30 visits.
-
-The corrected joint sampler supports arbitrary missingness patterns, including
-partially observed post-discontinuation outcomes as in @Rehal2026. Conditioning
-on those outcomes lets them inform the same patient's missing outcomes, but does
-not by itself fit a retrieved-dropout model. Learning off-treatment behavior
-across patients also requires an explicit fitting model, for example latent
-means with on/off-treatment indicators and appropriate visit/arm interactions,
-estimated using observed post-discontinuation data. The default arm-by-visit
-model above does not distinguish these states. A retrieved-dropout extension
-must specify those effects, which observations inform each component, and how
-reference assumptions or priors supply information when off-treatment data are
-sparse. The joint sampler can then use the resulting patient-specific mean and
-covariance; the binary extension of that fitting model remains to be developed
-and validated rather than being established by the sampler alone.
+Observed post-discontinuation responses can inform missing outcomes for the
+same patient through this conditioning step. Estimating off-treatment effects
+across patients would additionally require a retrieved-dropout fitting model,
+for example with on/off-treatment indicators and visit-by-arm interactions
+estimated from observed post-discontinuation data [@Rehal2026]. The current
+draw model estimates arm-by-visit means using on-treatment observations.
 
 ### Prototype and example
 
 This prototype uses the saturated arm-by-visit model above, with placebo as
-reference and copy increments in reference (CIR) for active patients. We infer discontinuation after the last
-observed visit because no cessation dates are supplied. Intermittent
-missing visits are therefore imputed under the on-treatment model; this convention
-would need replacing by recorded cessation times in a real analysis.
+reference and copy increments in reference (CIR) for active patients. The
+last observed visit serves as the last on-treatment visit because no cessation
+dates are supplied. Intermittent gaps therefore fall in the on-treatment
+block.
 
-First obtain paired posterior draws. The saved `stan_release.rds` contains
-the draws with the diagnostics reported above; if unavailable, refit.
-No latent variables from the fitting stage are reused.
+First obtain 500 paired draws of the coefficients and correlation matrices.
+If both saved files are available, the example checks that the inputs match
+before reusing the recorded trial fit. If either file is absent, it fits the
+trial model in Stan. The imputer samples fresh latent responses for each
+completed dataset.
 
 ```{r}
 #| label: cir-posterior-draws
 n_imp <- 500L
 probit_input <- prepare_probit_data(Ycat, treat1, same_cov = FALSE)
-if (!exists("probit_fit")) {
-    saved_fit <- file.path(dirname(archive), "rbmi-binary-prototype", "stan_release.rds")
-    if (file.exists(saved_fit)) {
-        saved <- readRDS(saved_fit)
-        saved_data <- readRDS(file.path(dirname(saved_fit), "data.rds"))
-        stopifnot(identical(Ycat, saved_data$Y), identical(treat1, saved_data$arm))
-        # Supply the same draw interface used by extract_probit_draws().
-        probit_fit <- list(
-            prepared = probit_input,
-            fit = list(draws = function(variables) {
-                posterior::subset_draws(saved$draws, variable = variables)
-            }),
-            diagnostics = saved$diagnostics
-        )
-    } else {
-        probit_model <- cmdstanr::cmdstan_model(cmdstanr::write_stan_file(probit_stan_code))
-        probit_fit <- fit_probit_draws(probit_input, probit_model, init = 0)
-        print(probit_fit$fit$diagnostic_summary())
-    }
+saved_fit <- file.path(dirname(archive), "rbmi-binary-prototype", "stan_release.rds")
+saved_data <- file.path(dirname(saved_fit), "data.rds")
+if (file.exists(saved_fit) && file.exists(saved_data)) {
+    saved_input <- readRDS(saved_data)
+    stopifnot(identical(Ycat, saved_input$Y), identical(treat1, saved_input$arm))
+    saved <- readRDS(saved_fit)
+    probit_fit <- list(
+        prepared = probit_input,
+        fit = list(draws = function(variables) {
+            posterior::subset_draws(saved$draws, variable = variables)
+        }),
+        diagnostics = saved$diagnostics
+    )
+} else {
+    probit_model <- cmdstanr::cmdstan_model(cmdstanr::write_stan_file(probit_stan_code))
+    probit_fit <- fit_probit_draws(probit_input, probit_model, init = 0)
+    print(probit_fit$fit$diagnostic_summary())
 }
 cir_parameters <- extract_probit_draws(probit_fit, n_samples = n_imp, seed = 20261102)
 ```
 
 The helper below implements the corrected full-vector sampler using
 [`TruncatedNormal::rtmvnorm`](https://lbelzile.github.io/TruncatedNormal/reference/rtmvnorm.html).
-It accepts missing visits and observed post-discontinuation visits in any order;
-`last_on` must be supplied separately from the observed/missing pattern.
-This CIR comparison uses `last_on >= 1`. The integration sampler below also handles an ICE at the first scheduled visit.
-Sampler warnings stop execution rather than silently accepting a questionable draw.
+It takes the last on-treatment visit from `last_on` and conditions on the
+observed responses at any visit. This standalone CIR helper assumes at least
+one scheduled pre-ICE visit. The general sampler also handles an ICE at the
+first scheduled visit. Sampler warnings stop execution.
 
 ```{r}
 #| label: cir-imputation-function
@@ -1751,12 +707,12 @@ stopifnot(
 )
 ```
 
-Note that this is fast compared to the MCMC sampling above, it only took `r runtime_seconds("cir-imputation-function")` seconds.
-
-
 `cir_completed` is a list of `r length(cir_completed)` completed
 `r nrow(Ycat)`-by-`r ncol(Ycat)` response matrices, with
-patient IDs and visit names retained. 
+patient IDs and visit names retained. Every observed response was preserved
+and every missing response was filled. This step took
+`r runtime_seconds("cir-imputation-function")` seconds using
+`TruncatedNormal` `r as.character(utils::packageVersion("TruncatedNormal"))`.
 
 #### Reusing covariance and missingness calculations
 
@@ -1784,15 +740,21 @@ binary_strategy <- function(strategy) {
 binary_mean <- function(means, arm, ref, d, strategy) {
     D <- nrow(means)
     mu <- means[, arm]
-    if (strategy == "MAR" || d == D) return(mu)
+    if (strategy == "MAR" || d == D) {
+        return(mu)
+    }
 
     post <- seq.int(d + 1L, D)
     if (strategy == "LMCF") {
         mu[post] <- means[d, arm]
         return(mu)
     }
-    if (ref == arm) return(mu)
-    if (d == 0L || strategy == "CR") return(means[, ref])
+    if (ref == arm) {
+        return(mu)
+    }
+    if (d == 0L || strategy == "CR") {
+        return(means[, ref])
+    }
 
     mu[post] <- if (strategy == "JR") {
         means[post, ref]
@@ -1803,13 +765,19 @@ binary_mean <- function(means, arm, ref, d, strategy) {
 }
 
 binary_covariance <- function(covariances, arm, ref, d, strategy) {
-    if (length(covariances) == 1L) return(covariances[[1L]])
+    if (length(covariances) == 1L) {
+        return(covariances[[1L]])
+    }
     Sigma <- covariances[[arm]]
     D <- nrow(Sigma)
-    if (strategy %in% c("MAR", "LMCF") || d == D || ref == arm) return(Sigma)
+    if (strategy %in% c("MAR", "LMCF") || d == D || ref == arm) {
+        return(Sigma)
+    }
 
     R <- covariances[[ref]]
-    if (d == 0L) return(R)
+    if (d == 0L) {
+        return(R)
+    }
     post <- seq.int(d + 1L, D)
     pre <- seq_len(d)
     B <- R[post, pre, drop = FALSE] %*% solve(R[pre, pre, drop = FALSE])
@@ -1947,70 +915,6 @@ For `r length(cir_completed_fast)` imputations, the original took
 (a `r sprintf("%.2f", cir_time_original / cir_time_fast)`-fold speedup).
 All completed datasets and the final RNG states were identical.
 
-### Analysis and Pooling
-
-Analyze Week 8 using an unadjusted logistic
-regression in each dataset, with Active as the numerator and Placebo as the
-denominator, then pool the log odds ratios and their variances
-with Rubin's rules (`mice::pool.scalar`, including its finite-sample degrees of
-freedom). This retains the strict >50% response definition used throughout this
-note, so it is not a replication of the paper's inclusive-threshold analysis.
-
-```{r}
-#| label: cir-week8-analysis
-#| time_it: true
-cir_arm <- factor(treat1, levels = 1:2, labels = c("Placebo", "Active"))
-week8_fits <- lapply(cir_completed, function(y) {
-    fit <- glm(response ~ active, family = binomial(), data = data.frame(
-        response = y[, "week8"], active = as.integer(cir_arm == "Active")
-    ))
-    c(estimate = unname(coef(fit)["active"]), variance = vcov(fit)["active", "active"])
-})
-week8_fits <- do.call(rbind, week8_fits)
-pooled <- mice::pool.scalar(week8_fits[, "estimate"], week8_fits[, "variance"],
-    n = nrow(Ycat), k = 2
-)
-se <- sqrt(pooled$t)
-ci <- pooled$qbar + c(-1, 1) * qt(0.975, pooled$df) * se
-cir_result <- data.frame(
-    Imputations = n_imp, Odds_ratio = exp(pooled$qbar),
-    Lower_95 = exp(ci[1]), Upper_95 = exp(ci[2]),
-    P_value = 2 * pt(-abs(pooled$qbar / se), pooled$df)
-)
-knitr::kable(cir_result, digits = 3)
-
-# Descriptive MI-averaged response proportions (not pooled confidence intervals).
-cir_rates <- rowMeans(vapply(cir_completed, function(y) {
-    c(
-        Placebo = mean(y[treat1 == 1L, "week8"]),
-        Active = mean(y[treat1 == 2L, "week8"])
-    )
-}, numeric(2)))
-knitr::kable(data.frame(Arm = names(cir_rates), Response = cir_rates), digits = 3)
-saveRDS(
-    list(
-        completed = cir_completed, last_on = last_on,
-        parameters = cir_parameters, result = cir_result, rates = cir_rates
-    ),
-    file.path(dirname(archive), "cir_example.rds")
-)
-```
-
-This takes a little bit of time only: `r runtime_seconds("cir-week8-analysis")` seconds.
-
-With the posterior draws and seeds above, using `TruncatedNormal`
-`r as.character(utils::packageVersion("TruncatedNormal"))`,
-the `r length(cir_completed)` imputations give a Week 8 active/placebo odds ratio
-of **`r sprintf("%.3f", cir_result$Odds_ratio)`
-(95% CI `r sprintf("%.3f", cir_result$Lower_95)`–`r sprintf("%.3f", cir_result$Upper_95)`;
-p = `r sprintf("%.3f", cir_result$P_value)`)**. The MI-averaged response proportions
-are **`r sprintf("%.1f%%", 100 * cir_rates["Placebo"])` placebo and
-`r sprintf("%.1f%%", 100 * cir_rates["Active"])` active**.
-All `r sum(!is.na(Ycat))` observed responses were preserved
-in every dataset; all `r sum(is.na(Ycat))` missing responses were imputed. The completed datasets,
-selected parameter draws, and summaries are saved in `cir_example.rds` beside
-this document. These results depend on CIR and the inferred cessation times.
-
 ## Firth regression {#sec-binary-firth}
 
 Multiple imputation fits the endpoint model to every completed dataset. With
@@ -2030,117 +934,14 @@ and standard errors entering Rubin's rules come from the same analysis method.
 See [Firth (1993)](https://doi.org/10.1093/biomet/80.1.27) and
 [Kosmidis and Firth (2021)](https://doi.org/10.1093/biomet/asaa052).
 
-| Implementation | Fit and extraction | Trade-off for `rbmi` |
-|---|---|---|
-| From scratch | Use the closed form for the unadjusted two-arm model or the adjusted-score algorithm below when the model includes covariates. | Dependency-free. An adjusted solver needs numerical safeguards and validation against reference fits. |
-| `logistf` | Use `logistf::logistf(formula, data = data, pl = FALSE)` and extract the coefficient and its covariance. | Dedicated Firth implementation with profile penalized-likelihood intervals available. The Wald option fits the existing coefficient-and-SE pooling interface. See the [logistf manual](https://search.r-project.org/CRAN/refmans/logistf/html/logistf.html). |
-| `brglm2` | Use `glm(formula, data = data, family = binomial(), method = brglm2::brglmFit, type = "AS_mean")` and extract with `coef()` and `vcov()`. | Mean bias reduction gives the Firth estimate for logistic regression and keeps the familiar GLM interface for covariate-adjusted analyses. See the [brglm2 fitting documentation](https://search.r-project.org/CRAN/refmans/brglm2/html/brglmFit.html). |
-
-The `logistf` package is quite well adopted by other packages, as its CRAN reverse dependencies indicate, see [here](https://cran.r-project.org/web/packages/logistf/index.html). The implementation is in C code (see [source](https://github.com/georgheinze/logistf/tree/master/src)). Unfortunately no tests are available. Maintenance does not seem guaranteed, e.g. there is one important PR [here](https://github.com/georgheinze/logistf/pull/73) that has been open for almost a year without any comments by the maintainer.
-
-The `brglm2` package just had an update in October 2026, is similarly well adopted by reverse depending packages, see CRAN [here](https://cran.r-project.org/web/packages/brglm2/index.html). While some C code is used, most of the implementation seems to be native R, see GitHub [here](https://github.com/ikosmidis/brglm2). Tests are available [here](https://github.com/ikosmidis/brglm2/tree/main/inst/tinytest).
-
-**Scope of the closed form.** The two-by-two shortcut applies to a model
-with an intercept and a two-level treatment indicator only. The
-arm-by-response counts fully describe this model because everyone in an
-arm shares one fitted probability.
-With an adjustment variable such as baseline severity, fitted probabilities
-can vary within an arm, so the two-by-two table no longer contains the
-information needed for the fit.
-
-### Extending the callback to adjust for covariates
-
-A package-backed prototype would be a small change to the analysis callback.
-At the endpoint visit, build a model such as `outcome ~ group + baseline`, fit
-it with `logistf` or `brglm2`, and extract the treatment coefficient and its
-standard error for the specified reference arm. Return `est`, `se`, and the
-residual degrees of freedom (the number of analyzed subjects minus the model
-matrix rank) in the existing format. `binary_analyse()` and `rbmi::pool()` can
-then use that result as before. The treatment coefficient is a conditional
-log odds ratio at fixed covariate values. The covariates must already be
-available for analysis in each completed dataset.
-
-Most of the package integration effort would go into checking missing
-covariates, consistent factor coding and an estimable treatment contrast
-across imputations, and reporting rank or convergence failures with the
-affected imputation index.
-
-### From-scratch algorithm for Firth regression with covariates
-
-For one completed dataset, let $y$ be the $n$ binary outcomes at the endpoint
-and $X$ the $n \times p$ model matrix, including the intercept, treatment
-indicator and covariate columns. The same algorithm covers the unadjusted
-model and models with continuous or categorical covariates.
-
-1. **Initialize.** Check that $X$ is full rank, $n>p$, and all outcomes and
-   covariates are available. Start at $\beta=0$, which gives an initial
-   probability of $1/2$ without requiring a maximum-likelihood fit.
-2. **Compute weights and leverages.** At the current $\beta$, compute
-   $\eta=X\beta$, $\mu_i=\operatorname{logit}^{-1}(\eta_i)$, and
-   $w_i=\mu_i(1-\mu_i)$. Set $W=\operatorname{diag}(w_i)$ and compute a thin QR
-   factorization $W^{1/2}X=QR$. Compute $h_i=\sum_j Q_{ij}^2$, the leverage
-   of subject $i$. Use row scaling for $W^{1/2}X$ and row sums of squares for
-   the leverages so neither $W$ nor the hat matrix has to be allocated.
-3. **Compute the adjusted score and direction.** Form
-   $U^*=X^\top\{y-\mu+h(1/2-\mu)\}$, with the multiplication by $h$
-   elementwise. Solve $R^\top R\,\Delta=U^*$ using two triangular solves,
-   since $R^\top R=I(\beta)=X^\top W X$. This is a quasi-Fisher scoring
-   step. If the QR implementation pivots the columns, apply the same
-   permutation to the score and undo it for the coefficient update.
-4. **Update with backtracking.** Try $\beta+\Delta$. If the trial point
-   has a numerically singular weighted design or decreases the penalized
-   log-likelihood, halve the step and retry. Evaluate the Bernoulli
-   log-likelihood stably from the linear predictors and compute the
-   half log-determinant penalty as $\sum_j\log |R_{jj}|$ at each trial point.
-   Stop when the information-scaled score $\|R^{-\top}U^*\|_2$ and the
-   relative size of the full scoring direction meet their tolerances. Using
-   the full direction prevents declaring convergence solely because
-   backtracking produced a small accepted step. If the line search or
-   iteration limit is exhausted, report the failure and its imputation index.
-5. **Return the treatment contrast.** For a contrast vector $c$, compute
-   $\mathrm{est}=c^\top\hat\beta$ and
-   $\mathrm{se}=\sqrt{c^\top I(\hat\beta)^{-1}c}$ using the final QR factor
-   and a triangular solve. For the treatment coefficient, $c$ selects its
-   column in $X$. Return those values with $\mathrm{df}=n-p$ for Rubin
-   pooling.
-
-The adjusted score and scoring direction follow the mean bias reduction
-algorithm in [Kosmidis, Kenne Pagui and Sartori (2020)](https://doi.org/10.1007/s11222-019-09860-6).
-
-For a dense design with $n \ge p$, a weighted QR factorization costs
-$O(np^2)$ time and $O(np+p^2)$ working memory. The factorization dominates
-each scoring iteration and each trial point checked by the line search.
-With $M$ imputations and an average of $K$ factorizations per fit, including
-backtracking, the total fitting cost is $O(MKnp^2)$ for similarly sized
-datasets. With a few covariates this is roughly linear in the number of
-subjects and imputations. Those costs are for the endpoint fits and exclude
-the draw and imputation steps.
-
-The scoring loop is short with base R linear algebra. A production fitter
-is a moderate implementation effort because it must handle extreme linear
-predictors, nearly singular weighted designs, and failed line searches while
-returning reliable standard errors. Test the unadjusted fit against the
-closed form and compare coefficients and standard errors with a reference
-package on adjusted data with and without separation. Also verify explicit
-failure for rank-deficient designs. A package-backed callback delegates the
-solver and leaves the model-matrix, contrast and pooling integration to
-`rbmi`.
-
-### Closed-form reference
-
-For arm $g$ with $y_g$ responses among $n_g$ patients, the fitted Firth
-probability is $\hat p_g = (y_g + 1/2)/(n_g + 1)$. The log odds ratio is the
-difference of the fitted logits, and its within-imputation variance is
-$\sum_g [n_g\hat p_g(1-\hat p_g)]^{-1}$. This gives a reference for checking
-the package-based fit in the unadjusted two-arm model.
-
-### Preliminary conclusion
-
-Using `brglm2` as an optional dependency in `Suggests` avoids maintaining
-a custom solver. The integration prototype below exposes both fits through
-`binary_logistic()`. Maximum likelihood is the default. With
-`method = "firth"`, the callback uses the mean bias-reducing score adjustment
-through `glm()`. See the [`brglm2` fitting example](https://github.com/ikosmidis/brglm2/tree/main#estimation-methods).
+The prototype uses `brglm2` as an optional dependency. The analysis callback
+`binary_logistic()` defaults to maximum likelihood. With `method = "firth"`,
+it uses `brglm2::brglmFit` through `glm()` for mean bias reduction and returns
+the treatment coefficient, standard error and residual degrees of freedom for
+Rubin pooling. The endpoint callback fits an unadjusted two-arm logistic model.
+The [research notes](research_binary_extension.html#sec-binary-firth-research) compare
+the implementation options and give the adjusted-score algorithm and
+unadjusted closed form.
 
 ## `rbmi` integration prototype
 
@@ -2178,8 +979,8 @@ mapping. For MAR-only imputation, the default maps each arm to itself.
 The local functions implement the four steps with column names supplied through
 `set_vars()`. The Bayesian model supports two arms, arm-by-visit intercepts,
 optional baseline covariates, and shared or arm-specific unstructured latent
-correlations. It uses the section 2 Stan model and sampler. A package implementation
-would add binary dispatch to `draws()` and `impute()`, expose sampler controls,
+correlations. It uses the Stan model and sampler in @sec-binary-probit.
+A package implementation would add binary dispatch to `draws()` and `impute()`, expose sampler controls,
 and let `analyse()` recognize the binary imputation class. Rubin pooling
 already accepts the analysis result.
 
@@ -2252,8 +1053,8 @@ repeat imputations or pair random draws across strategy runs.
 ```{r}
 #| label: binary-integration-draws
 method_bayes_binary <- function(
-    same_cov = TRUE, n_samples = 20L, prior_beta_sd = 0,
-    control = rbmi::control_bayes(warmup = 1500L, thin = 1L, chains = 4L)
+  same_cov = TRUE, n_samples = 20L, prior_beta_sd = 0,
+  control = rbmi::control_bayes(warmup = 1500L, thin = 1L, chains = 4L)
 ) {
     method <- rbmi::method_bayes(
         covariance = "us", same_cov = same_cov, n_samples = n_samples,
@@ -2322,7 +1123,7 @@ binary_baseline_design <- function(Y, arm, baseline) {
 # vars: Column mapping from rbmi::set_vars() including optional baseline covariates.
 # method: method_bayes_binary() or rbmi::method_bayes() with unstructured correlations.
 # outcome: Endpoint selector, "binary" for this prototype.
-# fit: Optional section 2 fit for the same prepared data.
+# fit: Optional Stan fit for the same prepared data.
 # seed: Optional override for the method control seed.
 binary_draws <- function(
   data,
@@ -2408,7 +1209,7 @@ binary_draws <- function(
                 )
             }
         }
-        baseline <- model.matrix(~ ., data = covariates[first_row, , drop = FALSE])[, -1L, drop = FALSE]
+        baseline <- model.matrix(~., data = covariates[first_row, , drop = FALSE])[, -1L, drop = FALSE]
     }
     Y <- matrix(
         NA_integer_,
@@ -2533,7 +1334,7 @@ The prototype stores completed datasets directly. Use
 ```{r}
 #| label: binary-integration-extraction
 binary_extract_imputed_dfs <- function(
-    imputations, index = seq_along(imputations$imputations)
+  imputations, index = seq_along(imputations$imputations)
 ) {
     stopifnot(inherits(imputations, "imputation_binary"))
     imputations$imputations[index]
@@ -2650,8 +1451,8 @@ interval endpoints for reporting.
 
 ## Example data analysis
 
-Recreate the antidepressant trial's scheduled rows and translate the section 3
-cessation assumption into ICE records. Here the last observed visit serves as
+Recreate the antidepressant trial's scheduled rows and translate the CIR
+example's cessation assumption into ICE records. Here the last observed visit serves as
 the last on-treatment visit. In a trial with recorded discontinuation dates,
 derive the first affected visit from those dates. The comparison uses
 `brglm2` for the Firth fit on the same completed datasets as the ML fit.
@@ -2713,8 +1514,7 @@ comparison <- data.frame(
     Lower_95 = vapply(fits, function(odds) odds[2], numeric(1)),
     Upper_95 = vapply(fits, function(odds) odds[3], numeric(1))
 )
-# Check that the imputed outcomes match the completed responses
-# and the pooled odds ratio matches the reference result
+# Check that the full workflow reproduces the standalone CIR imputations.
 stopifnot(
     all(vapply(
         seq_len(n_imp),
@@ -2725,17 +1525,15 @@ stopifnot(
             )
         },
         logical(1)
-    )),
-    isTRUE(all.equal(comparison$Odds_ratio[1], cir_result$Odds_ratio))
+    ))
 )
 knitr::kable(comparison, digits = 3)
 ```
 
 Both fits use the same `r length(imp$imputations)` completed datasets and
 the same Barnard–Rubin pooling. The pooled Week 8 active-versus-placebo odds
-ratios for a strict greater-than-50% response under CIR are similar. The
-imputation check and the ML point estimate reproduce the earlier imputation
-example.
+ratios under CIR are similar. The completed outcomes match the standalone
+imputation example exactly.
 
 ### Factor order regression check
 
@@ -2802,7 +1600,8 @@ adjusted_draw <- binary_draws(
     seed = 20261104L
 )
 adjusted_imp <- binary_impute(
-    adjusted_draw, references = trial_references, seed = 20261103L
+    adjusted_draw,
+    references = trial_references, seed = 20261103L
 )
 stopifnot(all(vapply(adjusted_imp$imputations, function(completed) {
     observed <- !is.na(trial$outcome)
@@ -2850,7 +1649,8 @@ for (arm_name in levels(check_arm)) {
 }
 check_completed <- impute_binary_fast(
     check_y, check_arm, c(1L, 1L), check_parameters, trial_references,
-    rep("CIR", 2), seed = 42L, baseline = check_baseline
+    rep("CIR", 2),
+    seed = 42L, baseline = check_baseline
 )[[1]]
 stopifnot(identical(unname(check_completed), cbind(c(1L, 1L), c(0L, 1L))))
 check_reversed_levels <- rev(levels(check_arm))
@@ -2972,7 +1772,8 @@ sparse_ice <- data.frame(
 oversized_method <- sparse_method
 oversized_method$n_samples <- 601L
 budget_error <- tryCatch(
-    binary_draws(sparse_trial, sparse_ice, vars, oversized_method), error = identity
+    binary_draws(sparse_trial, sparse_ice, vars, oversized_method),
+    error = identity
 )
 stopifnot(
     inherits(budget_error, "error"),
@@ -3099,7 +1900,8 @@ analysis, followed by the package's Rubin pooling.
 #| label: binary-post-ice-workflow
 post_ice_trial <- expand.grid(
     subjid = seq_len(24L), visit = factor(c("week1", "week2", "week4", "week8"),
-        levels = c("week1", "week2", "week4", "week8"))
+        levels = c("week1", "week2", "week4", "week8")
+    )
 )
 post_ice_trial$group <- factor(
     ifelse(post_ice_trial$subjid <= 12L, "Placebo", "Active"),
@@ -3115,8 +1917,10 @@ post_ice_vars <- rbmi::set_vars()
 post_ice_references <- c(Placebo = "Placebo", Active = "Placebo")
 post_ice_method <- method_bayes_binary(
     same_cov = FALSE, n_samples = 40L, prior_beta_sd = 1,
-    control = rbmi::control_bayes(warmup = 500L, chains = 2L,
-        iter_sampling = 500L, thin = 2L, seed = 20261105L)
+    control = rbmi::control_bayes(
+        warmup = 500L, chains = 2L,
+        iter_sampling = 500L, thin = 2L, seed = 20261105L
+    )
 )
 post_ice_draw <- binary_draws(
     post_ice_trial, recorded_ice, post_ice_vars, post_ice_method
@@ -3131,26 +1935,31 @@ stopifnot(
 flipped_trial <- post_ice_trial
 flipped_trial$outcome[retrieved] <- 0L
 flipped_draw <- binary_draws(
-    flipped_trial, recorded_ice, post_ice_vars, post_ice_method, fit = post_ice_draw$fit
+    flipped_trial, recorded_ice, post_ice_vars, post_ice_method,
+    fit = post_ice_draw$fit
 )
 stopifnot(identical(post_ice_draw$parameters, flipped_draw$parameters))
 
 post_ice_imp <- binary_impute(
-    post_ice_draw, references = post_ice_references, seed = 20261106L
+    post_ice_draw,
+    references = post_ice_references, seed = 20261106L
 )
 post_ice_completed <- binary_extract_imputed_dfs(post_ice_imp)
 observed <- !is.na(post_ice_trial$outcome)
 stopifnot(
     length(post_ice_completed) == post_ice_method$n_samples,
-    identical(binary_extract_imputed_dfs(post_ice_imp, c(2L, 1L)),
-        post_ice_completed[c(2L, 1L)]),
+    identical(
+        binary_extract_imputed_dfs(post_ice_imp, c(2L, 1L)),
+        post_ice_completed[c(2L, 1L)]
+    ),
     all(vapply(post_ice_completed, function(dat) {
         !anyNA(dat$outcome) &&
             identical(dat$outcome[observed], post_ice_trial$outcome[observed])
     }, logical(1)))
 )
 post_ice_analysis <- binary_analyse(
-    post_ice_imp, binary_logistic, vars = post_ice_vars, visit = "week8",
+    post_ice_imp, binary_logistic,
+    vars = post_ice_vars, visit = "week8",
     treatment = "Active", comparator = "Placebo"
 )
 post_ice_pooled <- rbmi::pool(post_ice_analysis)$pars$log_odds_ratio
@@ -3159,9 +1968,11 @@ post_ice_pooled <- rbmi::pool(post_ice_analysis)$pars$log_odds_ratio
 endpoint_counts <- vapply(post_ice_completed, function(dat) {
     at_week8 <- dat$visit == "week8"
     counts <- table(dat$group[at_week8], dat$outcome[at_week8])
-    c(log_or = log(counts["Active", "1"] / counts["Active", "0"]) -
-        log(counts["Placebo", "1"] / counts["Placebo", "0"]),
-        variance = sum(1 / counts))
+    c(
+        log_or = log(counts["Active", "1"] / counts["Active", "0"]) -
+            log(counts["Placebo", "1"] / counts["Placebo", "0"]),
+        variance = sum(1 / counts)
+    )
 }, numeric(2))
 M <- ncol(endpoint_counts)
 estimate <- mean(endpoint_counts["log_or", ])
@@ -3200,15 +2011,18 @@ check_retrieved_response <- function(draws, observed_value, seed) {
     draws$parameters$beta <- rep(list(numeric(8)), n_replicates)
     draws$parameters$sigma <- rep(list(list(fixed_covariance, diag(4))), n_replicates)
     completed <- binary_extract_imputed_dfs(binary_impute(
-        draws, references = post_ice_references, seed = seed
+        draws,
+        references = post_ice_references, seed = seed
     ))
     stopifnot(all(vapply(completed, function(dat) {
         identical(dat$outcome[retrieved], observed_value)
     }, logical(1))))
     mean(vapply(completed, function(dat) dat$outcome[endpoint_missing], integer(1)))
 }
-rates <- c(check_retrieved_response(post_ice_draw, 1L, 20261107L),
-    check_retrieved_response(flipped_draw, 0L, 20261108L))
+rates <- c(
+    check_retrieved_response(post_ice_draw, 1L, 20261107L),
+    check_retrieved_response(flipped_draw, 0L, 20261108L)
+)
 target <- c(.75, .25)
 mcse <- sqrt(target * (1 - target) / n_replicates)
 stopifnot(
@@ -3223,17 +2037,5 @@ In the fitted-model workflow the pooled Week 8 odds ratio was
 `r sprintf("%.2f", exp(post_ice_pooled$est))` with a 95% confidence interval
 from `r sprintf("%.2f", exp(post_ice_pooled$ci[1]))` to
 `r sprintf("%.2f", exp(post_ice_pooled$ci[2]))`.
-
-## Review results
-
-1. done: Blocking — Factor order silently selects both the imputation reference and the direction of the reported effect. The fast imputer treats arm 1 as the reference and applies active-arm CIR only to arm 2. The endpoint analysis separately reports arm 2 versus arm 1. For example, factor(c("Active", "Placebo")) puts Active first by default. An active patient assigned CIR would then receive the active-arm distribution, and the reported odds ratio would be placebo versus active. Both results can look plausible. The existing count workflow requires a named references mapping for non-MAR strategies. Use that contract for binary imputation and name the endpoint contrast explicitly. A regression test should reverse the factor levels while holding both scientific choices fixed and recover the same target. [Binary imputer (line 1751)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1751) · [Endpoint contrast (line 2243)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2243) · [Count reference validation (line 310)](/Users/daniel/git/rbmi/R/impute_count.R:310)
-2. done: Required — The advertised Firth option cannot rescue an important sparse-data case. binary_draws() calls prepare_probit_data() with its default flat coefficient prior. The helper requires both 0 and 1 in every arm-by-visit cell after ICE masking. One arm with zero observed responders at an early visit therefore stops the entire analysis before the Week 8 Firth callback runs. The separation example changes an already completed dataset, so it misses this failure. Expose the existing proper-prior option at the draw entry point, document its statistical meaning, and test a sparse cell through the full workflow. An entirely unobserved arm-by-visit cell also deserves a separate test and an explicit account of what identifies its mean. [Prior check (line 581)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:581) · [Draw entry point (line 2148)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2148) · [Separation example (line 2383)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2383)
-3. To be done in production — Adding an endpoint selector will not make the prototype compatible with analyse() or extract_imputed_dfs(). Binary imputation stores a full data frame per draw and returns only imputations and method. The shared analysis path reads imputations$data$vars, validates individual imputations, and reconstructs each completed dataset through extract_imputed_df(). The local binary_analyse() bypasses all three steps with lapply(). It also bypasses the package’s per-imputation warning capture. Specify the binary object representation and extraction path first. Acceptance should include a custom callback through public analyse(), extraction of selected completed datasets, and explicit rejection of additive continuous-outcome delta adjustments. [Binary object (line 2186)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2186) · [Local adapter (line 2269)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2269) · [Shared analysis (line 244)](/Users/daniel/git/rbmi/R/analyse.R:244) · [Public extraction (line 427)](/Users/daniel/git/rbmi/R/analyse.R:427)
-4. done: Required — The design needs a precise strategy contract, particularly for repeat sensitivity analyses. The mathematical section defines five assumptions. The adapter accepts only CIR records, stores last_on without a strategy identifier, and gives binary_impute() no way to change strategies on an existing fit. Count imputation already supports update_strategy. Two differences from continuous rbmi also matter scientifically. Continuous CIR uses the reference distribution when the first visit is affected, while binary CIR rejects that case. Continuous CR returns the full reference parameters, while the proposed binary CR retains the active pre-ICE covariance. The binary choices have an explicit rationale. Document them under the public strategy names, distinguish supported from deferred strategies, and specify which changes can reuse a fit given its original masking rule. [Binary strategy definitions (line 1274)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1274) · [CIR-only validation (line 2136)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2136) · [Continuous CR and CIR (line 163)](/Users/daniel/git/rbmi/R/strategies.R:163) · [Count strategy updates (line 284)](/Users/daniel/git/rbmi/R/impute_count.R:284)
-5. Required — method_bayes() can describe a different fit from the one actually run. The adapter accepts and stores the method object, but fits with the helper’s chain, warmup, sampling and seed defaults. It uses method$n_samples only afterward to subsample retained rows without replacement. A large request can therefore fail after fitting. The returned binary object also discards the fit needed to inspect diagnostics, whereas the existing Bayesian draw object retains fit and initialization information. Define which controls binary supports, validate the requested draw count before sampling, and retain diagnostics. The fixed default seed in binary_impute() also means repeated calls restart the same random stream, which should be an explicit API decision. [Fitting controls (line 646)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:646) · [Draw selection (line 691)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:691) · [Binary return object (line 2151)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2151) · [Existing Bayesian return object (line 720)](/Users/daniel/git/rbmi/R/draws.R:720)
-6. Done in the prototype — The fast imputer caches patient means at the wrong level for the general model. The model section defines patient-specific means and prepare_probit_data() accepts a custom design array. The fast imputer reshapes coefficients directly into a visit-by-arm matrix and computes one mean vector per arm and discontinuation time. That is valid for the prototype’s saturated two-arm model, and the adapter currently guards it by rejecting covariates. Relaxing that guard would give patients with different baseline values the same mean or misinterpret the coefficient layout. Preserve the guard for the first release. For adjusted imputation, retain the design information needed to evaluate each patient under both assigned and reference treatment, and cache only quantities shared across those patients. [Patient-specific target (line 1260)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1260) · [Fast imputer (line 1768)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:1768) · [Current guard (line 2083)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2083)
-Highest-value validation change (done in the prototype)
-Add an end-to-end fixture with a recorded ICE, an observed post-ICE response, and a later missing response in the same patient. The trial example derives cessation from the last observation, so by construction it cannot exercise the feature that motivates the extension. Verify separately that the observed post-ICE value is excluded from the draw-model input, survives extraction unchanged, and changes the conditional probability of the later missing response by the amount predicted by a small analytic example. Run that fixture through draws() → impute() → extract_imputed_dfs() / analyse() → pool(), including the pooled interval. The existing example’s equality check against the earlier CIR implementation is a useful regression check, but both paths share the same imputation assumptions. [Trial ICE construction (line 2296)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2296) · [Current equality checks (line 2357)](/Users/daniel/git/rbmi/misc/design_binary_extension.qmd:2357) · [Count full-workflow test pattern (line 63)](/Users/daniel/git/rbmi/tests/testthat/test-counts-fullusage.R:63)
-
 
 ## References

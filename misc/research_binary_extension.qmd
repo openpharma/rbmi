@@ -1,0 +1,868 @@
+---
+title: Research Notes for the Binary Outcomes Extension
+bibliography:
+  - ../vignettes/references.bib
+  - references.bib
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-depth: 3
+---
+
+```{r}
+#| include: false
+source("binary_extension_shared.R", local = knitr::knit_global())
+```
+
+These notes accompany the [binary outcomes design](design_binary_extension.html).
+They document the comparison with the Cro et al. reference implementation,
+the rationale for joint latent imputation, and the alternatives considered
+for Firth regression.
+
+## Cro et al. latent multivariate probit reference implementation {#sec-binary-probit-validation}
+
+The file `cro_latent_mvn_reference.R` preserves the supplementary code and
+trial-specific analysis from @Cro2025. The runnable wrapper in `cro_latent_mvn.R`
+exposes the sampler settings as arguments and returns binary imputations
+(`imp`), latent draws (`impZ`), and retained arm-specific regression and
+covariance draws (`beta` and `omega`). It converts `Ycat` to a data frame so
+factor levels are retained when the caller passes a matrix. The wrapper
+requires `jomo`, `mice`, and `gear`. The short example can use the CRAN release
+of `jomo`.
+
+### Prepare the longitudinal binary outcomes
+
+Both documents use the same trial inputs. `Ycat` has one row per patient,
+one column per scheduled visit, and `NA` for missing responses. The threshold
+is a reduction of more than 50% from baseline HAMD17. `treat1` codes Placebo
+as 1 and Active as 2.
+
+```{r}
+#| label: load-cro-reference
+source("cro_latent_mvn.R")
+```
+
+### Run a short example
+
+This short jump-to-reference (J2R) run illustrates the output of the
+intercept-only sampler with monotone dropout and reference arm 1. For the
+supplementary settings, use `nburn = 500`, `nbetween = 500`, and `nimp = 1000`.
+The `seed` argument defaults to the original seed of 123435. The supplementary
+code uses $Y=0$ when $Z>0$. The posterior comparison below reverses the reference
+coefficients to match the design's sign convention.
+
+```{r}
+#| label: run-cro-probit-example
+cro_draws <- cro_latent_mvn(
+    Ycat = Ycat,
+    treat1 = treat1,
+    Method = "J2R",
+    Reference = 1,
+    nburn = 100,
+    nbetween = 10,
+    nimp = 5,
+    seed = 123435
+)
+# Imputation 0 contains the original data; positive indices are completed data.
+cro_completed <- subset(cro_draws$imp, Imputation == 1)
+stopifnot(
+    nrow(cro_completed) == nrow(Ycat),
+    !anyNA(cro_completed[colnames(Ycat)]),
+    all(as.matrix(cro_completed[colnames(Ycat)])[!is.na(Ycat)] ==
+        Ycat[!is.na(Ycat)])
+)
+knitr::kable(
+    aggregate(week8 ~ Imputation + Treat,
+        data = cro_draws$imp,
+        FUN = mean, subset = Imputation > 0
+    ),
+    caption = "Week 8 response proportions in the short J2R example"
+)
+# Dimensions of the retained parameter draws.
+dim(cro_draws$beta$reference)
+dim(cro_draws$omega$active)
+```
+
+For incomplete patients, `impZ` contains sequential latent draws at all visits;
+its imputation-0 block contains the original binary data, and complete patients'
+latent rows remain zero in the supplied algorithm. Use latent rows only for
+patients with missing outcomes and positive imputation indices.
+
+### Reference draw sampler
+
+The corrected reference sampler is maintained in the
+[rpact-com/jomo fork](https://github.com/rpact-com/jomo). Install the fork in
+the default R library and the original CRAN version in a separate library for
+comparison:
+
+```r
+remotes::install_github("rpact-com/jomo")
+dir.create("/tmp/rbmi-jomo-original-library", recursive = TRUE, showWarnings = FALSE)
+remotes::install_version("jomo", version = "2.7-6", lib = "/tmp/rbmi-jomo-original-library")
+```
+
+Then run from the rbmi repository root:
+
+```bash
+RBMI_JOMO_ORIGINAL_LIBRARY=/tmp/rbmi-jomo-original-library RBMI_RUN_PROBIT_VALIDATION=true quarto render misc/research_binary_extension.qmd --to html
+```
+
+The validation requires `cmdstanr` with a working CmdStan C++ toolchain,
+`posterior`, `mvtnorm`, and `callr`. The installation commands use `remotes`
+and require an R package compilation toolchain. The comparison uses CRAN
+`jomo` 2.7-6 and the corrected fork (2.7.6.9000). The ordinary render runs
+the short example and retains the recorded validation results. The command
+above also reruns the Stan fit, reference chains, and independent checks.
+
+```{r}
+#| label: probit-run-settings
+run_probit_validation <- identical(Sys.getenv("RBMI_RUN_PROBIT_VALIDATION"), "true")
+original_library <- Sys.getenv("RBMI_JOMO_ORIGINAL_LIBRARY")
+if (run_probit_validation && !dir.exists(file.path(original_library, "jomo"))) {
+    stop("Set RBMI_JOMO_ORIGINAL_LIBRARY to the library containing original jomo.")
+}
+```
+
+#### Fit the Stan model on the same inputs
+
+Fit the Stan model to the trial data and extract paired draws of the coefficients
+and correlation matrices.
+
+```{r}
+#| label: fit-probit-trial
+#| eval: !expr run_probit_validation
+probit_model <- cmdstanr::cmdstan_model(cmdstanr::write_stan_file(probit_stan_code))
+probit_input <- prepare_probit_data(Ycat, treat1, same_cov = FALSE)
+stopifnot(probit_input$data$R == 831L, probit_input$data$U == 631L)
+probit_fit <- fit_probit_draws(probit_input, probit_model, init = 0)
+probit_fit$fit$diagnostic_summary()
+probit_fit$fit$summary(c("beta", "Omega"))
+probit_parameters <- extract_probit_draws(probit_fit, n_samples = 1000L)
+stopifnot(
+    length(probit_parameters$beta) == 1000L,
+    length(probit_parameters$sigma[[1]]) == 2L
+)
+```
+
+The recorded antidepressant trial fit took about seven minutes.
+
+#### Run the reference chains
+
+The comparison calls `jomo::jomo1cat.MCMCchain()` separately by arm,
+matching the draw stage of `cro_latent_mvn()`. Both samplers use the same
+200 patients, observed visits, and strict greater-than-50% response threshold.
+The comparison uses the retained model parameters before reference-based
+imputation.
+
+The [rpact-com/jomo fork](https://github.com/rpact-com/jomo) contains the
+corrections used for the binary reference comparison. Their rationale, scope,
+and regression tests are documented in the fork's
+[changelog](https://github.com/rpact-com/jomo/blob/master/CHANGELOG.md).
+The intended binary model uses a flat mean prior and a flat prior on the free
+correlations, consistent with Section 3.3 and LKJ(1). The fork preserves those
+priors. This document uses the fork as a package dependency; each reference
+run loads its selected package in a separate R process.
+
+```{r}
+#| label: reference-draw-functions
+run_reference_chain <- function(chain, input) {
+    set.seed(input$seed + chain)
+    lapply(seq_len(nlevels(factor(input$arm))), function(a) {
+        yy <- as.data.frame(input$Y[as.integer(factor(input$arm)) == a, , drop = FALSE])
+        yy[] <- lapply(yy, factor, levels = 0:1)
+        # Mirrors Cro's two draw-stage jomo calls; no reference-based imputation.
+        f <- jomo::jomo1cat.MCMCchain(
+            Y.cat = yy, Y.numcat = rep(2L, ncol(yy)),
+            nburn = input$warmup + input$iterations, output = 0
+        )
+        take <- seq.int(input$warmup + input$thin,
+            input$warmup + input$iterations,
+            by = input$thin
+        )
+        list(
+            beta = f$collectbeta[, , take, drop = FALSE],
+            omega = f$collectomega[, , take, drop = FALSE]
+        )
+    })
+}
+
+run_reference_draws <- function(Y, arm, library = NULL, chains = 4L,
+                                warmup = 100000L, iterations = 1000000L,
+                                thin = 100L, seed = 123435L) {
+    stopifnot(
+        ncol(Y) >= 2L, length(arm) == nrow(Y), !anyNA(arm),
+        all(Y[!is.na(Y)] %in% 0:1), chains >= 1L,
+        warmup >= 1L, iterations >= thin, thin >= 1L
+    )
+    # This comparison adapter deliberately stays within Cro's example scope.
+    for (a in unique(arm)) {
+        yy <- Y[arm == a, , drop = FALSE]
+        stopifnot(
+            anyNA(yy), all(rowSums(!is.na(yy)) > 0L),
+            all(vapply(seq_len(ncol(yy)), function(j) {
+                all(0:1 %in% yy[, j])
+            }, logical(1)))
+        )
+    }
+    expected_version <- if (is.null(library)) "2.7.6.9000" else "2.7.6"
+    input <- list(
+        Y = Y, arm = arm, library = library, version = expected_version,
+        chains = chains,
+        warmup = warmup, iterations = iterations, thin = thin, seed = seed
+    )
+    callr::r(function(input, run_chain) {
+        if (!is.null(input$library)) .libPaths(c(input$library, .libPaths()))
+        stopifnot(as.character(utils::packageVersion("jomo")) == input$version)
+        cores <- if (.Platform$OS.type == "windows") 1L else input$chains
+        out <- parallel::mclapply(seq_len(input$chains), run_chain,
+            input = input, mc.cores = cores
+        )
+        if (any(vapply(out, inherits, logical(1), "try-error"))) {
+            stop("Reference chain failed")
+        }
+        out
+    }, args = list(input = input, run_chain = run_reference_chain))
+}
+```
+
+The reference runner discards 100,000 sweeps and retains every 100th sweep from
+one million subsequent sweeps, for each of four independent chains per arm.
+This thinning limits storage; it does not establish independence. Correlation
+mixing, rather than coefficient mixing, determines how long these runs need to
+be. All signs, parameter ordering, MCSEs, and diagnostics are harmonized below.
+The comparison includes all ten coefficients and twenty distinct correlations;
+constant diagonal entries and duplicated upper triangles are excluded.
+
+```{r}
+#| label: compare-probit-functions
+jomo_array <- function(chains) {
+    S <- dim(chains[[1]][[1]]$beta)[3]
+    A <- length(chains[[1]])
+    D <- dim(chains[[1]][[1]]$omega)[1]
+    pair <- which(lower.tri(matrix(0, D, D)), arr.ind = TRUE)
+    nm <- c(paste0("beta[", seq_len(A * D), "]"), unlist(lapply(seq_len(A), function(a) {
+        sprintf("Omega[%d,%d,%d]", a, pair[, 1], pair[, 2])
+    })))
+    arr <- array(NA_real_, c(S, length(chains), length(nm)), dimnames = list(NULL, NULL, nm))
+    for (ch in seq_along(chains)) {
+        values <- c(
+            lapply(seq_len(A), function(a) -t(chains[[ch]][[a]]$beta[1, , ])),
+            lapply(seq_len(A), function(a) {
+                t(vapply(seq_len(S), function(s) {
+                    chains[[ch]][[a]]$omega[, , s][pair]
+                }, numeric(nrow(pair))))
+            })
+        )
+        arr[, ch, ] <- do.call(cbind, values)
+    }
+    posterior::as_draws_array(arr)
+}
+summarize_parameters <- function(draws) {
+    as.data.frame(posterior::summarise_draws(draws,
+        mean = mean, sd = sd,
+        q025 = function(x) unname(quantile(x, .025)),
+        q975 = function(x) unname(quantile(x, .975)),
+        mcse = posterior::mcse_mean, rhat = posterior::rhat,
+        ess_bulk = posterior::ess_bulk, ess_tail = posterior::ess_tail
+    ))
+}
+compare_parameters <- function(stan, reference) {
+    a <- summarize_parameters(stan)
+    b <- summarize_parameters(reference)
+    z <- merge(a, b, by = "variable", suffixes = c("_stan", "_reference"), sort = FALSE)
+    z$difference <- z$mean_stan - z$mean_reference
+    z$combined_mcse <- sqrt(z$mcse_stan^2 + z$mcse_reference^2)
+    z$mcse_units <- z$difference / z$combined_mcse
+    z$sd_units <- z$difference / z$sd_stan
+    z
+}
+```
+
+```{r}
+#| label: compare-probit-reference
+#| eval: !expr run_probit_validation
+reference_original <- run_reference_draws(Ycat, treat1, library = original_library)
+reference_corrected <- run_reference_draws(Ycat, treat1)
+comparison_original <- compare_parameters(
+    probit_fit$fit$draws(c("beta", "Omega")), jomo_array(reference_original)
+)
+comparison_corrected <- compare_parameters(
+    probit_fit$fit$draws(c("beta", "Omega")), jomo_array(reference_corrected)
+)
+knitr::kable(
+    comparison_corrected[, c(
+        "variable", "mean_stan", "mean_reference",
+        "difference", "combined_mcse", "mcse_units"
+    )],
+    digits = 4
+)
+# Also inspect posterior SDs, interval endpoints, R-hat, and both ESS estimates:
+comparison_corrected
+```
+
+### Recorded comparison (26 October 2026)
+
+This snapshot used R 4.6.1, CmdStanR 0.9.0, CmdStan 2.39.0, posterior 1.7.0,
+and jomo 2.7-6 with the two corrections now maintained in the
+[rpact-com/jomo fork](https://github.com/rpact-com/jomo). These recorded results
+predate the fork's development version; they have not been recomputed for this
+source migration. Stan used four chains, 1,500 warmup iterations per chain,
+and 2,000 retained sampling iterations per chain after the step-size cap;
+its warmup seed was 20261026 and sampling seed 20261027. Both reference
+runs used four chains per arm with seeds 123436 through 123439, 100,000
+burn-in sweeps, and one million further sweeps, retaining every 100th.
+
+**The corrected reference agrees with the paper-targeted Stan model:** the largest
+absolute posterior-mean difference was 2.09 combined MCSEs across all 30 parameters.
+The maximum absolute differences were 0.0036 for coefficients and 0.0062 for correlations.
+Posterior SDs differed by at most 2.4%, and the largest difference between
+corresponding 95% interval endpoints was 0.150 Stan posterior SDs.
+These are Monte Carlo comparisons, not a proof of equality of the two algorithms.
+
+The unmodified reference differs systematically: the placebo Week 1 coefficient
+is -1.742 versus -1.956 in Stan (83.0 combined MCSEs). The corrected value is -1.952.
+The two corrections described in the fork's changelog were applied together;
+this experiment does not attribute every discrepancy separately to either one.
+
+|Sampler        | Maximum R-hat| Minimum bulk ESS| Minimum tail ESS|
+|:--------------|-------------:|----------------:|----------------:|
+|Stan           |        1.0017|             3441|             4816|
+|Corrected jomo |        1.0072|             1320|             1987|
+|Original jomo  |        1.0016|             2252|             3399|
+
+Stan had **0 divergent transitions**, 0 maximum-treedepth hits, and E-BFMI
+between 0.925 and 0.971 in the retained chains. R-hat and ESS above summarize
+only the ten coefficients and twenty distinct correlations. Initial warmup
+rejections are not counted as retained-chain divergences. These diagnostics
+support this example; they do not guarantee adequate sampling on a new dataset.
+
+All reference coefficients in the following tables have been sign-reversed.
+“Difference / MCSE” is $(\bar\theta_{\mathrm{Stan}}-\bar\theta_{\mathrm{corrected}})/
+\sqrt{\mathrm{MCSE}_{\mathrm{Stan}}^2+\mathrm{MCSE}_{\mathrm{corrected}}^2}$.
+The interval columns describe the Stan posterior, not a Monte Carlo confidence interval.
+
+|Arm     | Week| Original jomo|   Stan|Stan 95% CrI     | Corrected jomo| Difference / MCSE|
+|:-------|----:|-------------:|------:|:----------------|--------------:|-----------------:|
+|Placebo |    1|        -1.742| -1.956|[-2.504, -1.488] |         -1.952|            -1.230|
+|Placebo |    2|        -0.911| -0.937|[-1.239, -0.645] |         -0.936|            -0.114|
+|Placebo |    4|        -0.673| -0.678|[-0.971, -0.389] |         -0.678|             0.301|
+|Placebo |    6|        -0.422| -0.423|[-0.724, -0.127] |         -0.425|             1.166|
+|Placebo |    8|        -0.376| -0.384|[-0.696, -0.072] |         -0.385|             0.753|
+|Active  |    1|        -1.434| -1.497|[-1.875, -1.147] |         -1.498|             0.355|
+|Active  |    2|        -0.861| -0.875|[-1.185, -0.578] |         -0.875|             0.046|
+|Active  |    4|        -0.469| -0.472|[-0.753, -0.196] |         -0.472|             0.252|
+|Active  |    6|        -0.244| -0.241|[-0.525, 0.045]  |         -0.242|             0.403|
+|Active  |    8|        -0.003|  0.005|[-0.290, 0.298]  |          0.005|            -0.140|
+
+|Arm     |Weeks | Original jomo|  Stan|Stan 95% CrI    | Corrected jomo| Difference / MCSE|
+|:-------|:-----|-------------:|-----:|:---------------|--------------:|-----------------:|
+|Placebo |2 / 1 |         0.580| 0.599|[0.182, 0.897]  |          0.602|            -0.617|
+|Placebo |4 / 1 |         0.107| 0.124|[-0.327, 0.545] |          0.123|             0.123|
+|Placebo |6 / 1 |         0.052| 0.072|[-0.364, 0.487] |          0.073|            -0.150|
+|Placebo |8 / 1 |         0.358| 0.381|[-0.075, 0.753] |          0.382|            -0.094|
+|Placebo |4 / 2 |         0.534| 0.545|[0.245, 0.785]  |          0.546|            -0.212|
+|Placebo |6 / 2 |         0.414| 0.424|[0.084, 0.710]  |          0.418|             1.537|
+|Placebo |8 / 2 |         0.678| 0.687|[0.389, 0.885]  |          0.684|             0.835|
+|Placebo |6 / 4 |         0.604| 0.610|[0.325, 0.826]  |          0.609|             0.150|
+|Placebo |8 / 4 |         0.634| 0.642|[0.357, 0.850]  |          0.644|            -0.587|
+|Placebo |8 / 6 |         0.813| 0.826|[0.636, 0.945]  |          0.822|             2.091|
+|Active  |2 / 1 |         0.657| 0.665|[0.348, 0.889]  |          0.662|             0.880|
+|Active  |4 / 1 |         0.629| 0.646|[0.250, 0.922]  |          0.648|            -0.209|
+|Active  |6 / 1 |         0.609| 0.636|[0.220, 0.929]  |          0.637|            -0.230|
+|Active  |8 / 1 |         0.501| 0.521|[0.055, 0.891]  |          0.527|            -1.060|
+|Active  |4 / 2 |         0.695| 0.694|[0.425, 0.883]  |          0.695|            -0.278|
+|Active  |6 / 2 |         0.717| 0.724|[0.446, 0.905]  |          0.725|            -0.446|
+|Active  |8 / 2 |         0.694| 0.706|[0.369, 0.928]  |          0.710|            -1.228|
+|Active  |6 / 4 |         0.839| 0.847|[0.679, 0.951]  |          0.846|             0.565|
+|Active  |8 / 4 |         0.463| 0.461|[0.157, 0.713]  |          0.464|            -0.658|
+|Active  |8 / 6 |         0.664| 0.668|[0.417, 0.851]  |          0.671|            -0.870|
+
+The independent bivariate identity check had maximum absolute error 3e-15.
+For the one-visit example (7 responses among 20 patients), the numerical posterior
+mean was -0.392807 versus -0.382052 in Stan (MCSE 0.006725); posterior SDs were 0.289319 and 0.285921.
+The log-quantile comparison with R had maximum absolute error 7.1e-15 over log
+probabilities from $-10^{-16}$ to $-10^6$. Both the one-visit fit and the
+covariate/intermittent-missingness fit had zero divergences and zero treedepth
+hits; all seven simulated coefficients were inside their 95% posterior intervals.
+
+## Probit draw model performance
+
+The current implementation parallelizes chains. Further optimizations could be
+benchmarked without changing the statistical target:
+
+- **Within-chain parallelism.** The block log-likelihood contributions can be
+  summed with Stan's [`reduce_sum`](https://mc-stan.org/docs/stan-users-guide/parallelization.html).
+  Replace the running `u_pos` counter with fixed block offsets so each task reads
+  the correct auxiliary parameters independently. Visits within a subject must
+  remain sequential because their conditional calculations depend on earlier
+  values. Compile with `cpp_options = list(stan_threads = TRUE)` and pass
+  `threads_per_chain` explicitly to both sampling calls in `fit_probit_draws()`;
+  its current `...` reaches only the adaptation stage. Budget cores across
+  `parallel_chains * threads_per_chain`.
+- **Balance the work.** This example has 11 blocks, but the two largest contain
+  61 and 69 complete patients, accounting for 650 of 831 observations. Splitting
+  large blocks into smaller subject batches may therefore scale better than
+  assigning whole blocks to tasks. Preserve one covariance factorization per
+  block and share it across batches, or benchmark the simpler alternative of
+  repeating the small factorization within each batch.
+- **Reduce serial work and improve sampling efficiency.** For the default
+  saturated design, direct coefficient indexing could replace the dense
+  `X * beta` multiplication. Alternative visit orders and less conservative
+  step-size caps may improve effective samples per second, but require renewed
+  divergence, treedepth, E-BFMI, and convergence checks before adoption.
+- **Measure before adopting.** Profile the likelihood and benchmark elapsed time
+  and effective samples per second with 1, 2, and 4 threads per chain. Start with
+  `grainsize = 1`, then tune batch size and grainsize if useful. At this example's
+  size, scheduling and automatic-differentiation overhead may outweigh threading
+  gains; larger datasets offer more opportunity.
+
+## Independent probit validation checks
+
+The opt-in validation also checks the bivariate orthant identity, the one-visit posterior against
+numerical integration, and the data mapping for a covariate-adjusted model with
+intermittent missingness and an entirely missing subject. The simulation uses a
+shared correlation matrix and checks coverage of the known coefficient vector;
+it is a small implementation check, not a simulation study of operating
+characteristics. Rejection of flat priors for separated cells or custom designs,
+and preservation of matrix dimensions during extraction, are also checked.
+
+```{r}
+#| label: validate-probit-independent
+#| eval: !expr run_probit_validation
+model <- probit_model
+
+# Deterministic two-visit orthant check, including all four sign patterns.
+mu <- c(-.7, .3)
+Omega <- matrix(c(1, .6, .6, 1), 2)
+L <- t(chol(Omega))
+signs <- as.matrix(expand.grid(c(-1, 1), c(-1, 1)))
+err <- apply(signs, 1, function(s) {
+    p1 <- pnorm(s[1] * mu[1])
+    value <- integrate(function(u) {
+        e1 <- -s[1] * qnorm(u * p1)
+        p1 * pnorm(s[2] * (mu[2] + L[2, 1] * e1) / L[2, 2])
+    }, 0, 1, rel.tol = 1e-10)$value
+    truth <- as.numeric(mvtnorm::pmvnorm(
+        lower = c(0, 0),
+        upper = c(Inf, Inf), mean = s * mu, sigma = Omega * outer(s, s), algorithm = mvtnorm::TVPACK()
+    ))
+    value - truth
+})
+stopifnot(max(abs(err)) < 1e-8)
+
+# One visit: no augmentation variables; compare against numerical quadrature.
+y <- matrix(c(rep(1, 7), rep(0, 13)), ncol = 1)
+p <- prepare_probit_data(y, rep(1, nrow(y)))
+stopifnot(p$data$U == 0L, p$data$R == 20L, p$data$P == 1L)
+f <- fit_probit_draws(p, model, chains = 4, iter_warmup = 500, iter_sampling = 2000, seed = 883L)
+sm <- summarize_parameters(f$fit$draws("beta"))
+density <- function(b) exp(7 * pnorm(b, log.p = TRUE) + 13 * pnorm(-b, log.p = TRUE))
+constant <- integrate(density, -Inf, Inf)$value
+exact_mean <- integrate(function(b) b * density(b), -Inf, Inf)$value / constant
+exact_sd <- sqrt(integrate(function(b) (b - exact_mean)^2 * density(b), -Inf, Inf)$value / constant)
+stopifnot(
+    abs(sm$mean - exact_mean) < 4 * sm$mcse,
+    abs(sm$sd - exact_sd) < .02
+)
+ex <- extract_probit_draws(f, 10)
+stopifnot(
+    length(ex$beta) == 10L, length(ex$sigma) == 10L,
+    identical(dim(ex$sigma[[1]][[1]]), c(1L, 1L)),
+    ex$sigma[[1]][[1]][1, 1] == 1
+)
+
+# Data preparation: arbitrary missing patterns, all-missing subjects, custom X.
+set.seed(443)
+N <- 180L
+D <- 3L
+arm <- rep(1:2, each = N / 2)
+x <- rnorm(N)
+X <- array(0, c(N, D, 7L))
+for (i in seq_len(N)) {
+    for (j in seq_len(D)) {
+        X[i, j, j] <- 1
+        X[i, j, 3 + j] <- arm[i] == 2
+        X[i, j, 7] <- x[i]
+    }
+}
+truth <- c(-.6, -.3, .1, .4, .5, .6, .3)
+Sigma <- matrix(c(1, .55, .3, .55, 1, .4, .3, .4, 1), 3)
+eta <- matrix(matrix(X, N * D, 7L) %*% truth, N, D)
+Z <- eta + matrix(rnorm(N * D), N, D) %*% chol(Sigma)
+Y <- 1L * (Z > 0)
+Y[matrix(runif(N * D) < .2, N, D)] <- NA
+Y[1, ] <- NA
+p2 <- prepare_probit_data(Y, arm, X, same_cov = TRUE, beta_sd = 2)
+stopifnot(
+    1L %in% p2$excluded_subjects, p2$data$G == 1L,
+    all(p2$data$sign_y == 2 * Y[p2$cells] - 1),
+    isTRUE(all.equal(p2$data$X,
+        sapply(1:7, function(k) matrix(X[, , k], N, D)[p2$cells]),
+        check.attributes = FALSE
+    ))
+)
+stopifnot(
+    inherits(try(prepare_probit_data(Y, arm, X, beta_sd = 0), silent = TRUE), "try-error"),
+    inherits(try(prepare_probit_data(matrix(0, 10, 2), rep(1, 10)), silent = TRUE), "try-error")
+)
+f2 <- fit_probit_draws(p2, model, chains = 4, iter_warmup = 1000, iter_sampling = 1500, seed = 884L)
+sm2 <- summarize_parameters(f2$fit$draws("beta"))
+stopifnot(
+    all(sm2$rhat < 1.01), all(sm2$ess_bulk > 400),
+    all(truth > sm2$q025 & truth < sm2$q975)
+)
+
+list(
+    bivariate_errors = err, univariate = cbind(sm, exact_mean, exact_sd),
+    synthetic = cbind(sm2, truth)
+)
+f$fit$diagnostic_summary()
+f2$fit$diagnostic_summary()
+```
+
+The log-quantile helper is checked separately against R's tail-aware `qnorm`,
+including probabilities whose ordinary floating-point representation underflows.
+Writing Stan's output at 18 significant figures is necessary for this numerical
+check; rounding CSV output must not be mistaken for function error.
+
+```{r}
+#| label: validate-probit-log-quantile
+#| eval: !expr run_probit_validation
+code <- strsplit(probit_stan_code, "\n", fixed = TRUE)[[1]]
+code <- code[seq_len(which(code == "data {")[1] - 1L)]
+code <- c(
+    code, "data { int<lower=1> N; vector[N] lp; }",
+    "generated quantities { vector[N] q; for (i in 1:N) q[i] = std_normal_quantile_log(lp[i]); }"
+)
+m <- cmdstanr::cmdstan_model(cmdstanr::write_stan_file(code))
+lp <- c(-1e-16, -1e-10, -.1, log(.5), -2, -36 + 1e-8, -36 - 1e-8, -50, -100, -700, -1000, -1e6)
+f <- m$sample(data = list(N = length(lp), lp = lp), fixed_param = TRUE, chains = 1, iter_sampling = 1, refresh = 0, sig_figs = 18)
+q <- as.numeric(posterior::as_draws_matrix(f$draws("q"))[1, ])
+truth <- qnorm(lp, log.p = TRUE)
+z <- data.frame(lp, q, truth, error = q - truth)
+print(z)
+stopifnot(max(abs(z$error)) < 1e-9)
+```
+
+## Reference-based imputation
+
+### Original imputation algorithm {#sec-binary-original-imputation}
+
+Section 3.3 of @Cro2025 samples latent responses in visit order. The steps
+below use the design's sign convention, $Y_j=\mathbf{1}(Z_j>0)$, and
+suppress the patient and arm indices.
+
+1. Use a single joint posterior draw to construct the patient's mean vector
+   $\mu$ and covariance matrix $\Sigma$ under the selected
+   [reference assumption](design_binary_extension.html#sec-binary-reference-distribution).
+2. At the first visit, where the original algorithm assumes an observed
+   response, draw $Z_1$ from its truncated marginal normal distribution.
+   The sign is positive for a response and negative for a nonresponse.
+3. At each subsequent visit $j$, let $S=\{1,\ldots,j-1\}$ index the
+   previously sampled latent responses. The conditional normal mean and
+   variance are
+
+   $$
+   \begin{aligned}
+   m_{j\mid S} &= \mu_j+\Sigma_{jS}\Sigma_{SS}^{-1}(Z_S-\mu_S),\\
+   v_{j\mid S} &= \Sigma_{jj}-\Sigma_{jS}\Sigma_{SS}^{-1}\Sigma_{Sj}.
+   \end{aligned}
+   $$
+
+   At the second visit, these reduce to
+   $m_{2\mid1}=\mu_2+\Sigma_{21}(Z_1-\mu_1)/\Sigma_{11}$ and
+   $v_{2\mid1}=\Sigma_{22}-\Sigma_{21}^2/\Sigma_{11}$. Draw $Z_j$ from
+   this conditional normal if the response is missing. If the response is
+   observed, sample $Z_j$ with truncation to the observed sign. Earlier
+   draws stay fixed.
+
+The [corrected algorithm](design_binary_extension.html#sec-binary-joint-sampling)
+conditions on all observed signs jointly.
+
+### Problem in the original algorithm
+
+The original sampler accepts each observed sign by resampling only the current
+latent variable, leaving earlier draws unchanged. Direct univariate truncated
+normal sampling is equivalent to that local rejection step, but neither
+conditions earlier latent values on later observed signs. To see why, consider
+two observed responses $Y_1=Y_2=1$. Hold the model parameters fixed and suppress
+the patient index and reference-assumption superscript. Let
+$\phi(z_1;\mu_1,\Sigma_{11})$ denote the marginal normal density of $Z_1$.
+
+1. Under our sign convention, observing $Y_1=Y_2=1$ is the event
+   $E=\{Z_1>0,Z_2>0\}$. Bayes' rule for the density of $Z_1$ conditional on
+   this event gives
+   $$
+   p(z_1\mid E)
+   =\frac{p(z_1)\Pr(E\mid Z_1=z_1)}{\Pr(E)}.
+   $$
+   Here conditioning on $Z_1=z_1$ uses the conditional distribution of $Z_2$;
+   it does not require the point event $\{Z_1=z_1\}$ to have positive probability.
+
+2. Once $Z_1=z_1$ is fixed, the first sign is already determined. If $z_1\leq0$,
+   the event $E$ is impossible; if $z_1>0$, only the second sign remains uncertain.
+   Therefore
+   $$
+   \Pr(E\mid Z_1=z_1)
+   =\mathbf{1}(z_1>0)\Pr(Z_2>0\mid Z_1=z_1).
+   $$
+
+3. Substitute this expression and the marginal normal density into Bayes' rule:
+   $$
+   p(z_1\mid Y_1=1,Y_2=1)
+   =\frac{
+     \phi(z_1;\mu_1,\Sigma_{11})\mathbf{1}(z_1>0)
+     \Pr(Z_2>0\mid Z_1=z_1)
+   }{\Pr(Z_1>0,Z_2>0)}.
+   $$
+   The denominator is constant with respect to $z_1$, so dropping it gives
+
+$$
+p(z_1\mid Y_1=1,Y_2=1)\propto
+\phi(z_1;\mu_1,\Sigma_{11})\mathbf{1}(z_1>0)
+\Pr(Z_2>0\mid Z_1=z_1).
+$$
+
+The extra factor can be written explicitly using normal conditioning. Define
+
+$$
+\mu_{2\mid1}(z_1)=\mu_2+
+\frac{\Sigma_{21}}{\Sigma_{11}}(z_1-\mu_1),\qquad
+s_{2\mid1}^2=\Sigma_{22}-\frac{\Sigma_{21}^2}{\Sigma_{11}}.
+$$
+
+Then $Z_2\mid Z_1=z_1\sim N(\mu_{2\mid1}(z_1),s_{2\mid1}^2)$, and hence
+
+$$
+\Pr(Z_2>0\mid Z_1=z_1)
+=1-\Phi\!\left(\frac{-\mu_{2\mid1}(z_1)}{s_{2\mid1}}\right)
+=\Phi\!\left(\frac{\mu_{2\mid1}(z_1)}{s_{2\mid1}}\right).
+$$
+
+By contrast, drawing $Z_1$ from its marginal normal truncated above zero uses
+only $p(z_1\mid Y_1=1)\propto
+\phi(z_1;\mu_1,\Sigma_{11})\mathbf{1}(z_1>0)$. It omits the probability of
+the second observed sign. With positive correlation, larger $z_1$ makes
+$Z_2>0$ more likely, so observing $Y_2=1$ gives those larger values additional
+weight. If the correlation is zero, this factor is constant and cancels in
+normalization; in general it depends on $z_1$ and cannot be omitted.
+
+Consequently,
+a single forward pass is not a joint truncated-normal draw, even with monotone
+dropout. This is a limitation of the paper's Step 5 as written, not a consequence
+of replacing its local rejection sampler with inverse-CDF sampling. The simple
+case of one observed visit followed only by missing visits does not have this
+problem.
+
+As a numerical example, take three zero-mean latent variables with unit
+variances and all correlations $\rho=0.7$, and observe $Y=(1,1,\mathrm{NA})$.
+The exact conditional response probability, using the bivariate and trivariate
+zero-mean normal orthant identities, is
+
+$$
+\Pr(Y_3=1\mid Y_1=Y_2=1)
+=\frac{1/8+3\arcsin(\rho)/(4\pi)}{1/4+\arcsin(\rho)/(2\pi)}
+=0.8304917.
+$$
+
+The following base-R example compares the original sampler with whole-vector
+rejection, which is an exact joint sampler and is inexpensive for this particular
+orthant. For the sequential estimate we integrate out the last normal draw to
+reduce Monte Carlo noise. The sequential estimate is about 0.811, versus 0.8305
+for the target; the discrepancy is much larger than Monte Carlo error.
+
+```{r}
+#| label: compare-sequential-joint-imputation
+local({
+    set.seed(917)
+    n <- 1000000L
+    rho <- 0.7
+    Sigma <- matrix(rho, 3, 3)
+    diag(Sigma) <- 1
+    exact <- (1 / 8 + 3 * asin(rho) / (4 * pi)) /
+        (1 / 4 + asin(rho) / (2 * pi))
+
+    # Joint rejection: reject the entire vector unless both observed signs match.
+    z <- matrix(rnorm(n * 3), n, 3) %*% chol(Sigma)
+    joint_response <- z[z[, 1] > 0 & z[, 2] > 0, 3] > 0
+
+    # Original forward sampler: independently enforce each successive sign.
+    z1 <- -qnorm(runif(n) / 2)
+    m2 <- rho * z1
+    s2 <- sqrt(1 - rho^2)
+    z2 <- m2 - s2 * qnorm(runif(n) * pnorm(m2 / s2))
+    b <- drop(Sigma[3, 1:2] %*% solve(Sigma[1:2, 1:2]))
+    v3 <- Sigma[3, 3] - sum(b * Sigma[1:2, 3])
+    sequential_probability <- pnorm((b[1] * z1 + b[2] * z2) / sqrt(v3))
+
+    data.frame(
+        Method = c("Exact", "Joint rejection", "Original sequential"),
+        Probability = c(exact, mean(joint_response), mean(sequential_probability)),
+        MCSE = c(
+            0, sd(joint_response) / sqrt(length(joint_response)),
+            sd(sequential_probability) / sqrt(n)
+        )
+    )
+})
+```
+
+### Choice of joint sampler {#sec-binary-sampler-choice}
+
+`tmvtnorm` [@Wilhelm2010] supports whole-vector rejection and Gibbs sampling.
+Ordinary rejection becomes expensive for rare observed sign patterns; Gibbs
+requires burn-in and mixing checks, particularly under strong correlations.
+Its updates condition on all other current latent coordinates and must be
+iterated to convergence; one forward pass is not a substitute.
+See the [current package documentation](https://stat.ethz.ch/CRAN/web/packages/tmvtnorm/refman/tmvtnorm.html#rtmvnorm).
+
+`TruncatedNormal::rtmvnorm()` implements Botev's minimax exponential tilting
+accept-reject method [@Botev2017]. It targets
+independent draws without Gibbs burn-in and accepts infinite bounds, so observed
+and missing coordinates can be handled together. This is a provisional choice
+for the intended range of **5 to 30 visits**, not a claim of uniformly best
+performance. See the [package overview](https://lbelzile.github.io/TruncatedNormal/)
+and [sampling API](https://lbelzile.github.io/TruncatedNormal/reference/rtmvnorm.html).
+For this illustration, the patient has a response at the first visit,
+no observation at the second, and a nonresponse at the third.
+
+```{r}
+#| label: joint-imputation-sampler-call
+set.seed(928L)
+y <- c(1L, NA_integer_, 0L)
+mu_ref <- c(0, 0.2, 0)
+Sigma_ref <- matrix(0.5, 3, 3)
+diag(Sigma_ref) <- 1
+
+lower <- rep(-Inf, length(y))
+upper <- rep(Inf, length(y))
+lower[which(y == 1)] <- 0
+upper[which(y == 0)] <- 0
+z <- as.numeric(TruncatedNormal::rtmvnorm(
+    n = 1, mu = mu_ref, sigma = Sigma_ref, lb = lower, ub = upper
+))
+completed <- y
+completed[is.na(y)] <- as.integer(z[is.na(y)] > 0)
+completed
+```
+
+Before selecting a production backend, benchmark 5, 10, 20, and 30 visits across
+posterior draws with common and rare sign patterns, weak and strong correlations,
+and varying fractions of missing visits. Measure setup plus sampling time per
+patient per imputation, numerical failures, and accuracy against orthant
+probabilities or small-dimensional rejection checks; for MCMC also measure
+burn-in and effective sample size. Compare full-vector tilting with the
+observed-block/conditional-Gaussian factorization. Matrix factorizations can be
+reused where covariance and coordinate patterns agree, but tilting optimization
+also depends on the centered bounds, which vary with means and observed signs.
+The [implementation](https://github.com/lbelzile/TruncatedNormal/blob/master/R/mvrandn.R)
+can warn about solver failure, near-singularity, or low acceptance and can return
+fewer draws than requested; production code must detect these cases rather than
+silently accepting the output. Hamiltonian alternatives such as
+[`hdtg`](https://arxiv.org/abs/2210.01097) are worth considering if these benchmarks
+show a bottleneck, but their published advantages concern much higher dimensions
+and do not establish superiority at 20--30 visits.
+
+## Firth regression alternatives {#sec-binary-firth-research}
+
+| Implementation | Fit and extraction | Trade-off for `rbmi` |
+|---|---|---|
+| From scratch | Use the closed form for the unadjusted two-arm model or the adjusted-score algorithm below when the model includes covariates. | Dependency-free. An adjusted solver needs numerical safeguards and validation against reference fits. |
+| `logistf` | Use `logistf::logistf(formula, data = data, pl = FALSE)` and extract the coefficient and its covariance. | Dedicated Firth implementation with profile penalized-likelihood intervals available. The Wald option fits the existing coefficient-and-SE pooling interface. See the [logistf manual](https://search.r-project.org/CRAN/refmans/logistf/html/logistf.html). |
+| `brglm2` | Use `glm(formula, data = data, family = binomial(), method = brglm2::brglmFit, type = "AS_mean")` and extract with `coef()` and `vcov()`. | Mean bias reduction gives the Firth estimate for logistic regression and keeps the familiar GLM interface for covariate-adjusted analyses. See the [brglm2 fitting documentation](https://search.r-project.org/CRAN/refmans/brglm2/html/brglmFit.html). |
+
+**Scope of the closed form.** The two-by-two shortcut applies to a model
+with an intercept and a two-level treatment indicator only. The
+arm-by-response counts fully describe this model because everyone in an
+arm shares one fitted probability.
+With an adjustment variable such as baseline severity, fitted probabilities
+can vary within an arm, so the two-by-two table no longer contains the
+information needed for the fit.
+
+### Extending the callback to adjust for covariates
+
+To extend the current treatment-only callback, build an endpoint model such
+as `outcome ~ group + baseline`, fit it with `logistf` or `brglm2`, and
+extract the treatment coefficient and its
+standard error for the specified reference arm. Return `est`, `se`, and the
+residual degrees of freedom (the number of analyzed subjects minus the model
+matrix rank) in the existing format. `binary_analyse()` and `rbmi::pool()` can
+then use that result as before. The treatment coefficient is a conditional
+log odds ratio at fixed covariate values. The covariates must already be
+available for analysis in each completed dataset.
+
+Most of the package integration effort would go into checking missing
+covariates, consistent factor coding and an estimable treatment contrast
+across imputations, and reporting rank or convergence failures with the
+affected imputation index.
+
+### From-scratch algorithm for Firth regression with covariates
+
+For one completed dataset, let $y$ be the $n$ binary outcomes at the endpoint
+and $X$ the $n \times p$ model matrix, including the intercept, treatment
+indicator and covariate columns. The same algorithm covers the unadjusted
+model and models with continuous or categorical covariates.
+
+1. **Initialize.** Check that $X$ is full rank, $n>p$, and all outcomes and
+   covariates are available. Start at $\beta=0$, which gives an initial
+   probability of $1/2$ without requiring a maximum-likelihood fit.
+2. **Compute weights and leverages.** At the current $\beta$, compute
+   $\eta=X\beta$, $\mu_i=\operatorname{logit}^{-1}(\eta_i)$, and
+   $w_i=\mu_i(1-\mu_i)$. Set $W=\operatorname{diag}(w_i)$ and compute a thin QR
+   factorization $W^{1/2}X=QR$. Compute $h_i=\sum_j Q_{ij}^2$, the leverage
+   of subject $i$. Use row scaling for $W^{1/2}X$ and row sums of squares for
+   the leverages so neither $W$ nor the hat matrix has to be allocated.
+3. **Compute the adjusted score and direction.** Form
+   $U^*=X^\top\{y-\mu+h(1/2-\mu)\}$, with the multiplication by $h$
+   elementwise. Solve $R^\top R\,\Delta=U^*$ using two triangular solves,
+   since $R^\top R=I(\beta)=X^\top W X$. This is a quasi-Fisher scoring
+   step. If the QR implementation pivots the columns, apply the same
+   permutation to the score and undo it for the coefficient update.
+4. **Update with backtracking.** Try $\beta+\Delta$. If the trial point
+   has a numerically singular weighted design or decreases the penalized
+   log-likelihood, halve the step and retry. Evaluate the Bernoulli
+   log-likelihood stably from the linear predictors and compute the
+   half log-determinant penalty as $\sum_j\log |R_{jj}|$ at each trial point.
+   Stop when the information-scaled score $\|R^{-\top}U^*\|_2$ and the
+   relative size of the full scoring direction meet their tolerances. Using
+   the full direction prevents declaring convergence solely because
+   backtracking produced a small accepted step. If the line search or
+   iteration limit is exhausted, report the failure and its imputation index.
+5. **Return the treatment contrast.** For a contrast vector $c$, compute
+   $\mathrm{est}=c^\top\hat\beta$ and
+   $\mathrm{se}=\sqrt{c^\top I(\hat\beta)^{-1}c}$ using the final QR factor
+   and a triangular solve. For the treatment coefficient, $c$ selects its
+   column in $X$. Return those values with $\mathrm{df}=n-p$ for Rubin
+   pooling.
+
+The adjusted score and scoring direction follow the mean bias reduction
+algorithm in [Kosmidis, Kenne Pagui and Sartori (2020)](https://doi.org/10.1007/s11222-019-09860-6).
+
+For a dense design with $n \ge p$, a weighted QR factorization costs
+$O(np^2)$ time and $O(np+p^2)$ working memory. The factorization dominates
+each scoring iteration and each trial point checked by the line search.
+With $M$ imputations and an average of $K$ factorizations per fit, including
+backtracking, the total fitting cost is $O(MKnp^2)$ for similarly sized
+datasets. With a few covariates this is roughly linear in the number of
+subjects and imputations. Those costs are for the endpoint fits and exclude
+the draw and imputation steps.
+
+The scoring loop is short with base R linear algebra. A production fitter
+is a moderate implementation effort because it must handle extreme linear
+predictors, nearly singular weighted designs, and failed line searches while
+returning reliable standard errors. Test the unadjusted fit against the
+closed form and compare coefficients and standard errors with a reference
+package on adjusted data with and without separation. Also verify explicit
+failure for rank-deficient designs. A package-backed callback delegates the
+solver and leaves the model-matrix, contrast and pooling integration to
+`rbmi`.
+
+### Closed-form reference
+
+For arm $g$ with $y_g$ responses among $n_g$ patients, the fitted Firth
+probability is $\hat p_g = (y_g + 1/2)/(n_g + 1)$. The log odds ratio is the
+difference of the fitted logits, and its within-imputation variance is
+$\sum_g [n_g\hat p_g(1-\hat p_g)]^{-1}$. This gives a reference for checking
+the package-based fit in the unadjusted two-arm model.
+
+## References
