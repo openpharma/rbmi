@@ -44,8 +44,9 @@ The design doc has the following structure:
 1. Example data introduction 
 2. Multivariate probit model implementation in Stan and comparison with @Cro2025 code
 3. Imputation method and prototype implementation
-4. `rbmi` integration prototype
-5. Example data analysis
+4. Firth regression for the binary endpoint
+5. `rbmi` integration prototype
+6. Example data analysis
 
 ## Example Data
 
@@ -1929,10 +1930,10 @@ The `logistf` package is quite well adopted by other packages, as its CRAN rever
 
 The `brglm2` package just had an update in October 2026, is similarly well adopted by reverse depending packages, see CRAN [here](https://cran.r-project.org/web/packages/brglm2/index.html). While some C code is used, most of the implementation seems to be native R, see GitHub [here](https://github.com/ikosmidis/brglm2). Tests are available [here](https://github.com/ikosmidis/brglm2/tree/main/inst/tinytest).
 
-**Scope of the prototype.** The closed-form `binary_firth()` callback
-supports a model with an intercept and a two-level treatment indicator only.
-It requires an empty `vars$covariates`. The arm-by-response counts fully
-describe this model because everyone in an arm shares one fitted probability.
+**Scope of the closed form.** The two-by-two shortcut applies to a model
+with an intercept and a two-level treatment indicator only. The
+arm-by-response counts fully describe this model because everyone in an
+arm shares one fitted probability.
 With an adjustment variable such as baseline severity, fitted probabilities
 can vary within an arm, so the two-by-two table no longer contains the
 information needed for the fit.
@@ -2015,154 +2016,21 @@ failure for rank-deficient designs. A package-backed callback delegates the
 solver and leaves the model-matrix, contrast and pooling integration to
 `rbmi`.
 
-### Closed-form example
+### Closed-form reference
 
-For arm $g$ with $y_g$ responses among
-$n_g$ patients, the Firth probability is $\hat p_g = (y_g + 1/2)/(n_g + 1)$.
-The log odds ratio is the difference of the two fitted logits. Its
-within-imputation variance is $\sum_g [n_g\hat p_g(1-\hat p_g)]^{-1}$.
-The comparison uses the same complete-data degrees of freedom ($n-2$) and
-Barnard–Rubin pooling as the ordinary logistic analysis.
+For arm $g$ with $y_g$ responses among $n_g$ patients, the fitted Firth
+probability is $\hat p_g = (y_g + 1/2)/(n_g + 1)$. The log odds ratio is the
+difference of the fitted logits, and its within-imputation variance is
+$\sum_g [n_g\hat p_g(1-\hat p_g)]^{-1}$. This gives a reference for checking
+the package-based fit in the unadjusted two-arm model.
 
-```{r}
-#| label: binary-firth-comparison
-# Firth endpoint callback following the rbmi::ancova() analysis interface.
-#
-# data: One completed long dataset with both randomized arms represented.
-# vars: Column mapping from rbmi::set_vars() with no adjustment covariates.
-# visit: Single endpoint visit label.
-binary_firth <- function(data, vars, visit) {
-    if (length(vars$covariates) > 0L) {
-        stop("The closed-form Firth fit requires an unadjusted two-arm model.")
-    }
-    stopifnot(length(visit) == 1L, visit %in% levels(data[[vars$visit]]))
-    at_visit <- data[[vars$visit]] == visit
-    group <- data[[vars$group]][at_visit]
-    outcome <- data[[vars$outcome]][at_visit]
-    stopifnot(!anyNA(group), all(outcome %in% 0:1))
-    cells <- table(group, factor(outcome, levels = 0:1))
-    n <- rowSums(cells)
-    stopifnot(length(n) == 2L, all(n > 0L), sum(n) > 2L)
-    p <- (cells[, "1"] + 0.5) / (n + 1)
-    list(
-        log_odds_ratio = list(
-            est = unname(diff(qlogis(p))),
-            se = sqrt(sum(1 / (n * p * (1 - p)))),
-            df = sum(n) - 2
-        )
-    )
-}
+### Preliminary conclusion
 
-firth_analysis <- binary_analyse(
-    imp,
-    binary_firth,
-    vars = vars,
-    visit = "week8"
-)
-firth_contrast <- rbmi::pool(firth_analysis)$pars$log_odds_ratio
-comparison <- rbind(
-    "Ordinary logistic" = odds,
-    "Firth logistic" = exp(c(firth_contrast$est, firth_contrast$ci))
-)
-colnames(comparison) <- c("Odds ratio", "Lower 95%", "Upper 95%")
-knitr::kable(comparison, digits = 3)
-```
-
-Ordinary logistic regression succeeded in all `r length(imp$imputations)`
-completed datasets. Firth gives a similar pooled result for Week 8.
-
-To illustrate separation, take a copy of the first completed dataset and set
-the placebo responses at Week 8 to zero. This modified dataset illustrates the
-failure mode on a single fit.
-
-```{r}
-#| label: binary-firth-separation
-separated <- imp$imputations[[1]]
-separated$outcome[
-    separated$visit == "week8" & separated$group == "Placebo"
-] <- 0L
-ml_fit <- tryCatch(
-    binary_logistic(separated, vars, visit = "week8"),
-    error = identity
-)
-firth_fit <- binary_firth(separated, vars, visit = "week8")$log_odds_ratio
-stopifnot(
-    inherits(ml_fit, "error"),
-    is.finite(firth_fit$est),
-    is.finite(firth_fit$se)
-)
-```
-
-The ordinary callback stops because the active-versus-placebo maximum
-likelihood estimate is infinite. The Firth callback returns a finite odds ratio
-of `r sprintf("%.2f", exp(firth_fit$est))` and a log odds ratio standard error
-of `r sprintf("%.2f", firth_fit$se)`.
-
-### Preliminary conclusion and prototype
-
-Given the significant effort needed for a from-scratch Firth implementation and the availability of well-tested packages like `brglm2`, it seems wiser to rely weakly on `brglm2`. We can put it in `Suggests` and allow its optional use via an argument for the analysis function.
-
-The callback below fits the same unadjusted two-arm model as
-`binary_logistic()`. The default is ordinary maximum likelihood. With
-`method = "firth"`, `glm()` uses the mean bias-reducing score adjustment.
-See the [`brglm2` fitting example](https://github.com/ikosmidis/brglm2/tree/main#estimation-methods).
-
-```{r}
-#| label: binary-firth-optional
-# Binary endpoint callback corresponding to rbmi::ancova() in rbmi::analyse().
-#
-# data: One completed long dataset.
-# vars: Column mapping from rbmi::set_vars().
-# visit: Single endpoint visit label.
-# method: "ml" for maximum likelihood or "firth" for mean bias reduction.
-binary_logistic_with_firth <- function(
-  data,
-  vars,
-  visit,
-  method = c("ml", "firth")
-) {
-    method <- match.arg(method)
-    if (method == "firth" && !requireNamespace("brglm2", quietly = TRUE)) {
-        stop(
-            "Install the 'brglm2' package to use method = \"firth\".",
-            call. = FALSE
-        )
-    }
-
-    stopifnot(length(visit) == 1L, visit %in% levels(data[[vars$visit]]))
-    at_visit <- data[[vars$visit]] == visit
-    endpoint <- data.frame(
-        group = data[[vars$group]][at_visit],
-        outcome = data[[vars$outcome]][at_visit]
-    )
-    cells <- table(endpoint$group, factor(endpoint$outcome, levels = 0:1))
-    if (nrow(cells) != 2L || any(rowSums(cells) == 0L)) {
-        stop("Both treatment arms must be represented at the endpoint visit.")
-    }
-    if (method == "ml" && any(cells == 0L)) {
-        stop("Week-specific logistic contrast is not estimable.")
-    }
-
-    endpoint$active <- as.integer(endpoint$group) - 1L
-    fit_method <- if (method == "firth") brglm2::brglmFit else "glm.fit"
-    fit_control <- if (method == "firth") list(type = "AS_mean") else list()
-    fit <- glm(
-        outcome ~ active,
-        data = endpoint,
-        family = binomial(),
-        method = fit_method,
-        control = fit_control
-    )
-    stopifnot(fit$converged)
-    list(
-        log_odds_ratio = list(
-            est = unname(coef(fit)["active"]),
-            se = sqrt(vcov(fit)["active", "active"]),
-            df = df.residual(fit)
-        )
-    )
-}
-```
+Using `brglm2` as an optional dependency in `Suggests` avoids maintaining
+a custom solver. The integration prototype below exposes both fits through
+`binary_logistic()`. Maximum likelihood is the default. With
+`method = "firth"`, the callback uses the mean bias-reducing score adjustment
+through `glm()`. See the [`brglm2` fitting example](https://github.com/ikosmidis/brglm2/tree/main#estimation-methods).
 
 ## `rbmi` integration prototype
 
@@ -2331,18 +2199,33 @@ binary_impute <- function(draws, seed = 20261103L) {
 
 The callback receives one completed long dataset and returns the usual named
 parameter list with an estimate, standard error and complete-data degrees of
-freedom. For this unadjusted two-arm model, an empty arm-by-response cell
-precludes a finite maximum-likelihood treatment contrast. The prototype stops
-in that case. See @sec-binary-firth for the Firth alternative.
+freedom. Both methods fit the same unadjusted two-arm model. With
+`method = "ml"`, an empty arm-by-response cell stops the fit. With
+`method = "firth"`, a fit can proceed under separation when both arms are
+represented. See @sec-binary-firth for the rationale.
 
 ```{r}
 #| label: binary-integration-analysis
 # Binary endpoint callback corresponding to rbmi::ancova() in rbmi::analyse().
 #
 # data: One completed long dataset.
-# vars: The same rbmi::set_vars() mapping used for draws.
-# visit: Single visit label at which to estimate the treatment contrast.
-binary_logistic <- function(data, vars, visit) {
+# vars: Column mapping from rbmi::set_vars().
+# visit: Single endpoint visit label.
+# method: "ml" for maximum likelihood or "firth" for mean bias reduction.
+binary_logistic <- function(
+    data,
+    vars,
+    visit,
+    method = c("ml", "firth")
+) {
+    method <- match.arg(method)
+    if (method == "firth" && !requireNamespace("brglm2", quietly = TRUE)) {
+        stop(
+            "Install the 'brglm2' package to use method = \"firth\".",
+            call. = FALSE
+        )
+    }
+
     stopifnot(length(visit) == 1L, visit %in% levels(data[[vars$visit]]))
     at_visit <- data[[vars$visit]] == visit
     endpoint <- data.frame(
@@ -2350,11 +2233,23 @@ binary_logistic <- function(data, vars, visit) {
         outcome = data[[vars$outcome]][at_visit]
     )
     cells <- table(endpoint$group, factor(endpoint$outcome, levels = 0:1))
-    if (any(cells == 0L)) {
+    if (nrow(cells) != 2L || any(rowSums(cells) == 0L)) {
+        stop("Both treatment arms must be represented at the endpoint visit.")
+    }
+    if (method == "ml" && any(cells == 0L)) {
         stop("Week-specific logistic contrast is not estimable.")
     }
+
     endpoint$active <- as.integer(endpoint$group) - 1L
-    fit <- glm(outcome ~ active, data = endpoint, family = binomial())
+    fit_method <- if (method == "firth") brglm2::brglmFit else "glm.fit"
+    fit_control <- if (method == "firth") list(type = "AS_mean") else list()
+    fit <- glm(
+        outcome ~ active,
+        data = endpoint,
+        family = binomial(),
+        method = fit_method,
+        control = fit_control
+    )
     stopifnot(fit$converged)
     list(
         log_odds_ratio = list(
@@ -2372,10 +2267,10 @@ binary_logistic <- function(data, vars, visit) {
 # transform: Optional rbmi transformation specification attached to the callback.
 # ...: Extra callback arguments, such as vars and visit.
 binary_analyse <- function(
-  imputations,
-  fun = binary_logistic,
-  transform = attr(fun, "transform"),
-  ...
+    imputations,
+    fun = binary_logistic,
+    transform = attr(fun, "transform"),
+    ...
 ) {
     stopifnot(inherits(imputations, "imputation_binary"))
     results <- lapply(imputations$imputations, fun, ...)
@@ -2403,7 +2298,8 @@ interval endpoints for reporting.
 Recreate the antidepressant trial's scheduled rows and translate the section 3
 cessation assumption into ICE records. Here the last observed visit serves as
 the last on-treatment visit. In a trial with recorded discontinuation dates,
-derive the first affected visit from those dates.
+derive the first affected visit from those dates. The comparison uses
+`brglm2` for the Firth fit on the same completed datasets as the ML fit.
 
 ```{r}
 #| label: binary-integration-trial
@@ -2441,10 +2337,23 @@ draw <- binary_draws(
     fit = probit_fit
 )
 imp <- binary_impute(draw)
-ana <- binary_analyse(imp, binary_logistic, vars = vars, visit = "week8")
-result <- rbmi::pool(ana)
-contrast <- result$pars$log_odds_ratio
-odds <- exp(c(contrast$est, contrast$ci))
+fits <- lapply(c("ml", "firth"), function(fit_method) {
+    analysis <- binary_analyse(
+        imp,
+        binary_logistic,
+        vars = vars,
+        visit = "week8",
+        method = fit_method
+    )
+    contrast <- rbmi::pool(analysis)$pars$log_odds_ratio
+    exp(c(contrast$est, contrast$ci))
+})
+comparison <- data.frame(
+    Method = c("Maximum likelihood", "Firth"),
+    Odds_ratio = vapply(fits, function(odds) odds[1], numeric(1)),
+    Lower_95 = vapply(fits, function(odds) odds[2], numeric(1)),
+    Upper_95 = vapply(fits, function(odds) odds[3], numeric(1))
+)
 # Check that the imputed outcomes match the completed responses
 # and the pooled odds ratio matches the reference result
 stopifnot(
@@ -2458,24 +2367,50 @@ stopifnot(
         },
         logical(1)
     )),
-    isTRUE(all.equal(odds[1], cir_result$Odds_ratio, check.attributes = FALSE))
+    isTRUE(all.equal(comparison$Odds_ratio[1], cir_result$Odds_ratio))
 )
-knitr::kable(
-    data.frame(
-        Imputations = n_imp,
-        Odds_ratio = odds[1],
-        Lower_95 = odds[2],
-        Upper_95 = odds[3]
-    ),
-    digits = 3
+knitr::kable(comparison, digits = 3)
+```
+
+Both fits use the same `r length(imp$imputations)` completed datasets and
+the same Barnard–Rubin pooling. The pooled Week 8 active-versus-placebo odds
+ratios for a strict greater-than-50% response under CIR are similar. The
+imputation check and the ML point estimate reproduce the earlier imputation
+example.
+
+### Separation example
+
+To illustrate separation, take a copy of the first completed dataset and set
+the placebo responses at Week 8 to zero. This modified dataset illustrates the
+failure mode on a single fit.
+
+```{r}
+#| label: binary-firth-separation
+separated <- imp$imputations[[1]]
+separated$outcome[
+    separated$visit == "week8" & separated$group == "Placebo"
+] <- 0L
+ml_fit <- tryCatch(
+    binary_logistic(separated, vars, visit = "week8", method = "ml"),
+    error = identity
+)
+firth_fit <- binary_logistic(
+    separated,
+    vars,
+    visit = "week8",
+    method = "firth"
+)$log_odds_ratio
+stopifnot(
+    inherits(ml_fit, "error"),
+    is.finite(firth_fit$est),
+    is.finite(firth_fit$se)
 )
 ```
 
-With the same posterior draws and imputation seed, the check compares every
-completed response with section 3 and verifies the pooled point estimate.
-The table reports the Week 8 active-versus-placebo odds ratio for a strict
-greater-than-50% response under CIR, using the branch's default Barnard–Rubin
-degrees of freedom.
-
+With `method = "ml"`, `binary_logistic()` stops because the
+active-versus-placebo maximum likelihood estimate is infinite. With
+`method = "firth"`, it returns a finite odds ratio
+of `r sprintf("%.2f", exp(firth_fit$est))` and a log odds ratio standard error
+of `r sprintf("%.2f", firth_fit$se)`.
 
 ## References
