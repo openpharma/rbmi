@@ -6,8 +6,10 @@ os_codename <- sub(
     grep("^VERSION_CODENAME=", os_release, value = TRUE)
 )
 os_codename <- gsub("^['\"]|['\"]$", "", os_codename)
-if (length(os_codename) != 1L ||
-    !grepl("^[a-z][a-z0-9-]*$", os_codename)) {
+if (
+    length(os_codename) != 1L ||
+        !grepl("^[a-z][a-z0-9-]*$", os_codename)
+) {
     stop("Expected a valid VERSION_CODENAME in /etc/os-release")
 }
 

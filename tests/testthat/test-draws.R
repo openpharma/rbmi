@@ -24,7 +24,7 @@ get_data <- function(n) {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%
@@ -47,7 +47,7 @@ standard_checks <- function(dobj, d, meth) {
         c("samples", "formula", "data", "method", "fit", "n_failures") %in%
             names(dobj)
     ))
-    expect_true(class(dobj)[[1]] == "draws")
+    expect_true("draws" %in% class(dobj))
     expect_true(class(dobj$formula) == "formula")
     expect_equal(meth, dobj$method)
     expect_true(all(vapply(dobj$samples, function(x) !x$failed, logical(1))))
@@ -76,6 +76,34 @@ standard_checks <- function(dobj, d, meth) {
         validate(samp)
     }
 }
+
+
+test_that("draws rejects incompatible vars and outcome before preparing data", {
+    continuous_vars <- set_vars()
+    count_vars <- set_vars(period = "period", duration = "duration")
+    methods <- list(
+        method_bayes(), method_approxbayes(),
+        method_condmean(type = "jackknife"), method_bmlmi()
+    )
+
+    for (method in methods) {
+        expect_error(
+            draws(NULL, vars = continuous_vars, method = method, outcome = "count"),
+            '`outcome = "count"` is incompatible with `vars$visit`',
+            fixed = TRUE
+        )
+        expect_error(
+            draws(NULL, vars = count_vars, method = method, outcome = "continuous"),
+            '`outcome = "continuous"` is incompatible with `vars$period` and `vars$duration`',
+            fixed = TRUE
+        )
+        expect_error(
+            draws(NULL, vars = count_vars, method = method),
+            'use `outcome = "count"`',
+            fixed = TRUE
+        )
+    }
+})
 
 
 test_that("approxbayes", {
@@ -278,7 +306,7 @@ test_that("Failure is handled properly", {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%
@@ -474,7 +502,7 @@ test_that("draws is calling get_mmrm_sample properly", {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%
@@ -582,7 +610,7 @@ test_that("draws.bmlmi works as expected", {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%
@@ -665,7 +693,7 @@ test_that("quiet suppress progress messages", {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%

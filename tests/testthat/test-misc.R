@@ -14,7 +14,7 @@ test_that("rbmi can handle 'grouped' dplyr data", {
 
     dat_ice <- dat %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         group_by(id) %>%
         slice(1) %>%
         ungroup() %>%
@@ -103,7 +103,7 @@ test_that("`rbmi` can handle character data", {
 
     dat_ice <- dat2 %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         group_by(id) %>%
         slice(1) %>%
         ungroup() %>%

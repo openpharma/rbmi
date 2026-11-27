@@ -17,7 +17,7 @@ test_that("Results are Reproducible", {
         dat_ice <- dat %>%
             group_by(id) %>%
             arrange(id, visit) %>%
-            filter(is.na(outcome)) %>%
+            dplyr::filter(is.na(outcome)) %>%
             slice(1) %>%
             ungroup() %>%
             select(id, visit) %>%
@@ -104,7 +104,7 @@ test_that("bayes - set.seed produces identical results", {
     dat_ice <- dat %>%
         group_by(id) %>%
         arrange(id, visit) %>%
-        filter(is.na(outcome)) %>%
+        dplyr::filter(is.na(outcome)) %>%
         slice(1) %>%
         ungroup() %>%
         select(id, visit) %>%
@@ -153,7 +153,7 @@ test_that("Results are if model is recompiled", {
         dat_ice <- dat %>%
             group_by(id) %>%
             arrange(id, visit) %>%
-            filter(is.na(outcome)) %>%
+            dplyr::filter(is.na(outcome)) %>%
             slice(1) %>%
             ungroup() %>%
             select(id, visit) %>%

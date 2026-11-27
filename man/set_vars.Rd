@@ -12,7 +12,9 @@ set_vars(
   covariates = character(0),
   strata = group,
   strategy = "strategy",
-  group_contrasts = NULL
+  group_contrasts = NULL,
+  period = NULL,
+  duration = NULL
 )
 }
 \arguments{
@@ -45,6 +47,17 @@ number of levels (in factor order).
 
 Each element must be named; the name is used as the output \code{parameter} name (and must
 not start with \code{lsm_}, which is reserved for the least-squares means). See details.}
+
+\item{period}{Alternatively to \code{visit}, the name of the "Period" variable.
+A length 1 character vector. The corresponding column in the longitudinal data
+must be a factor with no missing values or unused levels. Set the factor levels
+in the order in which periods should be processed. The supplied factor, including
+its contrasts and ordered status, is retained in the imputation data.}
+
+\item{duration}{The name of the "Duration" variable. A length 1 character
+vector or \code{NULL}. If \code{period} is specified, this argument is required. The
+corresponding data column must be numeric, finite, and greater than or equal
+to zero. Missing values are not allowed.}
 }
 \value{
 A \code{vars} object; a named list of class \code{ivars} recording the names of the key

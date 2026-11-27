@@ -5,7 +5,7 @@ simul_data <- function(n = 100, H0 = TRUE) {
     # H0: If TRUE, simulate under the null hypothesis
     #     If FALSE, simulate under the alternative hypothesis
     #
-    # Endpoint to be analyzed in the simulation study is y-y_bl
+    # Endpoint to be analysed in the simulation study is y-y_bl
     #---------------------------------------------------------------------------------------------------
     # sample size per group
     n1 <- n2 <- n

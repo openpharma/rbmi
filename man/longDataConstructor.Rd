@@ -32,6 +32,8 @@ to this object should be avoided if possible.
 
     \item{\code{visits}}{A character vector containing the distinct visit levels}
 
+    \item{\code{periods}}{A character vector containing the distinct period levels}
+
     \item{\code{ids}}{A character vector containing the unique ids of each subject in \code{self$data}}
 
     \item{\code{formula}}{A formula expressing how the design matrix for the data should be constructed}

@@ -19,7 +19,7 @@ all datasets within the \code{imputations} object will be returned.}
 
 \item{delta}{A \code{data.frame} containing the delta transformation to be
 applied to the imputed dataset. See \code{\link[=analyse]{analyse()}} for details on the
-format and specification of this \code{data.frame}.}
+format and specification of this \code{data.frame}. Must be \code{NULL} for count outcomes.}
 
 \item{idmap}{Logical. The subject IDs in the imputed \code{data.frame}'s are
 replaced with new IDs to ensure they are unique. Setting this argument to
