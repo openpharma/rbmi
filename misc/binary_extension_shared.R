@@ -57,6 +57,7 @@ stopifnot(
     all(Ycat[!is.na(Ycat)] %in% 0:1),
     all(colSums(is.na(Ycat)) == c(0, 18, 30, 52, 69))
 )
+head(Ycat)
 
 
 ## ---- probit-stan-source
@@ -143,17 +144,32 @@ model {
 # same_cov: Logical indicating whether all arms share the same covariance matrix.
 # beta_sd: Standard deviation for the normal prior on regression coefficients. Must be non-negative.
 # lkj_eta: Shape parameter for the LKJ prior on correlation matrices. Must be positive.
-prepare_probit_data <- function(Y, arm, X = NULL, same_cov = FALSE,
-                                beta_sd = 0, lkj_eta = 1) {
+prepare_probit_data <- function(
+    Y,
+    arm,
+    X = NULL,
+    same_cov = FALSE,
+    beta_sd = 0,
+    lkj_eta = 1
+) {
     Y <- as.matrix(Y)
     stopifnot(
-        is.numeric(Y), length(dim(Y)) == 2L,
-        nrow(Y) > 0L, ncol(Y) > 0L,
-        all(Y[!is.na(Y)] %in% 0:1), length(arm) == nrow(Y),
-        !anyNA(arm), length(same_cov) == 1L, is.logical(same_cov),
-        !is.na(same_cov), length(beta_sd) == 1L,
-        is.finite(beta_sd), beta_sd >= 0,
-        length(lkj_eta) == 1L, is.finite(lkj_eta), lkj_eta > 0
+        is.numeric(Y),
+        length(dim(Y)) == 2L,
+        nrow(Y) > 0L,
+        ncol(Y) > 0L,
+        all(Y[!is.na(Y)] %in% 0:1),
+        length(arm) == nrow(Y),
+        !anyNA(arm),
+        length(same_cov) == 1L,
+        is.logical(same_cov),
+        !is.na(same_cov),
+        length(beta_sd) == 1L,
+        is.finite(beta_sd),
+        beta_sd >= 0,
+        length(lkj_eta) == 1L,
+        is.finite(lkj_eta),
+        lkj_eta > 0
     )
     arm <- droplevels(factor(arm))
     N <- nrow(Y)
@@ -168,32 +184,43 @@ prepare_probit_data <- function(Y, arm, X = NULL, same_cov = FALSE,
                 X[i, d, (as.integer(arm[i]) - 1L) * D + d] <- 1
             }
         }
-        coefficient_names <- paste(rep(levels(arm), each = D),
+        coefficient_names <- paste(
+            rep(levels(arm), each = D),
             rep(colnames(Y) %||% seq_len(D), A),
             sep = ":"
         )
     } else {
         stopifnot(
-            is.array(X), length(dim(X)) == 3L,
-            identical(dim(X)[1:2], c(N, D)), dim(X)[3] > 0L,
-            is.numeric(X), all(is.finite(X))
+            is.array(X),
+            length(dim(X)) == 3L,
+            identical(dim(X)[1:2], c(N, D)),
+            dim(X)[3] > 0L,
+            is.numeric(X),
+            all(is.finite(X))
         )
-        coefficient_names <- dimnames(X)[[3]] %||% paste0("beta", seq_len(dim(X)[3]))
+        coefficient_names <- dimnames(X)[[3]] %||%
+            paste0("beta", seq_len(dim(X)[3]))
     }
     if (beta_sd == 0) {
-        if (!saturated) stop("Use a proper beta_sd > 0 with a custom design.")
+        if (!saturated) {
+            stop("Use a proper beta_sd > 0 with a custom design.")
+        }
         for (a in levels(arm)) {
             for (d in seq_len(D)) {
                 yy <- Y[arm == a, d]
                 if (!all(0:1 %in% yy)) {
-                    stop("Flat priors require both outcomes in every arm and visit.")
+                    stop(
+                        "Flat priors require both outcomes in every arm and visit."
+                    )
                 }
             }
         }
     }
     observed <- !is.na(Y)
     keep <- which(rowSums(observed) > 0L)
-    if (!length(keep)) stop("No observed outcomes.")
+    if (!length(keep)) {
+        stop("No observed outcomes.")
+    }
     cg <- if (same_cov) rep(1L, N) else as.integer(arm)
     # Group patients by covariance group and arbitrary observed-visit pattern.
     key <- paste(cg, apply(observed, 1, paste0, collapse = ""), sep = ":")
@@ -210,24 +237,42 @@ prepare_probit_data <- function(Y, arm, X = NULL, same_cov = FALSE,
     })
     cells <- do.call(rbind, rows)
     P <- dim(X)[3]
-    x_obs <- vapply(seq_len(P), function(p) matrix(X[, , p], N, D)[cells], numeric(nrow(cells)))
+    x_obs <- vapply(
+        seq_len(P),
+        function(p) matrix(X[,, p], N, D)[cells],
+        numeric(nrow(cells))
+    )
     x_obs <- matrix(x_obs, nrow(cells), P)
     y_obs <- Y[cells]
-    if (qr(x_obs)$rank < P && beta_sd == 0) stop("Rank-deficient flat-prior design.")
+    if (qr(x_obs)$rank < P && beta_sd == 0) {
+        stop("Rank-deficient flat-prior design.")
+    }
     data <- list(
-        D = D, P = P, G = if (same_cov) 1L else A,
-        R = length(y_obs), B = length(blocks), U = length(y_obs) - length(keep), X = x_obs,
+        D = D,
+        P = P,
+        G = if (same_cov) 1L else A,
+        R = length(y_obs),
+        B = length(blocks),
+        U = length(y_obs) - length(keep),
+        X = x_obs,
         sign_y = 2 * y_obs - 1,
-        K = unname(K), visit = visit, n_subject = unname(n_subject),
+        K = unname(K),
+        visit = visit,
+        n_subject = unname(n_subject),
         start = as.integer(cumsum(c(1L, head(K * n_subject, -1L)))),
         cov_group = vapply(blocks, function(ii) cg[ii[1]], integer(1)),
-        beta_sd = beta_sd, lkj_eta = lkj_eta
+        beta_sd = beta_sd,
+        lkj_eta = lkj_eta
     )
     list(
-        data = data, coefficient_names = coefficient_names,
-        arm_levels = levels(arm), visit_names = colnames(Y) %||% as.character(seq_len(D)),
-        cells = cells, excluded_subjects = setdiff(seq_len(N), keep),
-        same_cov = same_cov, saturated = saturated
+        data = data,
+        coefficient_names = coefficient_names,
+        arm_levels = levels(arm),
+        visit_names = colnames(Y) %||% as.character(seq_len(D)),
+        cells = cells,
+        excluded_subjects = setdiff(seq_len(N), keep),
+        same_cov = same_cov,
+        saturated = saturated
     )
 }
 
@@ -235,17 +280,39 @@ prepare_probit_data <- function(Y, arm, X = NULL, same_cov = FALSE,
 ## ---- probit_draws
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
-fit_probit_draws <- function(prepared, model, chains = 4L, parallel_chains = chains,
-                             iter_warmup = 1500L, iter_sampling = 2000L,
-                             seed = 20261026L, adapt_delta = 0.99,
-                             step_size_cap = 0.005, thin = 1L, ...) {
-    stopifnot(length(step_size_cap) == 1L, is.finite(step_size_cap), step_size_cap > 0)
+fit_probit_draws <- function(
+    prepared,
+    model,
+    chains = 4L,
+    parallel_chains = chains,
+    iter_warmup = 1500L,
+    iter_sampling = 2000L,
+    seed = 20261026L,
+    adapt_delta = 0.99,
+    step_size_cap = 0.005,
+    thin = 1L,
+    ...
+) {
+    stopifnot(
+        length(step_size_cap) == 1L,
+        is.finite(step_size_cap),
+        step_size_cap > 0
+    )
     # Adapt the metric, then sample with a conservative fixed step size.
     warm <- model$sample(
-        data = prepared$data, chains = chains,
-        parallel_chains = parallel_chains, iter_warmup = iter_warmup,
-        iter_sampling = 1L, seed = seed, adapt_delta = adapt_delta,
-        max_treedepth = 12L, step_size = 0.05, refresh = 0, sig_figs = 18, diagnostics = NULL, ...
+        data = prepared$data,
+        chains = chains,
+        parallel_chains = parallel_chains,
+        iter_warmup = iter_warmup,
+        iter_sampling = 1L,
+        seed = seed,
+        adapt_delta = adapt_delta,
+        max_treedepth = 12L,
+        step_size = 0.05,
+        refresh = 0,
+        sig_figs = 18,
+        diagnostics = NULL,
+        ...
     )
     dat <- prepared$data
     variables <- c("beta", "L_Omega", if (dat$U > 0L) "u_raw")
@@ -259,22 +326,37 @@ fit_probit_draws <- function(prepared, model, chains = 4L, parallel_chains = cha
                 })
                 matrix(as.numeric(d[ch, as.vector(nm)]), dat$D, dat$D)
             }),
-            u_raw = if (dat$U > 0L) as.numeric(d[ch, paste0("u_raw[", seq_len(dat$U), "]")]) else numeric()
+            u_raw = if (dat$U > 0L) {
+                as.numeric(d[ch, paste0("u_raw[", seq_len(dat$U), "]")])
+            } else {
+                numeric()
+            }
         )
     })
     sampling_seed <- as.integer(seed %% .Machine$integer.max + 1)
     fit <- model$sample(
-        data = dat, chains = chains, parallel_chains = parallel_chains,
-        iter_warmup = 0L, iter_sampling = iter_sampling, thin = thin, seed = sampling_seed,
-        init = initial, metric = "diag_e", inv_metric = warm$inv_metric(matrix = FALSE),
+        data = dat,
+        chains = chains,
+        parallel_chains = parallel_chains,
+        iter_warmup = 0L,
+        iter_sampling = iter_sampling,
+        thin = thin,
+        seed = sampling_seed,
+        init = initial,
+        metric = "diag_e",
+        inv_metric = warm$inv_metric(matrix = FALSE),
         adapt_engaged = FALSE,
         step_size = pmin(step_size_cap, warm$metadata()$step_size_adaptation),
-        max_treedepth = 12L, refresh = 0
+        max_treedepth = 12L,
+        refresh = 0
     )
     structure(
         list(
-            fit = fit, warmup_fit = warm, prepared = prepared,
-            initialisation = initial, diagnostics = fit$diagnostic_summary()
+            fit = fit,
+            warmup_fit = warm,
+            prepared = prepared,
+            initialisation = initial,
+            diagnostics = fit$diagnostic_summary()
         ),
         class = "probit_draw_fit"
     )
@@ -285,14 +367,23 @@ fit_probit_draws <- function(prepared, model, chains = 4L, parallel_chains = cha
 extract_probit_draws <- function(object, n_samples = NULL, seed = 123L) {
     # Select paired beta/Omega rows; retain full chains in object$fit for diagnostics.
     d <- posterior::as_draws_matrix(object$fit$draws(c("beta", "Omega")))
-    if (is.null(n_samples)) n_samples <- nrow(d)
+    if (is.null(n_samples)) {
+        n_samples <- nrow(d)
+    }
     stopifnot(
-        length(n_samples) == 1L, is.finite(n_samples), n_samples >= 1L,
+        length(n_samples) == 1L,
+        is.finite(n_samples),
+        n_samples >= 1L,
         n_samples == floor(n_samples)
     )
     if (n_samples > nrow(d)) {
-        stop("Requested ", n_samples, " posterior draws, but only ", nrow(d),
-            " are available.", call. = FALSE
+        stop(
+            "Requested ",
+            n_samples,
+            " posterior draws, but only ",
+            nrow(d),
+            " are available.",
+            call. = FALSE
         )
     }
     set.seed(seed)
@@ -309,12 +400,19 @@ extract_probit_draws <- function(object, n_samples = NULL, seed = 123L) {
             nm <- outer(seq_len(dat$D), seq_len(dat$D), function(j, k) {
                 sprintf("Omega[%d,%d,%d]", g, j, k)
             })
-            matrix(as.numeric(d[i, as.vector(nm)]), dat$D, dat$D,
+            matrix(
+                as.numeric(d[i, as.vector(nm)]),
+                dat$D,
+                dat$D,
                 dimnames = rep(list(object$prepared$visit_names), 2)
             )
         })
     })
-    list(beta = beta, sigma = sigma, metadata = object$prepared[
-        c("coefficient_names", "arm_levels", "visit_names", "same_cov")
-    ])
+    list(
+        beta = beta,
+        sigma = sigma,
+        metadata = object$prepared[
+            c("coefficient_names", "arm_levels", "visit_names", "same_cov")
+        ]
+    )
 }

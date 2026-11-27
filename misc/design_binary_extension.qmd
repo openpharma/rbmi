@@ -3,6 +3,8 @@ title: Design for the Binary Outcomes Extension
 bibliography:
   - ../vignettes/references.bib
   - references.bib
+execute:
+  cache: true
 format:
   html:
     embed-resources: true
@@ -222,7 +224,7 @@ operations used in `rbmi`.
 
 To connect with Section 3.3, let a superscript $\mathrm{P}$ distinguish the
 paper's latent variables and parameters from those used below. The paper indexes
-arm by $t\in\{a,r\}$ and writes the model componentwise as
+arm by $t\in\{a,r\}$ where $a$ denotes active and $r$ denotes reference, and writes the model componentwise as
 
 $$
 \begin{aligned}
@@ -235,8 +237,7 @@ $$
 
 Equivalently, the subject's latent vector has distribution
 $Z^{\mathrm{P}}_{t,i}\sim N_D(\mu^{\mathrm{P}}_t,\Omega^{\mathrm{P}}_t)$.
-Section 3.3 also uses $\Sigma_t$ for this same latent covariance matrix;
-we consistently use $\Omega$. With unit diagonal it is also a correlation matrix.
+With unit diagonal $\Omega_t$ is also a correlation matrix.
 Here $D$ counts the modeled binary visits: it corresponds to the paper's $J+1$
 when the same visits are included. The paper includes a baseline response in
 that indexing; the example here models only the five follow-up binary responses,
@@ -279,25 +280,23 @@ A common correlation matrix (`same_cov = TRUE`) and a supplied covariate design
 are also supported. Covariates enter through $x_{ij}^{\mathsf T}\beta$;
 arm-by-visit interactions allow the separate visit-specific covariate effects
 described in the paper, while shared coefficients impose additional assumptions.
-The default design includes no baseline covariate. A common correlation matrix
+
+<!-- The default design includes no baseline covariate. A common correlation matrix
 is an extension beyond the paper's separate-arm model; treatment means remain
 separate when `same_cov = TRUE`. Binary observations identify correlations,
-not unrestricted latent variances.
+not unrestricted latent variances. -->
 
-The supplementary code follows the paper's sign convention. Consequently compare
+<!-- The supplementary code follows the paper's sign convention. Consequently compare
 **Stan's $\beta$ with minus Cro's $\beta$**, after matching the design and
-coefficient order, while leaving the correlation matrices unchanged.
+coefficient order, while leaving the correlation matrices unchanged. -->
 
 The priors matching the latent model in Section 3.3 are
 $p(\beta)\propto1$ and $\Omega_t\sim\operatorname{LKJ}(1)$, independently by arm.
 The paper describes flat priors for that model and fixes every latent variance
-to one. The Jeffreys covariance prior occurs in Section 3.2, which instead
+to one. (Note that the Jeffreys covariance prior only occurs in Section 3.2, which instead
 fits an unrestricted MVN model directly to the binary outcomes as if they were
-continuous, followed by adaptive rounding. These are different models and prior
-specifications; the Jeffreys choice in Section 3.2 is not the covariance prior
-specified for the latent probit method.
-
-To make the equivalence with the Section 3.3 flat prior explicit, let
+continuous, followed by adaptive rounding.) 
+To make the equivalence explicit, let
 $\mathcal C_D$ be the space of positive definite $D\times D$ matrices with unit
 diagonal. With density measured against the free off-diagonal entries,
 
@@ -307,16 +306,11 @@ p(\Omega_t\mid\eta)\propto
 $$
 
 Thus $\eta=1$ is exactly a constant density on the admissible correlation
-matrices. This prior is proper because $\mathcal C_D$ has finite volume. The
-paper's description of the latent covariance prior as improper is therefore
-imprecise once the diagonal is fixed; the flat mean prior remains improper.
+matrices. This prior is actually proper because $\mathcal C_D$ has finite volume. 
+Note that the flat mean prior remains improper.
 
-`beta_sd = 0` requests flat coefficient priors. The preparation function
-allows this only for the saturated arm-by-visit design, with both binary outcomes
-observed in every arm and visit. For a custom design, specify `beta_sd > 0`, giving
-independent $N(0,\texttt{beta\_sd}^2)$ priors. This avoids silently using an improper
-posterior under separation. It is then a different prior from the paper. The
-prototype does not choose a universal prior scale for future package integration.
+Alternatively, iid normal priors on the regression coefficients can be used, with a standard deviation $\sigma_{\beta} > 0$. Below the corresponding parameter will be denoted by `beta_sd`.
+This avoids silently using an improper posterior under separation. It is then a different prior from the paper.
 
 ### Observed-data likelihood and returned draws
 
