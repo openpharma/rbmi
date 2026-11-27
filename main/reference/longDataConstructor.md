@@ -39,6 +39,10 @@ object should be avoided if possible.
 
   A character vector containing the distinct visit levels
 
+- `periods`:
+
+  A character vector containing the distinct period levels
+
 - `ids`:
 
   A character vector containing the unique ids of each subject in

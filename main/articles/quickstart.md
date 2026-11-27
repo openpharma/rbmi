@@ -3,7 +3,10 @@
 ## 1 Introduction
 
 The purpose of this vignette is to provide a 15 minute quickstart guide
-to the core functions of the `rbmi` package.
+to the core functions of the `rbmi` package. Note that the examples will
+focus on continuous outcomes; for modeling count outcomes please refer
+to the [separate
+vignette](https://openpharma.github.io/rbmi/articles/count.md).
 
 The `rbmi` package consists of 4 core functions (plus several helper
 functions) which are typically called in sequence:
@@ -206,7 +209,7 @@ be created.
 `#>     warmup: 200`\
 `#>     thin: 5`\
 `#>     chains: 1`\
-`#>     init: mmrm`\
+`#>     init: mmrm (auto)`\
 `#>     seed: 1821`
 
 Note the use of
@@ -567,27 +570,28 @@ will automatically use Rubin’s rules.
 `#> -----------`\
 `#> Number of Results Combined: 150`\
 `#> Method: rubin`\
+`#> Rubin df method: barnard-rubin`\
 `#> Confidence Level: 0.95`\
 `#> Alternative: two.sided`\
 `#> `\
 `#> Results:`\
 `#> `\
-`#>   ==================================================`\
-`#>    parameter   est     se     lci     uci     pval  `\
-`#>   --------------------------------------------------`\
-`#>      trt_4    -0.092  0.683  -1.439  1.256   0.893  `\
-`#>    lsm_ref_4  -1.616  0.486  -2.576  -0.656  0.001  `\
-`#>    lsm_alt_4  -1.708  0.475  -2.645  -0.77   <0.001 `\
-`#>      trt_5    1.333   0.923  -0.488  3.155    0.15  `\
-`#>    lsm_ref_5  -4.152  0.659  -5.453  -2.85   <0.001 `\
-`#>    lsm_alt_5  -2.818  0.645  -4.093  -1.544  <0.001 `\
-`#>      trt_6    1.947   0.995  -0.017  3.912   0.052  `\
-`#>    lsm_ref_6  -6.093  0.713  -7.502  -4.684  <0.001 `\
-`#>    lsm_alt_6  -4.146  0.698  -5.524  -2.767  <0.001 `\
-`#>      trt_7    2.172   1.106  -0.013  4.357   0.051  `\
-`#>    lsm_ref_7  -6.993  0.806  -8.586   -5.4   <0.001 `\
-`#>    lsm_alt_7  -4.821  0.782  -6.367  -3.275  <0.001 `\
-`#>   --------------------------------------------------`
+`#>   ===============================================================================================================================`\
+`#>    parameter   est     se     lci     uci     pval   estimate_type   group   group_level_1  group_level_2  contrast_label  visit `\
+`#>   -------------------------------------------------------------------------------------------------------------------------------`\
+`#>      trt_4    -0.092  0.683  -1.439  1.256   0.893     contrast     THERAPY     PLACEBO         DRUG            <NA>         4   `\
+`#>    lsm_ref_4  -1.616  0.486  -2.576  -0.656  0.001        lsm       THERAPY      DRUG           <NA>            <NA>         4   `\
+`#>    lsm_alt_4  -1.708  0.475  -2.645  -0.77   <0.001       lsm       THERAPY     PLACEBO         <NA>            <NA>         4   `\
+`#>      trt_5    1.333   0.923  -0.488  3.155    0.15     contrast     THERAPY     PLACEBO         DRUG            <NA>         5   `\
+`#>    lsm_ref_5  -4.152  0.659  -5.453  -2.85   <0.001       lsm       THERAPY      DRUG           <NA>            <NA>         5   `\
+`#>    lsm_alt_5  -2.818  0.645  -4.093  -1.544  <0.001       lsm       THERAPY     PLACEBO         <NA>            <NA>         5   `\
+`#>      trt_6    1.947   0.995  -0.017  3.912   0.052     contrast     THERAPY     PLACEBO         DRUG            <NA>         6   `\
+`#>    lsm_ref_6  -6.093  0.713  -7.502  -4.684  <0.001       lsm       THERAPY      DRUG           <NA>            <NA>         6   `\
+`#>    lsm_alt_6  -4.146  0.698  -5.524  -2.767  <0.001       lsm       THERAPY     PLACEBO         <NA>            <NA>         6   `\
+`#>      trt_7    2.172   1.106  -0.013  4.357   0.051     contrast     THERAPY     PLACEBO         DRUG            <NA>         7   `\
+`#>    lsm_ref_7  -6.993  0.806  -8.586   -5.4   <0.001       lsm       THERAPY      DRUG           <NA>            <NA>         7   `\
+`#>    lsm_alt_7  -4.821  0.782  -6.367  -3.275  <0.001       lsm       THERAPY     PLACEBO         <NA>            <NA>         7   `\
+`#>   -------------------------------------------------------------------------------------------------------------------------------`
 
 The table of values shown in the print message for `poolObj` can also be
 extracted using the

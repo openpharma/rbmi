@@ -32,7 +32,8 @@ extract_imputed_dfs(
   A `data.frame` containing the delta transformation to be applied to
   the imputed dataset. See
   [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
-  for details on the format and specification of this `data.frame`.
+  for details on the format and specification of this `data.frame`. Must
+  be `NULL` for count outcomes.
 
 - idmap:
 

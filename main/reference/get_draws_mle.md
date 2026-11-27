@@ -117,6 +117,9 @@ A `draws` object which is a named list containing the following:
 - `formula`: fixed effects formula object used for the model
   specification.
 
+- `initialisation`: resolved Bayesian initialisation policy or custom
+  Stan initial values, or `NULL` when unavailable or not applicable.
+
 ## Details
 
 This function takes a `Stack` object which contains multiple lists of

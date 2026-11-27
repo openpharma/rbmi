@@ -10,7 +10,7 @@ control_bayes(
   warmup = 200,
   thin = 50,
   chains = 1,
-  init = ifelse(chains > 1, "random", "mmrm"),
+  init = "auto",
   seed = sample.int(.Machine$integer.max, 1),
   ...
 )
@@ -32,8 +32,7 @@ control_bayes(
 
 - init:
 
-  a character string, the method used to initialise the MCMC sampler,
-  see the details.
+  Initialisation policy or Stan initial values; see the details.
 
 - seed:
 
@@ -57,12 +56,23 @@ Currently only the Bayesian imputation via
 [`method_bayes()`](https://openpharma.github.io/rbmi/reference/method.md)
 uses a control function:
 
-- The `init` argument can be set to `"random"` to randomly initialise
-  the sampler with `rstan` default values or to `"mmrm"` to initialise
-  the sampler with the REML estimates of the MMRM. With more than one
-  chain, `"mmrm"` starts all chains at the same values, which makes
-  convergence diagnostics such as R-hat less reliable, so a warning is
-  given.
+- The default `init = "auto"` uses MMRM estimates for continuous
+  outcomes with one chain, and random initialisation otherwise. (With
+  more than one chain, `"mmrm"` starts all chains at the same values,
+  which makes convergence diagnostics such as R-hat less reliable, so a
+  warning is given.) Explicit `"mmrm"` initialisation is only supported
+  for continuous outcomes. Other `init` values are passed unchanged to
+  [`rstan::sampling()`](https://mc-stan.org/rstan/reference/stanmodel-method-sampling.html):
+  `"random"`, `0` or `"0"` (zero on Stan's unconstrained scale), a list
+  of named lists (one per chain), or a function returning a named list,
+  optionally accepting `chain_id`. Omitted parameters use Stan's random
+  initialisation. Custom lists and functions must use the internal Stan
+  parameterisation and constrained parameter scales. For counts, `beta`
+  follows the internally scaled design matrix column order, and `phi`
+  has one value per dispersion group (one when `same_cov = TRUE`),
+  strictly greater than `.Machine$double.eps`. For continuous outcomes,
+  initial values use `theta` and covariance-specific parameters. Note
+  that these are not coefficients on the original data scale.
 
 - The `seed` argument is used to set the seed for the MCMC sampler. By
   default, a random seed is generated, such that outside invocation of
@@ -107,7 +117,7 @@ control_bayes()
 #> [1] 1
 #> 
 #> $init
-#> [1] "mmrm"
+#> [1] "auto"
 #> 
 #> $seed
 #> [1] 1050152937
@@ -125,7 +135,7 @@ control_bayes(warmup = 200, thin = 5, seed = 1821)
 #> [1] 1
 #> 
 #> $init
-#> [1] "mmrm"
+#> [1] "auto"
 #> 
 #> $seed
 #> [1] 1821
@@ -159,7 +169,7 @@ method_bayes(
 #> [1] 1
 #> 
 #> $control$init
-#> [1] "mmrm"
+#> [1] "auto"
 #> 
 #> $control$seed
 #> [1] 1821

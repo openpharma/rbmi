@@ -10,9 +10,11 @@ as_analysis(
   results,
   method,
   delta = NULL,
+  transform = NULL,
   fun = NULL,
   fun_name = NULL,
-  par_meta = NULL
+  par_meta = NULL,
+  outcome_type = c("continuous", "count")
 )
 ```
 
@@ -35,6 +37,12 @@ as_analysis(
   [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
   for details on how this should be specified.
 
+- transform:
+
+  The reporting-scale transformation specification used. See
+  [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
+  for details.
+
 - fun:
 
   The analysis function that was used.
@@ -49,3 +57,7 @@ as_analysis(
   Optional `data.frame` of per-parameter metadata (e.g. the group levels
   and visit associated with each analysis parameter) as attached by the
   analysis function. May be `NULL`.
+
+- outcome_type:
+
+  The endpoint type used to produce the imputations.

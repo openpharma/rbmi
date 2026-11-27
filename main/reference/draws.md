@@ -1,43 +1,94 @@
 # Fit the base imputation model and get parameter estimates
 
 `draws` fits the base imputation model to the observed outcome data
-according to the given multiple imputation methodology. According to the
-user's method specification, it returns either draws from the posterior
-distribution of the model parameters as required for Bayesian multiple
-imputation or frequentist parameter estimates from the original data and
-bootstrapped or leave-one-out datasets as required for conditional mean
-imputation. The purpose of the imputation model is to estimate model
-parameters in the absence of intercurrent events (ICEs) handled using
-reference-based imputation methods. For this reason, any observed
-outcome data after ICEs, for which reference-based imputation methods
-are specified, are removed and considered as missing for the purpose of
+according to the given multiple imputation methodology. The models are
+different depending on the outcome type that is used.
+
+For continuous outcomes, according to the user's method specification,
+it returns either draws from the posterior distribution of the model
+parameters as required for Bayesian multiple imputation or frequentist
+parameter estimates from the original data and bootstrapped or
+leave-one-out datasets as required for conditional mean imputation. The
+purpose of the imputation model is to estimate model parameters in the
+absence of intercurrent events (ICEs) handled using reference-based
+imputation methods. For this reason, any observed continuous outcome
+data after ICEs, for which reference-based imputation methods are
+specified, are removed and considered as missing for the purpose of
 estimating the imputation model, and for this purpose only. The
-imputation model is a mixed model for repeated measures (MMRM) that is
-valid under a missing-at-random (MAR) assumption. It can be fit using
-maximum likelihood (ML) or restricted ML (REML) estimation, a Bayesian
-approach, or an approximate Bayesian approach according to the user's
-method specification. The ML/REML approaches and the approximate
-Bayesian approach support several possible covariance structures, while
-the Bayesian approach based on MCMC sampling supports only an
-unstructured covariance structure. In any case the covariance matrix can
-be assumed to be the same or different across each group.
+imputation model for continuous outcomes is a mixed model for repeated
+measures (MMRM) that is valid under a missing-at-random (MAR)
+assumption. It can be fit using maximum likelihood (ML) or restricted ML
+(REML) estimation, a Bayesian approach, or an approximate Bayesian
+approach according to the user's method specification. The ML/REML
+approaches and the approximate Bayesian approach support several
+possible covariance structures, while the Bayesian approach based on
+MCMC sampling supports only an unstructured covariance structure. In any
+case the covariance matrix can be assumed to be the same or different
+across each group.
+
+For count outcomes, a Bayesian joint negative multinomial model is
+fitted to the event counts across periods, accounting for each period's
+duration. Posterior draws of the regression coefficients and dispersion
+parameter are returned for use in the imputation step. Further details
+about the model are available in the statistical specifications for
+count outcomes vignette.
 
 ## Usage
 
 ``` r
-draws(data, data_ice = NULL, vars, method, ncores = 1, quiet = FALSE)
+draws(
+  data,
+  data_ice = NULL,
+  vars,
+  method,
+  outcome = c("continuous", "count"),
+  ncores = 1,
+  quiet = FALSE
+)
 
 # S3 method for class 'approxbayes'
-draws(data, data_ice = NULL, vars, method, ncores = 1, quiet = FALSE)
+draws(
+  data,
+  data_ice = NULL,
+  vars,
+  method,
+  outcome = c("continuous", "count"),
+  ncores = 1,
+  quiet = FALSE
+)
 
 # S3 method for class 'condmean'
-draws(data, data_ice = NULL, vars, method, ncores = 1, quiet = FALSE)
+draws(
+  data,
+  data_ice = NULL,
+  vars,
+  method,
+  outcome = c("continuous", "count"),
+  ncores = 1,
+  quiet = FALSE
+)
 
 # S3 method for class 'bmlmi'
-draws(data, data_ice = NULL, vars, method, ncores = 1, quiet = FALSE)
+draws(
+  data,
+  data_ice = NULL,
+  vars,
+  method,
+  outcome = c("continuous", "count"),
+  ncores = 1,
+  quiet = FALSE
+)
 
 # S3 method for class 'bayes'
-draws(data, data_ice = NULL, vars, method, ncores = 1, quiet = FALSE)
+draws(
+  data,
+  data_ice = NULL,
+  vars,
+  method,
+  outcome = c("continuous", "count"),
+  ncores = 1,
+  quiet = FALSE
+)
 ```
 
 ## Arguments
@@ -68,6 +119,10 @@ draws(data, data_ice = NULL, vars, method, ncores = 1, quiet = FALSE)
   [`method_bmlmi()`](https://openpharma.github.io/rbmi/reference/method.md).
   It specifies the multiple imputation methodology to be used. See
   details.
+
+- outcome:
+
+  A single `character` specifying the outcome type. See details.
 
 - ncores:
 
@@ -126,12 +181,17 @@ A `draws` object which is a named list containing the following:
 - `formula`: fixed effects formula object used for the model
   specification.
 
+- `initialisation`: resolved Bayesian initialisation policy or custom
+  Stan initial values, or `NULL` when unavailable or not applicable.
+
 ## Details
 
 `draws` performs the first step of the multiple imputation (MI)
 procedure: fitting the base imputation model. The goal is to estimate
 the parameters of interest needed for the imputation phase (i.e. the
-regression coefficients and the covariance matrices from a MMRM model).
+regression coefficients and the covariance matrices from a MMRM model in
+the continuous outcome setting, or the negative binomial regression
+coefficients in a count outcome setting).
 
 The function distinguishes between the following methods:
 
@@ -175,8 +235,15 @@ least the following variables:
 
 - `subjid`: a factor vector containing the subject ids.
 
-- `visit`: a factor vector containing the visit the outcome was observed
-  on.
+- `visit`: for continuous outcomes, a factor vector containing the visit
+  the outcome was observed on.
+
+- `period`: for count outcomes, a factor vector containing the period,
+  with no missing values or unused levels. Its levels determine period
+  order. Its contrasts and ordered status are retained.
+
+- `duration`: for count outcomes, a numeric vector containing the
+  exposure duration for each period.
 
 - `group`: a factor vector containing the group that the subject belongs
   to.
@@ -185,10 +252,10 @@ least the following variables:
   contain missing values. Additional baseline or time-varying covariates
   must be included in `data`.
 
-`data` must have one row per visit per subject. This means that
-incomplete outcome data must be set as `NA` instead of having the
-related row missing. Missing values in the covariates are not allowed.
-If `data` is incomplete then the
+For continuous outcomes, `data` must have one row per visit per subject.
+This means that incomplete outcome data must be set as `NA` instead of
+having the related row missing. Missing values in the covariates are not
+allowed. If `data` is incomplete then the
 [`expand_locf()`](https://openpharma.github.io/rbmi/reference/expand.md)
 helper function can be used to insert any missing rows using Last
 Observation Carried Forward (LOCF) imputation to impute the covariates
@@ -209,8 +276,8 @@ character covariates (for example in the computation of the least square
 means computation) then you are advised to manually cast your character
 covariates to factor in advance of running `draws()`.
 
-The argument `data_ice` contains information about the occurrence of
-ICEs. It is a `data.frame` with 3 columns:
+For continuous outcomes, `data_ice` contains information about the
+occurrence of ICEs. It is a `data.frame` with 3 columns:
 
 - **Subject ID**: a character vector containing the ids of the subjects
   that experienced the ICE. This column must be named as specified in
@@ -240,27 +307,39 @@ ICEs. It is a `data.frame` with 3 columns:
     et al (2021), and Wolbers et al (2022). Please note that
     user-defined imputation strategies can also be set.
 
-The `data_ice` argument is necessary at this stage since (as explained
-in Wolbers et al (2022)), the model is fitted after removing the
-observations which are incompatible with the imputation model, i.e. any
-observed data on or after `data_ice[[vars$visit]]` that are addressed
-with an imputation strategy different from MAR are excluded for the
-model fit. However such observations will not be discarded from the data
-in the imputation phase (performed with the function
+For count outcomes, `data_ice` has only the **Subject ID** and
+**Strategy** columns. It has no period or visit column: no ICE time is
+collected or inferred from the duration variable. The strategy assigned
+to a subject applies to every missing positive-duration period for that
+subject. Therefore, for count outcomes, `JR` and `CR` use the
+reference-arm design for all of the subject's missing positive-duration
+periods; they are not post-ICE-only assumptions.
+
+For continuous outcomes, the `data_ice` argument is necessary at this
+stage since (as explained in Wolbers et al (2022)), the model is fitted
+after removing the observations which are incompatible with the
+imputation model, i.e. any observed data on or after
+`data_ice[[vars$visit]]` that are addressed with an imputation strategy
+different from MAR are excluded for the model fit. However such
+observations will not be discarded from the data in the imputation phase
+(performed with the function
 ([`impute()`](https://openpharma.github.io/rbmi/reference/impute.md)).
 To summarize, **at this stage only pre-ICE data and post-ICE data that
 is after ICEs for which MAR imputation is specified are used**.
 
-If the `data_ice` argument is omitted, or if a subject doesn't have a
-record within `data_ice`, then it is assumed that all of the relevant
-subject's data is pre-ICE and as such all missing visits will be imputed
-under the MAR assumption and all observed data will be used to fit the
-base imputation model. Please note that the ICE visit cannot be updated
-via the `update_strategy` argument in
+For continuous outcomes, if the `data_ice` argument is omitted, or if a
+subject doesn't have a record within `data_ice`, then it is assumed that
+all of the relevant subject's data is pre-ICE and as such all missing
+visits will be imputed under the MAR assumption and all observed data
+will be used to fit the base imputation model. Please note that the ICE
+visit cannot be updated via the `update_strategy` argument in
 [`impute()`](https://openpharma.github.io/rbmi/reference/impute.md);
 this means that subjects who didn't have a record in `data_ice` will
 always have their missing data imputed under the MAR assumption even if
-their strategy is updated.
+their strategy is updated. For count outcomes, a subject without a
+`data_ice` record initially has the MAR strategy; their strategy can be
+changed with `update_strategy` in
+[`impute()`](https://openpharma.github.io/rbmi/reference/impute.md).
 
 The `vars` argument is a named list that specifies the names of key
 variables within `data` and `data_ice`. This list is created by
@@ -281,18 +360,34 @@ and contains the following named elements:
 
 - `covariates`: vector of characters which contains the covariates to be
   included in the model (including interactions which are specified as
-  `"covariateName1*covariateName2"`). If no covariates are provided the
-  default model specification of `outcome ~ 1 + visit + group` will be
-  used. Please note that the `group*visit` interaction is **not**
-  included in the model by default.
+  `"covariateName1*covariateName2"`). For continuous outcomes the
+  default is `outcome ~ 1 + visit + group`. Please note that the
+  `group*visit` interaction is **not** included in the model by default.
+  (Add `group*visit` to include it.) For count outcomes, you can include
+  the period factor in `covariates` to fit period effects, or e.g.
+  include a separate numeric period covariate to fit a continuous period
+  trend.
 
-- `strata`: covariates used as stratification variables in the bootstrap
-  sampling. By default only the `vars$group` is set as stratification
-  variable. Needed only for `method_condmean(type = "bootstrap")` and
+- `strata`: for continuous outcomes, covariates used as stratification
+  variables in the bootstrap sampling. By default only the `vars$group`
+  is set as stratification variable. Needed only for
+  `method_condmean(type = "bootstrap")` and
   [`method_approxbayes()`](https://openpharma.github.io/rbmi/reference/method.md).
 
 - `strategy`: name of the column in `data_ice` which contains the
   subject-specific imputation strategy.
+
+- `period`: for count outcomes, name of the column in `data` which
+  contains the period variable.
+
+- `duration`: for count outcomes, name of the column in `data` which
+  contains the duration variable.
+
+The `outcome` argument allows to select either the continuous outcome or
+the count outcome. It must agree with `vars`: use `"continuous"` (the
+default) with `vars$visit`, or `"count"` with `vars$period` and
+`vars$duration`. Please see the corresponding statistical specification
+vignettes for details on the methods.
 
 In our experience, Bayesian MI (`method = method_bayes()`) with a
 relatively low number of samples (e.g. `n_samples` below 100) frequently
@@ -432,7 +527,7 @@ if (requireNamespace("rstan", quietly = TRUE)) {
 #>     warmup: 200
 #>     thin: 5
 #>     chains: 1
-#>     init: mmrm
+#>     init: mmrm (auto)
 #>     seed: 1821
 #> 
 # }

@@ -6,6 +6,12 @@ specified in the call to
 imputed dataset is created per each "sample" created by
 [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md).
 
+For count outcomes, missing positive-duration cells are sampled
+sequentially from their conditional negative binomial distributions
+given the observed cells and any previously imputed cells for the same
+subject. Missing cells are visited in period-factor level order. The
+model uses the dispersion parameterisation `Var(Y) = mu + phi * mu^2`.
+
 ## Usage
 
 ``` r
@@ -30,6 +36,14 @@ impute(
   references = NULL,
   update_strategy = NULL,
   strategies = getStrategies()
+)
+
+# S3 method for class 'draws_count'
+impute(
+  draws,
+  references = NULL,
+  update_strategy = NULL,
+  strategies = get_count_strategies()
 )
 ```
 
@@ -61,13 +75,15 @@ impute(
 
 - strategies:
 
-  A named list of functions. Defines the imputation functions to be
-  used. The names of the list should mirror the values specified in
-  `strategy` column of `data_ice`. Default =
+  A named list defining the imputation strategies to be used. The names
+  of the list should mirror the values specified in the `strategy`
+  column of `data_ice` or `update_strategy`. For continuous outcomes the
+  default is
   [`getStrategies()`](https://openpharma.github.io/rbmi/reference/getStrategies.md).
-  See
-  [`getStrategies()`](https://openpharma.github.io/rbmi/reference/getStrategies.md)
-  for more details.
+  For count outcomes, use
+  [`get_count_strategies()`](https://openpharma.github.io/rbmi/reference/count_strategy.md)
+  to define controlled rate transformations in addition to the built-in
+  MAR, JR and CR strategies.
 
 ## Value
 
@@ -138,11 +154,15 @@ in the `vars` argument as specified in the call to
 [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md).
 Please note that this argument only allows you to update the imputation
 strategy and not other arguments such as the time of the first visit
-affected by the ICE. A key limitation of this functionality is that one
-can only switch between a MAR and a non-MAR strategy (or vice versa) for
-subjects without observed post-ICE data. The reason for this is that
-such a change would affect whether the post-ICE data is included in the
-base imputation model or not (as explained in the help to
+affected by the ICE. For count outcomes, it can also assign controlled
+count strategies created with
+[`count_strategy()`](https://openpharma.github.io/rbmi/reference/count_strategy.md)
+after the posterior draws have been obtained. For visit-based continuous
+outcomes, a key limitation of this functionality is that one can only
+switch between a MAR and a non-MAR strategy (or vice versa) for subjects
+without observed post-ICE data. The reason for this is that such a
+change would affect whether the post-ICE data is included in the base
+imputation model or not (as explained in the help to
 [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md)). As
 an example, if a subject had their ICE on "Visit 2" but had
 observed/known values for "Visit 3" then the function will throw an

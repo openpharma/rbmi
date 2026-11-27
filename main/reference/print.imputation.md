@@ -7,6 +7,9 @@ Print `imputation` object
 ``` r
 # S3 method for class 'imputation'
 print(x, ...)
+
+# S3 method for class 'imputation_count'
+print(x, ...)
 ```
 
 ## Arguments
@@ -19,3 +22,9 @@ print(x, ...)
 - ...:
 
   Not used.
+
+## Functions
+
+- `print(imputation_count)`: Print the number of patients with positive
+  duration in each period for count endpoints. Zero-duration rows are
+  structural placeholders and are not counted.

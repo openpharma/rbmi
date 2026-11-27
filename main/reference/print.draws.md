@@ -7,6 +7,9 @@ Print `draws` object
 ``` r
 # S3 method for class 'draws'
 print(x, ...)
+
+# S3 method for class 'draws_count'
+print(x, ...)
 ```
 
 ## Arguments
@@ -19,3 +22,8 @@ print(x, ...)
 - ...:
 
   not used.
+
+## Functions
+
+- `print(draws_count)`: Print count endpoint draws, omitting settings
+  that only apply to the continuous-outcome covariance model.

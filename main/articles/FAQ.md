@@ -68,9 +68,13 @@ MMRM analyses for clinical trials with longitudinal endpoints.
 
 ### 1.3 How does `rbmi` compare to general-purpose software for multiple imputation (MI) such as `mice`?
 
-`rbmi` covers only “MMRM-type” settings, i.e. settings with a single
-longitudinal continuous outcome which may be missing at some visits and
-hence require imputation.
+`rbmi` currently covers only continuous and count outcome data,
+i.e. settings with
+
+- a single longitudinal continuous outcome which may be missing at some
+  visits and hence require imputation.
+- a single count outcome which may be missing for some observation
+  periods and hence require imputation.
 
 For these settings, it has several **advantages** over general-purpose
 MI software:

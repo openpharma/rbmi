@@ -320,33 +320,34 @@ impute only truly missing data in `data[[vars$outcome]]`.
 `#> -----------`\
 `#> Number of Results Combined: 20`\
 `#> Method: rubin`\
+`#> Rubin df method: barnard-rubin`\
 `#> Confidence Level: 0.95`\
 `#> Alternative: two.sided`\
 `#> `\
 `#> Results:`\
 `#> `\
-`#>   ==================================================`\
-`#>    parameter   est     se     lci     uci     pval  `\
-`#>   --------------------------------------------------`\
-`#>      trt_1    -0.486  0.512  -1.496  0.524   0.343  `\
-`#>    lsm_ref_1   2.62   0.362  1.907   3.333   <0.001 `\
-`#>    lsm_alt_1  2.133   0.362   1.42   2.847   <0.001 `\
-`#>      trt_2    -0.066  0.542  -1.135  1.004   0.904  `\
-`#>    lsm_ref_2  3.707   0.384   2.95   4.464   <0.001 `\
-`#>    lsm_alt_2  3.641   0.383  2.885   4.397   <0.001 `\
-`#>      trt_3    -1.782  0.607  -2.979  -0.585  0.004  `\
-`#>    lsm_ref_3  5.841   0.428  4.997   6.685   <0.001 `\
-`#>    lsm_alt_3  4.059   0.428  3.214   4.904   <0.001 `\
-`#>      trt_4    -2.518  0.692  -3.884  -1.152  <0.001 `\
-`#>    lsm_ref_4  7.656   0.492  6.685   8.627   <0.001 `\
-`#>    lsm_alt_4  5.138   0.488  4.176    6.1    <0.001 `\
-`#>      trt_5    -3.658  0.856  -5.346  -1.97   <0.001 `\
-`#>    lsm_ref_5  9.558   0.598  8.379   10.737  <0.001 `\
-`#>    lsm_alt_5   5.9    0.608  4.699   7.101   <0.001 `\
-`#>      trt_6    -4.537  0.954  -6.42   -2.655  <0.001 `\
-`#>    lsm_ref_6  11.048  0.666  9.735   12.362  <0.001 `\
-`#>    lsm_alt_6  6.511   0.674  5.181   7.841   <0.001 `\
-`#>   --------------------------------------------------`
+`#>   =============================================================================================================================`\
+`#>    parameter   est     se     lci     uci     pval   estimate_type  group  group_level_1  group_level_2  contrast_label  visit `\
+`#>   -----------------------------------------------------------------------------------------------------------------------------`\
+`#>      trt_1    -0.486  0.512  -1.496  0.524   0.343     contrast     group  Intervention      Control          <NA>         1   `\
+`#>    lsm_ref_1   2.62   0.362  1.907   3.333   <0.001       lsm       group     Control         <NA>            <NA>         1   `\
+`#>    lsm_alt_1  2.133   0.362   1.42   2.847   <0.001       lsm       group  Intervention       <NA>            <NA>         1   `\
+`#>      trt_2    -0.066  0.542  -1.135  1.004   0.904     contrast     group  Intervention      Control          <NA>         2   `\
+`#>    lsm_ref_2  3.707   0.384   2.95   4.464   <0.001       lsm       group     Control         <NA>            <NA>         2   `\
+`#>    lsm_alt_2  3.641   0.383  2.885   4.397   <0.001       lsm       group  Intervention       <NA>            <NA>         2   `\
+`#>      trt_3    -1.782  0.607  -2.979  -0.585  0.004     contrast     group  Intervention      Control          <NA>         3   `\
+`#>    lsm_ref_3  5.841   0.428  4.997   6.685   <0.001       lsm       group     Control         <NA>            <NA>         3   `\
+`#>    lsm_alt_3  4.059   0.428  3.214   4.904   <0.001       lsm       group  Intervention       <NA>            <NA>         3   `\
+`#>      trt_4    -2.518  0.692  -3.884  -1.152  <0.001    contrast     group  Intervention      Control          <NA>         4   `\
+`#>    lsm_ref_4  7.656   0.492  6.685   8.627   <0.001       lsm       group     Control         <NA>            <NA>         4   `\
+`#>    lsm_alt_4  5.138   0.488  4.176    6.1    <0.001       lsm       group  Intervention       <NA>            <NA>         4   `\
+`#>      trt_5    -3.658  0.856  -5.346  -1.97   <0.001    contrast     group  Intervention      Control          <NA>         5   `\
+`#>    lsm_ref_5  9.558   0.598  8.379   10.737  <0.001       lsm       group     Control         <NA>            <NA>         5   `\
+`#>    lsm_alt_5   5.9    0.608  4.699   7.101   <0.001       lsm       group  Intervention       <NA>            <NA>         5   `\
+`#>      trt_6    -4.537  0.954  -6.42   -2.655  <0.001    contrast     group  Intervention      Control          <NA>         6   `\
+`#>    lsm_ref_6  11.048  0.666  9.735   12.362  <0.001       lsm       group     Control         <NA>            <NA>         6   `\
+`#>    lsm_alt_6  6.511   0.674  5.181   7.841   <0.001       lsm       group  Intervention       <NA>            <NA>         6   `\
+`#>   -----------------------------------------------------------------------------------------------------------------------------`
 
 This last output gives an estimated difference of -4.537 (95% CI -6.420
 to -2.655) between the two groups at the last visit with an associated
@@ -409,33 +410,34 @@ sensitivity analysis. This can be efficiently implemented using
 `#> -----------`\
 `#> Number of Results Combined: 20`\
 `#> Method: rubin`\
+`#> Rubin df method: barnard-rubin`\
 `#> Confidence Level: 0.95`\
 `#> Alternative: two.sided`\
 `#> `\
 `#> Results:`\
 `#> `\
-`#>   ==================================================`\
-`#>    parameter   est     se     lci     uci     pval  `\
-`#>   --------------------------------------------------`\
-`#>      trt_1    -0.485  0.513  -1.496  0.526   0.346  `\
-`#>    lsm_ref_1  2.609   0.363  1.892   3.325   <0.001 `\
-`#>    lsm_alt_1  2.124   0.361  1.412   2.836   <0.001 `\
-`#>      trt_2    -0.06   0.535  -1.115  0.995   0.911  `\
-`#>    lsm_ref_2  3.694   0.378  2.948   4.441   <0.001 `\
-`#>    lsm_alt_2  3.634   0.381  2.882   4.387   <0.001 `\
-`#>      trt_3    -1.767  0.598  -2.948  -0.587  0.004  `\
-`#>    lsm_ref_3  5.845   0.422  5.012   6.677   <0.001 `\
-`#>    lsm_alt_3  4.077   0.432  3.225    4.93   <0.001 `\
-`#>      trt_4    -2.529  0.686  -3.883  -1.175  <0.001 `\
-`#>    lsm_ref_4  7.637   0.495  6.659   8.614   <0.001 `\
-`#>    lsm_alt_4  5.108   0.492  4.138   6.078   <0.001 `\
-`#>      trt_5    -3.523  0.856  -5.212  -1.833  <0.001 `\
-`#>    lsm_ref_5  9.554   0.61   8.351   10.758  <0.001 `\
-`#>    lsm_alt_5  6.032   0.611  4.827   7.237   <0.001 `\
-`#>      trt_6    -4.36   0.952  -6.238  -2.482  <0.001 `\
-`#>    lsm_ref_6  11.003  0.676  9.669   12.337  <0.001 `\
-`#>    lsm_alt_6  6.643   0.687  5.287     8     <0.001 `\
-`#>   --------------------------------------------------`
+`#>   =============================================================================================================================`\
+`#>    parameter   est     se     lci     uci     pval   estimate_type  group  group_level_1  group_level_2  contrast_label  visit `\
+`#>   -----------------------------------------------------------------------------------------------------------------------------`\
+`#>      trt_1    -0.485  0.513  -1.496  0.526   0.346     contrast     group  Intervention      Control          <NA>         1   `\
+`#>    lsm_ref_1  2.609   0.363  1.892   3.325   <0.001       lsm       group     Control         <NA>            <NA>         1   `\
+`#>    lsm_alt_1  2.124   0.361  1.412   2.836   <0.001       lsm       group  Intervention       <NA>            <NA>         1   `\
+`#>      trt_2    -0.06   0.535  -1.115  0.995   0.911     contrast     group  Intervention      Control          <NA>         2   `\
+`#>    lsm_ref_2  3.694   0.378  2.948   4.441   <0.001       lsm       group     Control         <NA>            <NA>         2   `\
+`#>    lsm_alt_2  3.634   0.381  2.882   4.387   <0.001       lsm       group  Intervention       <NA>            <NA>         2   `\
+`#>      trt_3    -1.767  0.598  -2.948  -0.587  0.004     contrast     group  Intervention      Control          <NA>         3   `\
+`#>    lsm_ref_3  5.845   0.422  5.012   6.677   <0.001       lsm       group     Control         <NA>            <NA>         3   `\
+`#>    lsm_alt_3  4.077   0.432  3.225    4.93   <0.001       lsm       group  Intervention       <NA>            <NA>         3   `\
+`#>      trt_4    -2.529  0.686  -3.883  -1.175  <0.001    contrast     group  Intervention      Control          <NA>         4   `\
+`#>    lsm_ref_4  7.637   0.495  6.659   8.614   <0.001       lsm       group     Control         <NA>            <NA>         4   `\
+`#>    lsm_alt_4  5.108   0.492  4.138   6.078   <0.001       lsm       group  Intervention       <NA>            <NA>         4   `\
+`#>      trt_5    -3.523  0.856  -5.212  -1.833  <0.001    contrast     group  Intervention      Control          <NA>         5   `\
+`#>    lsm_ref_5  9.554   0.61   8.351   10.758  <0.001       lsm       group     Control         <NA>            <NA>         5   `\
+`#>    lsm_alt_5  6.032   0.611  4.827   7.237   <0.001       lsm       group  Intervention       <NA>            <NA>         5   `\
+`#>      trt_6    -4.36   0.952  -6.238  -2.482  <0.001    contrast     group  Intervention      Control          <NA>         6   `\
+`#>    lsm_ref_6  11.003  0.676  9.669   12.337  <0.001       lsm       group     Control         <NA>            <NA>         6   `\
+`#>    lsm_alt_6  6.643   0.687  5.287     8     <0.001       lsm       group  Intervention       <NA>            <NA>         6   `\
+`#>   -----------------------------------------------------------------------------------------------------------------------------`
 
 For imputations under a jump to reference assumption, we get an
 estimated difference of -4.360 (95% CI -6.238 to -2.482) between the two
@@ -638,6 +640,7 @@ below:
 `#> -----------`\
 `#> Number of Results Combined: 20`\
 `#> Method: rubin`\
+`#> Rubin df method: barnard-rubin`\
 `#> Confidence Level: 0.95`\
 `#> Alternative: two.sided`\
 `#> `\
@@ -672,11 +675,16 @@ following basic analysis function:
 `    ``)`\
 `    `[`return`](https://rdrr.io/r/base/function.html)`(``res``)`\
 `}`\
-`    `\
+`   `\
 `ana_obj_prop`` ``<-`` `[`analyse`](https://openpharma.github.io/rbmi/reference/analyse.md)`(`\
 `  ``impute_obj_CIR``,`\
 `  fun ``=`` ``compare_prop_lastvisit``,`\
-`  vars ``=`` ``vars_an`\
+`  vars ``=`` ``vars_an``,`\
+`  transform ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(`\
+`      transform ``=`` ``exp``,`\
+`      derivative ``=`` ``exp``,`\
+`      scale ``=`` ``"rate"`\
+`  ``)`\
 `)`\
 \
 `pool_obj_prop`` ``<-`` `[`pool`](https://openpharma.github.io/rbmi/reference/pool.md)`(``ana_obj_prop``)`\
@@ -686,27 +694,61 @@ following basic analysis function:
 `#> -----------`\
 `#> Number of Results Combined: 20`\
 `#> Method: rubin`\
+`#> Rubin df method: barnard-rubin`\
 `#> Confidence Level: 0.95`\
 `#> Alternative: two.sided`\
 `#> `\
-`#> Results:`\
+`` #> Results (transformed to the rate scale; original-scale results are in `$pars`): ``\
 `#> `\
-`#>   =================================================`\
-`#>    parameter   est     se     lci     uci    pval  `\
-`#>   -------------------------------------------------`\
-`#>       trt     -1.052  0.314  -1.667  -0.438  0.001 `\
-`#>   -------------------------------------------------`\
+`#>   ==============================================`\
+`#>    parameter   est    se     lci    uci   pval  `\
+`#>   ----------------------------------------------`\
+`#>       trt     0.349  0.109  0.189  0.646  0.001 `\
+`#>   ----------------------------------------------`\
 \
-`tmp`` ``<-`` `[`as.data.frame`](https://rdrr.io/r/base/as.data.frame.html)`(``pool_obj_prop``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `\
-`    `[`mutate`](https://dplyr.tidyverse.org/reference/mutate.html)`(`\
-`        OR ``=`` `[`exp`](https://rdrr.io/r/base/Log.html)`(``est``)``,`\
-`        OR.lci ``=`` `[`exp`](https://rdrr.io/r/base/Log.html)`(``lci``)``,`\
-`        OR.uci ``=`` `[`exp`](https://rdrr.io/r/base/Log.html)`(``uci``)`\
-`    ``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)` `\
-`    `[`select`](https://dplyr.tidyverse.org/reference/select.html)`(``parameter``, ``OR``, ``OR.lci``, ``OR.uci``)`\
+`tmp`` ``<-`` `[`as.data.frame`](https://rdrr.io/r/base/as.data.frame.html)`(``pool_obj_prop``)`` `[`%>%`](https://magrittr.tidyverse.org/reference/pipe.html)\
+`    `[`select`](https://dplyr.tidyverse.org/reference/select.html)`(``parameter``, OR ``=`` ``est``, OR.lci ``=`` ``lci``, OR.uci ``=`` ``uci``)`\
 `tmp`\
 `#>   parameter        OR   OR.lci    OR.uci`\
 `#> 1       trt 0.3491078 0.188807 0.6455073`
+
+#### 7.0.1 Transforming pooled parameters
+
+Some analysis functions estimate a parameter on a convenient model scale
+but need to report it on another scale. This is possible with the
+`transform` argument to
+[`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md).
+Alternatively you can attach a transformation to the analysis function
+with `attr(my_analysis, "transform")`. You can specify the
+transformation directly as a list with elements `transform` and
+`derivative`, or use the convenience function
+`use_transform(expression)`, where `expression` is a vectorized
+expression in `x`. The estimates are pooled on the original scale;
+[`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) then
+stores the transformed estimate, confidence limits, and delta-method
+standard error separately in `transformed_pars`. Confidence limits are
+transformed directly rather than reconstructed from that standard error.
+Transformations must be monotone over each pooled confidence interval;
+[`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) checks
+the supplied derivative and errors when it changes sign. P-values are
+unchanged.
+
+For example, the preceding logistic regression estimates a log odds
+ratio. We declare odds-ratio reporting with the `exp` transformation.
+`print(pool_obj_prop)` and `as.data.frame(pool_obj_prop)` now
+automatically use that scale, while the original log-odds-ratio result
+remains in `pool_obj_prop$pars`:
+
+\
+[`as.data.frame`](https://rdrr.io/r/base/as.data.frame.html)`(``pool_obj_prop``)`\
+`#>   parameter       est        se      lci       uci         pval`\
+`#> 1       trt 0.3491078 0.1094822 0.188807 0.6455073 0.0007915703`\
+[`as.data.frame`](https://rdrr.io/r/base/as.data.frame.html)`(``pool_obj_prop``, scale ``=`` ``"original"``)`\
+`#>   parameter       est        se      lci        uci         pval`\
+`#> 1       trt -1.052374 0.3136056 -1.66703 -0.4377187 0.0007915703`
+
+The same pattern can be used for other smooth, componentwise
+transformations.
 
 Note that if the user wants `rbmi` to use a normal approximation to the
 pooled test statistics, then the degrees of freedom need to be set to
@@ -798,33 +840,34 @@ could be programmed as follows:
 `#> -----------`\
 `#> Number of Results Combined: 20`\
 `#> Method: rubin`\
+`#> Rubin df method: barnard-rubin`\
 `#> Confidence Level: 0.95`\
 `#> Alternative: two.sided`\
 `#> `\
 `#> Results:`\
 `#> `\
-`#>   ==================================================`\
-`#>    parameter   est     se     lci     uci     pval  `\
-`#>   --------------------------------------------------`\
-`#>      trt_1    -0.482  0.524  -1.516  0.552   0.359  `\
-`#>    lsm_ref_1  2.718   0.37   1.987   3.448   <0.001 `\
-`#>    lsm_alt_1  2.235   0.37   1.505   2.966   <0.001 `\
-`#>      trt_2    -0.016  0.56   -1.12   1.089   0.978  `\
-`#>    lsm_ref_2  3.907   0.396  3.125   4.688   <0.001 `\
-`#>    lsm_alt_2  3.891   0.395  3.111   4.671   <0.001 `\
-`#>      trt_3    -1.684  0.641  -2.948  -0.42   0.009  `\
-`#>    lsm_ref_3  6.092   0.452  5.201   6.983   <0.001 `\
-`#>    lsm_alt_3  4.408   0.452  3.515    5.3    <0.001 `\
-`#>      trt_4    -2.359  0.741  -3.821  -0.897  0.002  `\
-`#>    lsm_ref_4  7.951   0.526  6.913    8.99   <0.001 `\
-`#>    lsm_alt_4  5.593   0.522  4.563   6.623   <0.001 `\
-`#>      trt_5    -3.34   0.919  -5.153  -1.526  <0.001 `\
-`#>    lsm_ref_5  9.899   0.643  8.631   11.168  <0.001 `\
-`#>    lsm_alt_5  6.559   0.653  5.271   7.848   <0.001 `\
-`#>      trt_6    -4.21   1.026  -6.236  -2.184  <0.001 `\
-`#>    lsm_ref_6  11.435  0.718  10.019  12.851  <0.001 `\
-`#>    lsm_alt_6  7.225   0.725  5.793   8.656   <0.001 `\
-`#>   --------------------------------------------------`
+`#>   =============================================================================================================================`\
+`#>    parameter   est     se     lci     uci     pval   estimate_type  group  group_level_1  group_level_2  contrast_label  visit `\
+`#>   -----------------------------------------------------------------------------------------------------------------------------`\
+`#>      trt_1    -0.482  0.524  -1.516  0.552   0.359     contrast     group  Intervention      Control          <NA>         1   `\
+`#>    lsm_ref_1  2.718   0.37   1.987   3.448   <0.001       lsm       group     Control         <NA>            <NA>         1   `\
+`#>    lsm_alt_1  2.235   0.37   1.505   2.966   <0.001       lsm       group  Intervention       <NA>            <NA>         1   `\
+`#>      trt_2    -0.016  0.56   -1.12   1.089   0.978     contrast     group  Intervention      Control          <NA>         2   `\
+`#>    lsm_ref_2  3.907   0.396  3.125   4.688   <0.001       lsm       group     Control         <NA>            <NA>         2   `\
+`#>    lsm_alt_2  3.891   0.395  3.111   4.671   <0.001       lsm       group  Intervention       <NA>            <NA>         2   `\
+`#>      trt_3    -1.684  0.641  -2.948  -0.42   0.009     contrast     group  Intervention      Control          <NA>         3   `\
+`#>    lsm_ref_3  6.092   0.452  5.201   6.983   <0.001       lsm       group     Control         <NA>            <NA>         3   `\
+`#>    lsm_alt_3  4.408   0.452  3.515    5.3    <0.001       lsm       group  Intervention       <NA>            <NA>         3   `\
+`#>      trt_4    -2.359  0.741  -3.821  -0.897  0.002     contrast     group  Intervention      Control          <NA>         4   `\
+`#>    lsm_ref_4  7.951   0.526  6.913    8.99   <0.001       lsm       group     Control         <NA>            <NA>         4   `\
+`#>    lsm_alt_4  5.593   0.522  4.563   6.623   <0.001       lsm       group  Intervention       <NA>            <NA>         4   `\
+`#>      trt_5    -3.34   0.919  -5.153  -1.526  <0.001    contrast     group  Intervention      Control          <NA>         5   `\
+`#>    lsm_ref_5  9.899   0.643  8.631   11.168  <0.001       lsm       group     Control         <NA>            <NA>         5   `\
+`#>    lsm_alt_5  6.559   0.653  5.271   7.848   <0.001       lsm       group  Intervention       <NA>            <NA>         5   `\
+`#>      trt_6    -4.21   1.026  -6.236  -2.184  <0.001    contrast     group  Intervention      Control          <NA>         6   `\
+`#>    lsm_ref_6  11.435  0.718  10.019  12.851  <0.001       lsm       group     Control         <NA>            <NA>         6   `\
+`#>    lsm_alt_6  7.225   0.725  5.793   8.656   <0.001       lsm       group  Intervention       <NA>            <NA>         6   `\
+`#>   -----------------------------------------------------------------------------------------------------------------------------`
 
 The same approach can be used to implement a tipping point analysis.
 Here, we apply different delta-adjustments to imputed data from the
@@ -910,7 +953,7 @@ result, defined here as an analysis p-value \\(\geq 0.05\\).
 `    `[`geom_raster`](https://ggplot2.tidyverse.org/reference/geom_tile.html)`(``)`` ``+`\
 `    `[`scale_fill_manual`](https://ggplot2.tidyverse.org/reference/scale_manual.html)`(``values ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"darkgreen"``, ``"lightgreen"``, ``"lightyellow"``, ``"orange"``, ``"red"``)``)`
 
-![](advanced_files/figure-html/unnamed-chunk-15-1.png)
+![](advanced_files/figure-html/unnamed-chunk-16-1.png)
 
 According to this analysis, the significant test result from the primary
 analysis under CIR could only be tipped to a non-significant result for
@@ -1061,33 +1104,34 @@ offset to our analysis:
 `#> -----------`\
 `#> Number of Results Combined: 20`\
 `#> Method: rubin`\
+`#> Rubin df method: barnard-rubin`\
 `#> Confidence Level: 0.95`\
 `#> Alternative: two.sided`\
 `#> `\
 `#> Results:`\
 `#> `\
-`#>   ==================================================`\
-`#>    parameter   est     se     lci     uci     pval  `\
-`#>   --------------------------------------------------`\
-`#>      trt_1    -0.446  0.514  -1.459  0.567   0.386  `\
-`#>    lsm_ref_1   2.62   0.363  1.904   3.335   <0.001 `\
-`#>    lsm_alt_1  2.173   0.363  1.458   2.889   <0.001 `\
-`#>      trt_2    0.072   0.546  -1.006   1.15   0.895  `\
-`#>    lsm_ref_2  3.708   0.387  2.945   4.471   <0.001 `\
-`#>    lsm_alt_2   3.78   0.386  3.018   4.542   <0.001 `\
-`#>      trt_3    -1.507  0.626  -2.743  -0.272  0.017  `\
-`#>    lsm_ref_3  5.844   0.441  4.973   6.714   <0.001 `\
-`#>    lsm_alt_3  4.336   0.442  3.464   5.209   <0.001 `\
-`#>      trt_4    -2.062  0.731  -3.504  -0.621  0.005  `\
-`#>    lsm_ref_4  7.658   0.519  6.634   8.682   <0.001 `\
-`#>    lsm_alt_4  5.596   0.515   4.58   6.612   <0.001 `\
-`#>      trt_5    -2.938  0.916  -4.746  -1.13   0.002  `\
-`#>    lsm_ref_5  9.558   0.641  8.293   10.823  <0.001 `\
-`#>    lsm_alt_5   6.62   0.651  5.335   7.905   <0.001 `\
-`#>      trt_6    -3.53   1.045  -5.591  -1.469  0.001  `\
-`#>    lsm_ref_6  11.045  0.73   9.604   12.486  <0.001 `\
-`#>    lsm_alt_6  7.515   0.738  6.058   8.971   <0.001 `\
-`#>   --------------------------------------------------`
+`#>   =============================================================================================================================`\
+`#>    parameter   est     se     lci     uci     pval   estimate_type  group  group_level_1  group_level_2  contrast_label  visit `\
+`#>   -----------------------------------------------------------------------------------------------------------------------------`\
+`#>      trt_1    -0.446  0.514  -1.459  0.567   0.386     contrast     group  Intervention      Control          <NA>         1   `\
+`#>    lsm_ref_1   2.62   0.363  1.904   3.335   <0.001       lsm       group     Control         <NA>            <NA>         1   `\
+`#>    lsm_alt_1  2.173   0.363  1.458   2.889   <0.001       lsm       group  Intervention       <NA>            <NA>         1   `\
+`#>      trt_2    0.072   0.546  -1.006   1.15   0.895     contrast     group  Intervention      Control          <NA>         2   `\
+`#>    lsm_ref_2  3.708   0.387  2.945   4.471   <0.001       lsm       group     Control         <NA>            <NA>         2   `\
+`#>    lsm_alt_2   3.78   0.386  3.018   4.542   <0.001       lsm       group  Intervention       <NA>            <NA>         2   `\
+`#>      trt_3    -1.507  0.626  -2.743  -0.272  0.017     contrast     group  Intervention      Control          <NA>         3   `\
+`#>    lsm_ref_3  5.844   0.441  4.973   6.714   <0.001       lsm       group     Control         <NA>            <NA>         3   `\
+`#>    lsm_alt_3  4.336   0.442  3.464   5.209   <0.001       lsm       group  Intervention       <NA>            <NA>         3   `\
+`#>      trt_4    -2.062  0.731  -3.504  -0.621  0.005     contrast     group  Intervention      Control          <NA>         4   `\
+`#>    lsm_ref_4  7.658   0.519  6.634   8.682   <0.001       lsm       group     Control         <NA>            <NA>         4   `\
+`#>    lsm_alt_4  5.596   0.515   4.58   6.612   <0.001       lsm       group  Intervention       <NA>            <NA>         4   `\
+`#>      trt_5    -2.938  0.916  -4.746  -1.13   0.002     contrast     group  Intervention      Control          <NA>         5   `\
+`#>    lsm_ref_5  9.558   0.641  8.293   10.823  <0.001       lsm       group     Control         <NA>            <NA>         5   `\
+`#>    lsm_alt_5   6.62   0.651  5.335   7.905   <0.001       lsm       group  Intervention       <NA>            <NA>         5   `\
+`#>      trt_6    -3.53   1.045  -5.591  -1.469  0.001     contrast     group  Intervention      Control          <NA>         6   `\
+`#>    lsm_ref_6  11.045  0.73   9.604   12.486  <0.001       lsm       group     Control         <NA>            <NA>         6   `\
+`#>    lsm_alt_6  7.515   0.738  6.058   8.971   <0.001       lsm       group  Intervention       <NA>            <NA>         6   `\
+`#>   -----------------------------------------------------------------------------------------------------------------------------`
 
 ## References
 

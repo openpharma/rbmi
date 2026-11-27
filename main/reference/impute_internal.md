@@ -45,13 +45,15 @@ impute_internal(
 
 - strategies:
 
-  A named list of functions. Defines the imputation functions to be
-  used. The names of the list should mirror the values specified in
-  `strategy` column of `data_ice`. Default =
+  A named list defining the imputation strategies to be used. The names
+  of the list should mirror the values specified in the `strategy`
+  column of `data_ice` or `update_strategy`. For continuous outcomes the
+  default is
   [`getStrategies()`](https://openpharma.github.io/rbmi/reference/getStrategies.md).
-  See
-  [`getStrategies()`](https://openpharma.github.io/rbmi/reference/getStrategies.md)
-  for more details.
+  For count outcomes, use
+  [`get_count_strategies()`](https://openpharma.github.io/rbmi/reference/count_strategy.md)
+  to define controlled rate transformations in addition to the built-in
+  MAR, JR and CR strategies.
 
 - condmean:
 

@@ -14,18 +14,25 @@ pool(
 )
 
 # S3 method for class 'pool'
-as.data.frame(x, ...)
+as.data.frame(x, ..., scale = c("auto", "original", "transformed"))
 
 # S3 method for class 'pool'
-print(x, ...)
+print(x, ..., scale = c("auto", "original", "transformed"))
 
 mcse(x, results)
 
 # S3 method for class 'mcse'
-as.data.frame(x, ...)
+as.data.frame(x, ..., scale = c("auto", "original", "transformed"))
 
 # S3 method for class 'mcse'
-print(x, ..., pval_digits = 2, pval_eps = 1e-06, pval_nsmall = 5)
+print(
+  x,
+  ...,
+  pval_digits = 2,
+  pval_eps = 1e-06,
+  pval_nsmall = 5,
+  scale = c("auto", "original", "transformed")
+)
 ```
 
 ## Arguments
@@ -70,6 +77,13 @@ print(x, ..., pval_digits = 2, pval_eps = 1e-06, pval_nsmall = 5)
 
   not used.
 
+- scale:
+
+  The scale of results returned by `as.data.frame.pool()` or displayed
+  by `print.pool()`. Must be `"auto"` (the default), `"original"`, or
+  `"transformed"`. `"auto"` uses transformed results when available and
+  original results otherwise.
+
 - pval_digits:
 
   number of significant digits to print for p-values' MCSE.
@@ -90,6 +104,14 @@ results with the following elements:
 - `pars`: a named list with one entry per parameter, each itself a list
   containing the pooled point estimate (`est`), confidence interval
   (`ci`), standard error (`se`) and p-value (`pvalue`).
+
+- `transformed_pars`: when `analyse(..., transform = ...)` was used, a
+  named list of the corresponding transformed results. Point estimates
+  and confidence limits are transformed directly and standard errors use
+  the delta method. The `transform$scale` label identifies the scale
+  when printing transformed results. The transformation must be monotone
+  over each confidence interval; otherwise `pool()` errors. P-values are
+  unchanged.
 
 - `conf.level`: the confidence level used for the confidence intervals.
 
@@ -114,7 +136,12 @@ the six classic columns for a compact display.
 `mcse()` returns an `mcse` object; a list of class `"mcse"` containing
 `pars` (the Monte Carlo standard errors of the pooled estimates, in the
 same structure as the `pars` element of a `pool` object) and `N` (the
-number of results combined).
+number of results combined). When a reporting transformation was
+supplied to
+[`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md),
+`transformed_pars` contains MCSEs computed by applying the same
+transformation (including its delta-method standard error) to every
+jackknife replicate.
 
 ## Details
 
@@ -128,12 +155,16 @@ particular:
   &
   [`method_bayes()`](https://openpharma.github.io/rbmi/reference/method.md)
   both use Rubin's rules to pool estimates and variances across multiple
-  imputed datasets. By default, the Barnard-Rubin (1999) rule is used to
-  pool degrees of freedom; set `rubin_df_method = "rubin"` to use the
-  original approximation from Rubin (1987). Here, the `mcse()` function
-  can compute the Monte Carlo standard error (MCSE) of the pooled
-  estimates, via a Jackknife variance estimator for all parameters; see
-  Efron & Gong (1983) and Royston, Carlin & White (2009).
+  imputed datasets. Confidence intervals and p-values use a t
+  distribution with the pooled degrees of freedom for all outcome types,
+  including when the complete-data degrees of freedom are infinite. By
+  default, the Barnard-Rubin (1999) rule is used to pool the degrees of
+  freedom for the t distribution; set `rubin_df_method = "rubin"` to use
+  the original approximation from Rubin (1987). See Little &
+  Rubin (2002) for more details. Here, the `mcse()` function can compute
+  the Monte Carlo standard error (MCSE) of the pooled estimates, via a
+  Jackknife variance estimator for all parameters; see Efron &
+  Gong (1983) and Royston, Carlin & White (2009).
 
 - `method_condmean(type = "bootstrap")` uses percentile or normal
   approximation; see Efron & Tibshirani (1994). Note that for the
@@ -236,27 +267,28 @@ poolObj
 #> -----------
 #> Number of Results Combined: 20
 #> Method: rubin
+#> Rubin df method: barnard-rubin
 #> Confidence Level: 0.95
 #> Alternative: two.sided
 #> 
 #> Results:
 #> 
-#>   ==================================================
-#>    parameter   est     se     lci     uci     pval  
-#>   --------------------------------------------------
-#>      trt_4    -0.092  0.683  -1.439  1.256   0.893  
-#>    lsm_ref_4  -1.616  0.486  -2.576  -0.656  0.001  
-#>    lsm_alt_4  -1.708  0.475  -2.645  -0.77   <0.001 
-#>      trt_5    1.317   0.945  -0.552  3.185   0.166  
-#>    lsm_ref_5  -4.127  0.674  -5.459  -2.795  <0.001 
-#>    lsm_alt_5  -2.81   0.651  -4.095  -1.525  <0.001 
-#>      trt_6    1.956   1.02   -0.06   3.973   0.057  
-#>    lsm_ref_6  -6.122  0.722  -7.55   -4.694  <0.001 
-#>    lsm_alt_6  -4.166  0.714  -5.579  -2.752  <0.001 
-#>      trt_7    2.084   1.122  -0.136  4.303   0.066  
-#>    lsm_ref_7  -7.058  0.857  -8.761  -5.355  <0.001 
-#>    lsm_alt_7  -4.974  0.78   -6.518  -3.43   <0.001 
-#>   --------------------------------------------------
+#>   ===============================================================================================================================
+#>    parameter   est     se     lci     uci     pval   estimate_type   group   group_level_1  group_level_2  contrast_label  visit 
+#>   -------------------------------------------------------------------------------------------------------------------------------
+#>      trt_4    -0.092  0.683  -1.439  1.256   0.893     contrast     THERAPY     PLACEBO         DRUG            <NA>         4   
+#>    lsm_ref_4  -1.616  0.486  -2.576  -0.656  0.001        lsm       THERAPY      DRUG           <NA>            <NA>         4   
+#>    lsm_alt_4  -1.708  0.475  -2.645  -0.77   <0.001       lsm       THERAPY     PLACEBO         <NA>            <NA>         4   
+#>      trt_5    1.317   0.945  -0.552  3.185   0.166     contrast     THERAPY     PLACEBO         DRUG            <NA>         5   
+#>    lsm_ref_5  -4.127  0.674  -5.459  -2.795  <0.001       lsm       THERAPY      DRUG           <NA>            <NA>         5   
+#>    lsm_alt_5  -2.81   0.651  -4.095  -1.525  <0.001       lsm       THERAPY     PLACEBO         <NA>            <NA>         5   
+#>      trt_6    1.956   1.02   -0.06   3.973   0.057     contrast     THERAPY     PLACEBO         DRUG            <NA>         6   
+#>    lsm_ref_6  -6.122  0.722  -7.55   -4.694  <0.001       lsm       THERAPY      DRUG           <NA>            <NA>         6   
+#>    lsm_alt_6  -4.166  0.714  -5.579  -2.752  <0.001       lsm       THERAPY     PLACEBO         <NA>            <NA>         6   
+#>      trt_7    2.084   1.122  -0.136  4.303   0.066     contrast     THERAPY     PLACEBO         DRUG            <NA>         7   
+#>    lsm_ref_7  -7.058  0.857  -8.761  -5.355  <0.001       lsm       THERAPY      DRUG           <NA>            <NA>         7   
+#>    lsm_alt_7  -4.974  0.78   -6.518  -3.43   <0.001       lsm       THERAPY     PLACEBO         <NA>            <NA>         7   
+#>   -------------------------------------------------------------------------------------------------------------------------------
 #> 
 
 # Monte Carlo standard errors of the pooled estimates

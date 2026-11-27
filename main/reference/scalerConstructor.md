@@ -39,6 +39,8 @@ already been expanded).
 
 - [`scaler$unscale_beta()`](#method-scaler-unscale_beta)
 
+- [`scaler$unscale_beta_log_link()`](#method-scaler-unscale_beta_log_link)
+
 - [`scaler$clone()`](#method-scaler-clone)
 
 ------------------------------------------------------------------------
@@ -131,6 +133,28 @@ variable.
 #### Returns
 
 A numeric vector.
+
+------------------------------------------------------------------------
+
+### `scaler$unscale_beta_log_link()`
+
+Unscales regression coefficients for a model with a log link. Unlike
+`unscale_beta()`, this transformation does not use the location or scale
+of the outcome because the response itself is not transformed.
+
+#### Usage
+
+    scaler$unscale_beta_log_link(beta)
+
+#### Arguments
+
+- `beta`:
+
+  A numeric vector whose first element is the intercept.
+
+#### Returns
+
+A numeric vector of coefficients for the original predictors.
 
 ------------------------------------------------------------------------
 

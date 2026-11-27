@@ -15,7 +15,7 @@ validate_datalong_notMissing(data, vars)
 
 validate_datalong_complete(data, vars)
 
-validate_datalong_unifromStrata(data, vars)
+validate_datalong_uniformStrata(data, vars)
 
 validate_dataice(data, data_ice, vars, update = FALSE)
 ```
@@ -57,7 +57,9 @@ particular:
   `vars` actually exists in the `data`
 
 - `validate_datalong_types` - Checks that the types of each key variable
-  is as expected i.e. that visit is a factor variable
+  is as expected e.g. that the visit or period column specified via
+  [`set_vars()`](https://openpharma.github.io/rbmi/reference/set_vars.md)
+  is a factor
 
 - `validate_datalong_notMissing` - Checks that none of the key variables
   (except the outcome variable) contain any missing values
@@ -66,6 +68,6 @@ particular:
   there is 1 row for each subject \* visit combination. e.g. that
   `nrow(data) == length(unique(subjects)) * length(unique(visits))`
 
-- `validate_datalong_unifromStrata` - Checks to make sure that any
+- `validate_datalong_uniformStrata` - Checks to make sure that any
   variables listed as stratification variables do not vary over time.
   e.g. that subjects don't switch between stratification groups.

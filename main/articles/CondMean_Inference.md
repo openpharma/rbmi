@@ -58,7 +58,8 @@ active arm.
 This vignette demonstrates first how to obtain frequentist inference
 using reference-based conditional mean imputation using `rbmi`, and then
 shows that an information-anchored inference can also be easily
-implemented using the package.
+implemented using the package. Please note that this functionality is
+restricted for the time being to continuous outcomes only.
 
 ## 2 Data and model specification
 
@@ -286,22 +287,22 @@ function.
 `#> `\
 `#> Results:`\
 `#> `\
-`#>   ==================================================`\
-`#>    parameter   est     se     lci     uci     pval  `\
-`#>   --------------------------------------------------`\
-`#>      trt_4    -0.092  0.695  -1.453   1.27   0.895  `\
-`#>    lsm_ref_4  -1.616  0.588  -2.767  -0.464  0.006  `\
-`#>    lsm_alt_4  -1.708  0.396  -2.484  -0.931  <0.001 `\
-`#>      trt_5    1.305   0.878  -0.416  3.027   0.137  `\
-`#>    lsm_ref_5  -4.133  0.688  -5.481  -2.785  <0.001 `\
-`#>    lsm_alt_5  -2.828  0.604  -4.011  -1.645  <0.001 `\
-`#>      trt_6    1.929   0.862  0.239   3.619   0.025  `\
-`#>    lsm_ref_6  -6.088  0.671  -7.402  -4.773  <0.001 `\
-`#>    lsm_alt_6  -4.159  0.686  -5.503  -2.815  <0.001 `\
-`#>      trt_7    2.126   0.858  0.444   3.807   0.013  `\
-`#>    lsm_ref_7  -6.965  0.685  -8.307  -5.622  <0.001 `\
-`#>    lsm_alt_7  -4.839  0.762  -6.333  -3.346  <0.001 `\
-`#>   --------------------------------------------------`
+`#>   ===============================================================================================================================`\
+`#>    parameter   est     se     lci     uci     pval   estimate_type   group   group_level_1  group_level_2  contrast_label  visit `\
+`#>   -------------------------------------------------------------------------------------------------------------------------------`\
+`#>      trt_4    -0.092  0.695  -1.453   1.27   0.895     contrast     THERAPY     PLACEBO         DRUG            <NA>         4   `\
+`#>    lsm_ref_4  -1.616  0.588  -2.767  -0.464  0.006        lsm       THERAPY      DRUG           <NA>            <NA>         4   `\
+`#>    lsm_alt_4  -1.708  0.396  -2.484  -0.931  <0.001       lsm       THERAPY     PLACEBO         <NA>            <NA>         4   `\
+`#>      trt_5    1.305   0.878  -0.416  3.027   0.137     contrast     THERAPY     PLACEBO         DRUG            <NA>         5   `\
+`#>    lsm_ref_5  -4.133  0.688  -5.481  -2.785  <0.001       lsm       THERAPY      DRUG           <NA>            <NA>         5   `\
+`#>    lsm_alt_5  -2.828  0.604  -4.011  -1.645  <0.001       lsm       THERAPY     PLACEBO         <NA>            <NA>         5   `\
+`#>      trt_6    1.929   0.862  0.239   3.619   0.025     contrast     THERAPY     PLACEBO         DRUG            <NA>         6   `\
+`#>    lsm_ref_6  -6.088  0.671  -7.402  -4.773  <0.001       lsm       THERAPY      DRUG           <NA>            <NA>         6   `\
+`#>    lsm_alt_6  -4.159  0.686  -5.503  -2.815  <0.001       lsm       THERAPY     PLACEBO         <NA>            <NA>         6   `\
+`#>      trt_7    2.126   0.858  0.444   3.807   0.013     contrast     THERAPY     PLACEBO         DRUG            <NA>         7   `\
+`#>    lsm_ref_7  -6.965  0.685  -8.307  -5.622  <0.001       lsm       THERAPY      DRUG           <NA>            <NA>         7   `\
+`#>    lsm_alt_7  -4.839  0.762  -6.333  -3.346  <0.001       lsm       THERAPY     PLACEBO         <NA>            <NA>         7   `\
+`#>   -------------------------------------------------------------------------------------------------------------------------------`
 
 This gives an estimated treatment effect of 2.13 (95% CI 0.44 to 3.81)
 at the last visit with an associated p-value of 0.013.
@@ -541,22 +542,22 @@ to the analysis estimates from all the imputed leave-one-out samples.
 `#> `\
 `#> Results:`\
 `#> `\
-`#>   ==================================================`\
-`#>    parameter   est     se     lci     uci     pval  `\
-`#>   --------------------------------------------------`\
-`#>      trt_4    -0.092  0.695  -1.453   1.27   0.895  `\
-`#>    lsm_ref_4  -1.616  0.588  -2.767  -0.464  0.006  `\
-`#>    lsm_alt_4  -1.708  0.396  -2.484  -0.931  <0.001 `\
-`#>      trt_5    1.305   0.944  -0.545  3.156   0.167  `\
-`#>    lsm_ref_5  -4.133  0.738  -5.579  -2.687  <0.001 `\
-`#>    lsm_alt_5  -2.828  0.603  -4.01   -1.646  <0.001 `\
-`#>      trt_6    1.929   0.993  -0.018  3.876   0.052  `\
-`#>    lsm_ref_6  -6.088  0.758  -7.574  -4.602  <0.001 `\
-`#>    lsm_alt_6  -4.159  0.686  -5.504  -2.813  <0.001 `\
-`#>      trt_7    2.126   1.123  -0.076  4.327   0.058  `\
-`#>    lsm_ref_7  -6.965  0.85   -8.63   -5.299  <0.001 `\
-`#>    lsm_alt_7  -4.839  0.763  -6.335  -3.343  <0.001 `\
-`#>   --------------------------------------------------`
+`#>   ===============================================================================================================================`\
+`#>    parameter   est     se     lci     uci     pval   estimate_type   group   group_level_1  group_level_2  contrast_label  visit `\
+`#>   -------------------------------------------------------------------------------------------------------------------------------`\
+`#>      trt_4    -0.092  0.695  -1.453   1.27   0.895     contrast     THERAPY     PLACEBO         DRUG            <NA>         4   `\
+`#>    lsm_ref_4  -1.616  0.588  -2.767  -0.464  0.006        lsm       THERAPY      DRUG           <NA>            <NA>         4   `\
+`#>    lsm_alt_4  -1.708  0.396  -2.484  -0.931  <0.001       lsm       THERAPY     PLACEBO         <NA>            <NA>         4   `\
+`#>      trt_5    1.305   0.944  -0.545  3.156   0.167     contrast     THERAPY     PLACEBO         DRUG            <NA>         5   `\
+`#>    lsm_ref_5  -4.133  0.738  -5.579  -2.687  <0.001       lsm       THERAPY      DRUG           <NA>            <NA>         5   `\
+`#>    lsm_alt_5  -2.828  0.603  -4.01   -1.646  <0.001       lsm       THERAPY     PLACEBO         <NA>            <NA>         5   `\
+`#>      trt_6    1.929   0.993  -0.018  3.876   0.052     contrast     THERAPY     PLACEBO         DRUG            <NA>         6   `\
+`#>    lsm_ref_6  -6.088  0.758  -7.574  -4.602  <0.001       lsm       THERAPY      DRUG           <NA>            <NA>         6   `\
+`#>    lsm_alt_6  -4.159  0.686  -5.504  -2.813  <0.001       lsm       THERAPY     PLACEBO         <NA>            <NA>         6   `\
+`#>      trt_7    2.126   1.123  -0.076  4.327   0.058     contrast     THERAPY     PLACEBO         DRUG            <NA>         7   `\
+`#>    lsm_ref_7  -6.965  0.85   -8.63   -5.299  <0.001       lsm       THERAPY      DRUG           <NA>            <NA>         7   `\
+`#>    lsm_alt_7  -4.839  0.763  -6.335  -3.343  <0.001       lsm       THERAPY     PLACEBO         <NA>            <NA>         7   `\
+`#>   -------------------------------------------------------------------------------------------------------------------------------`
 
 This gives an estimated treatment effect of 2.13 (95% CI -0.08 to 4.33)
 at the last visit with an associated p-value of 0.058. Per construction

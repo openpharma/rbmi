@@ -4,6 +4,10 @@ Creates a `data.frame` in the format required by
 [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
 for the use of applying a delta adjustment.
 
+Additive delta adjustments are supported only for continuous outcomes.
+For count sensitivity analyses, use rate multipliers in
+[`count_strategy()`](https://openpharma.github.io/rbmi/reference/count_strategy.md).
+
 ## Usage
 
 ``` r
@@ -50,7 +54,7 @@ observations.
 
 ## Details
 
-To apply a delta adjustment the
+For continuous outcomes, the
 [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
 function expects a delta `data.frame` with 3 variables: `vars$subjid`,
 `vars$visit` and `delta` (where `vars` is the object supplied in the

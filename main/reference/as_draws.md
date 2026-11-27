@@ -6,7 +6,15 @@ Creates a `draws` object which is the final output of a call to
 ## Usage
 
 ``` r
-as_draws(method, samples, data, formula, n_failures = NULL, fit = NULL)
+as_draws(
+  method,
+  samples,
+  data,
+  formula,
+  n_failures = NULL,
+  fit = NULL,
+  initialisation = NULL
+)
 ```
 
 ## Arguments
@@ -42,6 +50,11 @@ as_draws(method, samples, data, formula, n_failures = NULL, fit = NULL)
   If
   [`method_bayes()`](https://openpharma.github.io/rbmi/reference/method.md)
   is chosen, returns the MCMC Stan fit object. Otherwise `NULL`.
+
+- initialisation:
+
+  Resolved Bayesian initialisation policy or custom Stan initial values.
+  Defaults to `NULL` when unavailable or not applicable.
 
 ## Value
 
@@ -86,3 +99,6 @@ A `draws` object which is a named list containing the following:
 
 - `formula`: fixed effects formula object used for the model
   specification.
+
+- `initialisation`: resolved Bayesian initialisation policy or custom
+  Stan initial values, or `NULL` when unavailable or not applicable.

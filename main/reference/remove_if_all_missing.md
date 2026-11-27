@@ -7,7 +7,7 @@ have any non-missing values for `outcome`.
 ## Usage
 
 ``` r
-remove_if_all_missing(dat)
+remove_if_all_missing(dat, timevar = "visit")
 ```
 
 ## Arguments
@@ -15,3 +15,7 @@ remove_if_all_missing(dat)
 - dat:
 
   a `data.frame`
+
+- timevar:
+
+  the name of the time variable (e.g. `visit` or `period`) to use

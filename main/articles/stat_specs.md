@@ -1,11 +1,15 @@
-# rbmi: Statistical Specifications
+# rbmi: Statistical Specifications for Continuous Outcomes
 
 ## 1 Scope of this document
 
 This document describes the statistical methods implemented in the
 `rbmi` R package for standard and reference-based multiple imputation of
-continuous longitudinal outcomes. The package implements three classes
-of multiple imputation (MI) approaches:
+continuous longitudinal outcomes. Please see the [separate
+vignette](https://openpharma.github.io/rbmi/articles/stat_specs_counts.md)
+for details on the implemented statistical methods for count outcomes.
+
+The package implements three classes of multiple imputation (MI)
+approaches:
 
 1.  Conventional MI methods based on Bayesian (or approximate Bayesian)
     posterior draws of model parameters combined with Rubin’s rules to

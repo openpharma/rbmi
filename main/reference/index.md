@@ -104,6 +104,10 @@
   [`imputation_df()`](https://openpharma.github.io/rbmi/reference/imputation_df.md)
   objects)
 
+- [`count_strategy()`](https://openpharma.github.io/rbmi/reference/count_strategy.md)
+  [`get_count_strategies()`](https://openpharma.github.io/rbmi/reference/count_strategy.md)
+  : Define controlled imputation strategies for count outcomes
+
 - [`d_lagscale()`](https://openpharma.github.io/rbmi/reference/d_lagscale.md)
   : Calculate delta from a lagged scale coefficient
 
@@ -283,6 +287,9 @@
   [`method_bmlmi()`](https://openpharma.github.io/rbmi/reference/method.md)
   : Set the multiple imputation methodology
 
+- [`neg_bin_regression()`](https://openpharma.github.io/rbmi/reference/neg_bin_regression.md)
+  : Negative Binomial Regression for Count Outcomes
+
 - [`par_lapply()`](https://openpharma.github.io/rbmi/reference/par_lapply.md)
   :
 
@@ -306,7 +313,7 @@
   : Bootstrap Pooling via Percentiles
 
 - [`prepare_stan_data()`](https://openpharma.github.io/rbmi/reference/prepare_stan_data.md)
-  : Prepare input data to run the Stan model
+  : Prepare input data to run the Stan model for continuous outcome
 
 - [`print(`*`<analysis>`*`)`](https://openpharma.github.io/rbmi/reference/print.analysis.md)
   :
@@ -314,11 +321,13 @@
   Print `analysis` object
 
 - [`print(`*`<draws>`*`)`](https://openpharma.github.io/rbmi/reference/print.draws.md)
+  [`print(`*`<draws_count>`*`)`](https://openpharma.github.io/rbmi/reference/print.draws.md)
   :
 
   Print `draws` object
 
 - [`print(`*`<imputation>`*`)`](https://openpharma.github.io/rbmi/reference/print.imputation.md)
+  [`print(`*`<imputation_count>`*`)`](https://openpharma.github.io/rbmi/reference/print.imputation.md)
   :
 
   Print `imputation` object
@@ -378,6 +387,9 @@
 - [`set_vars()`](https://openpharma.github.io/rbmi/reference/set_vars.md)
   : Set key variables
 
+- [`simulate_count_data()`](https://openpharma.github.io/rbmi/reference/simulate_count_data.md)
+  : Simulate longitudinal count data
+
 - [`simulate_data()`](https://openpharma.github.io/rbmi/reference/simulate_data.md)
   : Generate data
 
@@ -408,6 +420,9 @@
   [`imputation_df()`](https://openpharma.github.io/rbmi/reference/imputation_df.md)'s
   by ID
 
+- [`split_time()`](https://openpharma.github.io/rbmi/reference/split_time.md)
+  : Split count-data rows into time intervals
+
 - [`str_contains()`](https://openpharma.github.io/rbmi/reference/str_contains.md)
   : Does a string contain a substring
 
@@ -429,6 +444,9 @@
 
 - [`transpose_samples()`](https://openpharma.github.io/rbmi/reference/transpose_samples.md)
   : Transpose samples
+
+- [`use_transform()`](https://openpharma.github.io/rbmi/reference/use_transform.md)
+  : Create a pooled-parameter transformation
 
 - [`validate(`*`<analysis>`*`)`](https://openpharma.github.io/rbmi/reference/validate.analysis.md)
   :
@@ -468,17 +486,22 @@
 
   Validate a `simul_pars` object
 
-- [`validate(`*`<stan_data>`*`)`](https://openpharma.github.io/rbmi/reference/validate.stan_data.md)
+- [`validate(`*`<stan_data_continuous>`*`)`](https://openpharma.github.io/rbmi/reference/validate.stan_data_continuous.md)
   :
 
-  Validate a `stan_data` object
+  Validate a `stan_data_continuous` object
+
+- [`validate(`*`<stan_data_count>`*`)`](https://openpharma.github.io/rbmi/reference/validate.stan_data_count.md)
+  :
+
+  Validate a `stan_data_count` object
 
 - [`validate_datalong()`](https://openpharma.github.io/rbmi/reference/validate_datalong.md)
   [`validate_datalong_varExists()`](https://openpharma.github.io/rbmi/reference/validate_datalong.md)
   [`validate_datalong_types()`](https://openpharma.github.io/rbmi/reference/validate_datalong.md)
   [`validate_datalong_notMissing()`](https://openpharma.github.io/rbmi/reference/validate_datalong.md)
   [`validate_datalong_complete()`](https://openpharma.github.io/rbmi/reference/validate_datalong.md)
-  [`validate_datalong_unifromStrata()`](https://openpharma.github.io/rbmi/reference/validate_datalong.md)
+  [`validate_datalong_uniformStrata()`](https://openpharma.github.io/rbmi/reference/validate_datalong.md)
   [`validate_dataice()`](https://openpharma.github.io/rbmi/reference/validate_datalong.md)
   :
 

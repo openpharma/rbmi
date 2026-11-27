@@ -55,10 +55,13 @@ method_bmlmi(
 
 - same_cov:
 
-  a logical, if `TRUE` the imputation model will be fitted using a
-  single shared covariance matrix for all observations. If `FALSE` a
-  separate covariance matrix will be fit for each group as determined by
-  the `group` argument of
+  a logical controlling whether within-subject dependence parameters are
+  shared between treatment groups. For continuous outcomes, if `TRUE`
+  the imputation model uses one shared covariance matrix; if `FALSE`, it
+  uses a separate covariance matrix for each group. For count outcomes,
+  `TRUE` uses one shared dispersion/frailty parameter and `FALSE` uses a
+  separate dispersion/frailty parameter for each group. Groups are
+  determined by the `group` argument of
   [`set_vars()`](https://openpharma.github.io/rbmi/reference/set_vars.md).
 
 - n_samples:
@@ -221,7 +224,7 @@ method_bayes(
 #> [1] 1
 #> 
 #> $control$init
-#> [1] "mmrm"
+#> [1] "auto"
 #> 
 #> $control$seed
 #> [1] 192290823

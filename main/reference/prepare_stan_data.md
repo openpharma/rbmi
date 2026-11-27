@@ -1,8 +1,8 @@
-# Prepare input data to run the Stan model
+# Prepare input data to run the Stan model for continuous outcome
 
-Prepare input data to run the Stan model. Creates / calculates all the
-required inputs as required by the `data{}` block of the MMRM Stan
-program.
+Prepare input data to run the Stan model for continuous outcome. Creates
+/ calculates all the required inputs as required by the `data{}` block
+of the MMRM Stan program.
 
 ## Usage
 

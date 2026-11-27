@@ -1,8 +1,8 @@
 # rbmi: Implementation of retrieved-dropout models using rbmi
 
 This vignette describes how retrieved dropout models which include
-time-varying intercurrent event (ICE) indicators can be implemented in
-the `rbmi` package.
+time-varying intercurrent event (ICE) indicators can be implemented for
+continuous outcomes in the `rbmi` package .
 
 ## 1 Retrieved dropout models in a nutshell
 
@@ -308,22 +308,22 @@ combined with the jackknife.
     ## 
     ## Results:
     ## 
-    ##   ==================================================
-    ##    parameter   est     se     lci     uci     pval  
-    ##   --------------------------------------------------
-    ##      trt_1    -0.991  0.557  -2.083  0.101   0.075  
-    ##    lsm_ref_1  3.117   0.401  2.331   3.902   <0.001 
-    ##    lsm_alt_1  2.126   0.391   1.36   2.892   <0.001 
-    ##      trt_2    -0.937  0.611  -2.134   0.26   0.125  
-    ##    lsm_ref_2  5.814   0.447  4.938    6.69   <0.001 
-    ##    lsm_alt_2  4.877   0.414  4.066   5.688   <0.001 
-    ##      trt_3    -1.491  0.743  -2.948  -0.034  0.045  
-    ##    lsm_ref_3  7.725   0.526  6.694   8.757   <0.001 
-    ##    lsm_alt_3  6.234   0.522  5.211   7.258   <0.001 
-    ##      trt_4    -2.872  0.945  -4.723  -1.02   0.002  
-    ##    lsm_ref_4  10.787  0.661  9.491   12.083  <0.001 
-    ##    lsm_alt_4  7.915   0.67   6.603   9.228   <0.001 
-    ##   --------------------------------------------------
+    ##   =============================================================================================================================
+    ##    parameter   est     se     lci     uci     pval   estimate_type  group  group_level_1  group_level_2  contrast_label  visit 
+    ##   -----------------------------------------------------------------------------------------------------------------------------
+    ##      trt_1    -0.991  0.557  -2.083  0.101   0.075     contrast     group  Intervention      Control          <NA>         1   
+    ##    lsm_ref_1  3.117   0.401  2.331   3.902   <0.001       lsm       group     Control         <NA>            <NA>         1   
+    ##    lsm_alt_1  2.126   0.391   1.36   2.892   <0.001       lsm       group  Intervention       <NA>            <NA>         1   
+    ##      trt_2    -0.937  0.611  -2.134   0.26   0.125     contrast     group  Intervention      Control          <NA>         2   
+    ##    lsm_ref_2  5.814   0.447  4.938    6.69   <0.001       lsm       group     Control         <NA>            <NA>         2   
+    ##    lsm_alt_2  4.877   0.414  4.066   5.688   <0.001       lsm       group  Intervention       <NA>            <NA>         2   
+    ##      trt_3    -1.491  0.743  -2.948  -0.034  0.045     contrast     group  Intervention      Control          <NA>         3   
+    ##    lsm_ref_3  7.725   0.526  6.694   8.757   <0.001       lsm       group     Control         <NA>            <NA>         3   
+    ##    lsm_alt_3  6.234   0.522  5.211   7.258   <0.001       lsm       group  Intervention       <NA>            <NA>         3   
+    ##      trt_4    -2.872  0.945  -4.723  -1.02   0.002     contrast     group  Intervention      Control          <NA>         4   
+    ##    lsm_ref_4  10.787  0.661  9.491   12.083  <0.001       lsm       group     Control         <NA>            <NA>         4   
+    ##    lsm_alt_4  7.915   0.67   6.603   9.228   <0.001       lsm       group  Intervention       <NA>            <NA>         4   
+    ##   -----------------------------------------------------------------------------------------------------------------------------
 
 ### 4.2 Retrieved dropout model 1 (RD1)
 
@@ -365,22 +365,22 @@ combined with the jackknife.
     ## 
     ## Results:
     ## 
-    ##   ==================================================
-    ##    parameter   est     se     lci     uci     pval  
-    ##   --------------------------------------------------
-    ##      trt_1    -0.931  0.558  -2.025  0.163   0.095  
-    ##    lsm_ref_1  3.119    0.4   2.334   3.903   <0.001 
-    ##    lsm_alt_1  2.188   0.393  1.419   2.957   <0.001 
-    ##      trt_2    -0.805  0.616  -2.013  0.403   0.192  
-    ##    lsm_ref_2  5.822   0.445  4.949   6.695   <0.001 
-    ##    lsm_alt_2  5.017   0.424  4.186   5.849   <0.001 
-    ##      trt_3    -1.263  0.758  -2.748  0.222   0.096  
-    ##    lsm_ref_3  7.749   0.52   6.729   8.768   <0.001 
-    ##    lsm_alt_3  6.486   0.549   5.41   7.562   <0.001 
-    ##      trt_4    -2.506  0.969  -4.406  -0.606   0.01  
-    ##    lsm_ref_4  10.837  0.653  9.558   12.116  <0.001 
-    ##    lsm_alt_4  8.331   0.718  6.924   9.737   <0.001 
-    ##   --------------------------------------------------
+    ##   =============================================================================================================================
+    ##    parameter   est     se     lci     uci     pval   estimate_type  group  group_level_1  group_level_2  contrast_label  visit 
+    ##   -----------------------------------------------------------------------------------------------------------------------------
+    ##      trt_1    -0.931  0.558  -2.025  0.163   0.095     contrast     group  Intervention      Control          <NA>         1   
+    ##    lsm_ref_1  3.119    0.4   2.334   3.903   <0.001       lsm       group     Control         <NA>            <NA>         1   
+    ##    lsm_alt_1  2.188   0.393  1.419   2.957   <0.001       lsm       group  Intervention       <NA>            <NA>         1   
+    ##      trt_2    -0.805  0.616  -2.013  0.403   0.192     contrast     group  Intervention      Control          <NA>         2   
+    ##    lsm_ref_2  5.822   0.445  4.949   6.695   <0.001       lsm       group     Control         <NA>            <NA>         2   
+    ##    lsm_alt_2  5.017   0.424  4.186   5.849   <0.001       lsm       group  Intervention       <NA>            <NA>         2   
+    ##      trt_3    -1.263  0.758  -2.748  0.222   0.096     contrast     group  Intervention      Control          <NA>         3   
+    ##    lsm_ref_3  7.749   0.52   6.729   8.768   <0.001       lsm       group     Control         <NA>            <NA>         3   
+    ##    lsm_alt_3  6.486   0.549   5.41   7.562   <0.001       lsm       group  Intervention       <NA>            <NA>         3   
+    ##      trt_4    -2.506  0.969  -4.406  -0.606   0.01     contrast     group  Intervention      Control          <NA>         4   
+    ##    lsm_ref_4  10.837  0.653  9.558   12.116  <0.001       lsm       group     Control         <NA>            <NA>         4   
+    ##    lsm_alt_4  8.331   0.718  6.924   9.737   <0.001       lsm       group  Intervention       <NA>            <NA>         4   
+    ##   -----------------------------------------------------------------------------------------------------------------------------
 
 ### 4.3 Retrieved dropout model 2 (RD2)
 
@@ -417,22 +417,22 @@ combined with the jackknife.
     ## 
     ## Results:
     ## 
-    ##   ==================================================
-    ##    parameter   est     se     lci     uci     pval  
-    ##   --------------------------------------------------
-    ##      trt_1    -0.927  0.558  -2.021  0.167   0.097  
-    ##    lsm_ref_1  3.125    0.4   2.341   3.908   <0.001 
-    ##    lsm_alt_1  2.198   0.395  1.424   2.972   <0.001 
-    ##      trt_2    -0.889  0.612  -2.089  0.311   0.146  
-    ##    lsm_ref_2  5.837   0.443   4.97   6.705   <0.001 
-    ##    lsm_alt_2  4.948   0.421  4.124   5.772   <0.001 
-    ##      trt_3    -1.305  0.757  -2.788  0.178   0.085  
-    ##    lsm_ref_3  7.648   0.54    6.59   8.707   <0.001 
-    ##    lsm_alt_3  6.343   0.528  5.308   7.378   <0.001 
-    ##      trt_4    -2.617  0.975  -4.528  -0.706  0.007  
-    ##    lsm_ref_4  10.883  0.665   9.58   12.186  <0.001 
-    ##    lsm_alt_4  8.267   0.715  6.866   9.667   <0.001 
-    ##   --------------------------------------------------
+    ##   =============================================================================================================================
+    ##    parameter   est     se     lci     uci     pval   estimate_type  group  group_level_1  group_level_2  contrast_label  visit 
+    ##   -----------------------------------------------------------------------------------------------------------------------------
+    ##      trt_1    -0.927  0.558  -2.021  0.167   0.097     contrast     group  Intervention      Control          <NA>         1   
+    ##    lsm_ref_1  3.125    0.4   2.341   3.908   <0.001       lsm       group     Control         <NA>            <NA>         1   
+    ##    lsm_alt_1  2.198   0.395  1.424   2.972   <0.001       lsm       group  Intervention       <NA>            <NA>         1   
+    ##      trt_2    -0.889  0.612  -2.089  0.311   0.146     contrast     group  Intervention      Control          <NA>         2   
+    ##    lsm_ref_2  5.837   0.443   4.97   6.705   <0.001       lsm       group     Control         <NA>            <NA>         2   
+    ##    lsm_alt_2  4.948   0.421  4.124   5.772   <0.001       lsm       group  Intervention       <NA>            <NA>         2   
+    ##      trt_3    -1.305  0.757  -2.788  0.178   0.085     contrast     group  Intervention      Control          <NA>         3   
+    ##    lsm_ref_3  7.648   0.54    6.59   8.707   <0.001       lsm       group     Control         <NA>            <NA>         3   
+    ##    lsm_alt_3  6.343   0.528  5.308   7.378   <0.001       lsm       group  Intervention       <NA>            <NA>         3   
+    ##      trt_4    -2.617  0.975  -4.528  -0.706  0.007     contrast     group  Intervention      Control          <NA>         4   
+    ##    lsm_ref_4  10.883  0.665   9.58   12.186  <0.001       lsm       group     Control         <NA>            <NA>         4   
+    ##    lsm_alt_4  8.267   0.715  6.866   9.667   <0.001       lsm       group  Intervention       <NA>            <NA>         4   
+    ##   -----------------------------------------------------------------------------------------------------------------------------
 
 ### 4.4 Brief summary of results
 

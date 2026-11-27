@@ -2,6 +2,121 @@
 
 ## rbmi (development version)
 
+### New Features
+
+- Count outcomes with negative multinomial regression imputation models
+  are now supported. Please see the new counts outcomes vignette, as
+  well as the corresponding new statistical specifications for count
+  outcomes vignette, for an introduction. In addition to new S3 methods
+  and new arguments for existing functions, the analysis function
+  [`neg_bin_regression()`](https://openpharma.github.io/rbmi/reference/neg_bin_regression.md)
+  conducting negative binomial regression analysis, the simulation
+  function
+  [`simulate_count_data()`](https://openpharma.github.io/rbmi/reference/simulate_count_data.md),
+  as well as the data wrangling function
+  [`split_time()`](https://openpharma.github.io/rbmi/reference/split_time.md)
+  to support more complex time period patterns, have been added.
+  Controlled count imputation strategies are defined with
+  [`count_strategy()`](https://openpharma.github.io/rbmi/reference/count_strategy.md)
+  and collected with
+  [`get_count_strategies()`](https://openpharma.github.io/rbmi/reference/count_strategy.md).
+
+- [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md) has
+  a new `outcome` argument. By default the outcome type is determined
+  from `vars`: count outcomes are specified with
+  `set_vars(period = , duration = )`.
+
+- New `transform` argument is available in
+  [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
+  to support transformations that are applied after the pooling of
+  original scale parameters. The corresponding new `scale` argument in
+  [`print.pool()`](https://openpharma.github.io/rbmi/reference/pool.md)
+  and
+  [`as.data.frame.pool()`](https://openpharma.github.io/rbmi/reference/pool.md)
+  methods allows to choose the original or transformed scale to look at
+  for the pooled results. Transformations are created with
+  [`use_transform()`](https://openpharma.github.io/rbmi/reference/use_transform.md).
+
+- [`print.pool()`](https://openpharma.github.io/rbmi/reference/pool.md)
+  now reports the Rubin degrees-of-freedom method for Rubin pooling.
+
+- [`analyse()`](https://openpharma.github.io/rbmi/reference/analyse.md)
+  now collects warnings from any analysis function and reports one
+  summary listing each distinct message and the number of affected
+  imputed datasets, including when running in parallel. Messages are
+  retained in the `rbmi_warnings` attribute of each affected result in
+  `$results`. This avoids repeated warnings.
+
+### Bug Fixes
+
+- Bayesian controls now default to `init = "auto"`, preserving the
+  existing model-specific defaults. Count models honour custom Stan
+  initial values and reject explicit `init = "mmrm"`. Draws print the
+  resolved initialisation setting.
+
+- Bayesian imputation models now report informative errors naming
+  unidentified model terms when the design matrix is rank deficient
+  among cells with observed outcomes (continuous models) or positive
+  counts (count models).
+
+- `scalerConstructor` previously failed when applied to a matrix instead
+  of a `data.frame`. This is fixed now.
+
+- Previously, ordered or custom-coded treatment factors were incorrectly
+  imputed under reference-based imputation. This is fixed now.
+
+- `method_bayes(covariance = "cs")` and
+  `method_bayes(covariance = "csh")` now allow negative correlations
+  down to `-1 / (n_visits - 1)`. Previously, integer division in the
+  Stan models restricted the correlation to be non-negative for three or
+  more visits, so
+  [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md)
+  failed whenever the MMRM estimate was negative.
+  ([\#610](https://github.com/openpharma/rbmi/issues/610))
+
+- [`draws()`](https://openpharma.github.io/rbmi/reference/draws.md) now
+  reports an informative error when Stan fails to start sampling,
+  instead of failing later with “second argument must be a list”.
+  ([\#610](https://github.com/openpharma/rbmi/issues/610))
+
+- With `method_bayes(same_cov = FALSE)` and a structured covariance
+  (`"ad"`, `"adh"`, `"ar1"`, `"ar1h"`, `"cs"`, `"csh"`, `"toep"`,
+  `"toeph"`), the group-specific prior parameters were assigned in
+  alphabetical order of the treatment groups instead of the order of the
+  factor levels. If the levels were not in alphabetical order
+  (e.g. `c("PBO", "ACT")`), each group’s covariance prior was centred on
+  another group’s MMRM estimate. This biased the posterior covariance
+  and therefore the imputations, most strongly for small groups with
+  different variances. Results of such analyses differ from previous
+  versions. ([\#609](https://github.com/openpharma/rbmi/issues/609))
+
+- With `control_bayes(init = "mmrm")`, the default for a single chain,
+  only the regression coefficients previously started at the MMRM
+  estimates: the covariance parameters were passed to Stan in the wrong
+  names and shapes, so `rstan` silently started them at random values.
+  All parameters of every covariance structure now start at the MMRM
+  estimates. As a consequence, results of
+  [`method_bayes()`](https://openpharma.github.io/rbmi/reference/method.md)
+  with `init = "mmrm"` differ from previous versions for the same seed,
+  within Monte Carlo error.
+  ([\#609](https://github.com/openpharma/rbmi/issues/609))
+
+- [`control_bayes()`](https://openpharma.github.io/rbmi/reference/control.md)
+  now warns when `init = "mmrm"` is combined with more than one chain,
+  as all chains then start at the same values, which makes convergence
+  diagnostics such as R-hat less reliable.
+  ([\#609](https://github.com/openpharma/rbmi/issues/609))
+
+- [`method_bayes()`](https://openpharma.github.io/rbmi/reference/method.md)
+  with the `"ad"`, `"adh"`, `"toep"` or `"toeph"` covariance structure
+  failed for data with only two visits, because the correlation prior
+  parameters reached Stan in the wrong shape. This is fixed now.
+  ([\#613](https://github.com/openpharma/rbmi/issues/613))
+
+### Miscellaneous
+
+- Fixed minor reproducibility issue with vignettes
+
 ## rbmi 1.7.1
 
 CRAN release: 2026-11-05

@@ -7,7 +7,13 @@ compute the Monte Carlo standard error using the Jackknife approach.
 ## Usage
 
 ``` r
-mcse_jackknife(results, omit_index, conf.level, alternative)
+mcse_jackknife(
+  results,
+  omit_index,
+  conf.level,
+  alternative,
+  rubin_df_method = "barnard-rubin"
+)
 
 jackknife_se(pars_jackknife)
 
@@ -34,6 +40,14 @@ mcse_combine_all_pars(jackknife_results)
 
   a character string specifying the alternative hypothesis, must be one
   of `"two.sided"` (default), `"greater"` or `"less"`.
+
+- rubin_df_method:
+
+  a character string specifying the degrees-of-freedom approximation
+  used when pooling with Rubin's rules. `"barnard-rubin"` (default) uses
+  the Barnard-Rubin (1999) small-sample adjustment, while `"rubin"` uses
+  the approximation from Rubin (1987). Ignored for other pooling
+  methods.
 
 - pars_jackknife:
 

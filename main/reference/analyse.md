@@ -11,6 +11,7 @@ analyse(
   imputations,
   fun = ancova,
   delta = NULL,
+  transform = attr(fun, "transform"),
   ...,
   ncores = 1,
   .validate = TRUE
@@ -33,6 +34,13 @@ analyse(
 
   A `data.frame` containing the delta transformation to be applied to
   the imputed datasets prior to running `fun`. See details.
+
+- transform:
+
+  Either `NULL` or a transformation specification created by
+  [`use_transform()`](https://openpharma.github.io/rbmi/reference/use_transform.md).
+  Defaults to `attr(fun, "transform")`, if present. The transformation
+  is common to every pooled parameter. See details.
 
 - ...:
 
@@ -57,7 +65,8 @@ An `analysis` object; a list of class `"analysis"` containing the
 analysis `results` (one entry per imputed dataset, each a named list of
 parameter estimates), the name of the analysis function (`fun_name`),
 the applied `delta` data.frame, the analysis function (`fun`) and the
-imputation `method`. This object is normally passed on to
+imputation `method`. If supplied, the reporting-scale `transform`
+specification is also retained. This object is normally passed on to
 [`pool()`](https://openpharma.github.io/rbmi/reference/pool.md).
 
 ## Details
@@ -110,6 +119,13 @@ be scrambled in the data.frames that are provided to `fun`. This is to
 say they will not contain the original subject values and as such any
 hard coding of subject ids is strictly to be avoided.
 
+Warnings raised by `fun` are collected for each imputed dataset and
+stored as unique messages in the `rbmi_warnings` attribute of its result
+(accessible via `analysis$results`). After analysis, one summary warning
+lists each distinct message and the number of datasets affected. This
+also applies when running in parallel. Errors from `fun` still stop the
+analysis.
+
 By default `fun` is the
 [`ancova()`](https://openpharma.github.io/rbmi/reference/ancova.md)
 function. Please note that this function requires that a `vars` object,
@@ -155,6 +171,31 @@ recommend that you use the helper function
 to define the delta datasets as this provides utility variables such as
 `is_missing` which can be used to identify exactly which visits have
 been imputed.
+
+Additive delta adjustments are supported only for continuous outcomes.
+For count outcomes, `delta` must be `NULL` in both this function and
+[`extract_imputed_dfs()`](https://openpharma.github.io/rbmi/reference/extract_imputed_dfs.md).
+Use rate multipliers in
+[`count_strategy()`](https://openpharma.github.io/rbmi/reference/count_strategy.md)
+for count sensitivity analyses.
+
+The optional `transform` argument specifies a transformation to apply to
+all pooled parameters for reporting. It defaults to the `"transform"`
+attribute of `fun`, so an analysis function can declare its usual
+reporting scale. Use
+[`use_transform()`](https://openpharma.github.io/rbmi/reference/use_transform.md)
+to create the specification from an expression in `x`. A specification
+is a list with `transform` and `derivative` functions and a `scale`
+string naming the reporting scale in printed results. The analysis
+estimates are always retained and pooled on their original scale. After
+pooling, the transformation is applied to the pooled estimate and
+confidence limits; its derivative is used to obtain the transformed
+standard error by the delta method. Transformations must be monotone
+over each pooled confidence interval; this is checked from the supplied
+derivative before transformed results are reported. The original
+p-values are retained. See
+[`pool()`](https://openpharma.github.io/rbmi/reference/pool.md) for
+extracting transformed results.
 
 ## Parallelisation
 
