@@ -1862,7 +1862,8 @@ set.seed(20261103L)
 implicit_seed_imp <- binary_impute(sparse_check$draws, references = trial_references)
 previous_rng <- .Random.seed
 stopifnot(identical(implicit_seed_imp, binary_impute(
-    sparse_check$draws, references = trial_references, seed = 20261103L
+    sparse_check$draws,
+    references = trial_references, seed = 20261103L
 )))
 invisible(binary_impute(sparse_check$draws, references = trial_references))
 stopifnot(!identical(previous_rng, .Random.seed))
@@ -1899,12 +1900,14 @@ for (strategy_name in c("J2R", "CR", "CIR", "LMCF")) {
     )
 }
 same_fit <- binary_impute(
-    strategy_draws, references = trial_references,
+    strategy_draws,
+    references = trial_references,
     update_strategy = data.frame(subjid = 14L, strategy = "CIR")
 )
 stopifnot(same_fit$strategy[["14"]] == "CIR", strategy_draws$strategy[["14"]] == "MAR")
 invalid_mar <- tryCatch(binary_impute(
-    strategy_draws, references = trial_references,
+    strategy_draws,
+    references = trial_references,
     update_strategy = data.frame(subjid = 13L, strategy = "MAR")
 ), error = identity)
 stopifnot(
@@ -2135,7 +2138,7 @@ subject stops treatment at Week 2, and most later responses are still
 collected. The data-generating response probability is $\Phi(0.6)$ on
 treatment and $\Phi(-0.6)$ off treatment. Subject 24 has a retrieved
 Week 4 response and a missing Week 8 response. Assign MAR and pass the
-known visit-level treatment status as a covariate, including at Week 8.
+rbmknown visit-level treatment status as a covariate, including at Week 8.
 
 ```{r}
 #| label: binary-off-treatment-example
@@ -2168,7 +2171,8 @@ stopifnot(all(vapply(binary_extract_imputed_dfs(status_imp), function(dat) {
 }, logical(1))))
 
 changed_strategy <- tryCatch(binary_impute(
-    status_draw, references = trial_references,
+    status_draw,
+    references = trial_references,
     update_strategy = data.frame(subjid = 24L, strategy = "CIR")
 ), error = identity)
 stopifnot(
@@ -2180,12 +2184,15 @@ active_week8 <- match("Active:week8", status_prepared$coefficient_names)
 week8_probabilities <- vapply(status_draw$parameters$beta, function(beta) {
     pnorm(beta[active_week8] + c(0, beta[status_column]))
 }, numeric(2))
-knitr::kable(data.frame(
-    Status = c("On treatment", "Off treatment"),
-    `Posterior mean response probability` = rowMeans(week8_probabilities),
-    check.names = FALSE
-), digits = 2, row.names = FALSE,
-caption = "Fitted Active Week 8 probabilities before conditioning on earlier responses")
+knitr::kable(
+    data.frame(
+        Status = c("On treatment", "Off treatment"),
+        `Posterior mean response probability` = rowMeans(week8_probabilities),
+        check.names = FALSE
+    ),
+    digits = 2, row.names = FALSE,
+    caption = "Fitted Active Week 8 probabilities before conditioning on earlier responses"
+)
 ```
 
 The imputer uses the off-treatment mean at subject 24's missing Week 8 visit
