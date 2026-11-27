@@ -704,8 +704,8 @@ pval_percentile <- function(est) {
         # see ?quantile "type=6" section for explanation
         quant <- rank(est, ties.method = "first") / (length(est) + 1)
         ret <- c(
-            min(quant[est == 0]),
-            1 - max(quant[est == 0])
+            max(quant[est == 0]),
+            1 - min(quant[est == 0])
         )
     } else {
         x <- uniroot(
