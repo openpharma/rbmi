@@ -12,6 +12,7 @@
 * With `control_bayes(init = "mmrm")`, the default for a single chain, only the regression coefficients previously started at the MMRM estimates: the covariance parameters were passed to Stan in the wrong names and shapes, so `rstan` silently started them at random values. All parameters of every covariance structure now start at the MMRM estimates. As a consequence, results of `method_bayes()` with `init = "mmrm"` differ from previous versions for the same seed, within Monte Carlo error. (#609)
 * `control_bayes()` now warns when `init = "mmrm"` is combined with more than one chain, as all chains then start at the same values, which makes convergence diagnostics such as R-hat less reliable. (#609)
 * `method_bayes()` with the `"ad"`, `"adh"`, `"toep"` or `"toeph"` covariance structure failed for data with only two visits, because the correlation prior parameters reached Stan in the wrong shape. This is fixed now. (#613)
+* `pval_percentile()` now returns the largest `alpha` such that `q_alpha = 0` (and analogously for `pval_less`) when multiple bootstrap estimates are exactly zero, matching its documented definition and percentile CI inversion. Previously `min` and `max` were swapped, which returned smaller p-values when multiple estimates equalled zero.
 
 
 # rbmi 1.7.1

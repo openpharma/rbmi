@@ -114,6 +114,34 @@ test_that("pval_percentile", {
     expected <- c("pval_greater" = 1, "pval_less" = 0)
     expect_equal(pvals, expected)
 
+    # Multiple tied zeros: return the largest alpha with q_alpha = 0
+    # (and analogously for pval_less)
+    est <- c(-1, 0, 0, 0, 1)
+    pvals <- pval_percentile(est)
+    expected <- c("pval_greater" = 4 / 6, "pval_less" = 4 / 6)
+    expect_equal(pvals, expected)
+
+    est <- c(0, 0, 1, 1)
+    pvals <- pval_percentile(est)
+    expected <- c("pval_greater" = 2 / 5, "pval_less" = 4 / 5)
+    expect_equal(pvals, expected)
+
+    est <- c(-1, -1, 0, 0)
+    pvals <- pval_percentile(est)
+    expected <- c("pval_greater" = 4 / 5, "pval_less" = 2 / 5)
+    expect_equal(pvals, expected)
+
+    # Heavily zero-tied symmetric draws must not yield a significant p-value
+    best <- c(0, -1, rep(0, 98), 1)
+    res_two <- pool_internal.bootstrap(
+        list(est = best),
+        conf.level = 0.95,
+        alternative = "two.sided",
+        type = "percentile"
+    )
+    expect_equal(res_two$ci, c(0, 0))
+    expect_equal(res_two$pvalue, 1)
+
     set.seed(101)
     est <- rnorm(10000)
     pvals <- pval_percentile(est)
