@@ -61,6 +61,7 @@ The simulation was informed by characteristics of the METREO study of mepolizuma
 
 ```{r, message = FALSE}
 library(dplyr)
+library(rbmi)
 
 dat_count_raw <- read.csv(
     system.file("extdata", "sim_rogeretal.csv", package = "rbmi")

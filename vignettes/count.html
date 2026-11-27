@@ -373,35 +373,36 @@ built and will vary with the computing environment.</p>
 <p>We use the simulated example data set generated with the <code>NM_Simdata2.sas</code> macro by James Roger previously available from the <a href="https://www.lshtm.ac.uk/research/centres-projects-groups/missing-data">LSHTM website</a> (they host content for DIA SWG on Estimands and Missing Data). The data contain three treatment arms and up to three rows per patient, corresponding to the on-treatment, off-treatment but observed, and post-withdrawal periods.</p>
 <p>The simulation was informed by characteristics of the METREO study of mepolizumab in eosinophilic chronic obstructive pulmonary disease, but these are not trial data and the simulated treatment effects should not be interpreted as METREO results. Patients either complete follow-up on treatment, discontinue treatment and remain observed until the end of follow-up, discontinue treatment and remain observed for a time before withdrawing, or discontinue treatment and withdraw immediately. Period 1 represents time on treatment, period 2 observed time off treatment, and period 3 unobserved time after withdrawal. Counts were also simulated for period 3 and retained as the complete-data truth for evaluating the analysis, although they are set to missing in the observed outcome.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
-<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>dat_count_raw <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(</span>
-<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>    <span class="fu">system.file</span>(<span class="st">&quot;extdata&quot;</span>, <span class="st">&quot;sim_rogeretal.csv&quot;</span>, <span class="at">package =</span> <span class="st">&quot;rbmi&quot;</span>)</span>
-<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>)</span>
-<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>dat_count <span class="ot">&lt;-</span> dat_count_raw <span class="sc">%&gt;%</span></span>
-<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">select</span>(</span>
-<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>        patient,</span>
-<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>        period,</span>
-<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>        TreatLab,</span>
-<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>        OnOff,</span>
-<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>        Length,</span>
-<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a>        BaseCount,</span>
-<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>        Observed_Count</span>
-<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a>    ) <span class="sc">%&gt;%</span> </span>
-<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
-<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a>        <span class="at">patient =</span> <span class="fu">factor</span>(patient),</span>
-<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a>        <span class="at">period =</span> <span class="fu">factor</span>(period, <span class="at">levels =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>),</span>
-<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a>        <span class="at">TreatLab =</span> <span class="fu">factor</span>(TreatLab, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">&quot;Placebo&quot;</span>, <span class="st">&quot;100mg&quot;</span>, <span class="st">&quot;300mg&quot;</span>)),</span>
-<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a>        <span class="at">OnOff =</span> <span class="fu">factor</span>(OnOff, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">&quot;On&quot;</span>, <span class="st">&quot;Off&quot;</span>))</span>
-<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a>    ) <span class="sc">%&gt;%</span> </span>
-<span id="cb1-22"><a href="#cb1-22" tabindex="-1"></a>    <span class="fu">arrange</span>(patient, period)</span>
-<span id="cb1-23"><a href="#cb1-23" tabindex="-1"></a><span class="fu">head</span>(dat_count)</span>
-<span id="cb1-24"><a href="#cb1-24" tabindex="-1"></a><span class="co">#&gt;   patient period TreatLab OnOff Length BaseCount Observed_Count</span></span>
-<span id="cb1-25"><a href="#cb1-25" tabindex="-1"></a><span class="co">#&gt; 1       1      1  Placebo    On    367         1              2</span></span>
-<span id="cb1-26"><a href="#cb1-26" tabindex="-1"></a><span class="co">#&gt; 2       2      1  Placebo    On    360         4              1</span></span>
-<span id="cb1-27"><a href="#cb1-27" tabindex="-1"></a><span class="co">#&gt; 3       3      1  Placebo    On    372         5              2</span></span>
-<span id="cb1-28"><a href="#cb1-28" tabindex="-1"></a><span class="co">#&gt; 4       4      1  Placebo    On    358         7              3</span></span>
-<span id="cb1-29"><a href="#cb1-29" tabindex="-1"></a><span class="co">#&gt; 5       5      1  Placebo    On    370         3              1</span></span>
-<span id="cb1-30"><a href="#cb1-30" tabindex="-1"></a><span class="co">#&gt; 6       6      1  Placebo    On    370         3              2</span></span></code></pre></div>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(rbmi)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>dat_count_raw <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>    <span class="fu">system.file</span>(<span class="st">&quot;extdata&quot;</span>, <span class="st">&quot;sim_rogeretal.csv&quot;</span>, <span class="at">package =</span> <span class="st">&quot;rbmi&quot;</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>)</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>dat_count <span class="ot">&lt;-</span> dat_count_raw <span class="sc">%&gt;%</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">select</span>(</span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>        patient,</span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>        period,</span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>        TreatLab,</span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>        OnOff,</span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a>        Length,</span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>        BaseCount,</span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a>        Observed_Count</span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a>    ) <span class="sc">%&gt;%</span> </span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a>        <span class="at">patient =</span> <span class="fu">factor</span>(patient),</span>
+<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a>        <span class="at">period =</span> <span class="fu">factor</span>(period, <span class="at">levels =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>),</span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a>        <span class="at">TreatLab =</span> <span class="fu">factor</span>(TreatLab, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">&quot;Placebo&quot;</span>, <span class="st">&quot;100mg&quot;</span>, <span class="st">&quot;300mg&quot;</span>)),</span>
+<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a>        <span class="at">OnOff =</span> <span class="fu">factor</span>(OnOff, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">&quot;On&quot;</span>, <span class="st">&quot;Off&quot;</span>))</span>
+<span id="cb1-22"><a href="#cb1-22" tabindex="-1"></a>    ) <span class="sc">%&gt;%</span> </span>
+<span id="cb1-23"><a href="#cb1-23" tabindex="-1"></a>    <span class="fu">arrange</span>(patient, period)</span>
+<span id="cb1-24"><a href="#cb1-24" tabindex="-1"></a><span class="fu">head</span>(dat_count)</span>
+<span id="cb1-25"><a href="#cb1-25" tabindex="-1"></a><span class="co">#&gt;   patient period TreatLab OnOff Length BaseCount Observed_Count</span></span>
+<span id="cb1-26"><a href="#cb1-26" tabindex="-1"></a><span class="co">#&gt; 1       1      1  Placebo    On    367         1              2</span></span>
+<span id="cb1-27"><a href="#cb1-27" tabindex="-1"></a><span class="co">#&gt; 2       2      1  Placebo    On    360         4              1</span></span>
+<span id="cb1-28"><a href="#cb1-28" tabindex="-1"></a><span class="co">#&gt; 3       3      1  Placebo    On    372         5              2</span></span>
+<span id="cb1-29"><a href="#cb1-29" tabindex="-1"></a><span class="co">#&gt; 4       4      1  Placebo    On    358         7              3</span></span>
+<span id="cb1-30"><a href="#cb1-30" tabindex="-1"></a><span class="co">#&gt; 5       5      1  Placebo    On    370         3              1</span></span>
+<span id="cb1-31"><a href="#cb1-31" tabindex="-1"></a><span class="co">#&gt; 6       6      1  Placebo    On    370         3              2</span></span></code></pre></div>
 <p>The variables retained for this example are:</p>
 <ul>
 <li><code>patient</code>: patient identifier.</li>
@@ -667,8 +668,8 @@ pooled degrees of freedom.</p>
 <span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a><span class="co">#&gt;      parameter     est    se     lci    uci    pval  </span></span>
 <span id="cb14-15"><a href="#cb14-15" tabindex="-1"></a><span class="co">#&gt;   ---------------------------------------------------</span></span>
 <span id="cb14-16"><a href="#cb14-16" tabindex="-1"></a><span class="co">#&gt;     (Intercept)   0.003    0    0.002  0.003  &lt;0.001 </span></span>
-<span id="cb14-17"><a href="#cb14-17" tabindex="-1"></a><span class="co">#&gt;    TreatLab100mg  0.765  0.086  0.614  0.953  0.017  </span></span>
-<span id="cb14-18"><a href="#cb14-18" tabindex="-1"></a><span class="co">#&gt;    TreatLab300mg  0.838  0.09   0.679  1.034  0.098  </span></span>
+<span id="cb14-17"><a href="#cb14-17" tabindex="-1"></a><span class="co">#&gt;    TreatLab100mg  0.767  0.086  0.616  0.955  0.017  </span></span>
+<span id="cb14-18"><a href="#cb14-18" tabindex="-1"></a><span class="co">#&gt;    TreatLab300mg  0.84   0.09   0.681  1.036  0.104  </span></span>
 <span id="cb14-19"><a href="#cb14-19" tabindex="-1"></a><span class="co">#&gt;      BaseCount    1.214  0.024  1.168  1.261  &lt;0.001 </span></span>
 <span id="cb14-20"><a href="#cb14-20" tabindex="-1"></a><span class="co">#&gt;   ---------------------------------------------------</span></span></code></pre></div>
 <p>The displayed results have been exponentiated to obtain rate ratios. The
@@ -689,9 +690,9 @@ with the <code>print</code> option <code>scale = &quot;original&quot;</code>:</p
 <span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a><span class="co">#&gt;   ======================================================</span></span>
 <span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a><span class="co">#&gt;      parameter     est     se     lci     uci     pval  </span></span>
 <span id="cb15-15"><a href="#cb15-15" tabindex="-1"></a><span class="co">#&gt;   ------------------------------------------------------</span></span>
-<span id="cb15-16"><a href="#cb15-16" tabindex="-1"></a><span class="co">#&gt;     (Intercept)   -5.981  0.092  -6.162   -5.8   &lt;0.001 </span></span>
-<span id="cb15-17"><a href="#cb15-17" tabindex="-1"></a><span class="co">#&gt;    TreatLab100mg  -0.268  0.112  -0.488  -0.049  0.017  </span></span>
-<span id="cb15-18"><a href="#cb15-18" tabindex="-1"></a><span class="co">#&gt;    TreatLab300mg  -0.177  0.107  -0.387  0.033   0.098  </span></span>
+<span id="cb15-16"><a href="#cb15-16" tabindex="-1"></a><span class="co">#&gt;     (Intercept)   -5.984  0.092  -6.164  -5.803  &lt;0.001 </span></span>
+<span id="cb15-17"><a href="#cb15-17" tabindex="-1"></a><span class="co">#&gt;    TreatLab100mg  -0.265  0.112  -0.484  -0.047  0.017  </span></span>
+<span id="cb15-18"><a href="#cb15-18" tabindex="-1"></a><span class="co">#&gt;    TreatLab300mg  -0.174  0.107  -0.384  0.036   0.104  </span></span>
 <span id="cb15-19"><a href="#cb15-19" tabindex="-1"></a><span class="co">#&gt;      BaseCount    0.194   0.019  0.156   0.232   &lt;0.001 </span></span>
 <span id="cb15-20"><a href="#cb15-20" tabindex="-1"></a><span class="co">#&gt;   ------------------------------------------------------</span></span></code></pre></div>
 <p>We can also look at the Monte Carlo standard errors for the results:</p>
@@ -707,8 +708,8 @@ with the <code>print</code> option <code>scale = &quot;original&quot;</code>:</p
 <span id="cb16-10"><a href="#cb16-10" tabindex="-1"></a><span class="co">#&gt;      parameter     est   se   lci    uci      pval    </span></span>
 <span id="cb16-11"><a href="#cb16-11" tabindex="-1"></a><span class="co">#&gt;   ----------------------------------------------------</span></span>
 <span id="cb16-12"><a href="#cb16-12" tabindex="-1"></a><span class="co">#&gt;     (Intercept)     0    0     0      0    &lt; 0.000001 </span></span>
-<span id="cb16-13"><a href="#cb16-13" tabindex="-1"></a><span class="co">#&gt;    TreatLab100mg  0.001  0   0.001  0.001   0.00051   </span></span>
-<span id="cb16-14"><a href="#cb16-14" tabindex="-1"></a><span class="co">#&gt;    TreatLab300mg  0.001  0   0.001  0.001   0.00196   </span></span>
+<span id="cb16-13"><a href="#cb16-13" tabindex="-1"></a><span class="co">#&gt;    TreatLab100mg  0.001  0   0.001  0.001   0.00050   </span></span>
+<span id="cb16-14"><a href="#cb16-14" tabindex="-1"></a><span class="co">#&gt;    TreatLab300mg  0.001  0   0.001  0.001   0.00208   </span></span>
 <span id="cb16-15"><a href="#cb16-15" tabindex="-1"></a><span class="co">#&gt;      BaseCount      0    0     0      0    &lt; 0.000001 </span></span>
 <span id="cb16-16"><a href="#cb16-16" tabindex="-1"></a><span class="co">#&gt;   ----------------------------------------------------</span></span></code></pre></div>
 </div>
@@ -741,15 +742,15 @@ with the <code>print</code> option <code>scale = &quot;original&quot;</code>:</p
 <span id="cb17-24"><a href="#cb17-24" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="sc">-</span>model) <span class="sc">%&gt;%</span> </span>
 <span id="cb17-25"><a href="#cb17-25" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">mutate</span>(dplyr<span class="sc">::</span><span class="fu">across</span>(dplyr<span class="sc">::</span><span class="fu">where</span>(is.numeric), <span class="sc">~</span> <span class="fu">round</span>(.x, <span class="dv">4</span>)))</span>
 <span id="cb17-26"><a href="#cb17-26" tabindex="-1"></a><span class="co">#&gt;         comparison rbmi_rate_ratio rbmi_lower_95 rbmi_upper_95 rbmi_p_value</span></span>
-<span id="cb17-27"><a href="#cb17-27" tabindex="-1"></a><span class="co">#&gt; 1 100mg vs Placebo          0.7646        0.6136        0.9526       0.0167</span></span>
-<span id="cb17-28"><a href="#cb17-28" tabindex="-1"></a><span class="co">#&gt; 2 300mg vs Placebo          0.8376        0.6788        1.0335       0.0984</span></span>
+<span id="cb17-27"><a href="#cb17-27" tabindex="-1"></a><span class="co">#&gt; 1 100mg vs Placebo          0.7669        0.6161        0.9545       0.0175</span></span>
+<span id="cb17-28"><a href="#cb17-28" tabindex="-1"></a><span class="co">#&gt; 2 300mg vs Placebo          0.8403        0.6813        1.0365       0.1041</span></span>
 <span id="cb17-29"><a href="#cb17-29" tabindex="-1"></a><span class="co">#&gt;   sas_rate_ratio sas_lower_95 sas_upper_95 sas_p_value</span></span>
 <span id="cb17-30"><a href="#cb17-30" tabindex="-1"></a><span class="co">#&gt; 1         0.7663       0.6150       0.9548      0.0177</span></span>
 <span id="cb17-31"><a href="#cb17-31" tabindex="-1"></a><span class="co">#&gt; 2         0.8382       0.6792       1.0344      0.1000</span></span></code></pre></div>
-<p>Runtime: draw 19.20 seconds,
-impute 9.43 seconds,
-analyse 30.69 seconds, and
-pool 0.04 seconds.</p>
+<p>Runtime: draw 19.86 seconds,
+impute 9.25 seconds,
+analyse 31.01 seconds, and
+pool 0.05 seconds.</p>
 </div>
 <div id="additional-modeling-options" class="section level2" number="7">
 <h2><span class="header-section-number">7</span> Additional modeling options</h2>
@@ -843,9 +844,9 @@ uses the same analysis model as above. Only the imputation model has changed.</p
 <span id="cb23-14"><a href="#cb23-14" tabindex="-1"></a><span class="co">#&gt;      parameter     est    se     lci    uci    pval  </span></span>
 <span id="cb23-15"><a href="#cb23-15" tabindex="-1"></a><span class="co">#&gt;   ---------------------------------------------------</span></span>
 <span id="cb23-16"><a href="#cb23-16" tabindex="-1"></a><span class="co">#&gt;     (Intercept)   0.003    0    0.002  0.003  &lt;0.001 </span></span>
-<span id="cb23-17"><a href="#cb23-17" tabindex="-1"></a><span class="co">#&gt;    TreatLab100mg  0.767  0.086  0.616  0.955  0.018  </span></span>
-<span id="cb23-18"><a href="#cb23-18" tabindex="-1"></a><span class="co">#&gt;    TreatLab300mg  0.837  0.09   0.679  1.033  0.097  </span></span>
-<span id="cb23-19"><a href="#cb23-19" tabindex="-1"></a><span class="co">#&gt;      BaseCount    1.214  0.023  1.169  1.261  &lt;0.001 </span></span>
+<span id="cb23-17"><a href="#cb23-17" tabindex="-1"></a><span class="co">#&gt;    TreatLab100mg  0.769  0.086  0.618  0.956  0.018  </span></span>
+<span id="cb23-18"><a href="#cb23-18" tabindex="-1"></a><span class="co">#&gt;    TreatLab300mg  0.838  0.089  0.68   1.033  0.098  </span></span>
+<span id="cb23-19"><a href="#cb23-19" tabindex="-1"></a><span class="co">#&gt;      BaseCount    1.214  0.024  1.169  1.261  &lt;0.001 </span></span>
 <span id="cb23-20"><a href="#cb23-20" tabindex="-1"></a><span class="co">#&gt;   ---------------------------------------------------</span></span></code></pre></div>
 <p>For comparison with implementations that report treatment effects as rate
 ratios, extract the transformed pooled results:</p>
@@ -867,9 +868,9 @@ ratios, extract the transformed pooled results:</p>
 <span id="cb24-16"><a href="#cb24-16" tabindex="-1"></a>    <span class="st">&quot;NM_Reg: Separate for each Treat.&quot;</span></span>
 <span id="cb24-17"><a href="#cb24-17" tabindex="-1"></a>)</span>
 <span id="cb24-18"><a href="#cb24-18" tabindex="-1"></a>rate_ratios_by_arm</span>
-<span id="cb24-19"><a href="#cb24-19" tabindex="-1"></a><span class="co">#&gt;         comparison rate_ratio  lower_95 upper_95    p_value</span></span>
-<span id="cb24-20"><a href="#cb24-20" tabindex="-1"></a><span class="co">#&gt; 1 100mg vs Placebo  0.7670349 0.6159932 0.955112 0.01776779</span></span>
-<span id="cb24-21"><a href="#cb24-21" tabindex="-1"></a><span class="co">#&gt; 2 300mg vs Placebo  0.8371981 0.6787127 1.032691 0.09700683</span></span></code></pre></div>
+<span id="cb24-19"><a href="#cb24-19" tabindex="-1"></a><span class="co">#&gt;         comparison rate_ratio  lower_95  upper_95    p_value</span></span>
+<span id="cb24-20"><a href="#cb24-20" tabindex="-1"></a><span class="co">#&gt; 1 100mg vs Placebo  0.7687114 0.6179747 0.9562158 0.01817732</span></span>
+<span id="cb24-21"><a href="#cb24-21" tabindex="-1"></a><span class="co">#&gt; 2 300mg vs Placebo  0.8383922 0.6804871 1.0329387 0.09780640</span></span></code></pre></div>
 </div>
 <div id="comparison-with-sas-results-1" class="section level4" number="7.1.3">
 <h4><span class="header-section-number">7.1.3</span> Comparison with SAS results</h4>
@@ -888,14 +889,14 @@ ratios, extract the transformed pooled results:</p>
 <span id="cb25-12"><a href="#cb25-12" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="sc">-</span>model) <span class="sc">%&gt;%</span> </span>
 <span id="cb25-13"><a href="#cb25-13" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">mutate</span>(dplyr<span class="sc">::</span><span class="fu">across</span>(dplyr<span class="sc">::</span><span class="fu">where</span>(is.numeric), <span class="sc">~</span> <span class="fu">round</span>(.x, <span class="dv">4</span>)))</span>
 <span id="cb25-14"><a href="#cb25-14" tabindex="-1"></a><span class="co">#&gt;         comparison rbmi_rate_ratio rbmi_lower_95 rbmi_upper_95 rbmi_p_value</span></span>
-<span id="cb25-15"><a href="#cb25-15" tabindex="-1"></a><span class="co">#&gt; 1 100mg vs Placebo          0.7670        0.6160        0.9551       0.0178</span></span>
-<span id="cb25-16"><a href="#cb25-16" tabindex="-1"></a><span class="co">#&gt; 2 300mg vs Placebo          0.8372        0.6787        1.0327       0.0970</span></span>
+<span id="cb25-15"><a href="#cb25-15" tabindex="-1"></a><span class="co">#&gt; 1 100mg vs Placebo          0.7687        0.6180        0.9562       0.0182</span></span>
+<span id="cb25-16"><a href="#cb25-16" tabindex="-1"></a><span class="co">#&gt; 2 300mg vs Placebo          0.8384        0.6805        1.0329       0.0978</span></span>
 <span id="cb25-17"><a href="#cb25-17" tabindex="-1"></a><span class="co">#&gt;   sas_rate_ratio sas_lower_95 sas_upper_95 sas_p_value</span></span>
 <span id="cb25-18"><a href="#cb25-18" tabindex="-1"></a><span class="co">#&gt; 1         0.7668       0.6164       0.9539      0.0172</span></span>
 <span id="cb25-19"><a href="#cb25-19" tabindex="-1"></a><span class="co">#&gt; 2         0.8362       0.6786       1.0305      0.0933</span></span></code></pre></div>
-<p>Runtime: draw 19.47 seconds,
-impute 9.82 seconds,
-analyse 32.36 seconds, and
+<p>Runtime: draw 19.50 seconds,
+impute 9.78 seconds,
+analyse 30.98 seconds, and
 pool 0.05 seconds.</p>
 </div>
 </div>
@@ -981,8 +982,8 @@ periods.</p>
 <span id="cb31-14"><a href="#cb31-14" tabindex="-1"></a><span class="co">#&gt;      parameter     est    se     lci    uci    pval  </span></span>
 <span id="cb31-15"><a href="#cb31-15" tabindex="-1"></a><span class="co">#&gt;   ---------------------------------------------------</span></span>
 <span id="cb31-16"><a href="#cb31-16" tabindex="-1"></a><span class="co">#&gt;     (Intercept)   0.003    0    0.002  0.003  &lt;0.001 </span></span>
-<span id="cb31-17"><a href="#cb31-17" tabindex="-1"></a><span class="co">#&gt;    TreatLab100mg  0.767  0.086  0.615  0.956  0.018  </span></span>
-<span id="cb31-18"><a href="#cb31-18" tabindex="-1"></a><span class="co">#&gt;    TreatLab300mg  0.837  0.09   0.678  1.034  0.099  </span></span>
+<span id="cb31-17"><a href="#cb31-17" tabindex="-1"></a><span class="co">#&gt;    TreatLab100mg  0.767  0.086  0.615  0.955  0.018  </span></span>
+<span id="cb31-18"><a href="#cb31-18" tabindex="-1"></a><span class="co">#&gt;    TreatLab300mg  0.837  0.09   0.678  1.033  0.098  </span></span>
 <span id="cb31-19"><a href="#cb31-19" tabindex="-1"></a><span class="co">#&gt;      BaseCount    1.215  0.024  1.169  1.262  &lt;0.001 </span></span>
 <span id="cb31-20"><a href="#cb31-20" tabindex="-1"></a><span class="co">#&gt;   ---------------------------------------------------</span></span></code></pre></div>
 </div>
@@ -1020,15 +1021,15 @@ periods.</p>
 <span id="cb32-29"><a href="#cb32-29" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="sc">-</span>model) <span class="sc">%&gt;%</span> </span>
 <span id="cb32-30"><a href="#cb32-30" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">mutate</span>(dplyr<span class="sc">::</span><span class="fu">across</span>(dplyr<span class="sc">::</span><span class="fu">where</span>(is.numeric), <span class="sc">~</span> <span class="fu">round</span>(.x, <span class="dv">4</span>)))</span>
 <span id="cb32-31"><a href="#cb32-31" tabindex="-1"></a><span class="co">#&gt;         comparison rbmi_rate_ratio rbmi_lower_95 rbmi_upper_95 rbmi_p_value</span></span>
-<span id="cb32-32"><a href="#cb32-32" tabindex="-1"></a><span class="co">#&gt; 1 100mg vs Placebo          0.7670        0.6152        0.9563       0.0184</span></span>
-<span id="cb32-33"><a href="#cb32-33" tabindex="-1"></a><span class="co">#&gt; 2 300mg vs Placebo          0.8371        0.6777        1.0340       0.0990</span></span>
+<span id="cb32-32"><a href="#cb32-32" tabindex="-1"></a><span class="co">#&gt; 1 100mg vs Placebo          0.7665        0.6151        0.9552       0.0179</span></span>
+<span id="cb32-33"><a href="#cb32-33" tabindex="-1"></a><span class="co">#&gt; 2 300mg vs Placebo          0.8368        0.6776        1.0335       0.0981</span></span>
 <span id="cb32-34"><a href="#cb32-34" tabindex="-1"></a><span class="co">#&gt;   sas_rate_ratio sas_lower_95 sas_upper_95 sas_p_value</span></span>
 <span id="cb32-35"><a href="#cb32-35" tabindex="-1"></a><span class="co">#&gt; 1         0.7656       0.6138       0.9549      0.0178</span></span>
 <span id="cb32-36"><a href="#cb32-36" tabindex="-1"></a><span class="co">#&gt; 2         0.8351       0.6761       1.0315      0.0945</span></span></code></pre></div>
-<p>Runtime: draw 21.80 seconds,
-impute 37.24 seconds,
-analyse 126.97 seconds, and
-pool 0.18 seconds.</p>
+<p>Runtime: draw 20.80 seconds,
+impute 39.28 seconds,
+analyse 125.39 seconds, and
+pool 0.19 seconds.</p>
 </div>
 </div>
 <div id="more-complex-model-which-also-splits-time-by-season" class="section level3" number="7.3">
@@ -1224,8 +1225,8 @@ still aggregates all observed and imputed counts and exposure within patient.</p
 <span id="cb42-14"><a href="#cb42-14" tabindex="-1"></a><span class="co">#&gt;      parameter     est    se     lci    uci    pval  </span></span>
 <span id="cb42-15"><a href="#cb42-15" tabindex="-1"></a><span class="co">#&gt;   ---------------------------------------------------</span></span>
 <span id="cb42-16"><a href="#cb42-16" tabindex="-1"></a><span class="co">#&gt;     (Intercept)   0.003    0    0.002  0.003  &lt;0.001 </span></span>
-<span id="cb42-17"><a href="#cb42-17" tabindex="-1"></a><span class="co">#&gt;    TreatLab100mg  0.764  0.086  0.613  0.953  0.017  </span></span>
-<span id="cb42-18"><a href="#cb42-18" tabindex="-1"></a><span class="co">#&gt;    TreatLab300mg  0.835  0.09   0.676  1.032  0.095  </span></span>
+<span id="cb42-17"><a href="#cb42-17" tabindex="-1"></a><span class="co">#&gt;    TreatLab100mg  0.766  0.086  0.615  0.954  0.017  </span></span>
+<span id="cb42-18"><a href="#cb42-18" tabindex="-1"></a><span class="co">#&gt;    TreatLab300mg  0.838  0.09   0.679  1.034  0.099  </span></span>
 <span id="cb42-19"><a href="#cb42-19" tabindex="-1"></a><span class="co">#&gt;      BaseCount    1.214  0.024  1.169  1.261  &lt;0.001 </span></span>
 <span id="cb42-20"><a href="#cb42-20" tabindex="-1"></a><span class="co">#&gt;   ---------------------------------------------------</span></span></code></pre></div>
 <p>The corresponding SAS results are labelled <code>4 Seasons: Treat*OnOff BaseCount</code>.</p>
@@ -1255,15 +1256,15 @@ still aggregates all observed and imputed counts and exposure within patient.</p
 <span id="cb43-24"><a href="#cb43-24" tabindex="-1"></a>    <span class="fu">select</span>(<span class="sc">-</span>model) <span class="sc">%&gt;%</span> </span>
 <span id="cb43-25"><a href="#cb43-25" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">mutate</span>(dplyr<span class="sc">::</span><span class="fu">across</span>(dplyr<span class="sc">::</span><span class="fu">where</span>(is.numeric), <span class="sc">~</span> <span class="fu">round</span>(.x, <span class="dv">4</span>)))</span>
 <span id="cb43-26"><a href="#cb43-26" tabindex="-1"></a><span class="co">#&gt;         comparison rbmi_rate_ratio rbmi_lower_95 rbmi_upper_95 rbmi_p_value</span></span>
-<span id="cb43-27"><a href="#cb43-27" tabindex="-1"></a><span class="co">#&gt; 1 100mg vs Placebo          0.7644        0.6130        0.9531       0.0170</span></span>
-<span id="cb43-28"><a href="#cb43-28" tabindex="-1"></a><span class="co">#&gt; 2 300mg vs Placebo          0.8352        0.6762        1.0316       0.0948</span></span>
+<span id="cb43-27"><a href="#cb43-27" tabindex="-1"></a><span class="co">#&gt; 1 100mg vs Placebo          0.7659        0.6150        0.9536       0.0171</span></span>
+<span id="cb43-28"><a href="#cb43-28" tabindex="-1"></a><span class="co">#&gt; 2 300mg vs Placebo          0.8376        0.6786        1.0340       0.0992</span></span>
 <span id="cb43-29"><a href="#cb43-29" tabindex="-1"></a><span class="co">#&gt;   sas_rate_ratio sas_lower_95 sas_upper_95 sas_p_value</span></span>
 <span id="cb43-30"><a href="#cb43-30" tabindex="-1"></a><span class="co">#&gt; 1         0.7642       0.6131       0.9525      0.0167</span></span>
 <span id="cb43-31"><a href="#cb43-31" tabindex="-1"></a><span class="co">#&gt; 2         0.8345       0.6756       1.0306      0.0929</span></span></code></pre></div>
-<p>Runtime: draw 24.86 seconds,
-impute 14.03 seconds,
-analyse 30.63 seconds, and
-pool 0.05 seconds.</p>
+<p>Runtime: draw 25.19 seconds,
+impute 13.77 seconds,
+analyse 32.07 seconds, and
+pool 0.04 seconds.</p>
 </div>
 <div id="fixed-rate-model-for-the-active-arms" class="section level3" number="7.4">
 <h3><span class="header-section-number">7.4</span> Fixed rate model for the active arms</h3>
@@ -1370,15 +1371,15 @@ estimated placebo off-treatment rate.</p>
 <span id="cb48-24"><a href="#cb48-24" tabindex="-1"></a>    <span class="fu">select</span>(<span class="sc">-</span>model) <span class="sc">%&gt;%</span></span>
 <span id="cb48-25"><a href="#cb48-25" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">mutate</span>(dplyr<span class="sc">::</span><span class="fu">across</span>(dplyr<span class="sc">::</span><span class="fu">where</span>(is.numeric), <span class="sc">~</span> <span class="fu">round</span>(.x, <span class="dv">4</span>)))</span>
 <span id="cb48-26"><a href="#cb48-26" tabindex="-1"></a><span class="co">#&gt;         comparison rbmi_rate_ratio rbmi_lower_95 rbmi_upper_95 rbmi_p_value</span></span>
-<span id="cb48-27"><a href="#cb48-27" tabindex="-1"></a><span class="co">#&gt; 1 100mg vs Placebo          0.7845        0.6297        0.9774       0.0305</span></span>
-<span id="cb48-28"><a href="#cb48-28" tabindex="-1"></a><span class="co">#&gt; 2 300mg vs Placebo          0.8520        0.6902        1.0517       0.1360</span></span>
+<span id="cb48-27"><a href="#cb48-27" tabindex="-1"></a><span class="co">#&gt; 1 100mg vs Placebo          0.7856        0.6299        0.9799       0.0323</span></span>
+<span id="cb48-28"><a href="#cb48-28" tabindex="-1"></a><span class="co">#&gt; 2 300mg vs Placebo          0.8542        0.6913        1.0554       0.1441</span></span>
 <span id="cb48-29"><a href="#cb48-29" tabindex="-1"></a><span class="co">#&gt;   sas_rate_ratio sas_lower_95 sas_upper_95 sas_p_value</span></span>
 <span id="cb48-30"><a href="#cb48-30" tabindex="-1"></a><span class="co">#&gt; 1         0.7850       0.6291       0.9794      0.0320</span></span>
 <span id="cb48-31"><a href="#cb48-31" tabindex="-1"></a><span class="co">#&gt; 2         0.8531       0.6906       1.0538      0.1405</span></span></code></pre></div>
-<p>Runtime: draw 19.20 seconds (reusing the original draws),
-impute 9.65 seconds,
-analyse 38.80 seconds, and
-pool 0.10 seconds.</p>
+<p>Runtime: draw 19.86 seconds (reusing the original draws),
+impute 9.92 seconds,
+analyse 31.73 seconds, and
+pool 0.04 seconds.</p>
 </div>
 <div id="off-treatment-estimate-is-doubled-for-the-active-arms" class="section level3" number="7.5">
 <h3><span class="header-section-number">7.5</span> Off-treatment estimate is doubled for the active arms</h3>
@@ -1443,14 +1444,14 @@ dispersion parameter before the multiplier is applied.</p>
 <span id="cb53-24"><a href="#cb53-24" tabindex="-1"></a>    <span class="fu">select</span>(<span class="sc">-</span>model) <span class="sc">%&gt;%</span></span>
 <span id="cb53-25"><a href="#cb53-25" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">mutate</span>(dplyr<span class="sc">::</span><span class="fu">across</span>(dplyr<span class="sc">::</span><span class="fu">where</span>(is.numeric), <span class="sc">~</span> <span class="fu">round</span>(.x, <span class="dv">4</span>)))</span>
 <span id="cb53-26"><a href="#cb53-26" tabindex="-1"></a><span class="co">#&gt;         comparison rbmi_rate_ratio rbmi_lower_95 rbmi_upper_95 rbmi_p_value</span></span>
-<span id="cb53-27"><a href="#cb53-27" tabindex="-1"></a><span class="co">#&gt; 1 100mg vs Placebo          0.7933        0.6345        0.9920       0.0423</span></span>
-<span id="cb53-28"><a href="#cb53-28" tabindex="-1"></a><span class="co">#&gt; 2 300mg vs Placebo          0.8606        0.6959        1.0644       0.1663</span></span>
+<span id="cb53-27"><a href="#cb53-27" tabindex="-1"></a><span class="co">#&gt; 1 100mg vs Placebo           0.795        0.6352        0.9948       0.0449</span></span>
+<span id="cb53-28"><a href="#cb53-28" tabindex="-1"></a><span class="co">#&gt; 2 300mg vs Placebo           0.864        0.6985        1.0687       0.1779</span></span>
 <span id="cb53-29"><a href="#cb53-29" tabindex="-1"></a><span class="co">#&gt;   sas_rate_ratio sas_lower_95 sas_upper_95 sas_p_value</span></span>
 <span id="cb53-30"><a href="#cb53-30" tabindex="-1"></a><span class="co">#&gt; 1         0.7931       0.6344       0.9915      0.0419</span></span>
 <span id="cb53-31"><a href="#cb53-31" tabindex="-1"></a><span class="co">#&gt; 2         0.8606       0.6957       1.0647      0.1667</span></span></code></pre></div>
-<p>Runtime: draw 19.20 seconds (reusing the original draws),
-impute 13.10 seconds,
-analyse 30.14 seconds, and
+<p>Runtime: draw 19.86 seconds (reusing the original draws),
+impute 9.97 seconds,
+analyse 32.30 seconds, and
 pool 0.05 seconds.</p>
 </div>
 </div>
